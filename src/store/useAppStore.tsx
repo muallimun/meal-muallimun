@@ -80,6 +80,7 @@ export const DEFAULT_STUDY_PREFS: StudyPrefs = {
   bookContentMode: 'interleaved',
   mealAudioFocusOnly: false,
   pageLayout: 'single',
+  mushafSidePanelOpen: true,
 };
 
 export const DEFAULT_STUDY_PROGRESS: StudyProgress = {
@@ -292,6 +293,10 @@ function hydrateState(): PersistedAppState {
           ? rawStudyPrefs.mealAudioFocusOnly
           : DEFAULT_STUDY_PREFS.mealAudioFocusOnly,
       pageLayout: hydratedPageLayout,
+      mushafSidePanelOpen:
+        typeof rawStudyPrefs?.mushafSidePanelOpen === 'boolean'
+          ? rawStudyPrefs.mushafSidePanelOpen
+          : DEFAULT_STUDY_PREFS.mushafSidePanelOpen,
     };
 
     const rawProgress = parsed.studyProgress;

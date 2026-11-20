@@ -46,7 +46,7 @@ interface ExamHubPageProps {
   onDiscardResumable: () => void;
 }
 
-const QUESTION_COUNT_OPTIONS = [5, 10, 15, 20, 30, 0] as const;
+const QUESTION_COUNT_OPTIONS = [5, 10, 15, 20, 30, 50, 0] as const;
 
 const MODE_LABELS: Record<ExamMode, string> = {
   practice: 'Hızlı Antrenman',
@@ -253,37 +253,39 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       )}
 
       {/* ====================================================================
-          Başlık ve Hızlı Hata Kampı Kısayolu
+          Kompakt Tek Satırlık Üst Başlık Şeridi
           ==================================================================== */}
-      <section className="flex flex-col sm:flex-row sm:items-end justify-between gap-2.5">
-        <div>
-          <p className="text-xs font-bold mb-0.5" style={{ color: 'var(--brand-primary-text)' }}>
-            %100 Editoryal Soru Bankası
-          </p>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+      <section className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 min-w-0">
+          <h2 className="text-lg sm:text-xl font-extrabold tracking-tight whitespace-nowrap">
             Yarışma &amp; Sınav Merkezi
           </h2>
-          <p className="text-xs sm:text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            Kapsamını seç, modunu belirle ve meal bilgini sına.
-          </p>
+          <span
+            className="text-xs font-semibold tabular-nums"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            {selectedSingleSurah !== null
+              ? `${surahMap.get(selectedSingleSurah)?.nameTr ?? `${selectedSingleSurah}. Sure`} · ${formatNumberTr(availableFilteredCount)} hazır soru`
+              : `${formatNumberTr(targetSurahs.length)} Sure · ${formatNumberTr(availableFilteredCount)} Hazır Soru`}
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => {
               sfxService.play('click');
               setIsPrintModalOpen(true);
             }}
-            className="min-h-[44px] px-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-colors"
+            className="min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-colors whitespace-nowrap"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-strong)',
               color: 'var(--text-primary)',
             }}
           >
-            <Printer className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-            <span>A4 Yazdırılabilir Sınav Hazırla</span>
+            <Printer className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+            <span>A4 Sınav Hazırla</span>
           </button>
 
           <button
@@ -292,7 +294,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               sfxService.play('click');
               setIsAuditModalOpen(true);
             }}
-            className="min-h-[44px] px-3.5 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-colors"
+            className="min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-colors whitespace-nowrap"
             style={{
               backgroundColor:
                 reportedCount > 0 ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-surface)',
@@ -301,7 +303,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               color: reportedCount > 0 ? '#DC2626' : 'var(--text-secondary)',
             }}
           >
-            <Flag className="w-4 h-4 shrink-0" />
+            <Flag className="w-3.5 h-3.5 shrink-0" />
             <span>
               Hata Bildirimleri{reportedCount > 0 ? ` (${formatNumberTr(reportedCount)})` : ''}
             </span>
@@ -311,14 +313,14 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('mistakes')}
-              className="min-h-[44px] px-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+              className="min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
               style={{
                 backgroundColor: 'rgba(239, 68, 68, 0.08)',
                 borderColor: 'rgba(239, 68, 68, 0.25)',
                 color: '#DC2626',
               }}
             >
-              <RotateCcw className="w-4 h-4 shrink-0" />
+              <RotateCcw className="w-3.5 h-3.5 shrink-0" />
               <span>Hata Kampı ({formatNumberTr(gamification.wrongQuestionIds.length)})</span>
             </button>
           )}
@@ -326,206 +328,201 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       </section>
 
       {/* ====================================================================
-          1. Kapsam & Akıllı Filtre Kartı
+          2 Sütunlu Masaüstü Sınav Kurulum Konsolu (Tek Ekrana Sığan Yapı)
           ==================================================================== */}
-      <section className="surface-card rounded-2xl p-4 sm:p-5 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{
-                backgroundColor: 'var(--brand-primary-soft)',
-                color: 'var(--brand-primary-text)',
-              }}
-            >
-              <Layers className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-extrabold tracking-tight">1. Kapsam ve Filtreler</h3>
-              <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                {selectedSingleSurah !== null
-                  ? `${surahMap.get(selectedSingleSurah)?.nameTr ?? `${selectedSingleSurah}. Sure`} · ${formatNumberTr(availableFilteredCount)} uygun soru`
-                  : `${formatNumberTr(targetSurahs.length)} Sure · ${formatNumberTr(availableFilteredCount)} hazır soru`}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={openPoolModal}
-            className="min-h-[40px] px-3.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--brand-primary-text)',
-            }}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-            <span>Havuzu Düzenle</span>
-          </button>
-        </div>
-
-        {/* Sure Seçimi: Aktif Çalışma Havuzu veya Tek Sure */}
-        <div className="space-y-2">
-          <p className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>
-            Sınav Kapsamı
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                setSelectedSingleSurah(null);
-              }}
-              className="min-h-[42px] px-3.5 rounded-xl border text-xs sm:text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer"
-              style={{
-                backgroundColor:
-                  selectedSingleSurah === null
-                    ? 'var(--brand-primary-soft)'
-                    : 'var(--bg-surface-soft)',
-                borderColor:
-                  selectedSingleSurah === null ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                color:
-                  selectedSingleSurah === null
-                    ? 'var(--brand-primary-text)'
-                    : 'var(--text-secondary)',
-              }}
-            >
-              <span>Aktif Çalışma Havuzum</span>
-              <span className="text-xs opacity-80 tabular-nums">
-                ({poolQuestionSurahs.length > 0 ? poolQuestionSurahs.length : availableSurahs.length}{' '}
-                Sure)
-              </span>
-            </button>
-
-            {availableSurahs.map((sNo) => {
-              const sMeta = surahMap.get(sNo);
-              const qCnt = questionCountBySurah.get(sNo) ?? sMeta?.questionCount ?? 0;
-              const isSelected = selectedSingleSurah === sNo;
-
-              return (
-                <button
-                  key={sNo}
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    setSelectedSingleSurah(sNo);
-                  }}
-                  className="min-h-[42px] px-3.5 rounded-xl border text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch">
+        {/* SOL SÜTUN: 1. Kapsam ve Akıllı Filtreler */}
+        <section className="lg:col-span-5 surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between gap-3">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                   style={{
-                    backgroundColor: isSelected
-                      ? 'var(--brand-primary-soft)'
-                      : 'var(--bg-surface)',
-                    borderColor: isSelected ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                    color: isSelected ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+                    backgroundColor: 'var(--brand-primary-soft)',
+                    color: 'var(--brand-primary-text)',
                   }}
                 >
-                  <span>{sMeta?.shortNameTr ?? `${sNo}. Sure`}</span>
-                  <span
-                    className="text-[11px] font-semibold tabular-nums"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    ({qCnt})
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          {selectedSingleSurah === null && poolQuestionSurahs.length === 0 && (
-            <p className="text-xs" style={{ color: 'var(--brand-accent-text)' }}>
-              Aktif havuzundaki surelerde henüz soru bulunmadığı için soru bankasındaki tüm sureler
-              otomatik olarak kapsama alındı.
-            </p>
-          )}
-        </div>
+                  <Layers className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-extrabold tracking-tight truncate">
+                  1. Kapsam ve Filtreler
+                </h3>
+              </div>
 
-        {/* Zorluk + Meal Esası + Henüz Çözmediğim Sorulara Öncelik Ver */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-          {/* Zorluk Seviyesi */}
-          <div className="space-y-1.5">
-            <span className="text-xs font-bold block" style={{ color: 'var(--text-secondary)' }}>
-              Zorluk Seviyesi
-            </span>
-            <div
-              className="grid grid-cols-4 gap-1 p-1 rounded-xl"
-              style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-            >
-              {(
-                [
-                  { id: 'all', label: 'Tümü' },
-                  { id: 1, label: 'Kolay' },
-                  { id: 2, label: 'Orta' },
-                  { id: 3, label: 'Zor' },
-                ] as { id: ExamDifficultyFilter; label: string }[]
-              ).map((item) => {
-                const active = difficulty === item.id;
+              <button
+                type="button"
+                onClick={openPoolModal}
+                className="min-h-[32px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0 whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <SlidersHorizontal className="w-3 h-3 shrink-0" />
+                <span>Havuzu Düzenle</span>
+              </button>
+            </div>
+
+            {/* Sure Kapsamı */}
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setSelectedSingleSurah(null);
+                }}
+                className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                style={{
+                  backgroundColor:
+                    selectedSingleSurah === null
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface-soft)',
+                  borderColor:
+                    selectedSingleSurah === null ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                  color:
+                    selectedSingleSurah === null
+                      ? 'var(--brand-primary-text)'
+                      : 'var(--text-secondary)',
+                }}
+              >
+                <span>Aktif Havuzum</span>
+                <span className="text-[11px] opacity-80 tabular-nums">
+                  ({poolQuestionSurahs.length > 0 ? poolQuestionSurahs.length : availableSurahs.length})
+                </span>
+              </button>
+
+              {availableSurahs.map((sNo) => {
+                const sMeta = surahMap.get(sNo);
+                const qCnt = questionCountBySurah.get(sNo) ?? sMeta?.questionCount ?? 0;
+                const isSelected = selectedSingleSurah === sNo;
+
                 return (
                   <button
-                    key={String(item.id)}
+                    key={sNo}
                     type="button"
                     onClick={() => {
                       sfxService.play('click');
-                      setDifficulty(item.id);
+                      setSelectedSingleSurah(sNo);
                     }}
-                    className="min-h-[36px] rounded-lg text-xs font-bold transition-all cursor-pointer"
+                    className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
                     style={{
-                      backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                      color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      backgroundColor: isSelected
+                        ? 'var(--brand-primary-soft)'
+                        : 'var(--bg-surface)',
+                      borderColor: isSelected ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                      color: isSelected ? 'var(--brand-primary-text)' : 'var(--text-primary)',
                     }}
                   >
-                    {item.label}
+                    <span>{sMeta?.shortNameTr ?? `${sNo}. Sure`}</span>
+                    <span
+                      className="text-[10px] font-semibold tabular-nums"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      ({qCnt})
+                    </span>
                   </button>
                 );
               })}
             </div>
-          </div>
 
-          {/* Meal Esası */}
-          <div className="space-y-1.5">
-            <span className="text-xs font-bold block" style={{ color: 'var(--text-secondary)' }}>
-              Meal Esası
-            </span>
+            {selectedSingleSurah === null && poolQuestionSurahs.length === 0 && (
+              <p className="text-[11px] leading-snug" style={{ color: 'var(--brand-accent-text)' }}>
+                Aktif havuzundaki surelerde henüz soru olmadığı için mevcut soru bankası kapsama
+                alındı.
+              </p>
+            )}
+
+            {/* Zorluk ve Meal Esası */}
             <div
-              className="grid grid-cols-4 gap-1 p-1 rounded-xl"
-              style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2.5 pt-2.5 border-t"
+              style={{ borderColor: 'var(--border-subtle)' }}
             >
-              {(
-                [
-                  { id: 'all', label: 'Tümü' },
-                  { id: 'tdv', label: 'TDV' },
-                  { id: 'dib', label: 'DİB' },
-                  { id: 'common', label: 'Ortak' },
-                ] as { id: ExamMealBasisFilter; label: string }[]
-              ).map((item) => {
-                const active = mealBasis === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setMealBasis(item.id);
-                    }}
-                    className="min-h-[36px] rounded-lg text-xs font-bold transition-all cursor-pointer"
-                    style={{
-                      backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                      color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
+              {/* Zorluk */}
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold block" style={{ color: 'var(--text-muted)' }}>
+                  Zorluk
+                </span>
+                <div
+                  className="grid grid-cols-4 gap-0.5 p-0.5 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                >
+                  {(
+                    [
+                      { id: 'all', label: 'Tümü' },
+                      { id: 1, label: 'Kolay' },
+                      { id: 2, label: 'Orta' },
+                      { id: 3, label: 'Zor' },
+                    ] as { id: ExamDifficultyFilter; label: string }[]
+                  ).map((item) => {
+                    const active = difficulty === item.id;
+                    return (
+                      <button
+                        key={String(item.id)}
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setDifficulty(item.id);
+                        }}
+                        className="min-h-[32px] rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Meal Esası */}
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold block" style={{ color: 'var(--text-muted)' }}>
+                  Meal Esası
+                </span>
+                <div
+                  className="grid grid-cols-4 gap-0.5 p-0.5 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                >
+                  {(
+                    [
+                      { id: 'all', label: 'Tümü' },
+                      { id: 'tdv', label: 'TDV' },
+                      { id: 'dib', label: 'DİB' },
+                      { id: 'common', label: 'Ortak' },
+                    ] as { id: ExamMealBasisFilter; label: string }[]
+                  ).map((item) => {
+                    const active = mealBasis === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setMealBasis(item.id);
+                        }}
+                        className="min-h-[32px] rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Henüz Çözmediğim Sorulara Öncelik Ver */}
-          <div className="space-y-1.5">
-            <span className="text-xs font-bold block" style={{ color: 'var(--text-secondary)' }}>
-              Akıllı Soru Seçimi
-            </span>
+          {/* Alt Sıra: Çözmediklerime Öncelik Ver + Hatalı Soru Notu */}
+          <div className="space-y-2">
             <button
               type="button"
               role="switch"
@@ -534,7 +531,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                 sfxService.play('click');
                 setPrioritizeUnsolved((prev) => !prev);
               }}
-              className="w-full min-h-[44px] px-3.5 rounded-xl border flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
+              className="w-full min-h-[38px] px-3 rounded-xl border flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
               style={{
                 backgroundColor: prioritizeUnsolved
                   ? 'var(--brand-primary-soft)'
@@ -553,7 +550,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                 Henüz çözmediklerime öncelik ver
               </span>
               <span
-                className="w-10 h-5 rounded-full p-0.5 transition-colors shrink-0 flex items-center"
+                className="w-9 h-5 rounded-full p-0.5 transition-colors shrink-0 flex items-center"
                 style={{
                   backgroundColor: prioritizeUnsolved
                     ? 'var(--brand-primary)'
@@ -564,353 +561,340 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                 <span className="w-4 h-4 rounded-full bg-white shadow-sm" />
               </span>
             </button>
-          </div>
-        </div>
 
-        {/* Hatalı İşaretli Soru Denetim Şeridi */}
-        {reportedCount > 0 && (
-          <div
-            className="rounded-xl border px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs"
-            style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.06)',
-              borderColor: 'rgba(239, 68, 68, 0.22)',
-            }}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <Flag className="w-3.5 h-3.5 text-red-500 shrink-0" />
-              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {questionAudit.skipReportedInExams
-                  ? `${formatNumberTr(reportedCount)} hatalı işaretli soru sınavlarda otomatik atlanıyor${
-                      skippedReportedCount > 0
-                        ? ` (bu kapsamda ${formatNumberTr(skippedReportedCount)} soru)`
-                        : ''
-                    }.`
-                  : `${formatNumberTr(reportedCount)} hatalı işaretli soru mevcut (otomatik atlama kapalı).`}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setSkipReportedInExams(!questionAudit.skipReportedInExams);
-                }}
-                className="px-2.5 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer"
+            {reportedCount > 0 && (
+              <div
+                className="rounded-xl border px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px]"
                 style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.06)',
+                  borderColor: 'rgba(239, 68, 68, 0.22)',
                 }}
               >
-                {questionAudit.skipReportedInExams ? 'Atlamayı Kapat' : 'Otomatik Atla'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setIsAuditModalOpen(true);
-                }}
-                className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer text-white"
-                style={{ backgroundColor: '#DC2626' }}
-              >
-                Raporu Yönet
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ====================================================================
-          2. 3 Sınav Modu Kartı
-          ==================================================================== */}
-      <section aria-label="Sınav modu seçimi" className="space-y-3">
-        <h3 className="text-base font-extrabold tracking-tight">2. Sınav Modunu Seç</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-          {/* Mod 1: Hızlı Antrenman */}
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              sfxService.play('click');
-              setMode('practice');
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                sfxService.play('click');
-                setMode('practice');
-              }
-            }}
-            className="surface-card rounded-2xl p-4 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
-            style={{
-              borderColor: mode === 'practice' ? 'var(--brand-primary)' : 'var(--border-subtle)',
-              backgroundColor: 'var(--bg-surface)',
-            }}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{
-                    backgroundColor: 'var(--brand-primary-soft)',
-                    color: 'var(--brand-primary-text)',
-                  }}
-                >
-                  <Zap className="w-5 h-5" />
-                </div>
-                <span
-                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
-                  style={{
-                    backgroundColor:
-                      mode === 'practice' ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
-                    color: mode === 'practice' ? '#FFFFFF' : 'var(--text-muted)',
-                  }}
-                >
-                  {mode === 'practice' ? 'Seçili' : 'Süresiz'}
+                <span className="font-semibold flex items-center gap-1.5 min-w-0">
+                  <Flag className="w-3 h-3 text-red-500 shrink-0" />
+                  <span className="truncate">
+                    {questionAudit.skipReportedInExams
+                      ? `${formatNumberTr(reportedCount)} işaretli soru atlanıyor${
+                          skippedReportedCount > 0 ? ` (${skippedReportedCount})` : ''
+                        }`
+                      : `${formatNumberTr(reportedCount)} işaretli soru (atlama kapalı)`}
+                  </span>
                 </span>
-              </div>
-
-              <h4 className="text-base font-extrabold mb-1.5">Hızlı Antrenman</h4>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Süre baskısı olmadan öğren. Her sorudan sonra anında doğru cevabı, çözüm
-                açıklamasını ve ilgili ayet mealini incele.
-              </p>
-            </div>
-
-            <p
-              className="mt-4 pt-3 border-t text-[11px] font-semibold"
-              style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
-            >
-              Anında dönüt · İlgili ayet çekmecesi
-            </p>
-          </div>
-
-          {/* Mod 2: Yarışma Arenası */}
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              sfxService.play('click');
-              setMode('arena');
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                sfxService.play('click');
-                setMode('arena');
-              }
-            }}
-            className="surface-card rounded-2xl p-4 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
-            style={{
-              borderColor: mode === 'arena' ? 'var(--brand-accent)' : 'var(--border-subtle)',
-            }}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{
-                    backgroundColor: 'var(--brand-accent-soft)',
-                    color: 'var(--brand-accent-text)',
-                  }}
-                >
-                  <Flame className="w-5 h-5" />
-                </div>
-                <span
-                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
-                  style={{
-                    backgroundColor:
-                      mode === 'arena' ? 'var(--brand-accent)' : 'var(--bg-surface-soft)',
-                    color: mode === 'arena' ? '#FFFFFF' : 'var(--text-muted)',
-                  }}
-                >
-                  {mode === 'arena' ? 'Seçili' : '3 Can · 3 Joker'}
-                </span>
-              </div>
-
-              <h4 className="text-base font-extrabold mb-1.5">Yarışma Arenası</h4>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                3 can, seri çarpanı ve 3 akıllı joker (%50 Ele, Ayet İpucu, +30sn Ek Süre) ile
-                heyecanlı bilgi yarışması deneyimi.
-              </p>
-            </div>
-
-            {/* Soru Başı Süre Seçimi */}
-            <div
-              className="mt-4 pt-3 border-t flex items-center justify-between gap-2"
-              style={{ borderColor: 'var(--border-subtle)' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Soru başı süre:
-              </span>
-              <div className="flex items-center gap-1">
-                {([45, 60] as ArenaTimeLimit[]).map((sec) => (
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
-                    key={sec}
                     type="button"
                     onClick={() => {
                       sfxService.play('click');
-                      setMode('arena');
-                      setArenaTimePerQuestion(sec);
+                      setSkipReportedInExams(!questionAudit.skipReportedInExams);
                     }}
-                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer"
+                    className="px-2 py-1 rounded-md border font-bold cursor-pointer"
                     style={{
-                      backgroundColor:
-                        arenaTimePerQuestion === sec
-                          ? 'var(--brand-accent-soft)'
-                          : 'var(--bg-surface-soft)',
-                      color:
-                        arenaTimePerQuestion === sec
-                          ? 'var(--brand-accent-text)'
-                          : 'var(--text-muted)',
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-primary)',
                     }}
                   >
-                    {sec} sn
+                    {questionAudit.skipReportedInExams ? 'Kapat' : 'Atla'}
                   </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Mod 3: Gerçek Deneme Sınavı */}
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => {
-              sfxService.play('click');
-              setMode('mock');
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                sfxService.play('click');
-                setMode('mock');
-              }
-            }}
-            className="surface-card rounded-2xl p-4 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
-            style={{
-              borderColor: mode === 'mock' ? 'var(--brand-primary)' : 'var(--border-subtle)',
-            }}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    color: 'var(--brand-primary-text)',
-                  }}
-                >
-                  <ClipboardCheck className="w-5 h-5" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsAuditModalOpen(true);
+                    }}
+                    className="px-2 py-1 rounded-md font-bold cursor-pointer text-white"
+                    style={{ backgroundColor: '#DC2626' }}
+                  >
+                    Yönet
+                  </button>
                 </div>
-                <span
-                  className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
-                  style={{
-                    backgroundColor:
-                      mode === 'mock' ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
-                    color: mode === 'mock' ? '#FFFFFF' : 'var(--text-muted)',
-                  }}
-                >
-                  {mode === 'mock' ? 'Seçili' : 'Deneme'}
-                </span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* SAĞ SÜTUN: 2. 3 Kompakt Sınav Modu + 3. Tek Satırlı Soru Sayısı & Başlat */}
+        <div className="lg:col-span-7 flex flex-col justify-between gap-3">
+          {/* 3 Sınav Modu Kartı */}
+          <section aria-label="Sınav modu seçimi" className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 flex-1">
+            {/* Mod 1: Hızlı Antrenman */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                sfxService.play('click');
+                setMode('practice');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  sfxService.play('click');
+                  setMode('practice');
+                }
+              }}
+              className="surface-card rounded-2xl p-3.5 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
+              style={{
+                borderColor: mode === 'practice' ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                backgroundColor: 'var(--bg-surface)',
+              }}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap"
+                    style={{
+                      backgroundColor:
+                        mode === 'practice' ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
+                      color: mode === 'practice' ? '#FFFFFF' : 'var(--text-muted)',
+                    }}
+                  >
+                    {mode === 'practice' ? 'Seçili' : 'Süresiz'}
+                  </span>
+                </div>
+
+                <h4 className="text-sm font-extrabold mb-1">Hızlı Antrenman</h4>
+                <p className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                  Süre baskısı olmadan her soruda anında açıklama ve ayet mealini incele.
+                </p>
               </div>
 
-              <h4 className="text-base font-extrabold mb-1.5">Gerçek Deneme Sınavı</h4>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Toplam süre sayacı, ileri-geri soru gezgini, boş bırakma ve şüpheli işaretleme ile
-                gerçek sınav atmosferi. Sonuçlar bitimde açılır.
+              <p
+                className="mt-2.5 pt-2 border-t text-[10px] font-semibold"
+                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
+              >
+                Anında dönüt · Ayet çekmecesi
               </p>
             </div>
 
-            <p
-              className="mt-4 pt-3 border-t text-[11px] font-semibold tabular-nums"
-              style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
+            {/* Mod 2: Yarışma Arenası */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                sfxService.play('click');
+                setMode('arena');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  sfxService.play('click');
+                  setMode('arena');
+                }
+              }}
+              className="surface-card rounded-2xl p-3.5 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
+              style={{
+                borderColor: mode === 'arena' ? 'var(--brand-accent)' : 'var(--border-subtle)',
+              }}
             >
-              Süre: ~{estimatedMockMinutes} dk ({effectiveLaunchCount} soru × 1.5 dk)
-            </p>
-          </div>
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                  >
+                    <Flame className="w-4 h-4" />
+                  </div>
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap"
+                    style={{
+                      backgroundColor:
+                        mode === 'arena' ? 'var(--brand-accent)' : 'var(--bg-surface-soft)',
+                      color: mode === 'arena' ? '#FFFFFF' : 'var(--text-muted)',
+                    }}
+                  >
+                    {mode === 'arena' ? 'Seçili' : '3 Can · 3 Joker'}
+                  </span>
+                </div>
+
+                <h4 className="text-sm font-extrabold mb-1">Yarışma Arenası</h4>
+                <p className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                  3 can, seri çarpanı ve 3 joker (%50, İpucu, +30sn) ile dinamik yarışma.
+                </p>
+              </div>
+
+              <div
+                className="mt-2.5 pt-2 border-t flex items-center justify-between gap-1.5"
+                style={{ borderColor: 'var(--border-subtle)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                  Süre:
+                </span>
+                <div className="flex items-center gap-1">
+                  {([45, 60] as ArenaTimeLimit[]).map((sec) => (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setMode('arena');
+                        setArenaTimePerQuestion(sec);
+                      }}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-bold cursor-pointer whitespace-nowrap"
+                      style={{
+                        backgroundColor:
+                          arenaTimePerQuestion === sec
+                            ? 'var(--brand-accent-soft)'
+                            : 'var(--bg-surface-soft)',
+                        color:
+                          arenaTimePerQuestion === sec
+                            ? 'var(--brand-accent-text)'
+                            : 'var(--text-muted)',
+                      }}
+                    >
+                      {sec}sn
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Mod 3: Gerçek Deneme Sınavı */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                sfxService.play('click');
+                setMode('mock');
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  sfxService.play('click');
+                  setMode('mock');
+                }
+              }}
+              className="surface-card rounded-2xl p-3.5 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
+              style={{
+                borderColor: mode === 'mock' ? 'var(--brand-primary)' : 'var(--border-subtle)',
+              }}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <ClipboardCheck className="w-4 h-4" />
+                  </div>
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap"
+                    style={{
+                      backgroundColor:
+                        mode === 'mock' ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
+                      color: mode === 'mock' ? '#FFFFFF' : 'var(--text-muted)',
+                    }}
+                  >
+                    {mode === 'mock' ? 'Seçili' : 'Deneme'}
+                  </span>
+                </div>
+
+                <h4 className="text-sm font-extrabold mb-1">Gerçek Deneme</h4>
+                <p className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                  Toplam süre, soru paleti ve boş bırakma ile gerçek sınav deneyimi.
+                </p>
+              </div>
+
+              <p
+                className="mt-2.5 pt-2 border-t text-[10px] font-semibold tabular-nums"
+                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
+              >
+                ~{estimatedMockMinutes} dk ({effectiveLaunchCount} soru × 1.5 dk)
+              </p>
+            </div>
+          </section>
+
+          {/* Tek Satırlık Soru Sayısı & Başlat Çubuğu */}
+          <section className="surface-card rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-extrabold tracking-tight uppercase" style={{ color: 'var(--text-secondary)' }}>
+                  Soru Sayısı
+                </h3>
+                <span className="text-[11px] font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                  (Uygun: {formatNumberTr(availableFilteredCount)})
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {QUESTION_COUNT_OPTIONS.map((cnt) => {
+                  const isAll = cnt === 0;
+                  const disabled = !isAll && cnt > availableFilteredCount;
+                  const active = questionCount === cnt;
+
+                  return (
+                    <button
+                      key={cnt}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        sfxService.play('click');
+                        setQuestionCount(cnt);
+                      }}
+                      className="min-h-[34px] min-w-[42px] px-2.5 rounded-lg border text-xs font-extrabold tabular-nums transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed whitespace-nowrap"
+                      style={{
+                        backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
+                        borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                        color: active ? '#FFFFFF' : 'var(--text-primary)',
+                      }}
+                    >
+                      {isAll ? `Tümü (${availableFilteredCount})` : cnt}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {startError && (
+                <p className="text-xs font-semibold" style={{ color: '#EF4444' }}>
+                  {startError}
+                </p>
+              )}
+              {availableFilteredCount === 0 && (
+                <p className="text-xs font-semibold" style={{ color: 'var(--brand-accent-text)' }}>
+                  Seçili filtrelerle eşleşen soru bulunamadı. Zorluk veya meal esası filtresini
+                  &ldquo;Tümü&rdquo; yapmayı deneyin.
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              disabled={availableFilteredCount === 0 || isStarting}
+              onClick={handleLaunch}
+              className="min-h-[46px] px-5 rounded-xl text-sm font-extrabold text-white flex items-center justify-center gap-2 shrink-0 transition-transform active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              {isStarting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Hazırlanıyor...</span>
+                </>
+              ) : (
+                <>
+                  <Trophy className="w-4 h-4 shrink-0" />
+                  <span>Sınavı Başlat ({effectiveLaunchCount})</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </>
+              )}
+            </button>
+          </section>
         </div>
-      </section>
-
-      {/* ====================================================================
-          3. Soru Sayısı ve Başlat Çubuğu
-          ==================================================================== */}
-      <section className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="space-y-2.5">
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-extrabold tracking-tight">3. Soru Sayısı</h3>
-            <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
-              (Uygun havuz: {formatNumberTr(availableFilteredCount)} soru)
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {QUESTION_COUNT_OPTIONS.map((cnt) => {
-              const isAll = cnt === 0;
-              const disabled = !isAll && cnt > availableFilteredCount;
-              const active = questionCount === cnt;
-
-              return (
-                <button
-                  key={cnt}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => {
-                    sfxService.play('click');
-                    setQuestionCount(cnt);
-                  }}
-                  className="min-h-[44px] min-w-[58px] px-4 rounded-xl border text-sm font-extrabold tabular-nums transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
-                  style={{
-                    backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
-                    borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                    color: active ? '#FFFFFF' : 'var(--text-primary)',
-                  }}
-                >
-                  {isAll ? `Tümü (${availableFilteredCount})` : cnt}
-                </button>
-              );
-            })}
-          </div>
-
-          {startError && (
-            <p className="text-xs font-semibold" style={{ color: '#EF4444' }}>
-              {startError}
-            </p>
-          )}
-          {availableFilteredCount === 0 && (
-            <p className="text-xs font-semibold" style={{ color: 'var(--brand-accent-text)' }}>
-              Seçili filtrelerle eşleşen soru bulunamadı. Zorluk veya meal esası filtresini
-              &ldquo;Tümü&rdquo; yapmayı deneyin.
-            </p>
-          )}
-        </div>
-
-        <button
-          type="button"
-          disabled={availableFilteredCount === 0 || isStarting}
-          onClick={handleLaunch}
-          className="min-h-[54px] px-7 rounded-2xl text-sm sm:text-base font-extrabold text-white flex items-center justify-center gap-2.5 shrink-0 transition-transform active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ backgroundColor: 'var(--brand-primary)' }}
-        >
-          {isStarting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin shrink-0" />
-              <span>Sorular Hazırlanıyor...</span>
-            </>
-          ) : (
-            <>
-              <Trophy className="w-5 h-5 shrink-0" />
-              <span>
-                {MODE_LABELS[mode]} Başlat ({effectiveLaunchCount} Soru)
-              </span>
-              <ArrowRight className="w-5 h-5 shrink-0" />
-            </>
-          )}
-        </button>
-      </section>
+      </div>
 
       {/* ====================================================================
           4. Son Sınavlarım Özeti (examHistory)

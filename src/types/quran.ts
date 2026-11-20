@@ -336,6 +336,7 @@ export interface StudyPrefs {
   bookContentMode: BookContentMode;
   mealAudioFocusOnly: boolean;
   pageLayout: PageLayoutMode;
+  mushafSidePanelOpen: boolean;
 }
 
 export interface LastReadPosition {

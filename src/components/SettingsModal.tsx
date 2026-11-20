@@ -54,10 +54,10 @@ const PAGE_LAYOUT_OPTIONS: { id: PageLayoutMode; label: string; desc: string }[]
   { id: 'double_meal', label: 'Sağ Mushaf · Sol Meal', desc: 'Aynı sayfanın meali solda' },
 ];
 
-const BOOK_CONTENT_OPTIONS: { id: BookContentMode; label: string }[] = [
-  { id: 'interleaved', label: 'Ayet + Meal' },
-  { id: 'ar_only', label: 'Sadece Arapça' },
-  { id: 'meal_only', label: 'Sadece Meal' },
+const BOOK_CONTENT_OPTIONS: { id: BookContentMode; label: string; desc: string }[] = [
+  { id: 'interleaved', label: 'Arapça + Meal', desc: 'Mushaf ve meal birlikte' },
+  { id: 'ar_only', label: 'Sadece Arapça', desc: 'Odaklı Arapça okuma' },
+  { id: 'meal_only', label: 'Sadece Türkçe Meal', desc: 'Mushaf çerçevesinde meal' },
 ];
 
 const MEAL_OPTIONS: { id: PreferredMeal; label: string; desc: string }[] = [
@@ -333,12 +333,12 @@ export const SettingsModal: React.FC = () => {
                 </div>
               </section>
 
-              {/* Kitap Modu İçerik Düzeni */}
+              {/* Okuma İçerik Tercihi (Mushaf & Kitap) */}
               <section className="space-y-2">
                 <h3 className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                  Kitap Modu İçerik Tercihi
+                  Okuma İçerik Tercihi (Mushaf &amp; Kitap)
                 </h3>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {BOOK_CONTENT_OPTIONS.map((opt) => {
                     const active = studyPrefs.bookContentMode === opt.id;
                     return (
@@ -349,16 +349,25 @@ export const SettingsModal: React.FC = () => {
                           sfxService.play('click');
                           updateStudyPrefs({ bookContentMode: opt.id });
                         }}
-                        className="min-h-[40px] px-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors"
+                        className="p-3 rounded-xl border text-left cursor-pointer transition-colors"
                         style={{
                           backgroundColor: active
                             ? 'var(--brand-primary-soft)'
                             : 'var(--bg-surface-soft)',
                           borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                         }}
                       >
-                        {opt.label}
+                        <p
+                          className="text-xs sm:text-sm font-extrabold"
+                          style={{
+                            color: active ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+                          }}
+                        >
+                          {opt.label}
+                        </p>
+                        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                          {opt.desc}
+                        </p>
                       </button>
                     );
                   })}

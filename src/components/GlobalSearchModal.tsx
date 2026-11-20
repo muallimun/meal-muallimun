@@ -80,10 +80,11 @@ const HighlightedText: React.FC<{
   text: string;
   query: string;
   arabicMode?: boolean;
-}> = React.memo(({ text, query, arabicMode }) => {
+  includeSubstring?: boolean;
+}> = React.memo(({ text, query, arabicMode, includeSubstring = false }) => {
   const segments = useMemo(
-    () => buildHighlightedSegments(text, query, arabicMode),
-    [text, query, arabicMode],
+    () => buildHighlightedSegments(text, query, arabicMode, includeSubstring),
+    [text, query, arabicMode, includeSubstring],
   );
 
   return (
@@ -129,6 +130,7 @@ export const GlobalSearchModal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SearchResultTab>('all');
   const [selectedWordGroupKey, setSelectedWordGroupKey] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(PAGE_CHUNK_SIZE);
+  const [includeSubstring, setIncludeSubstring] = useState<boolean>(false);
 
   // Sanal Klavye Durumu
   const [showKeyboard, setShowKeyboard] = useState<boolean>(false);
@@ -236,6 +238,7 @@ export const GlobalSearchModal: React.FC = () => {
         targetSurahs,
         filterJuzNo,
         preferredMeal: settings.preferredMeal,
+        includeSubstring,
         meta,
         signal: controller.signal,
         onProgress: (nextSnap) => {
@@ -249,7 +252,15 @@ export const GlobalSearchModal: React.FC = () => {
       window.clearTimeout(debounceId);
       controller.abort();
     };
-  }, [isSearchModalOpen, meta, query, targetSurahs, filterJuzNo, settings.preferredMeal]);
+  }, [
+    isSearchModalOpen,
+    meta,
+    query,
+    targetSurahs,
+    filterJuzNo,
+    settings.preferredMeal,
+    includeSubstring,
+  ]);
 
   // Sekme değişince görünür sonuç sayacını sıfırla ve yukarı kaydır
   useEffect(() => {
@@ -545,7 +556,12 @@ export const GlobalSearchModal: React.FC = () => {
             color: 'var(--text-primary)',
           }}
         >
-          <HighlightedText text={hit.arText} query={trimmedQuery} arabicMode={true} />
+          <HighlightedText
+            text={hit.arText}
+            query={trimmedQuery}
+            arabicMode={true}
+            includeSubstring={includeSubstring}
+          />
         </p>
 
         {/* Türkçe Meal(ler) */}
@@ -562,7 +578,12 @@ export const GlobalSearchModal: React.FC = () => {
                 >
                   TDV:
                 </span>
-                <HighlightedText text={hit.m1Text} query={trimmedQuery} arabicMode={false} />
+                <HighlightedText
+                  text={hit.m1Text}
+                  query={trimmedQuery}
+                  arabicMode={false}
+                  includeSubstring={includeSubstring}
+                />
               </p>
             )}
             {showM2 && hit.m2Text && (
@@ -576,7 +597,12 @@ export const GlobalSearchModal: React.FC = () => {
                 >
                   DİB:
                 </span>
-                <HighlightedText text={hit.m2Text} query={trimmedQuery} arabicMode={false} />
+                <HighlightedText
+                  text={hit.m2Text}
+                  query={trimmedQuery}
+                  arabicMode={false}
+                  includeSubstring={includeSubstring}
+                />
               </p>
             )}
           </div>
@@ -597,7 +623,12 @@ export const GlobalSearchModal: React.FC = () => {
                 <span className="font-extrabold mr-1" style={{ color: 'var(--brand-accent-text)' }}>
                   [{fn.meal} Dipnot]:
                 </span>
-                <HighlightedText text={fn.text} query={trimmedQuery} arabicMode={false} />
+                <HighlightedText
+                  text={fn.text}
+                  query={trimmedQuery}
+                  arabicMode={false}
+                  includeSubstring={includeSubstring}
+                />
               </p>
             ))}
           </div>
@@ -803,6 +834,39 @@ export const GlobalSearchModal: React.FC = () => {
                 ))}
               </select>
             )}
+
+            {/* İsteğe Bağlı Kelime Ortası Eşleşme Seçeneği (Varsayılan: Kapalı / Kelime Başı) */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={includeSubstring}
+              onClick={() => {
+                sfxService.play('click');
+                setIncludeSubstring((prev) => !prev);
+              }}
+              className="sm:ml-auto min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+              style={{
+                backgroundColor: includeSubstring
+                  ? 'var(--brand-accent-soft)'
+                  : 'var(--bg-surface)',
+                borderColor: includeSubstring ? 'var(--brand-accent)' : 'var(--border-subtle)',
+                color: includeSubstring ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
+              }}
+              title="Kapalıyken yalnızca kelime başı (Arapça'da ال/و/ف/ب/ل ön ek duyarlı) eşleşmeleri gösterir"
+            >
+              <span
+                className="w-6 h-3.5 rounded-full p-0.5 flex items-center transition-colors shrink-0"
+                style={{
+                  backgroundColor: includeSubstring
+                    ? 'var(--brand-accent)'
+                    : 'var(--border-strong)',
+                  justifyContent: includeSubstring ? 'flex-end' : 'flex-start',
+                }}
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-white" />
+              </span>
+              <span>Kelime ortasında geçenleri de dahil et</span>
+            </button>
           </div>
         </div>
 
@@ -1417,6 +1481,7 @@ export const GlobalSearchModal: React.FC = () => {
                                   text={hit.arWord}
                                   query={trimmedQuery}
                                   arabicMode={true}
+                                  includeSubstring={includeSubstring}
                                 />
                               </span>
                               <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>
@@ -1433,6 +1498,7 @@ export const GlobalSearchModal: React.FC = () => {
                                   text={hit.trWord}
                                   query={trimmedQuery}
                                   arabicMode={false}
+                                  includeSubstring={includeSubstring}
                                 />
                               </span>
                             </div>
@@ -1535,6 +1601,7 @@ export const GlobalSearchModal: React.FC = () => {
                               text={hit.surah.nameTr}
                               query={trimmedQuery}
                               arabicMode={false}
+                              includeSubstring={includeSubstring}
                             />
                           </h4>
                           <span className="arabic-title text-lg leading-none">
@@ -1542,6 +1609,7 @@ export const GlobalSearchModal: React.FC = () => {
                               text={formatSafeArabicTitle(hit.surah.nameAr)}
                               query={trimmedQuery}
                               arabicMode={true}
+                              includeSubstring={includeSubstring}
                             />
                           </span>
                           <span
@@ -1560,6 +1628,7 @@ export const GlobalSearchModal: React.FC = () => {
                               text={hit.snippet}
                               query={trimmedQuery}
                               arabicMode={false}
+                              includeSubstring={includeSubstring}
                             />
                           </p>
                         )}

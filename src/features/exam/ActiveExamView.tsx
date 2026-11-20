@@ -589,19 +589,19 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
       className={`${hasTwoColSplit ? 'max-w-5xl' : 'max-w-3xl'} mx-auto space-y-3 pb-8 transition-[max-width] duration-200`}
     >
       {/* ====================================================================
-          1. Kompakt Üst Durum Şeridi (Çıkış, Sayaç, Metaveri, Süre/Can/Seri)
+          1. İnce Tek Şerit Aktif Sınav Üst Barı (Çıkış, Sayaç, Metaveri, Süre)
           ==================================================================== */}
-      <div className="surface-card rounded-2xl p-2.5 sm:p-3 space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="surface-card rounded-2xl overflow-hidden">
+        <div className="min-h-[48px] px-2.5 sm:px-3 py-1.5 flex items-center justify-between gap-2">
           {/* Sol: Çıkış + Soru Sayacı + Masaüstü Metaveri */}
-          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
               onClick={() => {
                 sfxService.play('click');
                 setShowExitModal(true);
               }}
-              className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap"
+              className="min-h-[34px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0 whitespace-nowrap"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -609,61 +609,50 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               }}
             >
               <X className="w-3.5 h-3.5 shrink-0" />
-              <span>Çıkış</span>
+              <span className="hidden sm:inline">Çıkış</span>
             </button>
 
-            <div className="flex items-center gap-1.5 min-w-0">
-              <p className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
-                Soru {session.currentIndex + 1} / {totalCount}
-              </p>
-              {session.config.isMistakeCamp && (
-                <span
-                  className="text-[11px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap"
-                  style={{
-                    backgroundColor: 'var(--brand-accent-soft)',
-                    color: 'var(--brand-accent-text)',
-                  }}
-                >
-                  Hata Kampı
-                </span>
-              )}
-            </div>
+            <p className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap shrink-0">
+              Soru {session.currentIndex + 1}/{totalCount}
+            </p>
 
-            {/* Masaüstünde tek satırda Sure · Zorluk · Meal */}
-            <div className="hidden md:flex items-center gap-1.5 text-[11px] pl-1 border-l" style={{ borderColor: 'var(--border-subtle)' }}>
+            {session.config.isMistakeCamp && (
               <span
-                className="font-bold px-2 py-0.5 rounded-md whitespace-nowrap"
-                style={{
-                  backgroundColor: 'var(--brand-primary-soft)',
-                  color: 'var(--brand-primary-text)',
-                }}
+                className="text-[11px] font-bold whitespace-nowrap shrink-0"
+                style={{ color: 'var(--brand-accent-text)' }}
+              >
+                · Hata Kampı
+              </span>
+            )}
+
+            {/* Masaüstünde tek satırda kutusuz sade metaveri: Sure · Zorluk · Meal */}
+            <div
+              className="hidden md:flex items-center gap-1.5 text-xs pl-2 border-l min-w-0 truncate"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <span
+                className="font-bold truncate"
+                style={{ color: 'var(--brand-primary-text)' }}
               >
                 {surahMeta?.nameTr ?? `${currentQuestion.question.surah}. Sure`}
               </span>
-              <span
-                className="font-bold px-2 py-0.5 rounded-md whitespace-nowrap"
-                style={{ backgroundColor: diffInfo.bg, color: diffInfo.color }}
-              >
+              <span style={{ color: 'var(--text-muted)' }}>·</span>
+              <span className="font-bold whitespace-nowrap" style={{ color: diffInfo.color }}>
                 {diffInfo.label}
               </span>
-              <span
-                className="font-semibold px-2 py-0.5 rounded-md whitespace-nowrap"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  color: 'var(--text-secondary)',
-                }}
-              >
+              <span style={{ color: 'var(--text-muted)' }}>·</span>
+              <span className="font-semibold whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
                 {mealLabel}
               </span>
             </div>
           </div>
 
           {/* Sağ: Mod Göstergeleri (Canlar, Seri, Süre, Palet, Yıldız, Bildir) */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             {/* Arena Canlar */}
             {isArena && (
               <div
-                className="flex items-center gap-0.5 px-2 py-1.5 rounded-xl"
+                className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg"
                 style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)' }}
                 aria-label={`${session.livesRemaining} can kaldı`}
               >
@@ -681,7 +670,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
             {/* Seri (Combo) Rozeti */}
             {!isMock && session.currentStreak >= 2 && (
               <div
-                className="px-2 py-1.5 rounded-xl text-xs font-extrabold tabular-nums flex items-center gap-1"
+                className="px-2 py-1 rounded-lg text-xs font-extrabold tabular-nums flex items-center gap-0.5"
                 style={{
                   backgroundColor: 'var(--brand-accent-soft)',
                   color: 'var(--brand-accent-text)',
@@ -694,7 +683,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
 
             {/* Süre Sayacı */}
             <div
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold tabular-nums flex items-center gap-1.5 ${
+              className={`px-2 py-1 rounded-lg text-xs font-extrabold tabular-nums flex items-center gap-1 ${
                 isTimerUrgent ? 'animate-pulse' : ''
               }`}
               style={{
@@ -715,7 +704,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                   sfxService.play('click');
                   setShowPaletteModal(true);
                 }}
-                className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                className="min-h-[34px] px-2 rounded-lg border text-xs font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
@@ -723,10 +712,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                 }}
               >
                 <Grid className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden sm:inline">
-                  Palet ({answeredCount}/{totalCount})
-                </span>
-                <span className="sm:hidden tabular-nums">
+                <span className="hidden sm:inline tabular-nums">
                   {answeredCount}/{totalCount}
                 </span>
               </button>
@@ -737,7 +723,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               type="button"
               onClick={() => toggleBookmarkQuestion(currentQuestion.uid)}
               aria-label={isBookmarked ? 'Soruyu yıldızlılardan çıkar' : 'Soruyu yıldızla'}
-              className="min-w-[38px] min-h-[38px] rounded-xl border flex items-center justify-center cursor-pointer transition-colors"
+              className="w-[34px] h-[34px] rounded-lg border flex items-center justify-center cursor-pointer transition-colors"
               style={{
                 backgroundColor: isBookmarked
                   ? 'var(--brand-accent-soft)'
@@ -746,7 +732,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                 color: isBookmarked ? 'var(--brand-accent-text)' : 'var(--text-muted)',
               }}
             >
-              <Star className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
+              <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
             </button>
 
             {/* Soruyu Hatalı / Gözden Geçirilecek Olarak İşaretle */}
@@ -758,7 +744,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               }}
               title="Soruyu hatalı / gözden geçirilecek olarak işaretle"
               aria-label="Soruyu hatalı olarak işaretle"
-              className="min-w-[38px] min-h-[38px] px-2 rounded-xl border flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              className="min-w-[34px] h-[34px] px-2 rounded-lg border flex items-center justify-center gap-1 cursor-pointer transition-colors"
               style={{
                 backgroundColor: isIssueReported
                   ? 'rgba(239, 68, 68, 0.12)'
@@ -767,54 +753,42 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                 color: isIssueReported ? '#DC2626' : 'var(--text-muted)',
               }}
             >
-              <AlertOctagon className="w-4 h-4 shrink-0" />
-              <span className="hidden lg:inline text-xs font-bold whitespace-nowrap">
-                {isIssueReported ? 'İşaretli' : 'Bildir'}
+              <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden lg:inline text-[11px] font-bold whitespace-nowrap">
+                {isIssueReported ? 'İşaretli' : 'Hatalı'}
               </span>
             </button>
           </div>
         </div>
 
-        {/* İlerleme Çubuğu */}
+        {/* Mobil Kompakt Tek Satır Metaveri Şeridi */}
         <div
-          className="h-1.5 rounded-full overflow-hidden"
+          className="flex md:hidden items-center gap-1.5 px-3 pb-1.5 text-[11px] truncate"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <span className="font-bold truncate" style={{ color: 'var(--brand-primary-text)' }}>
+            {surahMeta?.nameTr ?? `${currentQuestion.question.surah}. Sure`}
+          </span>
+          <span>·</span>
+          <span className="font-bold whitespace-nowrap" style={{ color: diffInfo.color }}>
+            {diffInfo.label}
+          </span>
+          <span>·</span>
+          <span className="font-semibold whitespace-nowrap">{mealLabel}</span>
+        </div>
+
+        {/* İnce Alt İlerleme Çizgisi */}
+        <div
+          className="h-[3px] w-full overflow-hidden"
           style={{ backgroundColor: 'var(--bg-surface-soft)' }}
         >
           <div
-            className="h-full rounded-full transition-all duration-300"
+            className="h-full transition-all duration-300"
             style={{
               width: `${progressPct}%`,
               backgroundColor: 'var(--brand-primary)',
             }}
           />
-        </div>
-
-        {/* Mobil Metaveri Şeridi */}
-        <div className="flex md:hidden flex-wrap items-center gap-1.5 text-[11px]">
-          <span
-            className="font-bold px-2 py-0.5 rounded-md"
-            style={{
-              backgroundColor: 'var(--brand-primary-soft)',
-              color: 'var(--brand-primary-text)',
-            }}
-          >
-            {surahMeta?.nameTr ?? `${currentQuestion.question.surah}. Sure`}
-          </span>
-          <span
-            className="font-bold px-2 py-0.5 rounded-md"
-            style={{ backgroundColor: diffInfo.bg, color: diffInfo.color }}
-          >
-            {diffInfo.label}
-          </span>
-          <span
-            className="font-semibold px-2 py-0.5 rounded-md"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            {mealLabel}
-          </span>
         </div>
       </div>
 

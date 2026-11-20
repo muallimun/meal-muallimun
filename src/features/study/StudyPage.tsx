@@ -20,6 +20,8 @@ import {
   Languages,
   LayoutList,
   MonitorPlay,
+  PanelRightClose,
+  PanelRightOpen,
   Pause,
   RefreshCw,
   SlidersHorizontal,
@@ -47,6 +49,7 @@ import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   AudioPlayMode,
+  BookContentMode,
   CombinedVerse,
   PageBundle,
   PageLayoutMode,
@@ -597,10 +600,8 @@ export const StudyPage: React.FC = () => {
     return `${mealTag} · ${audioTag}`;
   }, [settings.preferredMeal, audioPrefs.mode]);
 
-  const extraBottomSpace = audioState.isVisible ? 'pb-40 lg:pb-32' : 'pb-6';
-
   return (
-    <div className={`space-y-3.5 sm:space-y-4 ${extraBottomSpace}`}>
+    <div className="space-y-3.5 sm:space-y-4 pb-4">
       {/* ====================================================================
           A. Kompakt Üst Navigasyon ve Açılır Çalışma Araçları Çubuğu
           ==================================================================== */}
@@ -811,6 +812,45 @@ export const StudyPage: React.FC = () => {
               <span className="tabular-nums">{bookmarkedItems.length}</span>
             </button>
 
+            {/* Tek Sayfa Mushaf + Arapça+Meal modunda Yan Meal Paneli Aç/Kapa */}
+            {viewMode === 'mushaf' &&
+              studyPrefs.pageLayout === 'single' &&
+              studyPrefs.bookContentMode === 'interleaved' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    updateStudyPrefs({ mushafSidePanelOpen: !studyPrefs.mushafSidePanelOpen });
+                  }}
+                  title={
+                    studyPrefs.mushafSidePanelOpen
+                      ? 'Yan meal panelini kapat (Odaklı Mushaf)'
+                      : 'Yan meal panelini aç'
+                  }
+                  className="hidden lg:flex min-h-[38px] px-2.5 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
+                  style={{
+                    backgroundColor: studyPrefs.mushafSidePanelOpen
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface-soft)',
+                    borderColor: studyPrefs.mushafSidePanelOpen
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-subtle)',
+                    color: studyPrefs.mushafSidePanelOpen
+                      ? 'var(--brand-primary-text)'
+                      : 'var(--text-primary)',
+                  }}
+                >
+                  {studyPrefs.mushafSidePanelOpen ? (
+                    <PanelRightClose className="w-3.5 h-3.5 shrink-0" />
+                  ) : (
+                    <PanelRightOpen className="w-3.5 h-3.5 shrink-0" />
+                  )}
+                  <span>
+                    {studyPrefs.mushafSidePanelOpen ? 'Meal Paneli' : 'Meal Panelini Aç'}
+                  </span>
+                </button>
+              )}
+
             <button
               type="button"
               onClick={() => {
@@ -885,6 +925,47 @@ export const StudyPage: React.FC = () => {
                   })}
                 </div>
               </div>
+
+              {/* Okuma İçerik Tercihi (Mushaf & Kitap: Arapça + Meal | Sadece Arapça | Sadece Meal) */}
+              {(viewMode === 'mushaf' || viewMode === 'book') && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    İçerik:
+                  </span>
+                  <div
+                    className="flex items-center p-0.5 rounded-xl"
+                    style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                  >
+                    {(
+                      [
+                        { id: 'interleaved', label: 'AR + Meal' },
+                        { id: 'ar_only', label: 'Sadece AR' },
+                        { id: 'meal_only', label: 'Sadece Meal' },
+                      ] as { id: BookContentMode; label: string }[]
+                    ).map((opt) => {
+                      const active = studyPrefs.bookContentMode === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            updateStudyPrefs({ bookContentMode: opt.id });
+                          }}
+                          className="min-h-[34px] px-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                            color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                            boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Kelime Meali (sadece wordByWordEnabled açıkken göster) */}
               {viewMode !== 'book' && settings.wordByWordEnabled && (
@@ -1196,6 +1277,11 @@ export const StudyPage: React.FC = () => {
           secondPageBundle={isDoubleMushafPref ? secondPageBundle : null}
           pageLayout={studyPrefs.pageLayout}
           onChangePageLayout={handleChangePageLayout}
+          contentMode={studyPrefs.bookContentMode}
+          sidePanelOpen={studyPrefs.mushafSidePanelOpen}
+          onToggleSidePanel={() =>
+            updateStudyPrefs({ mushafSidePanelOpen: !studyPrefs.mushafSidePanelOpen })
+          }
           besmele={meta.besmele}
           settings={settings}
           wordMode={studyPrefs.wordMode}

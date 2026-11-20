@@ -1,6 +1,11 @@
 import { dataService } from './dataService';
 import type { MetaData, SurahMeta, WordSurahFile } from '../types/quran';
-import { isArabicText, normalizeArabic, normalizeTurkish } from '../utils/textNormalize';
+import {
+  isArabicText,
+  matchesNormalizedText,
+  normalizeArabic,
+  normalizeTurkish,
+} from '../utils/textNormalize';
 
 // ============================================================================
 // Kademeli (Progressive & Non-Blocking) Kur'an, Meal, Dipnot & Kelime Arama Motoru
@@ -262,7 +267,11 @@ export function parseDirectReferences(rawQuery: string, meta: MetaData): DirectJ
 /**
  * meta.json üzerinden 0ms içinde sure isimleri, Arapça adları ve konuları içinde arama yapar.
  */
-export function searchSurahsInstant(rawQuery: string, meta: MetaData): SurahSearchHit[] {
+export function searchSurahsInstant(
+  rawQuery: string,
+  meta: MetaData,
+  includeSubstring = false,
+): SurahSearchHit[] {
   const q = rawQuery.trim();
   if (!q) return [];
   const arabicQ = isArabicText(q);
@@ -273,7 +282,7 @@ export function searchSurahsInstant(rawQuery: string, meta: MetaData): SurahSear
 
   for (const s of meta.surahs) {
     if (arabicQ) {
-      if (normalizeArabic(s.nameAr).includes(normQ)) {
+      if (matchesNormalizedText(normalizeArabic(s.nameAr), normQ, true, includeSubstring)) {
         hits.push({
           surah: s,
           matchedField: 'name',
@@ -285,8 +294,8 @@ export function searchSurahsInstant(rawQuery: string, meta: MetaData): SurahSear
 
     const numMatch = String(s.no) === q;
     const nameMatch =
-      normalizeTurkish(s.nameTr).includes(normQ) ||
-      normalizeTurkish(s.shortNameTr).includes(normQ);
+      matchesNormalizedText(normalizeTurkish(s.nameTr), normQ, false, includeSubstring) ||
+      matchesNormalizedText(normalizeTurkish(s.shortNameTr), normQ, false, includeSubstring);
 
     if (numMatch || nameMatch) {
       hits.push({
@@ -300,13 +309,15 @@ export function searchSurahsInstant(rawQuery: string, meta: MetaData): SurahSear
     if (normQ.length >= 2) {
       const topicText = s.konusu || '';
       const aboutText = s.hakkinda || '';
-      if (normalizeTurkish(topicText).includes(normQ)) {
+      if (matchesNormalizedText(normalizeTurkish(topicText), normQ, false, includeSubstring)) {
         hits.push({
           surah: s,
           matchedField: 'topic',
           snippet: topicText,
         });
-      } else if (normalizeTurkish(aboutText).includes(normQ)) {
+      } else if (
+        matchesNormalizedText(normalizeTurkish(aboutText), normQ, false, includeSubstring)
+      ) {
         hits.push({
           surah: s,
           matchedField: 'topic',
@@ -429,6 +440,7 @@ export interface RunProgressiveSearchOptions {
   targetSurahs: number[];
   filterJuzNo?: number | null;
   preferredMeal: 'm1' | 'm2' | 'both';
+  includeSubstring?: boolean;
   meta: MetaData;
   signal: AbortSignal;
   onProgress: (snapshot: ProgressiveSearchSnapshot) => void;
@@ -441,11 +453,20 @@ export interface RunProgressiveSearchOptions {
 export async function runProgressiveSearch(
   options: RunProgressiveSearchOptions,
 ): Promise<void> {
-  const { query, targetSurahs, filterJuzNo, preferredMeal, meta, signal, onProgress } = options;
+  const {
+    query,
+    targetSurahs,
+    filterJuzNo,
+    preferredMeal,
+    includeSubstring = false,
+    meta,
+    signal,
+    onProgress,
+  } = options;
   const trimmed = query.trim();
 
   const directJumps = parseDirectReferences(trimmed, meta);
-  const surahHits = searchSurahsInstant(trimmed, meta);
+  const surahHits = searchSurahsInstant(trimmed, meta, includeSubstring);
   const arabicMode = isArabicText(trimmed);
   const normQuery = arabicMode ? normalizeArabic(trimmed) : normalizeTurkish(trimmed);
 
@@ -522,18 +543,18 @@ export async function runProgressiveSearch(
         const matchedFootnotes: { meal: 'TDV' | 'DİB'; text: string }[] = [];
 
         if (arabicMode) {
-          matchedArabic = verse.arNorm.includes(normQuery);
+          matchedArabic = matchesNormalizedText(verse.arNorm, normQuery, true, includeSubstring);
         } else {
-          matchedM1 = verse.m1Norm.includes(normQuery);
-          matchedM2 = verse.m2Norm.includes(normQuery);
+          matchedM1 = matchesNormalizedText(verse.m1Norm, normQuery, false, includeSubstring);
+          matchedM2 = matchesNormalizedText(verse.m2Norm, normQuery, false, includeSubstring);
 
           for (let f = 0; f < verse.m1FnNorm.length; f += 1) {
-            if (verse.m1FnNorm[f].includes(normQuery)) {
+            if (matchesNormalizedText(verse.m1FnNorm[f], normQuery, false, includeSubstring)) {
               matchedFootnotes.push({ meal: 'TDV', text: verse.m1FnRaw[f] });
             }
           }
           for (let f = 0; f < verse.m2FnNorm.length; f += 1) {
-            if (verse.m2FnNorm[f].includes(normQuery)) {
+            if (matchesNormalizedText(verse.m2FnNorm[f], normQuery, false, includeSubstring)) {
               matchedFootnotes.push({ meal: 'DİB', text: verse.m2FnRaw[f] });
             }
           }
@@ -565,8 +586,8 @@ export async function runProgressiveSearch(
         // Kelime Meali (w/) eşleşmesi
         for (const w of verse.words) {
           const isWordMatch = arabicMode
-            ? w.arNorm.includes(normQuery)
-            : w.trNorm.includes(normQuery);
+            ? matchesNormalizedText(w.arNorm, normQuery, true, includeSubstring)
+            : matchesNormalizedText(w.trNorm, normQuery, false, includeSubstring);
           if (isWordMatch) {
             const mealPreview =
               preferredMeal === 'm2' ? verse.m2Raw || verse.m1Raw : verse.m1Raw || verse.m2Raw;

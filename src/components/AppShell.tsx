@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle,
   BookOpen,
@@ -17,6 +17,7 @@ import {
   Trophy,
   WifiOff,
 } from 'lucide-react';
+import { audioQueueService } from '../services/audioQueueService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
@@ -66,6 +67,13 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   );
   const [pendingNavTab, setPendingNavTab] = useState<NavTab | null>(null);
+
+  const audioState = useSyncExternalStore(
+    audioQueueService.subscribe,
+    audioQueueService.getSnapshot,
+  );
+  const isAudioBarVisible =
+    !isExamActive && audioState.isVisible && audioState.status !== 'idle';
 
   const currentYear = new Date().getFullYear();
   const bookmarkCount = studyProgress.pageBookmarks.length;
@@ -575,14 +583,22 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
         {/* Sayfa İçeriği */}
         <main
-          className={`flex-1 w-full ${contentWidthClass} mx-auto px-3.5 py-3.5 sm:px-5 lg:px-6 lg:py-4`}
+          className={`flex-1 w-full ${contentWidthClass} mx-auto px-3.5 py-3.5 sm:px-5 lg:px-6 lg:py-4 ${
+            isAudioBarVisible ? 'pb-36 lg:pb-28' : ''
+          }`}
         >
           {children}
         </main>
 
-        {/* Alt Bilgi (Footer) — Mobilde alt sabit nav bar için güvenli boşluk */}
+        {/* Alt Bilgi (Footer) — Mobilde alt sabit nav bar ve yüzen ses oynatıcı için güvenli boşluk */}
         <footer
-          className={`mt-auto border-t ${isExamActive ? 'pb-5' : 'pb-20'} lg:pb-5`}
+          className={`mt-auto border-t ${
+            isExamActive
+              ? 'pb-5 lg:pb-5'
+              : isAudioBarVisible
+                ? 'pb-40 lg:pb-28'
+                : 'pb-20 lg:pb-5'
+          }`}
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div

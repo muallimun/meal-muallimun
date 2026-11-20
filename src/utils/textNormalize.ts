@@ -267,14 +267,131 @@ function buildNormalizedIndexMap(original: string, arabicMode: boolean): Normali
   return { normalized, starts, ends };
 }
 
+const TURKISH_WORD_CHAR_REGEX = /[a-z0-9çğıöşü]/;
+const ARABIC_LETTER_REGEX = /[\u0621-\u064A\u0671-\u06D3]/;
+
+/**
+ * Arapça kelime başında gelebilecek standart birleşik ön ekler (proclitics).
+ * Örn: جن sorgusu الجن، والجن، بالجن، للجن kelimelerini bulurken alakasız kelime içi geçişleri eler.
+ */
+const ARABIC_PROCLITIC_PREFIXES = new Set([
+  'و',
+  'ف',
+  'ب',
+  'ل',
+  'ك',
+  'س',
+  'ال',
+  'وال',
+  'فال',
+  'بال',
+  'كال',
+  'لل',
+  'ولل',
+  'فلل',
+  'وب',
+  'ول',
+  'وك',
+  'وس',
+  'فب',
+  'فل',
+  'فك',
+  'فس',
+  'وبال',
+  'فبال',
+  'وكال',
+  'فكال',
+]);
+
+function isTurkishWordChar(ch: string): boolean {
+  return ch.length > 0 && TURKISH_WORD_CHAR_REGEX.test(ch);
+}
+
+function isArabicLetterChar(ch: string): boolean {
+  return ch.length > 0 && ARABIC_LETTER_REGEX.test(ch);
+}
+
+/**
+ * Normalize edilmiş metin içindeki `matchIndex` konumunun kelime başı / Arapça ön ek
+ * sınırına uygun olup olmadığını doğrular.
+ */
+export function isValidMatchBoundary(
+  normalizedHaystack: string,
+  matchIndex: number,
+  normalizedQuery: string,
+  arabicMode: boolean,
+  includeSubstring = false,
+): boolean {
+  if (includeSubstring) return true;
+  if (matchIndex <= 0) return true;
+
+  if (!arabicMode) {
+    // Türkçe: eşleşme metin başında veya kelime harfi olmayan bir karakterden sonra başlamalı
+    // Örn: "cin" -> "cin", "cinler", "cinlerden", "(cinni)" EŞLEŞİR; "haricinde", "ikincisi" EŞLEŞMEZ.
+    const prevChar = normalizedHaystack[matchIndex - 1];
+    return !isTurkishWordChar(prevChar);
+  }
+
+  // Arapça: kelime başı veya standart Arapça ön eklerden (ال، و، ف، ب، ل، ك، س ve kombinasyonları) hemen sonra
+  const prevChar = normalizedHaystack[matchIndex - 1];
+  if (!isArabicLetterChar(prevChar)) {
+    return true;
+  }
+
+  let wordStart = matchIndex;
+  while (wordStart > 0 && isArabicLetterChar(normalizedHaystack[wordStart - 1])) {
+    wordStart -= 1;
+  }
+
+  const prefix = normalizedHaystack.slice(wordStart, matchIndex);
+  if (!prefix) return true;
+  if (!ARABIC_PROCLITIC_PREFIXES.has(prefix)) return false;
+
+  // Sorgu zaten "ال" ile başlıyorsa önüne ikinci bir "ال" gelmesini önle
+  if (normalizedQuery.startsWith('ال') && prefix.endsWith('ال')) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Normalize edilmiş metin ve sorguyu varsayılan olarak kelime başı (Arapça'da ön ek duyarlı)
+ * kurallarına göre eşleştirir. `includeSubstring = true` ise kelime içi eşleşmelere de izin verir.
+ */
+export function matchesNormalizedText(
+  normalizedHaystack: string,
+  normalizedQuery: string,
+  arabicMode: boolean,
+  includeSubstring = false,
+): boolean {
+  if (!normalizedHaystack || !normalizedQuery) return false;
+  if (includeSubstring) {
+    return normalizedHaystack.includes(normalizedQuery);
+  }
+
+  let searchFrom = 0;
+  while (searchFrom <= normalizedHaystack.length - normalizedQuery.length) {
+    const idx = normalizedHaystack.indexOf(normalizedQuery, searchFrom);
+    if (idx === -1) return false;
+    if (isValidMatchBoundary(normalizedHaystack, idx, normalizedQuery, arabicMode, false)) {
+      return true;
+    }
+    searchFrom = idx + 1;
+  }
+
+  return false;
+}
+
 /**
  * Orijinal (harekeli Arapça veya şapkalı/kesmeli Türkçe) metin içinde
- * normalize sorgunun eşleştiği tüm aralıkları bularak <mark> segmentleri üretir.
+ * normalize sorgunun eşleştiği tüm geçerli aralıkları bularak <mark> segmentleri üretir.
  */
 export function buildHighlightedSegments(
   original: string,
   rawQuery: string,
   arabicMode?: boolean,
+  includeSubstring = false,
 ): HighlightSegment[] {
   if (!original) return [];
   const trimmed = rawQuery.trim();
@@ -293,6 +410,12 @@ export function buildHighlightedSegments(
   while (searchFrom < normalized.length) {
     const idx = normalized.indexOf(normQuery, searchFrom);
     if (idx === -1) break;
+
+    if (!isValidMatchBoundary(normalized, idx, normQuery, useArabic, includeSubstring)) {
+      searchFrom = idx + 1;
+      continue;
+    }
+
     const endIdx = idx + normQuery.length - 1;
     const origStart = starts[idx];
     const origEnd = ends[endIdx];

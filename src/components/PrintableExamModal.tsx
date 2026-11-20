@@ -4,11 +4,13 @@ import {
   AlertTriangle,
   AlignJustify,
   BookOpen,
+  Check,
   Columns2,
   FileText,
   KeyRound,
   Loader2,
   Printer,
+  Search,
   Shuffle,
   X,
 } from 'lucide-react';
@@ -27,6 +29,7 @@ import {
   shuffleArray,
 } from '../utils/examUtils';
 import { buildSurahQuestionCountMap, formatNumberTr, getSurahMap } from '../utils/poolUtils';
+import { normalizeTurkish } from '../utils/textNormalize';
 
 interface PrintableExamModalProps {
   isOpen: boolean;
@@ -34,7 +37,7 @@ interface PrintableExamModalProps {
   initialSurahNo?: number | null;
 }
 
-type PrintScopeMode = 'pool' | 'surah' | 'juz';
+type PrintScopeMode = 'pool' | 'surah_range' | 'juz_range' | 'multi_surah';
 
 const PRINT_COUNT_OPTIONS = [10, 15, 20, 30, 50, 100, 0] as const;
 const DEFAULT_EXAM_TITLE = "Muallimun Kur'an & Meal — Yarışma Deneme Sınavı";
@@ -416,12 +419,16 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
     return poolStats.effectiveSurahs.filter((sNo) => availSet.has(sNo));
   }, [availableSurahs, poolStats.effectiveSurahs]);
 
-  // q/index.json üzerinden sorusu bulunan cüzleri ve her cüzdeki sure + soru sayısını dinamik çıkar
-  const availableJuzEntries = useMemo(() => {
-    if (!questionIndex) return [] as { cuz: number; count: number; surahs: number[] }[];
+  // Tüm 114 sure (meta.json üzerinden)
+  const allSurahs = useMemo(() => meta?.surahs ?? [], [meta]);
+  const availableSurahSet = useMemo(() => new Set(availableSurahs), [availableSurahs]);
+
+  // q/index.json üzerinden her cüzdeki (1..30) soru sayısı ve sureler
+  const juzQuestionCountMap = useMemo(() => {
     const map = new Map<number, { count: number; surahs: Set<number> }>();
+    if (!questionIndex) return map;
     for (const item of questionIndex.items) {
-      if (typeof item.cuz !== 'number' || item.cuz < 1) continue;
+      if (typeof item.cuz !== 'number' || item.cuz < 1 || item.cuz > 30) continue;
       let entry = map.get(item.cuz);
       if (!entry) {
         entry = { count: 0, surahs: new Set<number>() };
@@ -430,25 +437,36 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
       entry.count += 1;
       entry.surahs.add(item.surah);
     }
-    return Array.from(map.entries())
-      .map(([cuz, info]) => ({
-        cuz,
-        count: info.count,
-        surahs: Array.from(info.surahs).sort((a, b) => a - b),
-      }))
-      .sort((a, b) => a.cuz - b.cuz);
+    return map;
   }, [questionIndex]);
 
-  // Kapsam: Aktif Çalışma Havuzu | Belirli Bir Sure | Belirli Bir Cüz
+  const availableJuzNumbers = useMemo(
+    () => Array.from(juzQuestionCountMap.keys()).sort((a, b) => a - b),
+    [juzQuestionCountMap],
+  );
+
+  // Kapsam: Aktif Çalışma Havuzum | Sure Aralığı | Cüz Aralığı | Çoklu Sure Seçimi
   const [scopeMode, setScopeMode] = useState<PrintScopeMode>(
-    initialSurahNo !== null ? 'surah' : 'pool',
+    initialSurahNo !== null ? 'multi_surah' : 'pool',
   );
-  const [selectedSurah, setSelectedSurah] = useState<number>(
-    initialSurahNo ?? availableSurahs[0] ?? 49,
+  const [surahRangeStart, setSurahRangeStart] = useState<number>(
+    initialSurahNo ?? availableSurahs[0] ?? 1,
   );
-  const [selectedJuz, setSelectedJuz] = useState<number>(
-    availableJuzEntries[0]?.cuz ?? 26,
+  const [surahRangeEnd, setSurahRangeEnd] = useState<number>(
+    initialSurahNo ?? availableSurahs[availableSurahs.length - 1] ?? 114,
   );
+  const [juzRangeStart, setJuzRangeStart] = useState<number>(
+    availableJuzNumbers[0] ?? 1,
+  );
+  const [juzRangeEnd, setJuzRangeEnd] = useState<number>(
+    availableJuzNumbers[availableJuzNumbers.length - 1] ?? 30,
+  );
+  const [multiSelectedSurahs, setMultiSelectedSurahs] = useState<number[]>(() =>
+    initialSurahNo !== null ? [initialSurahNo] : availableSurahs,
+  );
+  const [multiSearchQuery, setMultiSearchQuery] = useState<string>('');
+  const [multiOnlyWithQuestions, setMultiOnlyWithQuestions] = useState<boolean>(true);
+
   // 0 = Tümü (kapsamdaki tüm sorular)
   const [questionCount, setQuestionCount] = useState<number>(15);
   const [examTitle, setExamTitle] = useState<string>(DEFAULT_EXAM_TITLE);
@@ -465,19 +483,21 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (initialSurahNo !== null) {
-        setScopeMode('surah');
-        setSelectedSurah(initialSurahNo);
+        setScopeMode('multi_surah');
+        setMultiSelectedSurahs([initialSurahNo]);
+        setSurahRangeStart(initialSurahNo);
+        setSurahRangeEnd(initialSurahNo);
       } else {
         setScopeMode('pool');
+        if (availableSurahs.length > 0) {
+          setSurahRangeStart(availableSurahs[0]);
+          setSurahRangeEnd(availableSurahs[availableSurahs.length - 1]);
+          setMultiSelectedSurahs((prev) => (prev.length > 0 ? prev : availableSurahs));
+        }
       }
-      if (availableSurahs.length > 0 && !availableSurahs.includes(selectedSurah)) {
-        setSelectedSurah(availableSurahs[0]);
-      }
-      if (
-        availableJuzEntries.length > 0 &&
-        !availableJuzEntries.some((j) => j.cuz === selectedJuz)
-      ) {
-        setSelectedJuz(availableJuzEntries[0].cuz);
+      if (availableJuzNumbers.length > 0) {
+        setJuzRangeStart(availableJuzNumbers[0]);
+        setJuzRangeEnd(availableJuzNumbers[availableJuzNumbers.length - 1]);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -502,17 +522,75 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
     };
   }, [isOpen, onClose]);
 
-  const selectedJuzInfo = useMemo(
-    () => availableJuzEntries.find((j) => j.cuz === selectedJuz) ?? availableJuzEntries[0] ?? null,
-    [availableJuzEntries, selectedJuz],
-  );
+  const normSurahStart = Math.min(surahRangeStart, surahRangeEnd);
+  const normSurahEnd = Math.max(surahRangeStart, surahRangeEnd);
+  const normJuzStart = Math.min(juzRangeStart, juzRangeEnd);
+  const normJuzEnd = Math.max(juzRangeStart, juzRangeEnd);
+
+  // Sure aralığı ve Cüz aralığı anlık istatistikleri (q/index.json)
+  const surahRangeStats = useMemo(() => {
+    const surahsInRange = availableSurahs.filter(
+      (sNo) => sNo >= normSurahStart && sNo <= normSurahEnd,
+    );
+    const questionCountInRange = surahsInRange.reduce(
+      (sum, sNo) => sum + (questionCountBySurah.get(sNo) ?? 0),
+      0,
+    );
+    return { surahs: surahsInRange, questionCount: questionCountInRange };
+  }, [availableSurahs, normSurahStart, normSurahEnd, questionCountBySurah]);
+
+  const juzRangeStats = useMemo(() => {
+    if (!questionIndex) return { surahs: [] as number[], questionCount: 0, itemIds: new Set<string>() };
+    const surahSet = new Set<number>();
+    const itemIds = new Set<string>();
+    let count = 0;
+    for (const item of questionIndex.items) {
+      if (item.cuz >= normJuzStart && item.cuz <= normJuzEnd) {
+        surahSet.add(item.surah);
+        itemIds.add(item.id);
+        count += 1;
+      }
+    }
+    return {
+      surahs: Array.from(surahSet).sort((a, b) => a - b),
+      questionCount: count,
+      itemIds,
+    };
+  }, [questionIndex, normJuzStart, normJuzEnd]);
+
+  // Çoklu sure seçimi listesi (arama + sadece sorusu olanlar filtresi)
+  const filteredMultiSurahList = useMemo(() => {
+    const normQ = normalizeTurkish(multiSearchQuery.trim());
+    return allSurahs.filter((s) => {
+      if (multiOnlyWithQuestions && !availableSurahSet.has(s.no)) return false;
+      if (!normQ) return true;
+      return (
+        String(s.no).includes(normQ) ||
+        normalizeTurkish(s.nameTr).includes(normQ) ||
+        normalizeTurkish(s.shortNameTr).includes(normQ)
+      );
+    });
+  }, [allSurahs, multiOnlyWithQuestions, availableSurahSet, multiSearchQuery]);
 
   const targetSurahs = useMemo(() => {
-    if (scopeMode === 'surah') return [selectedSurah];
-    if (scopeMode === 'juz') return selectedJuzInfo ? selectedJuzInfo.surahs : [];
+    if (scopeMode === 'surah_range') return surahRangeStats.surahs;
+    if (scopeMode === 'juz_range') return juzRangeStats.surahs;
+    if (scopeMode === 'multi_surah') {
+      return multiSelectedSurahs
+        .filter((sNo) => availableSurahSet.has(sNo))
+        .sort((a, b) => a - b);
+    }
     if (poolQuestionSurahs.length > 0) return poolQuestionSurahs;
     return availableSurahs;
-  }, [scopeMode, selectedSurah, selectedJuzInfo, poolQuestionSurahs, availableSurahs]);
+  }, [
+    scopeMode,
+    surahRangeStats.surahs,
+    juzRangeStats.surahs,
+    multiSelectedSurahs,
+    availableSurahSet,
+    poolQuestionSurahs,
+    availableSurahs,
+  ]);
 
   const targetSurahsKey = useMemo(() => targetSurahs.join(','), [targetSurahs]);
 
@@ -551,26 +629,17 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, targetSurahsKey]);
 
-  // Kapsam (Cüz filtresi dahil) ve hatalı soru ayarına göre yazdırılabilir havuzu hazırla
+  // Kapsam (Cüz aralığı filtresi dahil) ve hatalı soru ayarına göre yazdırılabilir havuzu hazırla
   const { eligiblePoolQuestions, skippedReportedCount } = useMemo(() => {
-    // Cüz modundaysa q/index.json veya q.cuz alanına göre yalnızca seçili cüzün sorularını al
-    const juzAllowedIds =
-      scopeMode === 'juz' && questionIndex && selectedJuzInfo
-        ? new Set(
-            questionIndex.items
-              .filter((item) => item.cuz === selectedJuzInfo.cuz)
-              .map((item) => item.id),
-          )
-        : null;
-
     const eligible: QuestionItem[] = [];
     let skipped = 0;
 
     for (const q of rawPoolQuestions) {
-      if (scopeMode === 'juz' && selectedJuzInfo) {
-        const matchesJuz =
-          q.cuz === selectedJuzInfo.cuz || (juzAllowedIds ? juzAllowedIds.has(q.id) : false);
-        if (!matchesJuz) continue;
+      if (scopeMode === 'juz_range') {
+        const inJuzRange =
+          (typeof q.cuz === 'number' && q.cuz >= normJuzStart && q.cuz <= normJuzEnd) ||
+          juzRangeStats.itemIds.has(q.id);
+        if (!inJuzRange) continue;
       }
 
       if (questionAudit.skipReportedInExams) {
@@ -587,8 +656,9 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   }, [
     rawPoolQuestions,
     scopeMode,
-    selectedJuzInfo,
-    questionIndex,
+    normJuzStart,
+    normJuzEnd,
+    juzRangeStats.itemIds,
     questionAudit.skipReportedInExams,
     questionAudit.reports,
   ]);
@@ -613,22 +683,44 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   }, [eligiblePoolQuestions, questionCount, shuffleNonce]);
 
   const scopeSummary = useMemo(() => {
-    if (scopeMode === 'surah') {
-      return surahMap.get(selectedSurah)?.nameTr ?? `${selectedSurah}. Sure`;
+    if (scopeMode === 'surah_range') {
+      const startMeta = surahMap.get(normSurahStart);
+      const endMeta = surahMap.get(normSurahEnd);
+      if (normSurahStart === normSurahEnd) {
+        return `${normSurahStart}. ${startMeta?.nameTr ?? `${normSurahStart}. Sure`}`;
+      }
+      return `${normSurahStart}. ${startMeta?.shortNameTr ?? 'Sure'} – ${normSurahEnd}. ${
+        endMeta?.shortNameTr ?? 'Sure'
+      } Aralığı`;
     }
-    if (scopeMode === 'juz' && selectedJuzInfo) {
-      const sNames = selectedJuzInfo.surahs
-        .map((sNo) => surahMap.get(sNo)?.shortNameTr ?? `${sNo}. Sure`)
-        .join(', ');
-      return `${selectedJuzInfo.cuz}. Cüz (${sNames})`;
+    if (scopeMode === 'juz_range') {
+      if (normJuzStart === normJuzEnd) {
+        return `${normJuzStart}. Cüz`;
+      }
+      return `${normJuzStart}. Cüz – ${normJuzEnd}. Cüz Aralığı`;
+    }
+    if (scopeMode === 'multi_surah') {
+      if (targetSurahs.length === 0) return 'Seçili Sure Yok';
+      const names = targetSurahs
+        .slice(0, 6)
+        .map((sNo) => surahMap.get(sNo)?.shortNameTr ?? `${sNo}. Sure`);
+      const extra = targetSurahs.length - names.length;
+      return `Seçili Sureler: ${extra > 0 ? `${names.join(', ')} (+${extra})` : names.join(', ')}`;
     }
     if (targetSurahs.length === 0) return 'Soru Bankası';
     const names = targetSurahs
       .slice(0, 6)
       .map((sNo) => surahMap.get(sNo)?.shortNameTr ?? `${sNo}. Sure`);
     const extra = targetSurahs.length - names.length;
-    return extra > 0 ? `${names.join(', ')} ve +${extra} sure` : names.join(', ');
-  }, [scopeMode, selectedSurah, selectedJuzInfo, targetSurahs, surahMap]);
+    return `Aktif Havuz (${extra > 0 ? `${names.join(', ')} +${extra} sure` : names.join(', ')})`;
+  }, [scopeMode, normSurahStart, normSurahEnd, normJuzStart, normJuzEnd, targetSurahs, surahMap]);
+
+  const toggleMultiSurah = useCallback((surahNo: number) => {
+    sfxService.play('click');
+    setMultiSelectedSurahs((prev) =>
+      prev.includes(surahNo) ? prev.filter((n) => n !== surahNo) : [...prev, surahNo].sort((a, b) => a - b),
+    );
+  }, []);
 
   const dateLabel = useMemo(() => {
     try {
@@ -787,17 +879,17 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                   />
                 </div>
 
-                {/* Kapsam Seçici: Aktif Havuz | Belirli Sure | Belirli Cüz */}
-                <div className="lg:col-span-7 space-y-1.5">
-                  <span
-                    className="text-xs font-bold block"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    Sınav Kapsamı
-                  </span>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                {/* Kapsam Seçici: Aktif Havuzum | Sure Aralığı | Cüz Aralığı | Çoklu Sure */}
+                <div className="lg:col-span-7 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span
+                      className="text-xs font-bold"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Sınav Kapsamı (114 Sure / 30 Cüz)
+                    </span>
                     <div
-                      className="grid grid-cols-3 gap-1 p-1 rounded-xl border shrink-0"
+                      className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl border w-full sm:w-auto"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -805,23 +897,22 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                     >
                       {(
                         [
-                          { id: 'pool', label: 'Çalışma Havuzum' },
-                          { id: 'surah', label: 'Belirli Sure' },
-                          { id: 'juz', label: 'Belirli Cüz' },
+                          { id: 'pool', label: 'Aktif Havuzum' },
+                          { id: 'surah_range', label: 'Sure Aralığı' },
+                          { id: 'juz_range', label: 'Cüz Aralığı' },
+                          { id: 'multi_surah', label: 'Çoklu Sure' },
                         ] as { id: PrintScopeMode; label: string }[]
                       ).map((opt) => {
                         const active = scopeMode === opt.id;
-                        const disabled = opt.id === 'juz' && availableJuzEntries.length === 0;
                         return (
                           <button
                             key={opt.id}
                             type="button"
-                            disabled={disabled}
                             onClick={() => {
                               sfxService.play('click');
                               setScopeMode(opt.id);
                             }}
-                            className="min-h-[34px] px-2.5 rounded-lg text-xs font-bold cursor-pointer transition-colors whitespace-nowrap disabled:opacity-40"
+                            className="min-h-[32px] px-2.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors whitespace-nowrap"
                             style={{
                               backgroundColor: active ? 'var(--brand-primary)' : 'transparent',
                               color: active ? '#FFFFFF' : 'var(--text-secondary)',
@@ -832,79 +923,321 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                         );
                       })}
                     </div>
-
-                    {scopeMode === 'surah' && (
-                      <select
-                        id="print-exam-surah-select"
-                        aria-label="Sınav suresi seç"
-                        value={selectedSurah}
-                        onChange={(e) => {
-                          sfxService.play('click');
-                          setSelectedSurah(Number(e.target.value));
-                        }}
-                        className="flex-1 min-w-0 min-h-[42px] px-3 rounded-xl border text-xs sm:text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-600/40"
-                        style={{
-                          backgroundColor: 'var(--bg-surface)',
-                          borderColor: 'var(--border-subtle)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {availableSurahs.map((sNo) => {
-                          const sMeta = surahMap.get(sNo);
-                          const cnt = questionCountBySurah.get(sNo) ?? sMeta?.questionCount ?? 0;
-                          return (
-                            <option key={sNo} value={sNo}>
-                              {sNo}. {sMeta?.nameTr ?? `${sNo}. Sure`} ({cnt} Soru)
-                            </option>
-                          );
-                        })}
-                      </select>
-                    )}
-
-                    {scopeMode === 'juz' && (
-                      <select
-                        id="print-exam-juz-select"
-                        aria-label="Sınav cüzü seç"
-                        value={selectedJuzInfo?.cuz ?? selectedJuz}
-                        onChange={(e) => {
-                          sfxService.play('click');
-                          setSelectedJuz(Number(e.target.value));
-                        }}
-                        className="flex-1 min-w-0 min-h-[42px] px-3 rounded-xl border text-xs sm:text-sm font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-600/40"
-                        style={{
-                          backgroundColor: 'var(--bg-surface)',
-                          borderColor: 'var(--border-subtle)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        {availableJuzEntries.map((entry) => {
-                          const sLabel = entry.surahs
-                            .map((sNo) => surahMap.get(sNo)?.shortNameTr ?? `${sNo}. Sure`)
-                            .join(', ');
-                          return (
-                            <option key={entry.cuz} value={entry.cuz}>
-                              {entry.cuz}. Cüz — {sLabel} ({entry.count} Soru)
-                            </option>
-                          );
-                        })}
-                      </select>
-                    )}
-
-                    {scopeMode === 'pool' && (
-                      <div
-                        className="flex-1 min-w-0 min-h-[42px] px-3 rounded-xl border flex items-center text-xs font-semibold truncate"
-                        style={{
-                          backgroundColor: 'var(--bg-surface)',
-                          borderColor: 'var(--border-subtle)',
-                          color: 'var(--text-secondary)',
-                        }}
-                      >
-                        {poolQuestionSurahs.length > 0
-                          ? `${poolQuestionSurahs.length} sure · ${formatNumberTr(eligiblePoolQuestions.length)} hazır soru`
-                          : `${availableSurahs.length} sure · ${formatNumberTr(eligiblePoolQuestions.length)} hazır soru`}
-                      </div>
-                    )}
                   </div>
+
+                  {/* Mod 1: Aktif Çalışma Havuzum */}
+                  {scopeMode === 'pool' && (
+                    <div
+                      className="min-h-[42px] px-3 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs font-semibold"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      <span className="truncate">{scopeSummary}</span>
+                      <span
+                        className="tabular-nums font-bold shrink-0"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        {targetSurahs.length} sure · {formatNumberTr(eligiblePoolQuestions.length)}{' '}
+                        hazır soru
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Mod 2: Sure Aralığı (Başlangıç Suresi .. Bitiş Suresi) */}
+                  {scopeMode === 'surah_range' && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label
+                            htmlFor="print-surah-start"
+                            className="text-[11px] font-bold block"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            Başlangıç Suresi
+                          </label>
+                          <select
+                            id="print-surah-start"
+                            value={surahRangeStart}
+                            onChange={(e) => {
+                              sfxService.play('click');
+                              setSurahRangeStart(Number(e.target.value));
+                            }}
+                            className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {allSurahs.map((s) => {
+                              const cnt = questionCountBySurah.get(s.no) ?? 0;
+                              return (
+                                <option key={s.no} value={s.no}>
+                                  {s.no}. {s.nameTr}
+                                  {cnt > 0 ? ` (${cnt} soru)` : ''}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label
+                            htmlFor="print-surah-end"
+                            className="text-[11px] font-bold block"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            Bitiş Suresi
+                          </label>
+                          <select
+                            id="print-surah-end"
+                            value={surahRangeEnd}
+                            onChange={(e) => {
+                              sfxService.play('click');
+                              setSurahRangeEnd(Number(e.target.value));
+                            }}
+                            className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {allSurahs.map((s) => {
+                              const cnt = questionCountBySurah.get(s.no) ?? 0;
+                              return (
+                                <option key={s.no} value={s.no}>
+                                  {s.no}. {s.nameTr}
+                                  {cnt > 0 ? ` (${cnt} soru)` : ''}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      </div>
+                      <p className="text-[11px] font-semibold tabular-nums" style={{ color: 'var(--brand-primary-text)' }}>
+                        {scopeSummary} içinde soru bulunan {surahRangeStats.surahs.length} sure ·{' '}
+                        {formatNumberTr(surahRangeStats.questionCount)} soru
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Mod 3: Cüz Aralığı (1. Cüz .. 30. Cüz) */}
+                  {scopeMode === 'juz_range' && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label
+                            htmlFor="print-juz-start"
+                            className="text-[11px] font-bold block"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            Başlangıç Cüzü
+                          </label>
+                          <select
+                            id="print-juz-start"
+                            value={juzRangeStart}
+                            onChange={(e) => {
+                              sfxService.play('click');
+                              setJuzRangeStart(Number(e.target.value));
+                            }}
+                            className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {Array.from({ length: 30 }, (_, idx) => idx + 1).map((cuzNo) => {
+                              const info = juzQuestionCountMap.get(cuzNo);
+                              return (
+                                <option key={cuzNo} value={cuzNo}>
+                                  {cuzNo}. Cüz{info ? ` (${info.count} soru)` : ''}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label
+                            htmlFor="print-juz-end"
+                            className="text-[11px] font-bold block"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            Bitiş Cüzü
+                          </label>
+                          <select
+                            id="print-juz-end"
+                            value={juzRangeEnd}
+                            onChange={(e) => {
+                              sfxService.play('click');
+                              setJuzRangeEnd(Number(e.target.value));
+                            }}
+                            className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {Array.from({ length: 30 }, (_, idx) => idx + 1).map((cuzNo) => {
+                              const info = juzQuestionCountMap.get(cuzNo);
+                              return (
+                                <option key={cuzNo} value={cuzNo}>
+                                  {cuzNo}. Cüz{info ? ` (${info.count} soru)` : ''}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      </div>
+                      <p className="text-[11px] font-semibold tabular-nums" style={{ color: 'var(--brand-primary-text)' }}>
+                        {scopeSummary} içinde soru bulunan {juzRangeStats.surahs.length} sure ·{' '}
+                        {formatNumberTr(juzRangeStats.questionCount)} soru
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Mod 4: Çoklu Sure Seçimi (Arama + Sadece Sorusu Olanlar + Tümünü Seç / Temizle) */}
+                  {scopeMode === 'multi_surah' && (
+                    <div
+                      className="rounded-xl border p-2.5 space-y-2"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <div className="relative flex-1 min-w-[140px]">
+                          <Search
+                            className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                            style={{ color: 'var(--text-muted)' }}
+                          />
+                          <input
+                            type="text"
+                            value={multiSearchQuery}
+                            onChange={(e) => setMultiSearchQuery(e.target.value)}
+                            placeholder="Sure adı veya no ara..."
+                            className="w-full min-h-[32px] pl-8 pr-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-600/30"
+                            style={{
+                              backgroundColor: 'var(--bg-surface-soft)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-primary)',
+                            }}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setMultiOnlyWithQuestions((v) => !v);
+                          }}
+                          className="min-h-[32px] px-2.5 rounded-lg border text-[11px] font-bold cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: multiOnlyWithQuestions
+                              ? 'var(--brand-primary-soft)'
+                              : 'var(--bg-surface-soft)',
+                            borderColor: multiOnlyWithQuestions
+                              ? 'var(--brand-primary)'
+                              : 'var(--border-subtle)',
+                            color: multiOnlyWithQuestions
+                              ? 'var(--brand-primary-text)'
+                              : 'var(--text-secondary)',
+                          }}
+                        >
+                          {multiOnlyWithQuestions ? 'Sadece Sorusu Olanlar' : 'Tüm 114 Sure'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setMultiSelectedSurahs(availableSurahs);
+                          }}
+                          className="min-h-[32px] px-2 rounded-lg border text-[11px] font-bold cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: 'var(--bg-surface-soft)',
+                            borderColor: 'var(--border-subtle)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          Tümünü Seç
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setMultiSelectedSurahs([]);
+                          }}
+                          className="min-h-[32px] px-2 rounded-lg border text-[11px] font-bold cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: 'var(--bg-surface-soft)',
+                            borderColor: 'var(--border-subtle)',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
+                          Temizle
+                        </button>
+                      </div>
+
+                      <div className="max-h-32 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-1.5 pr-0.5">
+                        {filteredMultiSurahList.map((s) => {
+                          const qCnt = questionCountBySurah.get(s.no) ?? 0;
+                          const hasQ = qCnt > 0;
+                          const checked = multiSelectedSurahs.includes(s.no);
+                          return (
+                            <button
+                              key={s.no}
+                              type="button"
+                              disabled={!hasQ}
+                              onClick={() => toggleMultiSurah(s.no)}
+                              className="min-h-[34px] px-2 py-1 rounded-lg border text-left text-[11px] font-bold flex items-center justify-between gap-1.5 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                              style={{
+                                backgroundColor: checked
+                                  ? 'var(--brand-primary-soft)'
+                                  : 'var(--bg-surface-soft)',
+                                borderColor: checked
+                                  ? 'var(--brand-primary)'
+                                  : 'var(--border-subtle)',
+                                color: checked
+                                  ? 'var(--brand-primary-text)'
+                                  : 'var(--text-primary)',
+                              }}
+                            >
+                              <span className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className="w-3.5 h-3.5 rounded flex items-center justify-center border shrink-0"
+                                  style={{
+                                    backgroundColor: checked ? 'var(--brand-primary)' : 'transparent',
+                                    borderColor: checked
+                                      ? 'var(--brand-primary)'
+                                      : 'var(--border-strong)',
+                                    color: '#FFFFFF',
+                                  }}
+                                >
+                                  {checked && <Check className="w-2.5 h-2.5" />}
+                                </span>
+                                <span className="truncate">
+                                  {s.no}. {s.shortNameTr}
+                                </span>
+                              </span>
+                              <span
+                                className="text-[10px] tabular-nums shrink-0"
+                                style={{ color: 'var(--text-muted)' }}
+                              >
+                                {qCnt}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1100,7 +1433,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                   }}
                 >
                   <Shuffle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Soruları Yeniden Karıştır</span>
+                  <span>Yeniden Rastgele Seç</span>
                 </button>
               </div>
             </div>
