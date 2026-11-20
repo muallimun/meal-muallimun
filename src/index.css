@@ -265,6 +265,117 @@
 }
 
 /* ============================================================================
+   Gerçekçi Mushaf Kitap Çerçevesi, Katmanlı Yaprak Kenarı & Cilt Kıvrımı
+   ============================================================================ */
+.mushaf-cover-frame {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 118, 110, 0.14) 0%,
+    rgba(217, 119, 6, 0.09) 50%,
+    rgba(15, 118, 110, 0.14) 100%
+  );
+  border: 1px solid rgba(15, 118, 110, 0.28);
+  box-shadow:
+    0 14px 36px -14px rgba(15, 32, 30, 0.22),
+    0 2px 8px rgba(15, 32, 30, 0.08);
+}
+
+.dark .mushaf-cover-frame {
+  background: linear-gradient(
+    180deg,
+    rgba(13, 148, 136, 0.18) 0%,
+    rgba(245, 158, 11, 0.08) 50%,
+    rgba(13, 148, 136, 0.18) 100%
+  );
+  border-color: rgba(45, 212, 191, 0.25);
+  box-shadow:
+    0 18px 42px -14px rgba(0, 0, 0, 0.58),
+    0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.mushaf-paper-single {
+  background-color: var(--bg-surface);
+  box-shadow:
+    4px 0 0 -1px var(--bg-surface-soft),
+    5px 0 0 -1px var(--border-strong),
+    9px 0 0 -2px var(--bg-surface-soft),
+    10px 0 0 -2px var(--border-subtle),
+    0 8px 24px -8px rgba(15, 32, 30, 0.12);
+}
+
+.mushaf-paper-left {
+  background-color: var(--bg-surface);
+  box-shadow:
+    -4px 0 0 -1px var(--bg-surface-soft),
+    -5px 0 0 -1px var(--border-strong),
+    -8px 0 0 -2px var(--bg-surface-soft),
+    -9px 0 0 -2px var(--border-subtle),
+    inset -24px 0 28px -22px rgba(15, 32, 30, 0.18);
+}
+
+.mushaf-paper-right {
+  background-color: var(--bg-surface);
+  box-shadow:
+    4px 0 0 -1px var(--bg-surface-soft),
+    5px 0 0 -1px var(--border-strong),
+    8px 0 0 -2px var(--bg-surface-soft),
+    9px 0 0 -2px var(--border-subtle),
+    inset 24px 0 28px -22px rgba(15, 32, 30, 0.18);
+}
+
+.dark .mushaf-paper-left {
+  box-shadow:
+    -4px 0 0 -1px var(--bg-surface-soft),
+    -5px 0 0 -1px var(--border-strong),
+    inset -26px 0 32px -20px rgba(0, 0, 0, 0.55);
+}
+
+.dark .mushaf-paper-right {
+  box-shadow:
+    4px 0 0 -1px var(--bg-surface-soft),
+    5px 0 0 -1px var(--border-strong),
+    inset 26px 0 32px -20px rgba(0, 0, 0, 0.55);
+}
+
+.mushaf-cetvel-outer {
+  border: 1.5px solid rgba(15, 118, 110, 0.36);
+}
+
+.mushaf-cetvel-inner {
+  border: 1px solid rgba(217, 119, 6, 0.32);
+}
+
+.dark .mushaf-cetvel-outer {
+  border-color: rgba(45, 212, 191, 0.32);
+}
+
+.dark .mushaf-cetvel-inner {
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+.mushaf-spine-seam {
+  background: linear-gradient(
+    90deg,
+    rgba(15, 32, 30, 0) 0%,
+    rgba(15, 32, 30, 0.12) 44%,
+    rgba(15, 32, 30, 0.26) 50%,
+    rgba(15, 32, 30, 0.12) 56%,
+    rgba(15, 32, 30, 0) 100%
+  );
+}
+
+.dark .mushaf-spine-seam {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.35) 44%,
+    rgba(0, 0, 0, 0.65) 50%,
+    rgba(0, 0, 0, 0.35) 56%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* ============================================================================
    A4 Yazdırılabilir Sınav Kâğıdı ve Cevap Anahtarı Baskı Kuralları (@media print)
    ============================================================================ */
 .print-only-sheet {

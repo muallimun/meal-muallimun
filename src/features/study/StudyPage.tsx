@@ -49,6 +49,7 @@ import type {
   AudioPlayMode,
   CombinedVerse,
   PageBundle,
+  PageLayoutMode,
   PreferredMeal,
   StudyViewMode,
   SurahBundle,
@@ -151,7 +152,7 @@ export const StudyPage: React.FC = () => {
   const [pageInput, setPageInput] = useState<string>(String(initialPageNo));
 
   const viewMode = studyPrefs.viewMode;
-  const isDoublePagePref = studyPrefs.pageLayout === 'double';
+  const isDoubleMushafPref = studyPrefs.pageLayout === 'double_mushaf';
   const bookmarkedSet = useMemo(
     () => new Set(studyProgress.bookmarkedAyahIds),
     [studyProgress.bookmarkedAyahIds],
@@ -178,7 +179,7 @@ export const StudyPage: React.FC = () => {
     clearStudyNavTarget();
   }, [studyNavTarget, meta, currentSurahNo, clearStudyNavTarget]);
 
-  // Sayfa (Tek veya Çift) ya da Sure verisini yükle
+  // Sayfa (Tek veya Çift) ya da Sure verisini yükle + sonraki sayfayı arka planda önbelleğe al
   useEffect(() => {
     if (!meta) return;
     let cancelled = false;
@@ -188,7 +189,7 @@ export const StudyPage: React.FC = () => {
       setViewError(null);
       try {
         if (viewMode === 'mushaf') {
-          const shouldLoadSecond = isDoublePagePref && currentPageNo < pageBounds.maxPage;
+          const shouldLoadSecond = isDoubleMushafPref && currentPageNo < pageBounds.maxPage;
           const [bundle, nextBundle] = await Promise.all([
             dataService.getPageBundle(currentPageNo),
             shouldLoadSecond ? dataService.getPageBundle(currentPageNo + 1) : Promise.resolve(null),
@@ -197,6 +198,12 @@ export const StudyPage: React.FC = () => {
           setPageBundle(bundle);
           setSecondPageBundle(nextBundle);
           setPageInput(String(bundle.pageNo));
+
+          // Sonraki sayfayı sessizce önbelleğe al (sunum modu ve sesli akışta 0 kırpışma)
+          const preloadPage = shouldLoadSecond ? currentPageNo + 2 : currentPageNo + 1;
+          if (preloadPage <= pageBounds.maxPage) {
+            dataService.getPageBundle(preloadPage).catch(() => {});
+          }
 
           const combinedVerses = nextBundle
             ? [...bundle.verses, ...nextBundle.verses]
@@ -251,7 +258,7 @@ export const StudyPage: React.FC = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meta, viewMode, currentPageNo, currentSurahNo, isDoublePagePref, reloadNonce]);
+  }, [meta, viewMode, currentPageNo, currentSurahNo, isDoubleMushafPref, reloadNonce]);
 
   // Mushaf modunda sayfanın son ayeti bitince otomatik sonraki sayfaya geçiş sağlayıcısı
   useEffect(() => {
@@ -262,7 +269,7 @@ export const StudyPage: React.FC = () => {
 
     audioQueueService.registerNextPageProvider(async (nextPageNo: number) => {
       if (nextPageNo > pageBounds.maxPage) return null;
-      const shouldLoadSecond = isDoublePagePref && nextPageNo < pageBounds.maxPage;
+      const shouldLoadSecond = isDoubleMushafPref && nextPageNo < pageBounds.maxPage;
       const [nextBundle, secondBundle] = await Promise.all([
         dataService.getPageBundle(nextPageNo),
         shouldLoadSecond ? dataService.getPageBundle(nextPageNo + 1) : Promise.resolve(null),
@@ -275,6 +282,11 @@ export const StudyPage: React.FC = () => {
       setPageInput(String(nextBundle.pageNo));
       setSelectedAyahId(nextBundle.verses[0].id);
       setCurrentSurahNo(nextBundle.verses[0].surah);
+
+      const preloadTarget = shouldLoadSecond ? nextPageNo + 2 : nextPageNo + 1;
+      if (preloadTarget <= pageBounds.maxPage) {
+        dataService.getPageBundle(preloadTarget).catch(() => {});
+      }
 
       const combinedVerses = secondBundle
         ? [...nextBundle.verses, ...secondBundle.verses]
@@ -289,7 +301,7 @@ export const StudyPage: React.FC = () => {
     return () => {
       audioQueueService.registerNextPageProvider(null);
     };
-  }, [viewMode, meta, pageBounds.maxPage, isDoublePagePref]);
+  }, [viewMode, meta, pageBounds.maxPage, isDoubleMushafPref]);
 
   // Aktif çalan ayete otomatik senkronizasyon ve yumuşak kaydırma (Mushaf, Kartlar ve Kitap Modu)
   useEffect(() => {
@@ -450,12 +462,13 @@ export const StudyPage: React.FC = () => {
     updateStudyPrefs({ viewMode: mode });
   };
 
-  const handleTogglePageLayout = useCallback(() => {
-    sfxService.play('click');
-    updateStudyPrefs({
-      pageLayout: studyPrefs.pageLayout === 'double' ? 'single' : 'double',
-    });
-  }, [studyPrefs.pageLayout, updateStudyPrefs]);
+  const handleChangePageLayout = useCallback(
+    (layout: PageLayoutMode) => {
+      sfxService.play('click');
+      updateStudyPrefs({ pageLayout: layout });
+    },
+    [updateStudyPrefs],
+  );
 
   // Üstteki "Dinle" butonu
   const currentContextKey =
@@ -873,8 +886,8 @@ export const StudyPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Kelime Meali */}
-              {viewMode !== 'book' && (
+              {/* Kelime Meali (sadece wordByWordEnabled açıkken göster) */}
+              {viewMode !== 'book' && settings.wordByWordEnabled && (
                 <div className="flex items-center gap-1.5">
                   <span
                     className="text-xs font-semibold flex items-center gap-1"
@@ -923,36 +936,42 @@ export const StudyPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Masaüstü Tek / Çift Sayfa Seçeneği */}
-              {(viewMode === 'mushaf' || viewMode === 'book') && (
-                <button
-                  type="button"
-                  onClick={handleTogglePageLayout}
-                  className="hidden lg:inline-flex min-h-[34px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer"
+              {/* Masaüstü 3'lü Sayfa Düzeni Seçici (Tek / 2 Sayfa Mushaf / Sağ Mushaf · Sol Meal) */}
+              {viewMode === 'mushaf' && (
+                <div
+                  className="hidden lg:flex items-center p-0.5 rounded-xl border"
                   style={{
-                    backgroundColor: isDoublePagePref
-                      ? 'var(--brand-primary-soft)'
-                      : 'var(--bg-surface)',
-                    borderColor: isDoublePagePref
-                      ? 'var(--brand-primary)'
-                      : 'var(--border-subtle)',
-                    color: isDoublePagePref
-                      ? 'var(--brand-primary-text)'
-                      : 'var(--text-secondary)',
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  {isDoublePagePref ? (
-                    <>
-                      <Square className="w-3.5 h-3.5" />
-                      <span>Tek Sayfa Düzeni</span>
-                    </>
-                  ) : (
-                    <>
-                      <Columns2 className="w-3.5 h-3.5" />
-                      <span>Çift Sayfa Düzeni</span>
-                    </>
-                  )}
-                </button>
+                  {(
+                    [
+                      { id: 'single', label: 'Tek Sayfa', icon: Square },
+                      { id: 'double_mushaf', label: '2 Sayfa Mushaf', icon: Columns2 },
+                      { id: 'double_meal', label: 'Mushaf + Meal', icon: BookOpen },
+                    ] as const
+                  ).map((opt) => {
+                    const Icon = opt.icon;
+                    const active = studyPrefs.pageLayout === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleChangePageLayout(opt.id)}
+                        className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                      >
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
 
               {/* Sure Sınav Kısayolu */}
@@ -1152,7 +1171,9 @@ export const StudyPage: React.FC = () => {
             <span>Tekrar Dene</span>
           </button>
         </div>
-      ) : isLoadingView || !meta ? (
+      ) : !meta ||
+        (viewMode === 'mushaf' && !pageBundle) ||
+        (viewMode !== 'mushaf' && !surahBundle) ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-pulse">
           <div
             className="lg:col-span-7 h-96 rounded-3xl border"
@@ -1172,9 +1193,9 @@ export const StudyPage: React.FC = () => {
       ) : viewMode === 'mushaf' && pageBundle ? (
         <MushafPageView
           pageBundle={pageBundle}
-          secondPageBundle={isDoublePagePref ? secondPageBundle : null}
+          secondPageBundle={isDoubleMushafPref ? secondPageBundle : null}
           pageLayout={studyPrefs.pageLayout}
-          onTogglePageLayout={handleTogglePageLayout}
+          onChangePageLayout={handleChangePageLayout}
           besmele={meta.besmele}
           settings={settings}
           wordMode={studyPrefs.wordMode}
@@ -1185,6 +1206,7 @@ export const StudyPage: React.FC = () => {
               : null
           }
           bookmarkedSet={bookmarkedSet}
+          isRefreshing={isLoadingView}
           onSelectVerse={(verse) => {
             setSelectedAyahId(verse.id);
             setCurrentSurahNo(verse.surah);

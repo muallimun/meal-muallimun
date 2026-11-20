@@ -187,20 +187,14 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
     introSections.find((s) => s.key === introTab) ?? introSections[0];
 
   return (
-    <div className="space-y-4 sm:space-y-5">
-      {/* 1. Açılır/Kapanır Sure Tanıtım Kartı */}
+    <div className="space-y-3.5">
+      {/* Birleşik Kompakt Üst Kart: Sure Başlığı + Besmele + Arama & Filtreler */}
       <div className="surface-card rounded-2xl overflow-hidden">
-        <button
-          type="button"
-          onClick={() => {
-            sfxService.play('click');
-            setIntroOpen((v) => !v);
-          }}
-          className="w-full p-4 sm:p-5 flex items-center justify-between gap-3 text-left cursor-pointer"
-        >
-          <div className="flex items-center gap-3 min-w-0">
+        {/* Satır 1: Sure Bilgisi + Besmele (Masaüstünde yan yana) + Sure Tanıtımı */}
+        <div className="px-4 py-3 sm:px-5 sm:py-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <span
-              className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-sm tabular-nums shrink-0"
+              className="w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-xs tabular-nums shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
@@ -209,47 +203,65 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
               {surahMeta.no}
             </span>
             <div className="min-w-0">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-base sm:text-lg font-extrabold tracking-tight">
-                  {surahMeta.nameTr}
-                </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-extrabold tracking-tight">{surahMeta.nameTr}</h2>
                 <span
-                  className="arabic-title text-xl leading-none"
+                  className="arabic-title text-lg leading-none"
                   style={{ color: 'var(--text-secondary)' }}
                 >
                   {formatSafeArabicTitle(surahMeta.nameAr)}
                 </span>
               </div>
-              <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                {surahMeta.type} · {formatNumberTr(surahMeta.ayahCount)} Ayet · İniş Sırası:{' '}
+              <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                {surahMeta.type} · {formatNumberTr(surahMeta.ayahCount)} Ayet · İniş:{' '}
                 {surahMeta.nuzulSirasi} · Sayfa {surahMeta.pageStart}–{surahMeta.pageEnd}
               </p>
             </div>
           </div>
 
+          {hasBesmele && (
+            <div className="lg:text-center px-2 py-0.5">
+              <p
+                className="arabic-text leading-tight"
+                style={{
+                  fontSize: `${Math.max(19, Math.min(26, settings.arabicFontSize - 4))}px`,
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                {besmele.ar}
+              </p>
+            </div>
+          )}
+
           {introSections.length > 0 && (
-            <span
-              className="min-h-[38px] px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shrink-0"
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIntroOpen((v) => !v);
+              }}
+              className="self-start lg:self-auto min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
               style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                borderColor: 'var(--border-subtle)',
+                backgroundColor: introOpen ? 'var(--brand-primary-soft)' : 'var(--bg-surface-soft)',
+                borderColor: introOpen ? 'var(--brand-primary)' : 'var(--border-subtle)',
                 color: 'var(--brand-primary-text)',
               }}
             >
               <Info className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Sure Tanıtımı</span>
+              <span>Sure Tanıtımı</span>
               {introOpen ? (
-                <ChevronUp className="w-4 h-4" />
+                <ChevronUp className="w-3.5 h-3.5" />
               ) : (
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-3.5 h-3.5" />
               )}
-            </span>
+            </button>
           )}
-        </button>
+        </div>
 
+        {/* Açılır Sure Tanıtımı */}
         {introOpen && introSections.length > 0 && activeIntroSection && (
           <div
-            className="px-4 sm:px-5 pb-5 pt-3 border-t space-y-3"
+            className="px-4 sm:px-5 pb-4 pt-3 border-t space-y-2.5"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
             {introSections.length > 1 && (
@@ -267,12 +279,10 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                         sfxService.play('click');
                         setIntroTab(sec.key);
                       }}
-                      className="min-h-[36px] px-3 rounded-lg text-xs font-bold cursor-pointer transition-colors"
+                      className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold cursor-pointer transition-colors"
                       style={{
                         backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                        color: active
-                          ? 'var(--brand-primary-text)'
-                          : 'var(--text-secondary)',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                       }}
                     >
                       {sec.label}
@@ -283,101 +293,86 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
             )}
 
             <p
-              className="turkish-reading text-sm whitespace-pre-line"
+              className="turkish-reading text-xs sm:text-sm whitespace-pre-line"
               style={{ color: 'var(--text-secondary)' }}
             >
               {activeIntroSection.text}
             </p>
           </div>
         )}
-      </div>
 
-      {/* 2. Besmele Kartı (Sure 1 ve 9 hariç) */}
-      {hasBesmele && (
+        {/* Satır 2: Arama ve Filtre Çipleri Tek Kompakt Şeritte */}
         <div
-          className="surface-card rounded-2xl px-5 py-4 text-center space-y-1.5"
-          style={{ borderColor: 'rgba(217, 119, 6, 0.3)' }}
+          className="px-4 py-2.5 sm:px-5 border-t flex flex-col md:flex-row md:items-center gap-2"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
         >
-          <p
-            className="arabic-text"
-            style={{
-              fontSize: `${Math.max(22, settings.arabicFontSize - 2)}px`,
-              color: 'var(--brand-primary-text)',
-            }}
-          >
-            {besmele.ar}
-          </p>
-          <p className="text-xs sm:text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-            {settings.preferredMeal === 'm2' ? besmele.dib : besmele.tdv}
-          </p>
-        </div>
-      )}
-
-      {/* 3. Filtre Çipleri ve Sure İçi Türkçe Meal Arama */}
-      <div className="surface-card rounded-2xl p-3.5 sm:p-4 space-y-3">
-        <div className="relative">
-          <Search
-            className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: 'var(--text-muted)' }}
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setVisibleCount(BATCH_SIZE);
-            }}
-            placeholder={`${surahMeta.shortNameTr} Suresi mealinde kelime veya ayet no ara...`}
-            className="w-full min-h-[44px] pl-10 pr-9 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/40"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-            }}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              aria-label="Aramayı temizle"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer"
+          <div className="relative flex-1 min-w-[200px]">
+            <Search
+              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
               style={{ color: 'var(--text-muted)' }}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-          {(
-            [
-              { id: 'all', label: `Tümü (${counts.all})` },
-              { id: 'bookmarked', label: `Yıldızlılar (${counts.bookmarked})` },
-              { id: 'footnotes', label: `Dipnotlu Ayetler (${counts.footnotes})` },
-              { id: 'merged', label: `Birleşik Mealler (${counts.merged})` },
-            ] as const
-          ).map((chip) => {
-            const active = filterMode === chip.id;
-            return (
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setVisibleCount(BATCH_SIZE);
+              }}
+              placeholder={`${surahMeta.shortNameTr} mealinde kelime veya ayet no ara...`}
+              className="w-full min-h-[36px] pl-9 pr-8 rounded-xl border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/40"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            />
+            {searchQuery && (
               <button
-                key={chip.id}
                 type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setFilterMode(chip.id);
-                  setVisibleCount(BATCH_SIZE);
-                }}
-                className="min-h-[38px] px-3.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap shrink-0 tabular-nums"
-                style={{
-                  backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
-                  borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                  color: active ? '#FFFFFF' : 'var(--text-secondary)',
-                }}
+                onClick={() => setSearchQuery('')}
+                aria-label="Aramayı temizle"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer"
+                style={{ color: 'var(--text-muted)' }}
               >
-                {chip.label}
+                <X className="w-3.5 h-3.5" />
               </button>
-            );
-          })}
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            {(
+              [
+                { id: 'all', label: `Tümü (${counts.all})` },
+                { id: 'bookmarked', label: `Yıldızlı (${counts.bookmarked})` },
+                { id: 'footnotes', label: `Dipnotlu (${counts.footnotes})` },
+                { id: 'merged', label: `Birleşik (${counts.merged})` },
+              ] as const
+            ).map((chip) => {
+              const active = filterMode === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setFilterMode(chip.id);
+                    setVisibleCount(BATCH_SIZE);
+                  }}
+                  className="min-h-[34px] px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap shrink-0 tabular-nums"
+                  style={{
+                    backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface)',
+                    borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                    color: active ? '#FFFFFF' : 'var(--text-secondary)',
+                  }}
+                >
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

@@ -188,19 +188,22 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 pb-6">
       {/* ====================================================================
           Yarım Kalan Sınav Uyarısı (sessionStorage)
           ==================================================================== */}
       {resumableSession && (
         <section
           aria-label="Yarım kalan sınav"
-          className="surface-card rounded-2xl p-4 sm:p-5 border-l-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-          style={{ borderLeftColor: 'var(--brand-accent)' }}
+          className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          style={{
+            borderColor: 'rgba(217, 119, 6, 0.35)',
+            backgroundColor: 'rgba(217, 119, 6, 0.04)',
+          }}
         >
-          <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
             <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-accent-soft)',
                 color: 'var(--brand-accent-text)',
@@ -212,7 +215,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               <p className="text-xs font-bold" style={{ color: 'var(--brand-accent-text)' }}>
                 Yarım Kalan Sınav Tespit Edildi
               </p>
-              <h3 className="text-base font-extrabold tracking-tight truncate">
+              <h3 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
                 {resumableSession.config.title ?? MODE_LABELS[resumableSession.config.mode]}
               </h3>
               <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
@@ -226,17 +229,17 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
             <button
               type="button"
               onClick={onResumeSession}
-              className="flex-1 sm:flex-initial min-h-[44px] px-4 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-2 cursor-pointer"
+              className="flex-1 sm:flex-initial min-h-[40px] px-4 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
               style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               <Play className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Devam Et</span>
+              <span>Devam Et</span>
             </button>
             <button
               type="button"
               onClick={onDiscardResumable}
               aria-label="Yarım kalan sınavı sil"
-              className="min-h-[44px] min-w-[44px] px-3 rounded-xl border flex items-center justify-center cursor-pointer"
+              className="min-h-[40px] min-w-[40px] px-2.5 rounded-xl border flex items-center justify-center cursor-pointer"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
@@ -252,15 +255,15 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       {/* ====================================================================
           Başlık ve Hızlı Hata Kampı Kısayolu
           ==================================================================== */}
-      <section className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+      <section className="flex flex-col sm:flex-row sm:items-end justify-between gap-2.5">
         <div>
-          <p className="text-xs font-bold mb-1" style={{ color: 'var(--brand-primary-text)' }}>
+          <p className="text-xs font-bold mb-0.5" style={{ color: 'var(--brand-primary-text)' }}>
             %100 Editoryal Soru Bankası
           </p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
             Yarışma &amp; Sınav Merkezi
           </h2>
-          <p className="text-xs sm:text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs sm:text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
             Kapsamını seç, modunu belirle ve meal bilgini sına.
           </p>
         </div>
@@ -325,7 +328,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       {/* ====================================================================
           1. Kapsam & Akıllı Filtre Kartı
           ==================================================================== */}
-      <section className="surface-card rounded-2xl p-5 sm:p-6 space-y-5">
+      <section className="surface-card rounded-2xl p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div
@@ -624,7 +627,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       <section aria-label="Sınav modu seçimi" className="space-y-3">
         <h3 className="text-base font-extrabold tracking-tight">2. Sınav Modunu Seç</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
           {/* Mod 1: Hızlı Antrenman */}
           <div
             role="button"
@@ -640,11 +643,10 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                 setMode('practice');
               }
             }}
-            className="surface-card rounded-2xl p-5 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
+            className="surface-card rounded-2xl p-4 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
             style={{
               borderColor: mode === 'practice' ? 'var(--brand-primary)' : 'var(--border-subtle)',
-              backgroundColor:
-                mode === 'practice' ? 'var(--bg-surface)' : 'var(--bg-surface)',
+              backgroundColor: 'var(--bg-surface)',
             }}
           >
             <div>
@@ -700,7 +702,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                 setMode('arena');
               }
             }}
-            className="surface-card rounded-2xl p-5 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
+            className="surface-card rounded-2xl p-4 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
             style={{
               borderColor: mode === 'arena' ? 'var(--brand-accent)' : 'var(--border-subtle)',
             }}
@@ -788,7 +790,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                 setMode('mock');
               }
             }}
-            className="surface-card rounded-2xl p-5 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
+            className="surface-card rounded-2xl p-4 text-left transition-all cursor-pointer flex flex-col justify-between border-2"
             style={{
               borderColor: mode === 'mock' ? 'var(--brand-primary)' : 'var(--border-subtle)',
             }}
@@ -836,7 +838,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       {/* ====================================================================
           3. Soru Sayısı ve Başlat Çubuğu
           ==================================================================== */}
-      <section className="surface-card rounded-2xl p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+      <section className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="space-y-2.5">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-extrabold tracking-tight">3. Soru Sayısı</h3>
@@ -913,7 +915,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       {/* ====================================================================
           4. Son Sınavlarım Özeti (examHistory)
           ==================================================================== */}
-      <section className="surface-card rounded-2xl p-5 sm:p-6 space-y-4">
+      <section className="surface-card rounded-2xl p-4 sm:p-5 space-y-3.5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <History className="w-5 h-5" style={{ color: 'var(--brand-primary-text)' }} />

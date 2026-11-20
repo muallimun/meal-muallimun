@@ -9,7 +9,7 @@ export type NavTab = 'home' | 'reader' | 'exam' | 'mistakes';
 
 export type StudyViewMode = 'mushaf' | 'cards' | 'book';
 export type BookContentMode = 'ar_only' | 'meal_only' | 'interleaved';
-export type PageLayoutMode = 'single' | 'double';
+export type PageLayoutMode = 'single' | 'double_mushaf' | 'double_meal';
 export type WordMealMode = 'off' | 'visible' | 'quiz';
 export type AudioPlayMode = 'ar' | 'meal' | 'ar_then_meal';
 export type MealAudioSourceId = 'tdv' | 'dib' | (string & {});
@@ -319,6 +319,9 @@ export interface AppSettings {
   sfxEnabled: boolean;
   sfxVolume: number; // 0..1
   showOptionLettersInApp: boolean;
+  wordByWordEnabled: boolean;
+  showFootnotes: boolean;
+  highlightSajdah: boolean;
 }
 
 export interface StudyPool {
@@ -343,9 +346,23 @@ export interface LastReadPosition {
   updatedAt: string;
 }
 
+export type PageBookmarkColor = 'emerald' | 'amber' | 'rose' | 'indigo';
+
+export interface PageBookmark {
+  id: string;
+  page: number;
+  surah: number;
+  ayah: number;
+  label: string;
+  color: PageBookmarkColor;
+  isHatim?: boolean;
+  updatedAt: string;
+}
+
 export interface StudyProgress {
   lastRead: LastReadPosition | null;
   bookmarkedAyahIds: number[];
+  pageBookmarks: PageBookmark[];
 }
 
 export interface AudioPrefs {

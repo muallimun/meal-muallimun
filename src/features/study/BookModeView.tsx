@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   BookOpen,
+  Bookmark,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -65,6 +66,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     studyProgress,
     updateStudyPrefs,
     toggleBookmarkAyah,
+    moveHatimBookmark,
   } = useAppStore();
 
   const [onlyFavorites, setOnlyFavorites] = useState(false);
@@ -74,6 +76,10 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const bookMode: BookContentMode = studyPrefs.bookContentMode;
+  const isDoubleBookLayout = studyPrefs.pageLayout !== 'single';
+  const isHatimOnSurahStart = studyProgress.pageBookmarks.some(
+    (b) => b.isHatim && b.page === bundle.surahMeta.pageStart,
+  );
   const bookmarkedSet = useMemo(
     () => new Set(studyProgress.bookmarkedAyahIds),
     [studyProgress.bookmarkedAyahIds],
@@ -262,29 +268,29 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               onClick={() => {
                 sfxService.play('click');
                 updateStudyPrefs({
-                  pageLayout: studyPrefs.pageLayout === 'double' ? 'single' : 'double',
+                  pageLayout: isDoubleBookLayout ? 'single' : 'double_mushaf',
                 });
               }}
-              className={`hidden lg:inline-flex min-h-[44px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                studyPrefs.pageLayout === 'double'
+              className={`hidden lg:inline-flex min-h-[42px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                isDoubleBookLayout
                   ? 'bg-[var(--brand-primary-soft)] text-[var(--brand-primary-text)] border-[var(--brand-primary)]'
                   : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--brand-primary)]'
               }`}
               title={
-                studyPrefs.pageLayout === 'double'
+                isDoubleBookLayout
                   ? 'Tek sütun kitap düzenine geç'
                   : 'Yan yana çift sayfa kitap düzenine geç'
               }
             >
-              {studyPrefs.pageLayout === 'double' ? (
+              {isDoubleBookLayout ? (
                 <>
                   <Square className="w-4 h-4" />
-                  <span>Tek Sayfa</span>
+                  <span>Tek Sütun</span>
                 </>
               ) : (
                 <>
                   <Columns2 className="w-4 h-4" />
-                  <span>Çift Sayfa</span>
+                  <span>Çift Sütun</span>
                 </>
               )}
             </button>
@@ -320,25 +326,54 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
       {/* Kitap Sayfası Çerçevesi (Masaüstünde Çift Sayfa seçiliyse geniş açılım) */}
       <article
         className={`${
-          studyPrefs.pageLayout === 'double' ? 'max-w-6xl' : 'max-w-3xl'
+          isDoubleBookLayout ? 'max-w-6xl' : 'max-w-3xl'
         } mx-auto surface-card rounded-3xl border-2 border-[var(--border-strong)]/80 overflow-hidden shadow-md transition-all`}
       >
         {/* Kitap Serlevha Başlığı */}
-        <header className="px-5 py-5 sm:px-8 sm:py-6 border-b border-[var(--border-subtle)] bg-gradient-to-b from-[var(--brand-primary-soft)]/70 to-transparent text-center">
+        <header className="px-5 py-4 sm:px-8 sm:py-5 border-b border-[var(--border-subtle)] bg-gradient-to-b from-[var(--brand-primary-soft)]/70 to-transparent text-center">
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[11px] font-bold text-[var(--text-secondary)]">
               <BookOpen className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
               {bundle.surahMeta.no}. Sure • {bundle.surahMeta.type}
             </span>
 
-            <button
-              type="button"
-              onClick={() => onOpenSurahInfo(bundle.surahMeta)}
-              className="min-h-[36px] px-3 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--brand-primary-text)] hover:border-[var(--brand-primary)] inline-flex items-center gap-1 cursor-pointer"
-            >
-              <Info className="w-3.5 h-3.5" />
-              <span>Sure Bilgisi</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() =>
+                  moveHatimBookmark({
+                    page: bundle.surahMeta.pageStart,
+                    surah: bundle.surahMeta.no,
+                    ayah: 1,
+                  })
+                }
+                title="Hatim ayracını bu surenin sayfasına taşı"
+                className="min-h-[34px] px-2.5 py-1 rounded-lg border text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                style={{
+                  backgroundColor: isHatimOnSurahStart
+                    ? 'var(--brand-primary)'
+                    : 'var(--bg-surface)',
+                  borderColor: isHatimOnSurahStart
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
+                  color: isHatimOnSurahStart ? '#FFFFFF' : 'var(--text-secondary)',
+                }}
+              >
+                <Bookmark className={`w-3.5 h-3.5 ${isHatimOnSurahStart ? 'fill-current' : ''}`} />
+                <span className="hidden sm:inline">
+                  {isHatimOnSurahStart ? 'Hatim Ayracı' : 'Ayraç Koy'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onOpenSurahInfo(bundle.surahMeta)}
+                className="min-h-[34px] px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--brand-primary-text)] hover:border-[var(--brand-primary)] inline-flex items-center gap-1 cursor-pointer"
+              >
+                <Info className="w-3.5 h-3.5" />
+                <span>Sure Bilgisi</span>
+              </button>
+            </div>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--text-primary)]">
@@ -393,7 +428,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               <div
                 dir="rtl"
                 className={`arabic-text text-justify text-[var(--text-primary)] leading-[2.35] ${
-                  studyPrefs.pageLayout === 'double' ? 'lg:columns-2 lg:gap-10' : ''
+                  isDoubleBookLayout ? 'lg:columns-2 lg:gap-10' : ''
                 }`}
                 style={{ fontSize: `${settings.arabicFontSize}px` }}
               >
@@ -516,17 +551,23 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             /* 2. SADECE TÜRKÇE MEAL veya 3. ARAPÇA + MEAL KİTAP AKIŞI */
             <div
               className={
-                studyPrefs.pageLayout === 'double'
+                isDoubleBookLayout
                   ? 'grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8 gap-y-2'
                   : 'divide-y divide-[var(--border-subtle)]/70'
               }
             >
               {visibleVerses.map((verse) => {
                 const isPlaying = playingAyahId === verse.id;
-                const fnList = [
-                  ...(showM1 && verse.m1?.fn ? verse.m1.fn.map((t) => ({ src: 'TDV', text: t })) : []),
-                  ...(showM2 && verse.m2?.fn ? verse.m2.fn.map((t) => ({ src: 'DİB', text: t })) : []),
-                ];
+                const fnList = settings.showFootnotes
+                  ? [
+                      ...(showM1 && verse.m1?.fn
+                        ? verse.m1.fn.map((t) => ({ src: 'TDV', text: t }))
+                        : []),
+                      ...(showM2 && verse.m2?.fn
+                        ? verse.m2.fn.map((t) => ({ src: 'DİB', text: t }))
+                        : []),
+                    ]
+                  : [];
                 const isFnOpen = openFootnoteAyahId === verse.id;
 
                 return (
@@ -534,7 +575,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     key={verse.id}
                     id={`book-ayah-${verse.id}`}
                     className={`py-4 sm:py-5 transition-all rounded-2xl px-2.5 sm:px-3.5 ${
-                      studyPrefs.pageLayout === 'double'
+                      isDoubleBookLayout
                         ? 'border-b border-[var(--border-subtle)]/70'
                         : 'first:pt-1 last:pb-1 -mx-2.5 sm:-mx-3.5'
                     } ${

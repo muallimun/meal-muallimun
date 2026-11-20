@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
+  Bookmark,
   BookMarked,
   BookOpen,
   Check,
@@ -60,6 +61,7 @@ export const HomePage: React.FC = () => {
     openPoolModal,
     openSettingsModal,
     openIntroSplash,
+    openBookmarksDrawer,
   } = useAppStore();
 
   const [previewAyah, setPreviewAyah] = useState<AyahPreviewData | null>(null);
@@ -312,17 +314,17 @@ export const HomePage: React.FC = () => {
   const remainingSurahCount = Math.max(0, poolStats.effectiveSurahs.length - 6);
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-4 sm:space-y-5">
       {/* ====================================================================
           1. Üst Karşılama ve 4 Özet İstatistik Kartı
           ==================================================================== */}
       <section aria-label="Çalışma özeti">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2.5 mb-3">
           <div>
-            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-primary-text)' }}>
+            <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--brand-primary-text)' }}>
               Muallimun Kur&apos;an &amp; Meal
             </p>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-balance">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-balance">
               Bugün hangi sureyle yolculuğa başlıyoruz?
             </h2>
           </div>
@@ -333,7 +335,7 @@ export const HomePage: React.FC = () => {
             <button
               type="button"
               onClick={openIntroSplash}
-              className="text-xs font-bold underline underline-offset-4 cursor-pointer"
+              className="text-xs font-bold underline underline-offset-4 cursor-pointer whitespace-nowrap"
               style={{ color: 'var(--brand-primary-text)' }}
             >
               İntroyu Göster
@@ -341,15 +343,15 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Günlük Seri */}
-          <div className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
                 Günlük Seri
               </span>
               <span
-                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
                 style={{
                   backgroundColor: 'var(--brand-accent-soft)',
                   color: 'var(--brand-accent-text)',
@@ -359,29 +361,29 @@ export const HomePage: React.FC = () => {
               </span>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight">
+              <p className="text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight">
                 {formatNumberTr(gamification.streakDays)}
                 <span
-                  className="text-sm font-semibold ml-1"
+                  className="text-xs font-semibold ml-1"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   gün
                 </span>
               </p>
-              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 Düzenli çalışma zinciri
               </p>
             </div>
           </div>
 
           {/* Toplam Puan */}
-          <div className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
                 Toplam Puan
               </span>
               <span
-                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
                   color: 'var(--brand-primary-text)',
@@ -391,23 +393,23 @@ export const HomePage: React.FC = () => {
               </span>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight">
+              <p className="text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight">
                 {formatNumberTr(gamification.totalXp)}
               </p>
-              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 Yarışma ve tekrar puanı
               </p>
             </div>
           </div>
 
           {/* Çözülen Soru */}
-          <div className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
                 Çözülen Soru
               </span>
               <span
-                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   color: 'var(--brand-primary-text)',
@@ -417,23 +419,23 @@ export const HomePage: React.FC = () => {
               </span>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight">
+              <p className="text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight">
                 {formatNumberTr(gamification.solvedCount)}
               </p>
-              <p className="text-xs mt-1 tabular-nums" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[11px] mt-0.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
                 {formatNumberTr(gamification.correctCount)} doğru yanıt
               </p>
             </div>
           </div>
 
           {/* Doğruluk Oranı */}
-          <div className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
                 Doğruluk Oranı
               </span>
               <span
-                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
                 style={{
                   backgroundColor: 'rgba(16, 185, 129, 0.14)',
                   color: '#10B981',
@@ -443,10 +445,10 @@ export const HomePage: React.FC = () => {
               </span>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight">
+              <p className="text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight">
                 {accuracyPercent !== null ? `%${accuracyPercent}` : '—'}
               </p>
-              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                 {accuracyPercent !== null ? 'Genel isabet ortalaması' : 'İlk sınavınızla oluşur'}
               </p>
             </div>
@@ -455,7 +457,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ====================================================================
-          1.5. Kaldığım Yerden Devam Et Kartı (Son Okuma Kaydı Varsa)
+          1.5. Kaldığım Yerden Devam Et & Sayfa Ayraçları Kartı
           ==================================================================== */}
       {studyProgress.lastRead && (() => {
         const lastRead = studyProgress.lastRead;
@@ -466,16 +468,17 @@ export const HomePage: React.FC = () => {
             : lastRead.viewMode === 'book'
               ? 'Kitap Modu'
               : 'Ayet & Karşılaştırmalı Meal';
+        const hatimBookmark = studyProgress.pageBookmarks.find((b) => b.isHatim);
 
         return (
           <section aria-label="Kaldığım yerden devam et">
             <div
-              className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
-              style={{ borderLeftColor: 'var(--brand-primary)' }}
+              className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              style={{ borderColor: 'rgba(15, 118, 110, 0.25)' }}
             >
-              <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+              <div className="flex items-start sm:items-center gap-3 min-w-0">
                 <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                   style={{
                     backgroundColor: 'var(--brand-primary-soft)',
                     color: 'var(--brand-primary-text)',
@@ -495,54 +498,75 @@ export const HomePage: React.FC = () => {
                       · {modeLabel}
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 mt-0.5">
-                    <h3 className="text-base sm:text-lg font-extrabold tracking-tight truncate">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mt-0.5">
+                    <h3 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
                       {lastSurahMeta?.nameTr ?? `${lastRead.surah}. Sure`}
                     </h3>
                     {lastSurahMeta?.nameAr && (
                       <span
-                        className="arabic-title text-lg leading-none"
+                        className="arabic-title text-base leading-none"
                         style={{ color: 'var(--text-secondary)' }}
                       >
                         {formatSafeArabicTitle(lastSurahMeta.nameAr)}
                       </span>
                     )}
                     <span
-                      className="text-xs sm:text-sm font-semibold tabular-nums"
+                      className="text-xs font-semibold tabular-nums"
                       style={{ color: 'var(--text-muted)' }}
                     >
                       {lastRead.ayah}. Ayet · Sayfa {lastRead.page}
                     </span>
-                    {studyProgress.bookmarkedAyahIds.length > 0 && (
+                    {hatimBookmark && (
                       <span
                         className="text-xs font-semibold tabular-nums"
                         style={{ color: 'var(--brand-accent-text)' }}
                       >
-                        · {formatNumberTr(studyProgress.bookmarkedAyahIds.length)} yıldızlı ayet
+                        · Hatim Ayracı: S.{hatimBookmark.page}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  navigateToStudy({
-                    surah: lastRead.surah,
-                    ayah: lastRead.ayah,
-                    page: lastRead.page,
-                    viewMode: lastRead.viewMode,
-                  });
-                }}
-                className="min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 shrink-0 transition-transform active:scale-[0.99] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
-              >
-                <BookOpen className="w-4 h-4 shrink-0" />
-                <span className="whitespace-nowrap">Okumaya Devam Et</span>
-                <ArrowRight className="w-4 h-4 shrink-0" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={openBookmarksDrawer}
+                  className="min-h-[40px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <Bookmark className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-accent-text)' }} />
+                  <span>
+                    Ayraçlar
+                    {studyProgress.pageBookmarks.length > 0
+                      ? ` (${studyProgress.pageBookmarks.length})`
+                      : ''}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    navigateToStudy({
+                      surah: lastRead.surah,
+                      ayah: lastRead.ayah,
+                      page: lastRead.page,
+                      viewMode: lastRead.viewMode,
+                    });
+                  }}
+                  className="flex-1 sm:flex-initial min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-1.5 shrink-0 transition-transform active:scale-[0.99] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 whitespace-nowrap"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                >
+                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <span>Okumaya Devam Et</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </button>
+              </div>
             </div>
           </section>
         );
@@ -554,12 +578,15 @@ export const HomePage: React.FC = () => {
       {gamification.wrongQuestionIds.length > 0 && (
         <section aria-label="Hata kampı hatırlatması">
           <div
-            className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
-            style={{ borderLeftColor: '#EF4444' }}
+            className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            style={{
+              borderColor: 'rgba(239, 68, 68, 0.28)',
+              backgroundColor: 'rgba(239, 68, 68, 0.03)',
+            }}
           >
-            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
               <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: 'rgba(239, 68, 68, 0.12)',
                   color: '#DC2626',
@@ -571,7 +598,7 @@ export const HomePage: React.FC = () => {
                 <p className="text-xs font-bold" style={{ color: '#DC2626' }}>
                   Hata Kampı Hatırlatması
                 </p>
-                <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
+                <h3 className="text-sm sm:text-base font-extrabold tracking-tight">
                   Hata Kampında Seni Bekleyen {formatNumberTr(gamification.wrongQuestionIds.length)}{' '}
                   Soru Var
                 </h3>
@@ -584,10 +611,10 @@ export const HomePage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('mistakes')}
-              className="min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 shrink-0 transition-transform active:scale-[0.99] cursor-pointer"
+              className="min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-1.5 shrink-0 transition-transform active:scale-[0.99] cursor-pointer whitespace-nowrap"
               style={{ backgroundColor: '#DC2626' }}
             >
-              <span className="whitespace-nowrap">Hemen Temizle</span>
+              <span>Hemen Temizle</span>
               <ArrowRight className="w-4 h-4 shrink-0" />
             </button>
           </div>
@@ -602,23 +629,23 @@ export const HomePage: React.FC = () => {
       {/* ====================================================================
           2. Ana 2-Sütunlu Alan: Aktif Çalışma Havuzu + Rastgele Ayet Önizleme
           ==================================================================== */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         {/* SOL (7 sütun): Aktif Çalışma Havuzu Kartı */}
-        <div className="lg:col-span-7 surface-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between">
+        <div className="lg:col-span-7 surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3.5">
               <div className="flex items-center gap-2.5">
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                   style={{
                     backgroundColor: 'var(--brand-primary)',
                     color: '#FFFFFF',
                   }}
                 >
-                  <Layers className="w-5 h-5" />
+                  <Layers className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-extrabold tracking-tight">
+                  <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
                     Aktif Çalışma Havuzum
                   </h3>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -749,9 +776,9 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* SAĞ (5 sütun): Havuzdan Rastgele Ayet Önizleme Kartı */}
-        <div className="lg:col-span-5 surface-card rounded-2xl p-5 sm:p-6 flex flex-col justify-between">
+        <div className="lg:col-span-5 surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center justify-between gap-2 mb-3">
               <div>
                 <h3 className="text-base font-extrabold tracking-tight">Havuzdan Bir Ayet</h3>
                 {previewAyah && (
@@ -951,7 +978,7 @@ export const HomePage: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {availableQuestionSurahs.map((surah) => {
             const qCount = questionCountBySurah.get(surah.no) ?? surah.questionCount;
             const inPool = poolStats.effectiveSurahs.includes(surah.no);
@@ -960,7 +987,7 @@ export const HomePage: React.FC = () => {
             return (
               <article
                 key={surah.no}
-                className="surface-card rounded-2xl p-5 flex flex-col justify-between transition-transform hover:-translate-y-0.5"
+                className="surface-card rounded-2xl p-4 flex flex-col justify-between transition-transform hover:-translate-y-0.5"
               >
                 <div>
                   {/* Üst Satır: Sure No + Arapça İsim */}

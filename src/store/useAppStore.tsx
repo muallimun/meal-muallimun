@@ -25,6 +25,9 @@ import type {
   ManifestData,
   MetaData,
   NavTab,
+  PageBookmark,
+  PageBookmarkColor,
+  PageLayoutMode,
   PersistedAppState,
   PoolStatsSummary,
   QuestionAuditState,
@@ -60,6 +63,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   sfxEnabled: true,
   sfxVolume: 0.75,
   showOptionLettersInApp: false,
+  wordByWordEnabled: true,
+  showFootnotes: true,
+  highlightSajdah: true,
 };
 
 export const DEFAULT_STUDY_POOL: StudyPool = {
@@ -79,6 +85,7 @@ export const DEFAULT_STUDY_PREFS: StudyPrefs = {
 export const DEFAULT_STUDY_PROGRESS: StudyProgress = {
   lastRead: null,
   bookmarkedAyahIds: [],
+  pageBookmarks: [],
 };
 
 export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
@@ -224,6 +231,18 @@ function hydrateState(): PersistedAppState {
         typeof rawSettings.showOptionLettersInApp === 'boolean'
           ? rawSettings.showOptionLettersInApp
           : DEFAULT_SETTINGS.showOptionLettersInApp,
+      wordByWordEnabled:
+        typeof rawSettings.wordByWordEnabled === 'boolean'
+          ? rawSettings.wordByWordEnabled
+          : DEFAULT_SETTINGS.wordByWordEnabled,
+      showFootnotes:
+        typeof rawSettings.showFootnotes === 'boolean'
+          ? rawSettings.showFootnotes
+          : DEFAULT_SETTINGS.showFootnotes,
+      highlightSajdah:
+        typeof rawSettings.highlightSajdah === 'boolean'
+          ? rawSettings.highlightSajdah
+          : DEFAULT_SETTINGS.highlightSajdah,
     };
 
     const rawPool = parsed.studyPool;
@@ -237,7 +256,18 @@ function hydrateState(): PersistedAppState {
       isCustomized: Boolean(rawPool?.isCustomized),
     };
 
-    const rawStudyPrefs = parsed.studyPrefs;
+    const rawStudyPrefs = parsed.studyPrefs as
+      | (Partial<StudyPrefs> & { pageLayout?: string })
+      | undefined;
+    const hydratedPageLayout: PageLayoutMode =
+      rawStudyPrefs?.pageLayout === 'double_mushaf' ||
+      rawStudyPrefs?.pageLayout === 'double_meal' ||
+      rawStudyPrefs?.pageLayout === 'single'
+        ? rawStudyPrefs.pageLayout
+        : rawStudyPrefs?.pageLayout === 'double'
+          ? 'double_mushaf'
+          : DEFAULT_STUDY_PREFS.pageLayout;
+
     const studyPrefs: StudyPrefs = {
       viewMode:
         rawStudyPrefs?.viewMode === 'mushaf' ||
@@ -261,10 +291,7 @@ function hydrateState(): PersistedAppState {
         typeof rawStudyPrefs?.mealAudioFocusOnly === 'boolean'
           ? rawStudyPrefs.mealAudioFocusOnly
           : DEFAULT_STUDY_PREFS.mealAudioFocusOnly,
-      pageLayout:
-        rawStudyPrefs?.pageLayout === 'single' || rawStudyPrefs?.pageLayout === 'double'
-          ? rawStudyPrefs.pageLayout
-          : DEFAULT_STUDY_PREFS.pageLayout,
+      pageLayout: hydratedPageLayout,
     };
 
     const rawProgress = parsed.studyProgress;
@@ -291,6 +318,45 @@ function hydrateState(): PersistedAppState {
           }
         : null;
 
+    const validColors: PageBookmarkColor[] = ['emerald', 'amber', 'rose', 'indigo'];
+    const rawPageBookmarks = Array.isArray(rawProgress?.pageBookmarks)
+      ? rawProgress.pageBookmarks
+      : [];
+    const hydratedPageBookmarks: PageBookmark[] = [];
+    const seenBookmarkIds = new Set<string>();
+    for (const item of rawPageBookmarks) {
+      if (!item || typeof item !== 'object') continue;
+      const b = item as Partial<PageBookmark>;
+      if (typeof b.page !== 'number' || b.page < 0 || b.page > 604) continue;
+      const id =
+        typeof b.id === 'string' && b.id.trim()
+          ? b.id.trim()
+          : b.isHatim
+            ? 'hatim'
+            : `bm_p${b.page}_${hydratedPageBookmarks.length}`;
+      if (seenBookmarkIds.has(id)) continue;
+      seenBookmarkIds.add(id);
+      hydratedPageBookmarks.push({
+        id,
+        page: b.page,
+        surah: typeof b.surah === 'number' && b.surah >= 1 && b.surah <= 114 ? b.surah : 1,
+        ayah: typeof b.ayah === 'number' && b.ayah >= 1 ? b.ayah : 1,
+        label:
+          typeof b.label === 'string' && b.label.trim()
+            ? b.label.trim()
+            : b.isHatim
+              ? 'Hatim Ayracım'
+              : `Sayfa ${b.page}`,
+        color: validColors.includes(b.color as PageBookmarkColor)
+          ? (b.color as PageBookmarkColor)
+          : b.isHatim
+            ? 'emerald'
+            : 'amber',
+        isHatim: Boolean(b.isHatim),
+        updatedAt: typeof b.updatedAt === 'string' ? b.updatedAt : new Date().toISOString(),
+      });
+    }
+
     const studyProgress: StudyProgress = {
       lastRead,
       bookmarkedAyahIds: Array.isArray(rawProgress?.bookmarkedAyahIds)
@@ -302,6 +368,7 @@ function hydrateState(): PersistedAppState {
             ),
           )
         : [],
+      pageBookmarks: hydratedPageBookmarks,
     };
 
     const rawAudio = parsed.audioPrefs;
@@ -528,6 +595,16 @@ interface AppContextValue {
   updateStudyPrefs: (patch: Partial<StudyPrefs>) => void;
   setLastRead: (pos: Omit<LastReadPosition, 'updatedAt'>) => void;
   toggleBookmarkAyah: (ayahId: number) => void;
+  upsertPageBookmark: (input: {
+    page: number;
+    surah: number;
+    ayah: number;
+    label?: string;
+    color?: PageBookmarkColor;
+  }) => void;
+  moveHatimBookmark: (input: { page: number; surah: number; ayah: number }) => void;
+  renamePageBookmark: (id: string, label: string, color?: PageBookmarkColor) => void;
+  removePageBookmark: (id: string) => void;
   updateAudioPrefs: (patch: Partial<AudioPrefs>) => void;
   recordExamResult: (input: RecordExamResultInput) => RecordExamResultOutput;
   toggleBookmarkQuestion: (questionUid: string) => void;
@@ -560,6 +637,12 @@ interface AppContextValue {
   isSettingsModalOpen: boolean;
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
+  isBookmarksDrawerOpen: boolean;
+  openBookmarksDrawer: () => void;
+  closeBookmarksDrawer: () => void;
+  isSearchModalOpen: boolean;
+  openSearchModal: () => void;
+  closeSearchModal: () => void;
   isIntroOpen: boolean;
   introDismissed: boolean;
   openIntroSplash: () => void;
@@ -618,6 +701,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [introDismissed, setIntroDismissed] = useState<boolean>(() => readIntroDismissed());
   const [isIntroOpen, setIsIntroOpen] = useState<boolean>(() => !readIntroDismissed());
 
@@ -844,6 +929,123 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
       };
     });
+  }, []);
+
+  const upsertPageBookmark = useCallback(
+    (input: {
+      page: number;
+      surah: number;
+      ayah: number;
+      label?: string;
+      color?: PageBookmarkColor;
+    }) => {
+      sfxService.play('click');
+      const now = new Date().toISOString();
+      setPersisted((prev) => {
+        const list = prev.studyProgress.pageBookmarks;
+        const existingIdx = list.findIndex((b) => !b.isHatim && b.page === input.page);
+        let nextList: PageBookmark[];
+        if (existingIdx >= 0) {
+          nextList = list.map((b, idx) =>
+            idx === existingIdx
+              ? {
+                  ...b,
+                  surah: input.surah,
+                  ayah: input.ayah,
+                  label: input.label?.trim() || b.label,
+                  color: input.color ?? b.color,
+                  updatedAt: now,
+                }
+              : b,
+          );
+        } else {
+          const newBookmark: PageBookmark = {
+            id: `bm_${input.page}_${Date.now()}`,
+            page: input.page,
+            surah: input.surah,
+            ayah: input.ayah,
+            label: input.label?.trim() || `Sayfa ${input.page}`,
+            color: input.color ?? 'amber',
+            isHatim: false,
+            updatedAt: now,
+          };
+          nextList = [newBookmark, ...list];
+        }
+        return {
+          ...prev,
+          studyProgress: {
+            ...prev.studyProgress,
+            pageBookmarks: nextList,
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const moveHatimBookmark = useCallback(
+    (input: { page: number; surah: number; ayah: number }) => {
+      sfxService.play('click');
+      const now = new Date().toISOString();
+      setPersisted((prev) => {
+        const existing = prev.studyProgress.pageBookmarks.find((b) => b.isHatim);
+        const hatimItem: PageBookmark = {
+          id: existing?.id ?? 'hatim',
+          page: input.page,
+          surah: input.surah,
+          ayah: input.ayah,
+          label: existing?.label || 'Hatim Ayracım',
+          color: existing?.color ?? 'emerald',
+          isHatim: true,
+          updatedAt: now,
+        };
+        const others = prev.studyProgress.pageBookmarks.filter((b) => !b.isHatim);
+        return {
+          ...prev,
+          studyProgress: {
+            ...prev.studyProgress,
+            pageBookmarks: [hatimItem, ...others],
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const renamePageBookmark = useCallback(
+    (id: string, label: string, color?: PageBookmarkColor) => {
+      const cleanLabel = label.trim();
+      if (!cleanLabel) return;
+      sfxService.play('click');
+      setPersisted((prev) => ({
+        ...prev,
+        studyProgress: {
+          ...prev.studyProgress,
+          pageBookmarks: prev.studyProgress.pageBookmarks.map((b) =>
+            b.id === id
+              ? {
+                  ...b,
+                  label: cleanLabel,
+                  color: color ?? b.color,
+                  updatedAt: new Date().toISOString(),
+                }
+              : b,
+          ),
+        },
+      }));
+    },
+    [],
+  );
+
+  const removePageBookmark = useCallback((id: string) => {
+    sfxService.play('click');
+    setPersisted((prev) => ({
+      ...prev,
+      studyProgress: {
+        ...prev.studyProgress,
+        pageBookmarks: prev.studyProgress.pageBookmarks.filter((b) => b.id !== id),
+      },
+    }));
   }, []);
 
   const updateAudioPrefs = useCallback((patch: Partial<AudioPrefs>) => {
@@ -1127,6 +1329,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSettingsModalOpen(false);
   }, []);
 
+  const openBookmarksDrawer = useCallback(() => {
+    sfxService.play('click');
+    setIsBookmarksDrawerOpen(true);
+  }, []);
+
+  const closeBookmarksDrawer = useCallback(() => {
+    setIsBookmarksDrawerOpen(false);
+  }, []);
+
+  const openSearchModal = useCallback(() => {
+    sfxService.play('click');
+    setIsSearchModalOpen(true);
+  }, []);
+
+  const closeSearchModal = useCallback(() => {
+    setIsSearchModalOpen(false);
+  }, []);
+
   const openIntroSplash = useCallback(() => {
     sfxService.play('click');
     setIsSettingsModalOpen(false);
@@ -1195,6 +1415,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateStudyPrefs,
       setLastRead,
       toggleBookmarkAyah,
+      upsertPageBookmark,
+      moveHatimBookmark,
+      renamePageBookmark,
+      removePageBookmark,
       updateAudioPrefs,
       recordExamResult,
       toggleBookmarkQuestion,
@@ -1225,6 +1449,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSettingsModalOpen,
       openSettingsModal,
       closeSettingsModal,
+      isBookmarksDrawerOpen,
+      openBookmarksDrawer,
+      closeBookmarksDrawer,
+      isSearchModalOpen,
+      openSearchModal,
+      closeSearchModal,
       isIntroOpen,
       introDismissed,
       openIntroSplash,
@@ -1258,6 +1488,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateStudyPrefs,
       setLastRead,
       toggleBookmarkAyah,
+      upsertPageBookmark,
+      moveHatimBookmark,
+      renamePageBookmark,
+      removePageBookmark,
       updateAudioPrefs,
       recordExamResult,
       toggleBookmarkQuestion,
@@ -1287,6 +1521,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSettingsModalOpen,
       openSettingsModal,
       closeSettingsModal,
+      isBookmarksDrawerOpen,
+      openBookmarksDrawer,
+      closeBookmarksDrawer,
+      isSearchModalOpen,
+      openSearchModal,
+      closeSearchModal,
       isIntroOpen,
       introDismissed,
       openIntroSplash,

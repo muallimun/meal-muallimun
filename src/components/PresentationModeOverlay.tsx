@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Loader2,
   Maximize2,
@@ -54,7 +54,7 @@ const THEME_PALETTES: Record<
   dark: {
     label: 'Gece',
     bg: '#070F10',
-    surface: 'rgba(18, 33, 35, 0.88)',
+    surface: 'rgba(18, 33, 35, 0.90)',
     border: 'rgba(255, 255, 255, 0.12)',
     text: '#F4F8F7',
     muted: '#9AB3B0',
@@ -65,7 +65,7 @@ const THEME_PALETTES: Record<
   emerald: {
     label: 'Zümrüt',
     bg: '#082624',
-    surface: 'rgba(12, 54, 50, 0.88)',
+    surface: 'rgba(12, 54, 50, 0.90)',
     border: 'rgba(255, 255, 255, 0.15)',
     text: '#F7FAF9',
     muted: '#A8D3CE',
@@ -76,7 +76,7 @@ const THEME_PALETTES: Record<
   cream: {
     label: 'Mushaf',
     bg: '#F8F2E4',
-    surface: 'rgba(255, 252, 245, 0.92)',
+    surface: 'rgba(255, 252, 245, 0.94)',
     border: 'rgba(15, 118, 110, 0.18)',
     text: '#1B1710',
     muted: '#645946',
@@ -85,6 +85,10 @@ const THEME_PALETTES: Record<
     arabicColor: '#17130D',
   },
 };
+
+function clamp(val: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, val));
+}
 
 export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = ({
   isOpen,
@@ -106,9 +110,25 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     settings.preferredMeal === 'm2' ? 'm2' : 'm1',
   );
   const [manualIndex, setManualIndex] = useState<number>(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
+    typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
+  );
+  const [viewport, setViewport] = useState<{ w: number; h: number }>(() => ({
+    w: typeof window !== 'undefined' ? window.innerWidth : 1280,
+    h: typeof window !== 'undefined' ? window.innerHeight : 760,
+  }));
 
-  // Sync preferred meal when opened
+  // Keep previous valid verse rendered across page/audio transitions (zero flicker / zero blank frame)
+  const lastValidVerseRef = useRef<CombinedVerse | null>(null);
+  const audioStatusRef = useRef(audioState.status);
+  const versesLenRef = useRef(verses.length);
+  const onCloseRef = useRef(onClose);
+
+  audioStatusRef.current = audioState.status;
+  versesLenRef.current = verses.length;
+  onCloseRef.current = onClose;
+
+  // Sunum açıldığında başlangıç mealini ve aktif ayet indeksini senkronize et (sadece açılışta)
   useEffect(() => {
     if (!isOpen) return;
     setMealChoice(settings.preferredMeal === 'm2' ? 'm2' : 'm1');
@@ -116,68 +136,88 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       const idx = verses.findIndex((v) => v.id === activeVerse.id);
       if (idx >= 0) setManualIndex(idx);
     }
-  }, [isOpen, settings.preferredMeal, activeVerse, verses]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
-  // Lock body scroll & listen for ESC and fullscreen changes
+  // Body scroll kilidi ve fullscreen durum takibi — SADECE isOpen'a bağlı!
+  // Ses durumu veya ayet/sayfa değişiminde asla fullscreen'den çıkmaz.
   useEffect(() => {
     if (!isOpen) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    const onResize = () => {
+      setViewport({ w: window.innerWidth, h: window.innerHeight });
+    };
+
+    setIsFullscreen(Boolean(document.fullscreenElement));
+    onResize();
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    window.addEventListener('resize', onResize, { passive: true });
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [isOpen]);
+
+  // Klavye kısayolları — ref'lerle çalışır, ses geçişlerinde yeniden bağlanmaz
+  useEffect(() => {
+    if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (document.fullscreenElement) {
           document.exitFullscreen?.().catch(() => {});
         } else {
-          onClose();
+          onCloseRef.current();
         }
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        if (audioState.status !== 'idle') {
+        if (audioStatusRef.current !== 'idle') {
           audioQueueService.nextVerse();
         } else {
-          setManualIndex((i) => Math.min(verses.length - 1, i + 1));
+          setManualIndex((i) => Math.min(Math.max(0, versesLenRef.current - 1), i + 1));
         }
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        if (audioState.status !== 'idle') {
+        if (audioStatusRef.current !== 'idle') {
           audioQueueService.prevVerse();
         } else {
           setManualIndex((i) => Math.max(0, i - 1));
         }
       } else if (e.key === ' ') {
         e.preventDefault();
-        if (audioState.status !== 'idle') {
+        if (audioStatusRef.current !== 'idle') {
           audioQueueService.togglePlayPause();
         }
       }
     };
 
-    const onFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-
     window.addEventListener('keydown', onKeyDown);
-    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen]);
 
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('fullscreenchange', onFullscreenChange);
-      if (document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {});
-      }
-    };
-  }, [isOpen, onClose, audioState.status, verses.length]);
-
-  // Canlı çalan ayeti bul; çalmıyorsa seçili / manuel ayeti kullan
-  const displayedVerse = useMemo<CombinedVerse | null>(() => {
+  // Canlı çalan ayeti bul; yükleme/geçiş anında önceki geçerli ayeti koru (ıpıl ıpıl sıfır kırpışma)
+  const resolvedVerse = useMemo<CombinedVerse | null>(() => {
     if (audioState.status !== 'idle' && audioState.currentAyahId !== null) {
       const byAudio = verses.find((v) => v.id === audioState.currentAyahId);
       if (byAudio) return byAudio;
+      // Sayfa henüz yeni yükleniyorsa önceki ayeti tut
+      if (lastValidVerseRef.current) return lastValidVerseRef.current;
     }
     if (verses[manualIndex]) return verses[manualIndex];
     if (activeVerse) return activeVerse;
-    return verses[0] ?? null;
+    return verses[0] ?? lastValidVerseRef.current ?? null;
   }, [audioState.status, audioState.currentAyahId, verses, manualIndex, activeVerse]);
+
+  if (resolvedVerse) {
+    lastValidVerseRef.current = resolvedVerse;
+  }
+  const displayedVerse = resolvedVerse ?? lastValidVerseRef.current;
 
   const surahMeta = displayedVerse ? surahMap.get(displayedVerse.surah) : undefined;
   const mealText =
@@ -186,78 +226,91 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       : displayedVerse?.m1?.t || displayedVerse?.m2?.t || '';
   const arabicText = displayedVerse?.ar.t || '';
 
-  // Uzun ayetler taşmasın diye dinamik otomatik ölçekleme
+  // Deterministik Tek Geçişli Otomatik Punto Hesabı (DOM ölçüm/reflow olmadan)
   const fontMetrics = useMemo(() => {
     const arLen = arabicText.length;
     const trLen = mealText.length;
-    const isBoth = contentMode === 'both';
+    const hFactor = clamp(viewport.h / 820, 0.72, 1.25);
+    const wFactor = clamp(viewport.w / 1280, 0.68, 1.18);
+    const scale = Math.min(hFactor, wFactor);
 
-    let arSize = 'clamp(28px, 4.4vw, 56px)';
-    let arLine = 2.05;
+    let arPx = 46;
+    let arLine = 2.02;
+    let trPx = 26;
+    let trLine = 1.62;
+
     if (contentMode === 'ar') {
-      if (arLen > 520) {
-        arSize = 'clamp(19px, 2.3vw, 31px)';
-        arLine = 1.85;
-      } else if (arLen > 300) {
-        arSize = 'clamp(23px, 3vw, 40px)';
-        arLine = 1.92;
-      } else if (arLen > 140) {
-        arSize = 'clamp(28px, 4vw, 52px)';
-        arLine = 2.0;
+      if (arLen > 620) {
+        arPx = 24;
+        arLine = 1.82;
+      } else if (arLen > 400) {
+        arPx = 30;
+        arLine = 1.9;
+      } else if (arLen > 220) {
+        arPx = 38;
+        arLine = 1.96;
+      } else if (arLen > 100) {
+        arPx = 48;
+        arLine = 2.04;
       } else {
-        arSize = 'clamp(34px, 5.2vw, 66px)';
+        arPx = 60;
         arLine = 2.1;
       }
-    } else if (isBoth) {
-      if (arLen + trLen > 700) {
-        arSize = 'clamp(17px, 2.1vw, 27px)';
-        arLine = 1.82;
-      } else if (arLen + trLen > 420) {
-        arSize = 'clamp(21px, 2.7vw, 34px)';
-        arLine = 1.9;
-      } else if (arLen + trLen > 220) {
-        arSize = 'clamp(25px, 3.4vw, 44px)';
-        arLine = 1.98;
-      } else {
-        arSize = 'clamp(30px, 4.2vw, 54px)';
-        arLine = 2.05;
-      }
-    }
-
-    let trSize = 'clamp(18px, 2.4vw, 32px)';
-    let trLine = 1.65;
-    if (contentMode === 'meal') {
-      if (trLen > 550) {
-        trSize = 'clamp(16px, 1.8vw, 24px)';
-        trLine = 1.55;
-      } else if (trLen > 320) {
-        trSize = 'clamp(19px, 2.3vw, 30px)';
-        trLine = 1.6;
-      } else if (trLen > 150) {
-        trSize = 'clamp(22px, 3vw, 38px)';
-        trLine = 1.62;
-      } else {
-        trSize = 'clamp(26px, 3.8vw, 46px)';
-        trLine = 1.58;
-      }
-    } else if (isBoth) {
-      if (arLen + trLen > 700) {
-        trSize = 'clamp(14px, 1.45vw, 19px)';
+    } else if (contentMode === 'meal') {
+      if (trLen > 650) {
+        trPx = 20;
         trLine = 1.5;
-      } else if (arLen + trLen > 420) {
-        trSize = 'clamp(16px, 1.75vw, 23px)';
-        trLine = 1.55;
-      } else if (arLen + trLen > 220) {
-        trSize = 'clamp(18px, 2.1vw, 27px)';
+      } else if (trLen > 420) {
+        trPx = 24;
+        trLine = 1.56;
+      } else if (trLen > 220) {
+        trPx = 30;
+        trLine = 1.6;
+      } else if (trLen > 110) {
+        trPx = 36;
+        trLine = 1.58;
+      } else {
+        trPx = 44;
+        trLine = 1.52;
+      }
+    } else {
+      // 'both' — Arapça + Türkçe birlikte tek ekrana dengeli sığar
+      const total = arLen * 1.15 + trLen;
+      if (total > 820) {
+        arPx = 22;
+        arLine = 1.8;
+        trPx = 16;
+        trLine = 1.46;
+      } else if (total > 560) {
+        arPx = 27;
+        arLine = 1.86;
+        trPx = 18;
+        trLine = 1.52;
+      } else if (total > 360) {
+        arPx = 33;
+        arLine = 1.94;
+        trPx = 21;
+        trLine = 1.56;
+      } else if (total > 200) {
+        arPx = 40;
+        arLine = 2.0;
+        trPx = 24;
         trLine = 1.6;
       } else {
-        trSize = 'clamp(20px, 2.5vw, 32px)';
-        trLine = 1.65;
+        arPx = 48;
+        arLine = 2.05;
+        trPx = 28;
+        trLine = 1.62;
       }
     }
 
-    return { arSize, arLine, trSize, trLine };
-  }, [arabicText.length, mealText.length, contentMode]);
+    return {
+      arSize: `${Math.round(clamp(arPx * scale, 18, 66))}px`,
+      arLine,
+      trSize: `${Math.round(clamp(trPx * scale, 14, 46))}px`,
+      trLine,
+    };
+  }, [arabicText.length, mealText.length, contentMode, viewport.w, viewport.h]);
 
   if (!isOpen) return null;
 
@@ -269,7 +322,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
   const currentIdx = displayedVerse ? verses.findIndex((v) => v.id === displayedVerse.id) : -1;
   const canPrev = isAudioRunning ? audioState.canGoPrev : currentIdx > 0;
-  const canNext = isAudioRunning ? audioState.canGoNext : currentIdx >= 0 && currentIdx < verses.length - 1;
+  const canNext = isAudioRunning
+    ? audioState.canGoNext
+    : currentIdx >= 0 && currentIdx < verses.length - 1;
 
   const handlePrev = () => {
     sfxService.play('click');
@@ -335,19 +390,19 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     >
       {/* Üst Kontrol Şeridi */}
       <header
-        className="px-4 sm:px-8 py-3 border-b flex flex-wrap items-center justify-between gap-2.5 shrink-0 backdrop-blur-md"
+        className="px-4 sm:px-6 py-2.5 border-b flex flex-wrap items-center justify-between gap-2 shrink-0 backdrop-blur-md"
         style={{
           backgroundColor: palette.surface,
           borderColor: palette.border,
         }}
       >
         {/* Sol: Sure & Ayet Konum Rozeti */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <span
-            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{ backgroundColor: palette.accentSoft, color: palette.accent }}
           >
-            <MonitorPlay className="w-5 h-5" />
+            <MonitorPlay className="w-4 h-4" />
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -358,7 +413,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               </h2>
               {surahMeta?.nameAr && (
                 <span
-                  className="arabic-title text-base sm:text-lg hidden sm:inline"
+                  className="arabic-title text-base hidden sm:inline"
                   style={{ color: palette.accent }}
                   dir="rtl"
                 >
@@ -366,7 +421,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                 </span>
               )}
             </div>
-            <p className="text-[11px] sm:text-xs truncate" style={{ color: palette.muted }}>
+            <p className="text-[11px] truncate tabular-nums" style={{ color: palette.muted }}>
               {displayedVerse
                 ? `Sayfa ${displayedVerse.page} · ${displayedVerse.cuz}. Cüz`
                 : 'Ayet bekleniyor'}
@@ -378,7 +433,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         </div>
 
         {/* Orta / Sağ: İçerik Modu + Meal + Tema + Tam Ekran + Çıkış */}
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {/* İçerik Seçici */}
           <div
             className="flex items-center p-0.5 rounded-xl border text-xs"
@@ -400,7 +455,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     sfxService.play('click');
                     setContentMode(item.id);
                   }}
-                  className="min-h-[34px] px-2.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
+                  className="min-h-[32px] px-2.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
                   style={{
                     backgroundColor: active ? palette.accent : 'transparent',
                     color: active ? '#071413' : palette.text,
@@ -433,7 +488,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                       sfxService.play('click');
                       setMealChoice(m.id);
                     }}
-                    className="min-h-[34px] px-2.5 rounded-lg font-bold cursor-pointer"
+                    className="min-h-[32px] px-2.5 rounded-lg font-bold cursor-pointer"
                     style={{
                       backgroundColor: active ? palette.accentSoft : 'transparent',
                       color: active ? palette.accent : palette.muted,
@@ -458,7 +513,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     sfxService.play('click');
                     setPresTheme(t);
                   }}
-                  className="min-h-[34px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer"
+                  className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer"
                   style={{
                     borderColor: active ? palette.accent : palette.border,
                     backgroundColor: active ? palette.accentSoft : 'transparent',
@@ -471,13 +526,17 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             })}
           </div>
 
-          {/* Tam Ekran Butonu */}
+          {/* Tam Ekran Butonu (document.documentElement — ses geçişinde bozulmaz) */}
           <button
             type="button"
             onClick={handleToggleFullscreen}
             title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran (TV / Projeksiyon)'}
-            className="min-w-[40px] min-h-[40px] rounded-xl border flex items-center justify-center cursor-pointer"
-            style={{ borderColor: palette.border, color: palette.text }}
+            className="min-w-[38px] min-h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
+            style={{
+              borderColor: isFullscreen ? palette.accent : palette.border,
+              backgroundColor: isFullscreen ? palette.accentSoft : 'transparent',
+              color: isFullscreen ? palette.accent : palette.text,
+            }}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
@@ -489,7 +548,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               sfxService.play('click');
               onClose();
             }}
-            className="min-h-[40px] px-3.5 rounded-xl border font-bold text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer"
+            className="min-h-[38px] px-3 rounded-xl border font-bold text-xs flex items-center gap-1.5 cursor-pointer"
             style={{
               borderColor: palette.border,
               backgroundColor: 'rgba(239, 68, 68, 0.14)',
@@ -502,10 +561,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         </div>
       </header>
 
-      {/* Orta Sahne: Otomatik Ölçeklenen Geniş Ayet & Meal Alanı */}
-      <main className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-12 lg:px-20 py-6 overflow-y-auto">
+      {/* Orta Sahne: Kırpışmasız, Deterministik Ölçeklenen Geniş Ayet & Meal Alanı */}
+      <main className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-12 lg:px-20 py-4 overflow-y-auto">
         {displayedVerse ? (
-          <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-6 sm:gap-8 text-center">
+          <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-5 sm:gap-7 text-center transition-opacity duration-200">
             {/* Canlı Durum / Besmele Rozeti */}
             <div className="flex items-center justify-center gap-2 flex-wrap">
               <span
@@ -519,7 +578,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                 {surahMeta?.nameTr ?? `Sure ${displayedVerse.surah}`} · {displayedVerse.surah}:
                 {displayedVerse.ayah}
               </span>
-              {isPlaying && (
+              {(isPlaying || isLoading) && (
                 <span
                   className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border"
                   style={{
@@ -528,7 +587,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     color: palette.muted,
                   }}
                 >
-                  <Volume2 className="w-3.5 h-3.5 animate-pulse" style={{ color: palette.accent }} />
+                  <Volume2 className="w-3.5 h-3.5" style={{ color: palette.accent }} />
                   {isBesmelePhase
                     ? 'Besmele okunuyor'
                     : audioState.activePhase === 'meal'
@@ -543,7 +602,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               <div
                 dir="rtl"
                 lang="ar"
-                className="arabic-text w-full text-center px-2"
+                className="arabic-text w-full text-center px-2 transition-opacity duration-200"
                 style={{
                   fontSize: fontMetrics.arSize,
                   lineHeight: fontMetrics.arLine,
@@ -552,7 +611,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               >
                 {displayedVerse.ar.t}
                 <span
-                  className="inline-flex items-center justify-center mx-2.5 text-[0.58em] font-bold tabular-nums px-2.5 py-0.5 rounded-full align-middle"
+                  className="inline-flex items-center justify-center mx-2.5 text-[0.56em] font-bold tabular-nums px-2.5 py-0.5 rounded-full align-middle"
                   style={{
                     backgroundColor: palette.accentSoft,
                     color: palette.accent,
@@ -567,14 +626,14 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             {/* İnce Ayırıcı (AR+Meal modunda) */}
             {contentMode === 'both' && (
               <div
-                className="w-24 h-0.5 rounded-full opacity-50"
+                className="w-24 h-0.5 rounded-full opacity-45"
                 style={{ backgroundColor: palette.accent }}
               />
             )}
 
             {/* Türkçe Meal */}
             {(contentMode === 'both' || contentMode === 'meal') && (
-              <div className="w-full max-w-4xl mx-auto">
+              <div className="w-full max-w-4xl mx-auto transition-opacity duration-200">
                 <p
                   className="turkish-reading font-medium text-center"
                   style={{
@@ -586,7 +645,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   {mealText}
                 </p>
                 <p
-                  className="mt-3 text-xs sm:text-sm font-semibold"
+                  className="mt-2.5 text-xs sm:text-sm font-semibold"
                   style={{ color: palette.muted }}
                 >
                   {mealChoice === 'm2' ? 'DİB Yeni Meali' : 'TDV Meali'}
@@ -603,7 +662,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
       {/* Alt Kontrol Barı: Canlı Ses Akışı & Gezinme */}
       <footer
-        className="px-4 sm:px-8 py-3 border-t flex flex-wrap items-center justify-between gap-3 shrink-0 backdrop-blur-md"
+        className="px-4 sm:px-6 py-2.5 border-t flex flex-wrap items-center justify-between gap-2.5 shrink-0 backdrop-blur-md"
         style={{
           backgroundColor: palette.surface,
           borderColor: palette.border,
@@ -624,7 +683,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             onClick={handlePrev}
             disabled={!canPrev}
             aria-label="Önceki ayet"
-            className="min-w-[44px] min-h-[44px] rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
+            className="min-w-[42px] min-h-[42px] rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
             style={{ borderColor: palette.border, color: palette.text }}
           >
             <SkipBack className="w-5 h-5" />
@@ -634,7 +693,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             type="button"
             onClick={handlePlayPause}
             aria-label={isPlaying ? 'Duraklat' : 'Oynat'}
-            className="min-w-[56px] min-h-[48px] px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95"
+            className="min-w-[56px] min-h-[44px] px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95"
             style={{
               backgroundColor: palette.accent,
               color: '#071413',
@@ -655,7 +714,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             onClick={handleNext}
             disabled={!canNext}
             aria-label="Sonraki ayet"
-            className="min-w-[44px] min-h-[44px] rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
+            className="min-w-[42px] min-h-[42px] rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
             style={{ borderColor: palette.border, color: palette.text }}
           >
             <SkipForward className="w-5 h-5" />
@@ -681,7 +740,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   key={m.id}
                   type="button"
                   onClick={() => handleAudioModeChange(m.id)}
-                  className="min-h-[34px] px-2.5 rounded-md font-bold cursor-pointer whitespace-nowrap"
+                  className="min-h-[32px] px-2.5 rounded-md font-bold cursor-pointer whitespace-nowrap"
                   style={{
                     backgroundColor: active ? palette.accentSoft : 'transparent',
                     color: active ? palette.accent : palette.muted,
@@ -696,7 +755,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           <button
             type="button"
             onClick={cycleRate}
-            className="min-h-[36px] px-2.5 rounded-lg border font-bold tabular-nums cursor-pointer"
+            className="min-h-[34px] px-2.5 rounded-lg border font-bold tabular-nums cursor-pointer"
             style={{ borderColor: palette.border, color: palette.text }}
           >
             {audioPrefs.playbackRate}x

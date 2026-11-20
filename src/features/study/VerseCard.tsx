@@ -63,18 +63,20 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
 
   const showWordGrid =
-    localWordOverride !== null ? localWordOverride : globalWordMode !== 'off';
+    settings.wordByWordEnabled &&
+    (localWordOverride !== null ? localWordOverride : globalWordMode !== 'off');
   const effectiveWordMode: Exclude<WordMealMode, 'off'> =
     globalWordMode === 'quiz' ? 'quiz' : 'visible';
 
   const tdvFootnotes = verse.m1?.fn ?? [];
   const dibFootnotes = verse.m2?.fn ?? [];
-  const totalFootnotes =
-    (settings.preferredMeal === 'm1'
+  const totalFootnotes = settings.showFootnotes
+    ? settings.preferredMeal === 'm1'
       ? tdvFootnotes.length
       : settings.preferredMeal === 'm2'
         ? dibFootnotes.length
-        : tdvFootnotes.length + dibFootnotes.length);
+        : tdvFootnotes.length + dibFootnotes.length
+    : 0;
 
   const handleCopy = async () => {
     sfxService.play('click');
@@ -234,7 +236,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
               Hurûf-ı Mukattaa
             </span>
           )}
-          {isSajdah && (
+          {isSajdah && settings.highlightSajdah && (
             <span
               className="text-[11px] font-bold px-2 py-0.5 rounded-md"
               style={{
@@ -280,7 +282,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             <span className="hidden sm:inline whitespace-nowrap">Sesli Meal</span>
           </button>
 
-          {verse.words.length > 0 && (
+          {settings.wordByWordEnabled && verse.words.length > 0 && (
             <button
               type="button"
               onClick={() => {

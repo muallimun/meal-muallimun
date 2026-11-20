@@ -109,12 +109,12 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-4 pb-8">
       {/* ====================================================================
           1. Üst Karne Kartı: Başarı Halkası, KPI'lar ve Sure Dağılımı
           ==================================================================== */}
-      <section className="surface-card rounded-2xl p-5 sm:p-7 space-y-6">
-        <div className="flex flex-col md:flex-row items-center gap-6">
+      <section className="surface-card rounded-2xl p-4 sm:p-5 space-y-4">
+        <div className="flex flex-col md:flex-row items-center gap-5">
           {/* Başarı Halkası */}
           <div className="relative w-36 h-36 flex items-center justify-center shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 128 128" aria-hidden="true">
@@ -377,7 +377,7 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
             Bu filtrede görüntülenecek soru bulunmuyor.
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             {filteredQuestions.map(({ q, index, ans }) => {
               const sMeta = surahMap.get(q.question.surah);
               const diffInfo = getDifficultyInfo(q.question.difficulty);
@@ -392,9 +392,13 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
               return (
                 <article
                   key={q.uid}
-                  className="surface-card rounded-2xl p-5 space-y-4 border-l-4"
+                  className="surface-card rounded-2xl p-4 space-y-3"
                   style={{
-                    borderLeftColor: isCorrect ? '#10B981' : isBlank ? '#94A3B8' : '#EF4444',
+                    borderColor: isCorrect
+                      ? 'rgba(16, 185, 129, 0.30)'
+                      : isBlank
+                        ? 'var(--border-subtle)'
+                        : 'rgba(239, 68, 68, 0.30)',
                   }}
                 >
                   {/* Üst Bilgi */}

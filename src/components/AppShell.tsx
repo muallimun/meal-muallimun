@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  AlertTriangle,
   BookOpen,
+  Bookmark,
   Flame,
   Home,
   Layers,
+  Maximize2,
+  Minimize2,
   PanelLeftClose,
   PanelLeftOpen,
   RotateCcw,
+  Search,
   Settings,
   Star,
   Trophy,
   WifiOff,
 } from 'lucide-react';
+import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
 import { formatNumberTr } from '../utils/poolUtils';
@@ -32,13 +38,6 @@ const NAV_ITEMS: NavItemConfig[] = [
   { id: 'mistakes', label: 'Hata Kampı', shortLabel: 'Hata Kampı', icon: RotateCcw },
 ];
 
-const TAB_TITLES: Record<NavTab, string> = {
-  home: 'Genel Bakış',
-  reader: 'Mushaf & Çift Meal',
-  exam: 'Sınav Merkezi',
-  mistakes: 'Hata Kampı',
-};
-
 interface AppShellProps {
   children: React.ReactNode;
 }
@@ -48,23 +47,90 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     activeTab,
     setActiveTab,
     gamification,
+    studyProgress,
     poolStats,
     openPoolModal,
     openSettingsModal,
+    openBookmarksDrawer,
+    openSearchModal,
     dataSourceMode,
     retryCoreLoad,
     isExamActive,
+    setIsExamActive,
     isOnline,
     isSidebarCollapsed,
     toggleSidebarCollapsed,
   } = useAppStore();
 
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
+    typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
+  );
+  const [pendingNavTab, setPendingNavTab] = useState<NavTab | null>(null);
+
   const currentYear = new Date().getFullYear();
+  const bookmarkCount = studyProgress.pageBookmarks.length;
+
   const contentWidthClass = isSidebarCollapsed
     ? 'max-w-[1600px]'
     : activeTab === 'reader'
       ? 'max-w-7xl'
       : 'max-w-6xl';
+
+  // Genel Tam Ekran Durumu Senkronizasyonu
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
+  // Global Ctrl+K / Cmd+K Hızlı Arama Kısayolu
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openSearchModal();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [openSearchModal]);
+
+  const handleToggleFullscreen = useCallback(async () => {
+    sfxService.play('click');
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen?.();
+      } else {
+        await document.exitFullscreen?.();
+      }
+    } catch {
+      // Tarayıcı/iFrame tam ekran kısıtlamasını sessizce geç
+    }
+  }, []);
+
+  // Aktif sınav sırasında güvenli sekme geçişi
+  const handleRequestTab = useCallback(
+    (tab: NavTab) => {
+      if (tab === activeTab) return;
+      if (isExamActive) {
+        sfxService.play('click');
+        setPendingNavTab(tab);
+        return;
+      }
+      setActiveTab(tab);
+    },
+    [activeTab, isExamActive, setActiveTab],
+  );
+
+  const handleConfirmLeaveExam = () => {
+    if (!pendingNavTab) return;
+    const target = pendingNavTab;
+    setPendingNavTab(null);
+    setIsExamActive(false);
+    setActiveTab(target);
+  };
 
   return (
     <div className="min-h-dvh flex flex-col lg:flex-row">
@@ -73,7 +139,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           ==================================================================== */}
       {!isSidebarCollapsed && (
         <aside
-          className="hidden lg:flex lg:flex-col lg:w-72 lg:shrink-0 lg:sticky lg:top-0 lg:h-dvh border-r"
+          className="hidden lg:flex lg:flex-col lg:w-64 xl:w-68 lg:shrink-0 lg:sticky lg:top-0 lg:h-dvh border-r"
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderColor: 'var(--border-subtle)',
@@ -81,29 +147,33 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         >
           {/* Marka Alanı + Sol Paneli Gizle */}
           <div
-            className="px-4 h-16 flex items-center justify-between gap-2 border-b shrink-0"
+            className="px-4 h-14 flex items-center justify-between gap-2 border-b shrink-0"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <BrandMark className="w-9 h-9 shrink-0" />
+            <button
+              type="button"
+              onClick={() => handleRequestTab('home')}
+              className="flex items-center gap-2.5 min-w-0 cursor-pointer text-left"
+            >
+              <BrandMark className="w-8 h-8 shrink-0" />
               <div className="min-w-0">
-                <span className="block text-base font-extrabold tracking-tight truncate">
+                <span className="block text-sm font-extrabold tracking-tight truncate">
                   Muallimun
                 </span>
                 <span
-                  className="block text-xs truncate"
+                  className="block text-[11px] truncate"
                   style={{ color: 'var(--text-muted)' }}
                 >
-                  Kur&apos;an &amp; Meal Platformu
+                  Kur&apos;an &amp; Meal
                 </span>
               </div>
-            </div>
+            </button>
             <button
               type="button"
               onClick={toggleSidebarCollapsed}
               title="Sol menüyü gizle (Geniş ekran)"
               aria-label="Sol menüyü gizle"
-              className="min-w-[36px] min-h-[36px] rounded-xl border flex items-center justify-center transition-colors cursor-pointer shrink-0 hover:opacity-85"
+              className="min-w-[34px] min-h-[34px] rounded-lg border flex items-center justify-center transition-colors cursor-pointer shrink-0 hover:opacity-85"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -114,273 +184,347 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             </button>
           </div>
 
-        {/* Ana Navigasyon Bağlantıları */}
-        <nav aria-label="Ana menü" className="p-3.5 space-y-1 flex-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            const mistakeBadge =
-              item.id === 'mistakes' && gamification.wrongQuestionIds.length > 0
-                ? gamification.wrongQuestionIds.length
-                : null;
+          {/* Ana Navigasyon Bağlantıları */}
+          <nav aria-label="Ana menü" className="p-3 space-y-1 flex-1 overflow-y-auto">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              const mistakeBadge =
+                item.id === 'mistakes' && gamification.wrongQuestionIds.length > 0
+                  ? gamification.wrongQuestionIds.length
+                  : null;
 
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveTab(item.id)}
-                className="w-full min-h-[46px] px-3.5 py-2.5 rounded-xl flex items-center justify-between gap-3 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-                style={{
-                  backgroundColor: isActive ? 'var(--brand-primary-soft)' : 'transparent',
-                  color: isActive ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                }}
-              >
-                <span className="flex items-center gap-3 whitespace-nowrap">
-                  <Icon className="w-5 h-5 shrink-0" />
-                  <span>{item.label}</span>
-                </span>
-                {mistakeBadge !== null && (
-                  <span
-                    className="text-xs font-bold tabular-nums px-2 py-0.5 rounded-md"
-                    style={{
-                      backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                      color: '#EF4444',
-                    }}
-                  >
-                    {mistakeBadge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
-          {/* Hızlı Çalışma Havuzu Özeti */}
-          <div
-            className="mt-6 pt-5 border-t"
-            style={{ borderColor: 'var(--border-subtle)' }}
-          >
-            <div className="px-2 mb-2 flex items-center justify-between">
-              <span
-                className="text-xs font-semibold"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                Aktif Çalışma Havuzu
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={openPoolModal}
-              className="w-full text-left p-3.5 rounded-xl border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              <div className="flex items-center justify-between gap-2 mb-1.5">
-                <span className="flex items-center gap-2 text-sm font-bold">
-                  <Layers
-                    className="w-4 h-4 shrink-0"
-                    style={{ color: 'var(--brand-primary-text)' }}
-                  />
-                  <span>Havuzu Yönet</span>
-                </span>
-                <span
-                  className="text-xs font-semibold"
-                  style={{ color: 'var(--brand-primary-text)' }}
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleRequestTab(item.id)}
+                  className="w-full min-h-[42px] px-3 py-2 rounded-xl flex items-center justify-between gap-2.5 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                  style={{
+                    backgroundColor: isActive ? 'var(--brand-primary-soft)' : 'transparent',
+                    color: isActive ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                  }}
                 >
-                  Değiştir
+                  <span className="flex items-center gap-2.5 whitespace-nowrap">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </span>
+                  {mistakeBadge !== null && (
+                    <span
+                      className="text-xs font-bold tabular-nums px-2 py-0.5 rounded-md"
+                      style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                        color: '#EF4444',
+                      }}
+                    >
+                      {mistakeBadge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Hızlı Çalışma Havuzu Özeti */}
+            <div
+              className="mt-5 pt-4 border-t"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <div className="px-2 mb-1.5 flex items-center justify-between">
+                <span
+                  className="text-[11px] font-semibold"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Aktif Çalışma Havuzu
                 </span>
               </div>
-              <p
-                className="text-xs tabular-nums leading-relaxed"
-                style={{ color: 'var(--text-muted)' }}
+              <button
+                type="button"
+                onClick={openPoolModal}
+                className="w-full text-left p-3 rounded-xl border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
               >
-                {formatNumberTr(poolStats.surahCount)} Sure ·{' '}
-                {formatNumberTr(poolStats.ayahCount)} Ayet ·{' '}
-                {formatNumberTr(poolStats.questionCount)} Soru
-              </p>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="flex items-center gap-1.5 text-xs font-bold">
+                    <Layers
+                      className="w-3.5 h-3.5 shrink-0"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <span>Havuzu Yönet</span>
+                  </span>
+                  <span
+                    className="text-[11px] font-semibold"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  >
+                    Değiştir
+                  </span>
+                </div>
+                <p
+                  className="text-[11px] tabular-nums leading-relaxed"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {formatNumberTr(poolStats.surahCount)} Sure ·{' '}
+                  {formatNumberTr(poolStats.ayahCount)} Ayet ·{' '}
+                  {formatNumberTr(poolStats.questionCount)} Soru
+                </p>
+              </button>
+            </div>
+          </nav>
+
+          {/* Alt Kurulum & Ayarlar Tetikleyicisi */}
+          <div
+            className="p-3 border-t shrink-0 space-y-2"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
+            <PwaInstallControl variant="sidebar" />
+            <button
+              type="button"
+              onClick={openSettingsModal}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-bold transition-colors cursor-pointer hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Settings className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">Görünüm ve Ayarlar</span>
             </button>
           </div>
-        </nav>
-
-        {/* Alt Kurulum & Ayarlar Tetikleyicisi */}
-        <div
-          className="p-3.5 border-t shrink-0 space-y-2"
-          style={{ borderColor: 'var(--border-subtle)' }}
-        >
-          <PwaInstallControl variant="sidebar" />
-          <button
-            type="button"
-            onClick={openSettingsModal}
-            className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl flex items-center gap-3 text-sm font-semibold transition-colors cursor-pointer hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              color: 'var(--text-primary)',
-            }}
-          >
-            <Settings className="w-4 h-4 shrink-0" />
-            <span className="whitespace-nowrap">Görünüm ve Yazı Tipi</span>
-          </button>
-        </div>
-      </aside>
+        </aside>
       )}
 
       {/* ====================================================================
-          Sağ Ana İçerik Kabuğu (Üst Çubuk + İçerik + Alt Bilgi)
+          Sağ Ana İçerik Kabuğu (İnce h-14 Üst Çubuk + İçerik + Alt Bilgi)
           ==================================================================== */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Mobil & Masaüstü Üst Çubuk */}
+        {/* Tüm cihazlarda ince, zarif, yüksek işlevli h-14 Üst Çubuk */}
         <header
-          className="sticky top-0 z-30 h-14 lg:h-16 border-b backdrop-blur-md shrink-0"
+          className="sticky top-0 z-30 h-14 border-b backdrop-blur-md shrink-0"
           style={{
             backgroundColor: 'var(--bg-nav)',
             borderColor: 'var(--border-subtle)',
           }}
         >
           <div
-            className={`h-full ${contentWidthClass} mx-auto px-4 lg:px-6 flex items-center justify-between gap-3`}
+            className={`h-full ${contentWidthClass} mx-auto px-3 sm:px-4 lg:px-5 flex items-center justify-between gap-2`}
           >
-            {/* Sol: Mobilde Logo/Başlık, Masaüstünde Sidebar Aç/Kapa + Başlık + Hızlı Sekmeler */}
-            <div className="flex items-center gap-2.5 min-w-0">
+            {/* Sol: Menü (Masaüstü) + Marka Logosu/Başlığı + Daraltılmış Hızlı Sekmeler */}
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Masaüstü Sidebar Aç/Kapa */}
               <button
                 type="button"
-                onClick={() => setActiveTab('home')}
-                className="lg:hidden flex items-center gap-2.5 min-h-[44px] cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600 rounded-lg"
+                onClick={toggleSidebarCollapsed}
+                title={isSidebarCollapsed ? 'Sol menüyü aç' : 'Sol menüyü gizle'}
+                aria-label={isSidebarCollapsed ? 'Sol menüyü aç' : 'Sol menüyü gizle'}
+                className="hidden lg:inline-flex min-h-[36px] px-2.5 rounded-xl border items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
+                style={{
+                  backgroundColor: isSidebarCollapsed
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface)',
+                  borderColor: isSidebarCollapsed
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
+                  color: isSidebarCollapsed
+                    ? 'var(--brand-primary-text)'
+                    : 'var(--text-secondary)',
+                }}
+              >
+                {isSidebarCollapsed ? (
+                  <>
+                    <PanelLeftOpen className="w-4 h-4 shrink-0" />
+                    <span>Menü</span>
+                  </>
+                ) : (
+                  <PanelLeftClose className="w-4 h-4 shrink-0" />
+                )}
+              </button>
+
+              {/* Marka Kimliği — Mobilde her zaman, masaüstünde sidebar kapalıyken görünür */}
+              <button
+                type="button"
+                onClick={() => handleRequestTab('home')}
+                className={`${
+                  isSidebarCollapsed ? 'flex' : 'flex lg:hidden'
+                } items-center gap-2 min-h-[38px] cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600 rounded-lg shrink-0`}
                 aria-label="Muallimun Ana Sayfa"
               >
-                <BrandMark className="w-8 h-8 shrink-0" />
-                <span className="text-base font-extrabold tracking-tight whitespace-nowrap">
+                <BrandMark className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
+                <span className="text-sm sm:text-base font-extrabold tracking-tight whitespace-nowrap">
                   Muallimun
                 </span>
               </button>
 
-              <div className="hidden lg:flex items-center gap-2.5 min-w-0">
+              {/* Sidebar Kapalıyken Masaüstü Hızlı Sekme Şeridi */}
+              {isSidebarCollapsed && (
+                <nav
+                  aria-label="Hızlı masaüstü menü"
+                  className="hidden lg:flex items-center gap-0.5 pl-1 border-l"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
+                  {NAV_ITEMS.map((item) => {
+                    const Icon = item.icon;
+                    const active = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleRequestTab(item.id)}
+                        className="min-h-[34px] px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                        style={{
+                          backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                        }}
+                      >
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{item.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              )}
+
+              {/* Demo uyarısı (masaüstü) */}
+              {dataSourceMode === 'demo' && (
                 <button
                   type="button"
-                  onClick={toggleSidebarCollapsed}
-                  title={isSidebarCollapsed ? 'Sol menüyü aç' : 'Sol menüyü gizle'}
-                  aria-label={isSidebarCollapsed ? 'Sol menüyü aç' : 'Sol menüyü gizle'}
-                  className="min-h-[38px] px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
+                  onClick={retryCoreLoad}
+                  className="hidden xl:inline-flex text-[11px] font-semibold px-2 py-1 rounded-lg border cursor-pointer shrink-0"
                   style={{
-                    backgroundColor: isSidebarCollapsed
-                      ? 'var(--brand-primary-soft)'
-                      : 'var(--bg-surface)',
-                    borderColor: isSidebarCollapsed
-                      ? 'var(--brand-primary)'
-                      : 'var(--border-subtle)',
-                    color: isSidebarCollapsed
-                      ? 'var(--brand-primary-text)'
-                      : 'var(--text-secondary)',
+                    backgroundColor: 'var(--brand-accent-soft)',
+                    borderColor: 'var(--brand-accent)',
+                    color: 'var(--brand-accent-text)',
                   }}
                 >
-                  {isSidebarCollapsed ? (
-                    <>
-                      <PanelLeftOpen className="w-4 h-4" />
-                      <span>Menü</span>
-                    </>
-                  ) : (
-                    <PanelLeftClose className="w-4 h-4" />
-                  )}
+                  Örnek Veri · Canlıyı Dene
                 </button>
-
-                {isSidebarCollapsed ? (
-                  <nav aria-label="Hızlı masaüstü menü" className="flex items-center gap-1">
-                    {NAV_ITEMS.map((item) => {
-                      const Icon = item.icon;
-                      const active = activeTab === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setActiveTab(item.id)}
-                          className="min-h-[38px] px-3 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
-                          style={{
-                            backgroundColor: active
-                              ? 'var(--brand-primary-soft)'
-                              : 'transparent',
-                            color: active
-                              ? 'var(--brand-primary-text)'
-                              : 'var(--text-secondary)',
-                          }}
-                        >
-                          <Icon className="w-4 h-4 shrink-0" />
-                          <span>{item.shortLabel}</span>
-                        </button>
-                      );
-                    })}
-                  </nav>
-                ) : (
-                  <h1 className="text-lg font-bold tracking-tight whitespace-nowrap">
-                    {TAB_TITLES[activeTab]}
-                  </h1>
-                )}
-
-                {dataSourceMode === 'demo' && (
-                  <button
-                    type="button"
-                    onClick={retryCoreLoad}
-                    className="text-xs font-semibold px-2.5 py-1 rounded-lg border cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--brand-accent-soft)',
-                      borderColor: 'var(--brand-accent)',
-                      color: 'var(--brand-accent-text)',
-                    }}
-                  >
-                    Örnek Veri Modu · Canlı Veriyi Dene
-                  </button>
-                )}
-              </div>
+              )}
             </div>
 
-            {/* Sağ: Günlük Seri, Toplam Puan ve Ayarlar Butonu */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {/* Günlük Seri Rozeti */}
+            {/* Orta / Sağ Hızlı Araçlar: Ara (Ctrl+K), Ayraçlar, Seri, Puan, Tam Ekran, Ayarlar */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {/* 1. Hızlı Arama Tetikleyicisi (Ctrl+K) */}
+              <button
+                type="button"
+                onClick={openSearchModal}
+                title="Hızlı Ara (Ctrl+K)"
+                aria-label="Sure, ayet veya sayfa ara"
+                className="min-w-[38px] min-h-[38px] px-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition-colors cursor-pointer hover:border-teal-600/50"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                <span className="hidden md:inline whitespace-nowrap">Ara</span>
+                <kbd
+                  className="hidden xl:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  Ctrl K
+                </kbd>
+              </button>
+
+              {/* 2. Sayfa Ayraçlarım Hızlı Çekmece Butonu */}
+              <button
+                type="button"
+                onClick={openBookmarksDrawer}
+                title="Sayfa Ayraçlarım"
+                aria-label="Sayfa Ayraçlarım"
+                className="relative min-w-[38px] min-h-[38px] px-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+                style={{
+                  backgroundColor:
+                    bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
+                  borderColor:
+                    bookmarkCount > 0 ? 'rgba(217, 119, 6, 0.35)' : 'var(--border-subtle)',
+                  color: bookmarkCount > 0 ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
+                }}
+              >
+                <Bookmark
+                  className={`w-4 h-4 shrink-0 ${bookmarkCount > 0 ? 'fill-current' : ''}`}
+                />
+                <span className="hidden md:inline whitespace-nowrap">Ayraçlar</span>
+                {bookmarkCount > 0 && (
+                  <span
+                    className="min-w-[18px] h-[18px] px-1 rounded-md text-[10px] font-extrabold tabular-nums flex items-center justify-center text-white"
+                    style={{ backgroundColor: 'var(--brand-accent)' }}
+                  >
+                    {bookmarkCount}
+                  </span>
+                )}
+              </button>
+
+              {/* 3. Kompakt Günlük Seri Rozeti */}
               <div
-                className="h-9 px-2.5 sm:px-3 rounded-xl flex items-center gap-1.5 text-xs sm:text-sm font-bold tabular-nums border"
+                className="h-[38px] px-2 sm:px-2.5 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
                 style={{
                   backgroundColor: 'var(--brand-accent-soft)',
-                  borderColor: 'transparent',
                   color: 'var(--brand-accent-text)',
                 }}
                 title="Günlük çalışma seriniz"
               >
-                <Flame className="w-4 h-4 shrink-0" />
+                <Flame className="w-3.5 h-3.5 shrink-0" />
                 <span className="whitespace-nowrap">
                   {formatNumberTr(gamification.streakDays)}
-                  <span className="hidden sm:inline font-semibold"> gün</span>
+                  <span className="hidden sm:inline font-semibold"> g</span>
                 </span>
               </div>
 
-              {/* Toplam Puan Rozeti */}
+              {/* 3b. Kompakt Toplam Puan Rozeti */}
               <div
-                className="h-9 px-2.5 sm:px-3 rounded-xl flex items-center gap-1.5 text-xs sm:text-sm font-bold tabular-nums border"
+                className="h-[38px] px-2 sm:px-2.5 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
-                  borderColor: 'transparent',
                   color: 'var(--brand-primary-text)',
                 }}
                 title="Toplam puanınız"
               >
-                <Star className="w-4 h-4 shrink-0" />
-                <span className="whitespace-nowrap">
-                  {formatNumberTr(gamification.totalXp)}
-                  <span className="hidden sm:inline font-semibold"> Puan</span>
-                </span>
+                <Star className="w-3.5 h-3.5 shrink-0" />
+                <span className="whitespace-nowrap">{formatNumberTr(gamification.totalXp)}</span>
               </div>
 
-              {/* Ayarlar Butonu (min 44px dokunma hedefi) */}
+              {/* 4. Genel Tam Ekran İkonu (Tüm Sayfalarda Çalışır) */}
+              <button
+                type="button"
+                onClick={handleToggleFullscreen}
+                title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
+                aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
+                className="min-w-[38px] min-h-[38px] rounded-xl flex items-center justify-center border transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: isFullscreen
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface)',
+                  borderColor: isFullscreen ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                  color: isFullscreen ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                }}
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="w-4 h-4" />
+                ) : (
+                  <Maximize2 className="w-4 h-4" />
+                )}
+              </button>
+
+              {/* 5. Ayarlar Butonu */}
               <button
                 type="button"
                 onClick={openSettingsModal}
+                title="Ayarlar"
                 aria-label="Ayarları aç"
-                className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                className="min-w-[38px] min-h-[38px] rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
                   color: 'var(--text-primary)',
                 }}
               >
-                <Settings className="w-5 h-5" />
+                <Settings className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -391,7 +535,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           <div
             role="status"
             aria-live="polite"
-            className="px-4 py-2 text-xs border-b"
+            className="px-4 py-1.5 text-xs border-b"
             style={{
               backgroundColor: 'var(--brand-accent-soft)',
               borderColor: 'var(--border-subtle)',
@@ -401,8 +545,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             <div className="max-w-6xl mx-auto flex items-center justify-center sm:justify-start gap-2 font-semibold">
               <WifiOff className="w-3.5 h-3.5 shrink-0" />
               <span>
-                Çevrimdışı moddasınız — Daha önce yüklenen sure, meal ve sorular önbellekten
-                kesintisiz çalışmaya devam eder.
+                Çevrimdışı moddasınız — Önbellekteki sure, meal ve sorular kesintisiz çalışmaya devam
+                eder.
               </span>
             </div>
           </div>
@@ -411,7 +555,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         {/* Demo Modu Mobil Uyarısı */}
         {dataSourceMode === 'demo' && (
           <div
-            className="lg:hidden px-4 py-2 text-xs flex items-center justify-between gap-2 border-b"
+            className="xl:hidden px-4 py-1.5 text-xs flex items-center justify-between gap-2 border-b"
             style={{
               backgroundColor: 'var(--brand-accent-soft)',
               borderColor: 'var(--border-subtle)',
@@ -431,18 +575,18 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
         {/* Sayfa İçeriği */}
         <main
-          className={`flex-1 w-full ${contentWidthClass} mx-auto px-4 py-4 sm:px-6 lg:px-6 lg:py-5`}
+          className={`flex-1 w-full ${contentWidthClass} mx-auto px-3.5 py-3.5 sm:px-5 lg:px-6 lg:py-4`}
         >
           {children}
         </main>
 
         {/* Alt Bilgi (Footer) — Mobilde alt sabit nav bar için güvenli boşluk */}
         <footer
-          className={`mt-auto border-t ${isExamActive ? 'pb-6' : 'pb-20'} lg:pb-6`}
+          className={`mt-auto border-t ${isExamActive ? 'pb-5' : 'pb-20'} lg:pb-5`}
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div
-            className={`${contentWidthClass} mx-auto px-4 py-5 sm:px-6 lg:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs`}
+            className={`${contentWidthClass} mx-auto px-4 py-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs`}
           >
             <p style={{ color: 'var(--text-muted)' }}>
               © {currentYear} Muallimun.Net — Kur&apos;an &amp; Meal Eğitim Platformu
@@ -466,7 +610,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="grid grid-cols-4 h-16 max-w-lg mx-auto">
+          <div className="grid grid-cols-4 h-15 max-w-lg mx-auto">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -477,8 +621,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className="relative flex flex-col items-center justify-center gap-1 min-h-[48px] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
+                  onClick={() => handleRequestTab(item.id)}
+                  className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
                   style={{
                     color: isActive ? 'var(--brand-primary-text)' : 'var(--text-muted)',
                   }}
@@ -505,6 +649,70 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             })}
           </div>
         </nav>
+      )}
+
+      {/* ====================================================================
+          Aktif Sınavdan Çıkış Güvenlik Onay Modalı
+          ==================================================================== */}
+      {pendingNavTab !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="nav-leave-exam-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPendingNavTab(null);
+          }}
+        >
+          <div className="surface-card rounded-2xl p-5 max-w-md w-full space-y-4">
+            <div className="flex items-start gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 id="nav-leave-exam-title" className="text-base font-extrabold">
+                  Aktif sınavdan çıkmak istiyor musunuz?
+                </h3>
+                <p className="text-xs sm:text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  Şu an devam eden bir sınavın var. Başka bir sekmeye geçersen sınav ilerlemen
+                  oturum önbelleğinde saklanır; ancak zamanlayıcı duraklar.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setPendingNavTab(null);
+                }}
+                className="min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-bold text-white cursor-pointer"
+                style={{ backgroundColor: 'var(--brand-primary)' }}
+              >
+                Sınava Dön
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLeaveExam}
+                className="min-h-[42px] px-4 rounded-xl border text-xs sm:text-sm font-bold cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Çık ve Sekmeye Geç
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
