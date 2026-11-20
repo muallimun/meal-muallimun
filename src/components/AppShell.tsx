@@ -49,6 +49,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     openSettingsModal,
     dataSourceMode,
     retryCoreLoad,
+    isExamActive,
   } = useAppStore();
 
   const currentYear = new Date().getFullYear();
@@ -323,7 +324,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
         {/* Alt Bilgi (Footer) — Mobilde alt sabit nav bar için güvenli boşluk */}
         <footer
-          className="mt-auto border-t pb-20 lg:pb-6"
+          className={`mt-auto border-t ${isExamActive ? 'pb-6' : 'pb-20'} lg:pb-6`}
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div className="max-w-6xl mx-auto px-4 py-5 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
@@ -338,46 +339,57 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       </div>
 
       {/* ====================================================================
-          Mobil Alt Sabit Navigasyon Çubuğu (4 Sekme)
+          Mobil Alt Sabit Navigasyon Çubuğu (4 Sekme — Aktif sınavda gizlenir)
           ==================================================================== */}
-      <nav
-        aria-label="Alt navigasyon"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-md pb-safe"
-        style={{
-          backgroundColor: 'var(--bg-nav)',
-          borderColor: 'var(--border-subtle)',
-        }}
-      >
-        <div className="grid grid-cols-4 h-16 max-w-lg mx-auto">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
+      {!isExamActive && (
+        <nav
+          aria-label="Alt navigasyon"
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-md pb-safe"
+          style={{
+            backgroundColor: 'var(--bg-nav)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <div className="grid grid-cols-4 h-16 max-w-lg mx-auto">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              const mistakeCount =
+                item.id === 'mistakes' ? gamification.wrongQuestionIds.length : 0;
 
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveTab(item.id)}
-                className="relative flex flex-col items-center justify-center gap-1 min-h-[48px] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
-                style={{
-                  color: isActive ? 'var(--brand-primary-text)' : 'var(--text-muted)',
-                }}
-              >
-                {isActive && (
-                  <span
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
-                    style={{ backgroundColor: 'var(--brand-primary)' }}
-                  />
-                )}
-                <Icon className="w-5 h-5" />
-                <span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
-                  {item.shortLabel}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveTab(item.id)}
+                  className="relative flex flex-col items-center justify-center gap-1 min-h-[48px] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
+                  style={{
+                    color: isActive ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                  }}
+                >
+                  {isActive && (
+                    <span
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
+                      style={{ backgroundColor: 'var(--brand-primary)' }}
+                    />
+                  )}
+                  <span className="relative">
+                    <Icon className="w-5 h-5" />
+                    {mistakeCount > 0 && (
+                      <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-extrabold tabular-nums flex items-center justify-center">
+                        {mistakeCount > 99 ? '99+' : mistakeCount}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+                    {item.shortLabel}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 };

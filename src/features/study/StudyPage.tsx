@@ -16,6 +16,7 @@ import {
   LayoutList,
   Pause,
   RefreshCw,
+  Trophy,
 } from 'lucide-react';
 import { audioQueueService } from '../../services/audioQueueService';
 import {
@@ -35,6 +36,7 @@ import type {
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
+import { buildSurahQuestionCountMap } from '../../utils/poolUtils';
 import { MushafPageView } from './MushafPageView';
 import { SurahInfoModal } from './SurahInfoModal';
 import { SurahPickerModal } from './SurahPickerModal';
@@ -53,8 +55,10 @@ export const StudyPage: React.FC = () => {
     poolStats,
     manifest,
     meta,
+    questionIndex,
     studyNavTarget,
     clearStudyNavTarget,
+    navigateToExam,
   } = useAppStore();
 
   const audioState = useSyncExternalStore(
@@ -283,6 +287,14 @@ export const StudyPage: React.FC = () => {
     if (!meta) return null;
     return meta.surahs.find((s) => s.no === currentSurahNo) ?? meta.surahs[0] ?? null;
   }, [meta, currentSurahNo]);
+
+  const questionCountBySurah = useMemo(
+    () => buildSurahQuestionCountMap(questionIndex),
+    [questionIndex],
+  );
+  const activeSurahQuestionCount = activeSurahMeta
+    ? (questionCountBySurah.get(activeSurahMeta.no) ?? 0)
+    : 0;
 
   const activeJuzNo = useMemo(() => {
     if (viewMode === 'mushaf' && pageBundle && pageBundle.cuzs.length > 0) {
@@ -758,6 +770,23 @@ export const StudyPage: React.FC = () => {
               })}
             </div>
           </div>
+
+          {/* Bu Sureden Kendini Dene Kısayolu (Soru bankasında sorusu varsa) */}
+          {activeSurahMeta && activeSurahQuestionCount > 0 && (
+            <button
+              type="button"
+              onClick={() => navigateToExam({ surahNo: activeSurahMeta.no })}
+              className="min-h-[38px] px-3.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                borderColor: 'var(--brand-accent)',
+                color: 'var(--brand-accent-text)',
+              }}
+            >
+              <Trophy className="w-3.5 h-3.5 shrink-0" />
+              <span>Bu Sureden Kendini Dene ({activeSurahQuestionCount} Soru)</span>
+            </button>
+          )}
         </div>
       </section>
 

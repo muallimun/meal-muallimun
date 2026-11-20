@@ -29,7 +29,7 @@ const MODE_LABELS: { id: AudioPlayMode; label: string }[] = [
 ];
 
 export const AudioPlayerBar: React.FC = () => {
-  const { audioPrefs, updateAudioPrefs } = useAppStore();
+  const { audioPrefs, updateAudioPrefs, isExamActive } = useAppStore();
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
@@ -40,7 +40,7 @@ export const AudioPlayerBar: React.FC = () => {
     audioQueueService.syncPrefs(audioPrefs);
   }, [audioPrefs]);
 
-  if (!audioState.isVisible || audioState.status === 'idle') {
+  if (isExamActive || !audioState.isVisible || audioState.status === 'idle') {
     return null;
   }
 

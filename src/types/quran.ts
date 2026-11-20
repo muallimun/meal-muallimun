@@ -346,15 +346,107 @@ export interface AudioPrefs {
   autoScroll: boolean;
 }
 
+export type ExamMode = 'practice' | 'arena' | 'mock';
+export type ExamDifficultyFilter = 'all' | 1 | 2 | 3;
+export type ExamMealBasisFilter = 'all' | 'tdv' | 'dib' | 'common';
+export type ArenaTimeLimit = 45 | 60;
+
+export interface ExamConfig {
+  mode: ExamMode;
+  surahs: number[];
+  difficulty: ExamDifficultyFilter;
+  mealBasis: ExamMealBasisFilter;
+  questionCount: number; // 0 = tümü
+  prioritizeUnsolved: boolean;
+  arenaTimePerQuestion: ArenaTimeLimit;
+  isMistakeCamp?: boolean;
+  customQuestionUids?: string[];
+  title?: string;
+}
+
+export interface PreparedQuestion {
+  uid: string;
+  question: QuestionItem;
+  options: string[];
+  correctDisplayIndex: number;
+  displayToOriginalIndex: number[];
+  orderLocked: boolean;
+  verseRefs: number[];
+}
+
+export interface ExamAnswerRecord {
+  questionUid: string;
+  selectedIndex: number | null; // null = boş veya süre doldu
+  isCorrect: boolean;
+  timedOut?: boolean;
+  flagged?: boolean;
+  answeredAt?: string;
+}
+
+export interface ExamArenaJokers {
+  fiftyFiftyUsed: boolean;
+  verseHintUsed: boolean;
+  extraTimeUsed: boolean;
+}
+
+export interface ExamSessionState {
+  sessionId: string;
+  config: ExamConfig;
+  questions: PreparedQuestion[];
+  currentIndex: number;
+  answers: Record<string, ExamAnswerRecord>;
+  flaggedUids: string[];
+  eliminatedOptionsByUid: Record<string, number[]>;
+  hintRevealedUids: string[];
+  livesRemaining: number;
+  currentStreak: number;
+  maxStreak: number;
+  jokers: ExamArenaJokers;
+  startedAt: number;
+  elapsedSec: number;
+  questionRemainingSec: number;
+  totalRemainingSec: number;
+}
+
+export interface ExamResultSummary {
+  sessionId: string;
+  config: ExamConfig;
+  questions: PreparedQuestion[];
+  answers: Record<string, ExamAnswerRecord>;
+  totalQuestions: number;
+  correct: number;
+  wrong: number;
+  blank: number;
+  scorePct: number;
+  earnedXp: number;
+  durationSec: number;
+  maxStreak: number;
+  newlyMasteredCount: number;
+  endedByNoLives?: boolean;
+  completedAt: string;
+}
+
+export interface ExamNavigationTarget {
+  surahNo?: number; // Tek sure filtresi ile Sınav Merkezini aç
+  mode?: ExamMode;
+  autoStartMistakeCamp?: boolean;
+  mistakeLimit?: number; // 0 = tümü
+  nonce: number;
+}
+
 export interface ExamHistoryRecord {
   id: string;
   date: string;
-  totalQuestions: number;
-  correctCount: number;
-  wrongCount: number;
-  xpEarned: number;
+  mode: ExamMode;
   surahs: number[];
-  durationSeconds?: number;
+  totalQuestions: number;
+  correct: number;
+  wrong: number;
+  blank: number;
+  scorePct: number;
+  earnedXp: number;
+  durationSec: number;
+  isMistakeCamp?: boolean;
 }
 
 export interface GamificationState {
@@ -364,6 +456,9 @@ export interface GamificationState {
   solvedCount: number;
   correctCount: number;
   wrongQuestionIds: string[];
+  bookmarkedQuestionIds: string[];
+  masteredQuestionIds: string[];
+  solvedQuestionUids: string[];
   examHistory: ExamHistoryRecord[];
 }
 

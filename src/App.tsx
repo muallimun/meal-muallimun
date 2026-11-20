@@ -1,9 +1,10 @@
 import React from 'react';
 import { AppShell } from './components/AppShell';
 import { AudioPlayerBar } from './components/AudioPlayerBar';
-import { PlaceholderScreen } from './components/PlaceholderScreen';
 import { PoolSelectorModal } from './components/PoolSelectorModal';
 import { SettingsModal } from './components/SettingsModal';
+import { ExamCenterPage } from './features/exam/ExamCenterPage';
+import { MistakeCampPage } from './features/mistakes/MistakeCampPage';
 import { StudyPage } from './features/study/StudyPage';
 import { HomePage } from './pages/HomePage';
 import { AppProvider, useAppStore } from './store/useAppStore';
@@ -17,8 +18,10 @@ const MainRouter: React.FC = () => {
         <HomePage />
       ) : activeTab === 'reader' ? (
         <StudyPage />
+      ) : activeTab === 'exam' ? (
+        <ExamCenterPage />
       ) : (
-        <PlaceholderScreen tab={activeTab} />
+        <MistakeCampPage />
       )}
       <AudioPlayerBar />
       <PoolSelectorModal />

@@ -24,6 +24,7 @@ import type {
   MushafPageSegment,
   PageBundle,
   QuestionIndexFile,
+  QuestionItem,
   QuestionSurahFile,
   SurahBundle,
   WordSurahFile,
@@ -190,6 +191,39 @@ export async function getWordsSurah(surahNo: number): Promise<WordSurahFile> {
 export async function getSurahQuestions(surahNo: number): Promise<QuestionSurahFile> {
   if (demoMode) return DEMO_QUESTIONS_EMPTY(surahNo);
   return fetchJsonWithFallback<QuestionSurahFile>(`q/s${padSurahNo(surahNo)}.json`);
+}
+
+/**
+ * Verilen sure numaraları için soru bankası JSON dosyalarını paralel (Promise.all) ve bellek önbellekli çeker.
+ */
+export async function getQuestionsForSurahs(surahNumbers: number[]): Promise<QuestionItem[]> {
+  const uniqueSurahs = Array.from(
+    new Set(surahNumbers.filter((n) => Number.isInteger(n) && n >= 1 && n <= 114)),
+  ).sort((a, b) => a - b);
+
+  if (uniqueSurahs.length === 0) return [];
+
+  const files = await Promise.all(
+    uniqueSurahs.map(async (sNo) => {
+      try {
+        return await getSurahQuestions(sNo);
+      } catch {
+        return { s: sNo, questions: [] } as QuestionSurahFile;
+      }
+    }),
+  );
+
+  const merged: QuestionItem[] = [];
+  for (const file of files) {
+    if (Array.isArray(file.questions)) {
+      for (const q of file.questions) {
+        if (q && typeof q.stem === 'string' && Array.isArray(q.options) && q.options.length >= 2) {
+          merged.push(q);
+        }
+      }
+    }
+  }
+  return merged;
 }
 
 /**
@@ -368,6 +402,7 @@ export const dataService = {
   getMealSurah,
   getWordsSurah,
   getSurahQuestions,
+  getQuestionsForSurahs,
   getSurahBundle,
   getPageBundle,
   getPageBounds,

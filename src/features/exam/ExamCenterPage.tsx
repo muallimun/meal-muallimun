@@ -1,0 +1,332 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { audioQueueService } from '../../services/audioQueueService';
+import { dataService } from '../../services/dataService';
+import { sfxService } from '../../services/sfxService';
+import { useAppStore } from '../../store/useAppStore';
+import type {
+  ExamConfig,
+  ExamResultSummary,
+  ExamSessionState,
+} from '../../types/quran';
+import {
+  clearActiveExamSession,
+  loadActiveExamSession,
+  saveActiveExamSession,
+  selectAndPrepareExamQuestions,
+} from '../../utils/examUtils';
+import { ActiveExamView } from './ActiveExamView';
+import { ExamHubPage } from './ExamHubPage';
+import { ExamResultView } from './ExamResultView';
+
+type ExamPhase = 'hub' | 'active' | 'result';
+
+export const ExamCenterPage: React.FC = () => {
+  const {
+    questionIndex,
+    gamification,
+    recordExamResult,
+    examNavTarget,
+    clearExamNavTarget,
+    setIsExamActive,
+  } = useAppStore();
+
+  const [phase, setPhase] = useState<ExamPhase>('hub');
+  const [activeSession, setActiveSession] = useState<ExamSessionState | null>(null);
+  const [resumableSession, setResumableSession] = useState<ExamSessionState | null>(() =>
+    loadActiveExamSession(),
+  );
+  const [resultSummary, setResultSummary] = useState<ExamResultSummary | null>(null);
+  const [initialSurahFilter, setInitialSurahFilter] = useState<number | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  // Aktif sınav durumunu AppShell'e (mobil alt bar gizleme) bildir
+  useEffect(() => {
+    setIsExamActive(phase === 'active');
+    return () => setIsExamActive(false);
+  }, [phase, setIsExamActive]);
+
+  // Aktif sınav oturumunu her değişiklikte sessionStorage'a kaydet
+  useEffect(() => {
+    if (phase === 'active' && activeSession) {
+      saveActiveExamSession(activeSession);
+    }
+  }, [phase, activeSession]);
+
+  const startExamFromConfig = useCallback(
+    async (config: ExamConfig) => {
+      setIsStarting(true);
+      setStartError(null);
+
+      try {
+        const surahsToLoad =
+          config.surahs.length > 0
+            ? config.surahs
+            : (questionIndex?.availableSurahs ?? []);
+
+        const rawQuestions = await dataService.getQuestionsForSurahs(surahsToLoad);
+        const prepared = selectAndPrepareExamQuestions({
+          allQuestions: rawQuestions,
+          surahs: config.surahs,
+          difficulty: config.difficulty,
+          mealBasis: config.mealBasis,
+          questionCount: config.questionCount,
+          prioritizeUnsolved: config.prioritizeUnsolved,
+          solvedQuestionUids: gamification.solvedQuestionUids,
+          customQuestionUids: config.customQuestionUids,
+        });
+
+        if (prepared.length === 0) {
+          setStartError('Seçilen kriterlere uygun soru bulunamadı.');
+          return;
+        }
+
+        // Arka planda ses çalıyorsa duraklat ve başlangıç SFX çal
+        audioQueueService.pause();
+        sfxService.play('start');
+
+        const mockTotalSec = Math.max(60, Math.round(prepared.length * 90));
+        const newSession: ExamSessionState = {
+          sessionId: `exam_${Date.now()}`,
+          config,
+          questions: prepared,
+          currentIndex: 0,
+          answers: {},
+          flaggedUids: [],
+          eliminatedOptionsByUid: {},
+          hintRevealedUids: [],
+          livesRemaining: 3,
+          currentStreak: 0,
+          maxStreak: 0,
+          jokers: {
+            fiftyFiftyUsed: false,
+            verseHintUsed: false,
+            extraTimeUsed: false,
+          },
+          startedAt: Date.now(),
+          elapsedSec: 0,
+          questionRemainingSec: config.arenaTimePerQuestion,
+          totalRemainingSec: mockTotalSec,
+        };
+
+        saveActiveExamSession(newSession);
+        setActiveSession(newSession);
+        setResumableSession(null);
+        setResultSummary(null);
+        setPhase('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        setStartError(
+          err instanceof Error ? err.message : 'Soru bankası yüklenirken bir hata oluştu.',
+        );
+      } finally {
+        setIsStarting(false);
+      }
+    },
+    [questionIndex?.availableSurahs, gamification.solvedQuestionUids],
+  );
+
+  // Dışarıdan (Ana Sayfa, Okuma Ekranı, Hata Kampı) gelen sınav yönlendirmelerini işle
+  const handledTargetNonceRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!examNavTarget) return;
+    if (handledTargetNonceRef.current === examNavTarget.nonce) return;
+    handledTargetNonceRef.current = examNavTarget.nonce;
+
+    if (examNavTarget.autoStartMistakeCamp && gamification.wrongQuestionIds.length > 0) {
+      const limit = examNavTarget.mistakeLimit ?? 10;
+      void startExamFromConfig({
+        mode: 'practice',
+        surahs: questionIndex?.availableSurahs ?? [],
+        difficulty: 'all',
+        mealBasis: 'all',
+        questionCount: limit,
+        prioritizeUnsolved: false,
+        arenaTimePerQuestion: 45,
+        isMistakeCamp: true,
+        customQuestionUids: gamification.wrongQuestionIds,
+        title: 'Hata Kampı Telafi Sınavı',
+      });
+    } else {
+      if (examNavTarget.surahNo !== undefined) {
+        setInitialSurahFilter(examNavTarget.surahNo);
+      } else {
+        setInitialSurahFilter(null);
+      }
+      setPhase('hub');
+    }
+
+    clearExamNavTarget();
+  }, [
+    examNavTarget,
+    gamification.wrongQuestionIds,
+    questionIndex?.availableSurahs,
+    startExamFromConfig,
+    clearExamNavTarget,
+  ]);
+
+  const handleResumeSession = () => {
+    if (!resumableSession) return;
+    audioQueueService.pause();
+    sfxService.play('start');
+    setActiveSession(resumableSession);
+    setResumableSession(null);
+    setPhase('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDiscardResumable = () => {
+    sfxService.play('click');
+    clearActiveExamSession();
+    setResumableSession(null);
+  };
+
+  const handleUpdateSession = useCallback(
+    (updater: (prev: ExamSessionState) => ExamSessionState) => {
+      setActiveSession((prev) => (prev ? updater(prev) : prev));
+    },
+    [],
+  );
+
+  const handleCompleteExam = useCallback(
+    (finalSession: ExamSessionState, endedByNoLives = false) => {
+      clearActiveExamSession();
+
+      const correctUids: string[] = [];
+      const wrongUids: string[] = [];
+      let blankCount = 0;
+
+      for (const q of finalSession.questions) {
+        const ans = finalSession.answers[q.uid];
+        if (!ans) {
+          blankCount += 1;
+        } else if (ans.isCorrect) {
+          correctUids.push(q.uid);
+        } else {
+          wrongUids.push(q.uid);
+        }
+      }
+
+      const surahsUsed = Array.from(
+        new Set(finalSession.questions.map((q) => q.question.surah)),
+      ).sort((a, b) => a - b);
+
+      const durationSec = Math.max(
+        finalSession.elapsedSec,
+        Math.round((Date.now() - finalSession.startedAt) / 1000),
+      );
+
+      const { earnedXp, newlyMasteredCount, scorePct } = recordExamResult({
+        id: finalSession.sessionId,
+        mode: finalSession.config.mode,
+        surahs: surahsUsed,
+        totalQuestions: finalSession.questions.length,
+        correctUids,
+        wrongUids,
+        blankCount,
+        durationSec,
+        maxStreak: finalSession.maxStreak,
+        isMistakeCamp: finalSession.config.isMistakeCamp,
+      });
+
+      const summary: ExamResultSummary = {
+        sessionId: finalSession.sessionId,
+        config: finalSession.config,
+        questions: finalSession.questions,
+        answers: finalSession.answers,
+        totalQuestions: finalSession.questions.length,
+        correct: correctUids.length,
+        wrong: wrongUids.length,
+        blank: blankCount,
+        scorePct,
+        earnedXp,
+        durationSec,
+        maxStreak: finalSession.maxStreak,
+        newlyMasteredCount,
+        endedByNoLives,
+        completedAt: new Date().toISOString(),
+      };
+
+      setResultSummary(summary);
+      setActiveSession(null);
+      setResumableSession(null);
+      setPhase('result');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [recordExamResult],
+  );
+
+  const handleExitKeepSession = () => {
+    sfxService.play('click');
+    if (activeSession) {
+      saveActiveExamSession(activeSession);
+      setResumableSession(activeSession);
+    }
+    setActiveSession(null);
+    setPhase('hub');
+  };
+
+  const handleExitDiscardSession = () => {
+    sfxService.play('click');
+    clearActiveExamSession();
+    setActiveSession(null);
+    setResumableSession(null);
+    setPhase('hub');
+  };
+
+  const handleStartWrongMiniTest = (wrongUids: string[], surahs: number[]) => {
+    void startExamFromConfig({
+      mode: 'practice',
+      surahs: surahs.length > 0 ? surahs : (questionIndex?.availableSurahs ?? []),
+      difficulty: 'all',
+      mealBasis: 'all',
+      questionCount: 0,
+      prioritizeUnsolved: false,
+      arenaTimePerQuestion: 45,
+      isMistakeCamp: true,
+      customQuestionUids: wrongUids,
+      title: 'Yanlışlardan Mini Telafi Testi',
+    });
+  };
+
+  if (phase === 'active' && activeSession) {
+    return (
+      <ActiveExamView
+        session={activeSession}
+        onUpdateSession={handleUpdateSession}
+        onCompleteExam={handleCompleteExam}
+        onExitKeepSession={handleExitKeepSession}
+        onExitDiscardSession={handleExitDiscardSession}
+      />
+    );
+  }
+
+  if (phase === 'result' && resultSummary) {
+    return (
+      <ExamResultView
+        result={resultSummary}
+        onStartWrongMiniTest={handleStartWrongMiniTest}
+        onNewExam={() => {
+          sfxService.play('click');
+          setResultSummary(null);
+          setPhase('hub');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+    );
+  }
+
+  return (
+    <ExamHubPage
+      initialSurahFilter={initialSurahFilter}
+      resumableSession={resumableSession}
+      isStarting={isStarting}
+      startError={startError}
+      onStartExam={(cfg) => {
+        void startExamFromConfig(cfg);
+      }}
+      onResumeSession={handleResumeSession}
+      onDiscardResumable={handleDiscardResumable}
+    />
+  );
+};

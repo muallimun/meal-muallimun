@@ -529,6 +529,17 @@ class AudioQueueService {
     }
   }
 
+  public pause(): void {
+    if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
+      try {
+        this.audio?.pause();
+      } catch {
+        // ignore
+      }
+      this.emit({ status: 'paused' });
+    }
+  }
+
   public nextVerse(): void {
     if (this.verses.length === 0) return;
     this.playSessionId += 1;

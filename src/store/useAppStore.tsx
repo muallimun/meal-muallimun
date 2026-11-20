@@ -17,6 +17,9 @@ import { sfxService } from '../services/sfxService';
 import type {
   AppSettings,
   AudioPrefs,
+  ExamHistoryRecord,
+  ExamMode,
+  ExamNavigationTarget,
   GamificationState,
   LastReadPosition,
   ManifestData,
@@ -77,8 +80,30 @@ export const DEFAULT_GAMIFICATION: GamificationState = {
   solvedCount: 0,
   correctCount: 0,
   wrongQuestionIds: [],
+  bookmarkedQuestionIds: [],
+  masteredQuestionIds: [],
+  solvedQuestionUids: [],
   examHistory: [],
 };
+
+export interface RecordExamResultInput {
+  id: string;
+  mode: ExamMode;
+  surahs: number[];
+  totalQuestions: number;
+  correctUids: string[];
+  wrongUids: string[];
+  blankCount: number;
+  durationSec: number;
+  maxStreak: number;
+  isMistakeCamp?: boolean;
+}
+
+export interface RecordExamResultOutput {
+  earnedXp: number;
+  newlyMasteredCount: number;
+  scorePct: number;
+}
 
 function getTodayIsoDate(): string {
   const now = new Date();
@@ -283,6 +308,74 @@ function hydrateState(): PersistedAppState {
       }
     }
 
+    const rawHistory = Array.isArray(rawGam?.examHistory) ? rawGam.examHistory : [];
+    const normalizedHistory: ExamHistoryRecord[] = rawHistory
+      .slice(0, 25)
+      .map((entry, idx) => {
+        const legacy = entry as Partial<ExamHistoryRecord> & {
+          correctCount?: number;
+          wrongCount?: number;
+          xpEarned?: number;
+          durationSeconds?: number;
+        };
+        const total = typeof legacy.totalQuestions === 'number' ? Math.max(0, legacy.totalQuestions) : 0;
+        const correct =
+          typeof legacy.correct === 'number'
+            ? legacy.correct
+            : typeof legacy.correctCount === 'number'
+              ? legacy.correctCount
+              : 0;
+        const wrong =
+          typeof legacy.wrong === 'number'
+            ? legacy.wrong
+            : typeof legacy.wrongCount === 'number'
+              ? legacy.wrongCount
+              : 0;
+        const blank =
+          typeof legacy.blank === 'number'
+            ? legacy.blank
+            : Math.max(0, total - correct - wrong);
+        const scorePct =
+          typeof legacy.scorePct === 'number'
+            ? legacy.scorePct
+            : total > 0
+              ? Math.round((correct / total) * 100)
+              : 0;
+        const earnedXp =
+          typeof legacy.earnedXp === 'number'
+            ? legacy.earnedXp
+            : typeof legacy.xpEarned === 'number'
+              ? legacy.xpEarned
+              : 0;
+        const durationSec =
+          typeof legacy.durationSec === 'number'
+            ? legacy.durationSec
+            : typeof legacy.durationSeconds === 'number'
+              ? legacy.durationSeconds
+              : 0;
+        const mode: ExamMode =
+          legacy.mode === 'practice' || legacy.mode === 'arena' || legacy.mode === 'mock'
+            ? legacy.mode
+            : 'practice';
+
+        return {
+          id: typeof legacy.id === 'string' ? legacy.id : `exam_legacy_${idx}`,
+          date: typeof legacy.date === 'string' ? legacy.date : new Date().toISOString(),
+          mode,
+          surahs: Array.isArray(legacy.surahs)
+            ? legacy.surahs.filter((n): n is number => typeof n === 'number')
+            : [],
+          totalQuestions: total,
+          correct,
+          wrong,
+          blank,
+          scorePct,
+          earnedXp,
+          durationSec,
+          isMistakeCamp: Boolean(legacy.isMistakeCamp),
+        };
+      });
+
     const gamification: GamificationState = {
       totalXp: typeof rawGam?.totalXp === 'number' ? Math.max(0, rawGam.totalXp) : 0,
       streakDays,
@@ -290,9 +383,32 @@ function hydrateState(): PersistedAppState {
       solvedCount: typeof rawGam?.solvedCount === 'number' ? Math.max(0, rawGam.solvedCount) : 0,
       correctCount: typeof rawGam?.correctCount === 'number' ? Math.max(0, rawGam.correctCount) : 0,
       wrongQuestionIds: Array.isArray(rawGam?.wrongQuestionIds)
-        ? rawGam.wrongQuestionIds.filter((id) => typeof id === 'string')
+        ? Array.from(
+            new Set(rawGam.wrongQuestionIds.filter((id): id is string => typeof id === 'string')),
+          )
         : [],
-      examHistory: Array.isArray(rawGam?.examHistory) ? rawGam.examHistory : [],
+      bookmarkedQuestionIds: Array.isArray(rawGam?.bookmarkedQuestionIds)
+        ? Array.from(
+            new Set(
+              rawGam.bookmarkedQuestionIds.filter((id): id is string => typeof id === 'string'),
+            ),
+          )
+        : [],
+      masteredQuestionIds: Array.isArray(rawGam?.masteredQuestionIds)
+        ? Array.from(
+            new Set(
+              rawGam.masteredQuestionIds.filter((id): id is string => typeof id === 'string'),
+            ),
+          )
+        : [],
+      solvedQuestionUids: Array.isArray(rawGam?.solvedQuestionUids)
+        ? Array.from(
+            new Set(
+              rawGam.solvedQuestionUids.filter((id): id is string => typeof id === 'string'),
+            ),
+          )
+        : [],
+      examHistory: normalizedHistory,
     };
 
     return { settings, studyPool, studyPrefs, studyProgress, audioPrefs, gamification };
@@ -318,6 +434,9 @@ interface AppContextValue {
   setLastRead: (pos: Omit<LastReadPosition, 'updatedAt'>) => void;
   toggleBookmarkAyah: (ayahId: number) => void;
   updateAudioPrefs: (patch: Partial<AudioPrefs>) => void;
+  recordExamResult: (input: RecordExamResultInput) => RecordExamResultOutput;
+  toggleBookmarkQuestion: (questionUid: string) => void;
+  markQuestionMastered: (questionUid: string) => void;
 
   // Navigasyon & Modallar
   activeTab: NavTab;
@@ -325,6 +444,11 @@ interface AppContextValue {
   studyNavTarget: StudyNavigationTarget | null;
   navigateToStudy: (target: Omit<StudyNavigationTarget, 'nonce'>) => void;
   clearStudyNavTarget: () => void;
+  examNavTarget: ExamNavigationTarget | null;
+  navigateToExam: (target?: Omit<ExamNavigationTarget, 'nonce'>) => void;
+  clearExamNavTarget: () => void;
+  isExamActive: boolean;
+  setIsExamActive: (active: boolean) => void;
   isPoolModalOpen: boolean;
   openPoolModal: () => void;
   closePoolModal: () => void;
@@ -352,6 +476,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [persisted, setPersisted] = useState<PersistedAppState>(() => hydrateState());
   const [activeTab, setActiveTabState] = useState<NavTab>('home');
   const [studyNavTarget, setStudyNavTarget] = useState<StudyNavigationTarget | null>(null);
+  const [examNavTarget, setExamNavTarget] = useState<ExamNavigationTarget | null>(null);
+  const [isExamActive, setIsExamActive] = useState(false);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
@@ -542,6 +668,139 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   }, []);
 
+  const recordExamResult = useCallback(
+    (input: RecordExamResultInput): RecordExamResultOutput => {
+      const correct = input.correctUids.length;
+      const wrong = input.wrongUids.length;
+      const blank = Math.max(0, input.blankCount);
+      const totalQuestions = Math.max(1, input.totalQuestions);
+      const scorePct = Math.round((correct / totalQuestions) * 100);
+
+      // Mevcut wrongQuestionIds ile yeni temizlenen sayısını hesapla
+      const currentWrongSet = new Set(persisted.gamification.wrongQuestionIds);
+      const newlyMasteredUids = input.isMistakeCamp
+        ? input.correctUids.filter((uid) => currentWrongSet.has(uid))
+        : [];
+      const newlyMasteredCount = newlyMasteredUids.length;
+
+      // XP Hesabı: Doğru +10 XP, seri bonusu, tamamlama bonusu ve hata temizleme bonusu
+      const baseXp = correct * 10;
+      const streakBonus = input.maxStreak >= 3 ? input.maxStreak * 5 : 0;
+      const completionBonus =
+        correct + wrong >= Math.ceil(totalQuestions / 2)
+          ? totalQuestions >= 10
+            ? 25
+            : 15
+          : 0;
+      const masteryBonus = newlyMasteredCount * 5;
+      const earnedXp = baseXp + streakBonus + completionBonus + masteryBonus;
+
+      const today = getTodayIsoDate();
+
+      setPersisted((prev) => {
+        const prevGam = prev.gamification;
+
+        // Günlük seri güncellemesi
+        let nextStreakDays = Math.max(1, prevGam.streakDays);
+        if (prevGam.lastActiveDate && prevGam.lastActiveDate !== today) {
+          const gap = daysBetweenIso(prevGam.lastActiveDate, today);
+          if (gap === 1) {
+            nextStreakDays += 1;
+          } else if (gap > 1) {
+            nextStreakDays = 1;
+          }
+        }
+
+        const nextWrongSet = new Set(prevGam.wrongQuestionIds);
+        const nextMasteredSet = new Set(prevGam.masteredQuestionIds);
+        const nextSolvedSet = new Set(prevGam.solvedQuestionUids);
+
+        for (const uid of input.wrongUids) {
+          nextWrongSet.add(uid);
+          nextMasteredSet.delete(uid);
+          nextSolvedSet.add(uid);
+        }
+
+        for (const uid of input.correctUids) {
+          nextSolvedSet.add(uid);
+          if (input.isMistakeCamp && nextWrongSet.has(uid)) {
+            nextWrongSet.delete(uid);
+            nextMasteredSet.add(uid);
+          }
+        }
+
+        const historyRecord: ExamHistoryRecord = {
+          id: input.id,
+          date: new Date().toISOString(),
+          mode: input.mode,
+          surahs: Array.from(new Set(input.surahs)).sort((a, b) => a - b),
+          totalQuestions: input.totalQuestions,
+          correct,
+          wrong,
+          blank,
+          scorePct,
+          earnedXp,
+          durationSec: Math.max(0, Math.round(input.durationSec)),
+          isMistakeCamp: Boolean(input.isMistakeCamp),
+        };
+
+        return {
+          ...prev,
+          gamification: {
+            ...prevGam,
+            totalXp: prevGam.totalXp + earnedXp,
+            streakDays: nextStreakDays,
+            lastActiveDate: today,
+            solvedCount: prevGam.solvedCount + correct + wrong,
+            correctCount: prevGam.correctCount + correct,
+            wrongQuestionIds: Array.from(nextWrongSet),
+            masteredQuestionIds: Array.from(nextMasteredSet),
+            solvedQuestionUids: Array.from(nextSolvedSet),
+            examHistory: [historyRecord, ...prevGam.examHistory].slice(0, 25),
+          },
+        };
+      });
+
+      return { earnedXp, newlyMasteredCount, scorePct };
+    },
+    [persisted.gamification.wrongQuestionIds],
+  );
+
+  const toggleBookmarkQuestion = useCallback((questionUid: string) => {
+    sfxService.play('click');
+    setPersisted((prev) => {
+      const exists = prev.gamification.bookmarkedQuestionIds.includes(questionUid);
+      const nextIds = exists
+        ? prev.gamification.bookmarkedQuestionIds.filter((id) => id !== questionUid)
+        : [questionUid, ...prev.gamification.bookmarkedQuestionIds];
+      return {
+        ...prev,
+        gamification: {
+          ...prev.gamification,
+          bookmarkedQuestionIds: nextIds,
+        },
+      };
+    });
+  }, []);
+
+  const markQuestionMastered = useCallback((questionUid: string) => {
+    sfxService.play('click');
+    setPersisted((prev) => {
+      const nextWrong = prev.gamification.wrongQuestionIds.filter((id) => id !== questionUid);
+      const nextMastered = prev.gamification.masteredQuestionIds.includes(questionUid)
+        ? prev.gamification.masteredQuestionIds
+        : [questionUid, ...prev.gamification.masteredQuestionIds];
+      return {
+        ...prev,
+        gamification: {
+          ...prev.gamification,
+          wrongQuestionIds: nextWrong,
+          masteredQuestionIds: nextMastered,
+        },
+      };
+    });
+  }, []);
+
   const setActiveTab = useCallback((tab: NavTab) => {
     sfxService.play('click');
     setActiveTabState(tab);
@@ -559,6 +818,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
       }));
     }
+    setIsExamActive(false);
     setStudyNavTarget({ ...target, nonce: Date.now() });
     setActiveTabState('reader');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -566,6 +826,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const clearStudyNavTarget = useCallback(() => {
     setStudyNavTarget(null);
+  }, []);
+
+  const navigateToExam = useCallback((target?: Omit<ExamNavigationTarget, 'nonce'>) => {
+    sfxService.play('click');
+    setExamNavTarget({ ...(target ?? {}), nonce: Date.now() });
+    setActiveTabState('exam');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const clearExamNavTarget = useCallback(() => {
+    setExamNavTarget(null);
   }, []);
 
   const openPoolModal = useCallback(() => {
@@ -618,11 +889,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setLastRead,
       toggleBookmarkAyah,
       updateAudioPrefs,
+      recordExamResult,
+      toggleBookmarkQuestion,
+      markQuestionMastered,
       activeTab,
       setActiveTab,
       studyNavTarget,
       navigateToStudy,
       clearStudyNavTarget,
+      examNavTarget,
+      navigateToExam,
+      clearExamNavTarget,
+      isExamActive,
+      setIsExamActive,
       isPoolModalOpen,
       openPoolModal,
       closePoolModal,
@@ -653,11 +932,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setLastRead,
       toggleBookmarkAyah,
       updateAudioPrefs,
+      recordExamResult,
+      toggleBookmarkQuestion,
+      markQuestionMastered,
       activeTab,
       setActiveTab,
       studyNavTarget,
       navigateToStudy,
       clearStudyNavTarget,
+      examNavTarget,
+      navigateToExam,
+      clearExamNavTarget,
+      isExamActive,
       isPoolModalOpen,
       openPoolModal,
       closePoolModal,

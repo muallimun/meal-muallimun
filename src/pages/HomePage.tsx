@@ -54,6 +54,7 @@ export const HomePage: React.FC = () => {
     poolStats,
     setActiveTab,
     navigateToStudy,
+    navigateToExam,
     openPoolModal,
     openSettingsModal,
   } = useAppStore();
@@ -170,8 +171,7 @@ export const HomePage: React.FC = () => {
   };
 
   const handleStartExam = () => {
-    sfxService.play('start');
-    setActiveTab('exam');
+    navigateToExam();
   };
 
   const handleFocusSurahAction = (surahNo: number, targetTab: 'reader' | 'exam') => {
@@ -182,8 +182,7 @@ export const HomePage: React.FC = () => {
       });
     }
     if (targetTab === 'exam') {
-      sfxService.play('start');
-      setActiveTab('exam');
+      navigateToExam({ surahNo });
     } else {
       sfxService.play('click');
       navigateToStudy({ surah: surahNo, ayah: 1 });
@@ -531,6 +530,52 @@ export const HomePage: React.FC = () => {
           </section>
         );
       })()}
+
+      {/* ====================================================================
+          1.6. Hata Kampı Hatırlatma Kartı (Yanlış Soru Varsa)
+          ==================================================================== */}
+      {gamification.wrongQuestionIds.length > 0 && (
+        <section aria-label="Hata kampı hatırlatması">
+          <div
+            className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
+            style={{ borderLeftColor: '#EF4444' }}
+          >
+            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                  color: '#DC2626',
+                }}
+              >
+                <Target className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold" style={{ color: '#DC2626' }}>
+                  Hata Kampı Hatırlatması
+                </p>
+                <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
+                  Hata Kampında Seni Bekleyen {formatNumberTr(gamification.wrongQuestionIds.length)}{' '}
+                  Soru Var
+                </h3>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Kısa bir telafi çalışmasıyla yanlışlarını kalıcı öğrenmeye dönüştür.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('mistakes')}
+              className="min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 shrink-0 transition-transform active:scale-[0.99] cursor-pointer"
+              style={{ backgroundColor: '#DC2626' }}
+            >
+              <span className="whitespace-nowrap">Hemen Temizle</span>
+              <ArrowRight className="w-4 h-4 shrink-0" />
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ====================================================================
           2. Ana 2-Sütunlu Alan: Aktif Çalışma Havuzu + Rastgele Ayet Önizleme
@@ -928,17 +973,19 @@ export const HomePage: React.FC = () => {
                     {surah.cuzs.join(', ')}. Cüz
                   </p>
 
-                  {/* Soru Sayısı Vurgusu */}
-                  <div
-                    className="py-2 px-3 rounded-xl flex items-center justify-between text-xs font-bold mb-4"
+                  {/* Soru Sayısı Vurgusu (Tıklanabilir Sınav Kısayolu) */}
+                  <button
+                    type="button"
+                    onClick={() => handleFocusSurahAction(surah.no, 'exam')}
+                    className="w-full py-2 px-3 rounded-xl flex items-center justify-between text-xs font-bold mb-4 cursor-pointer transition-opacity hover:opacity-90"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       color: 'var(--brand-primary-text)',
                     }}
                   >
                     <span>Hazır Soru Bankası</span>
-                    <span className="tabular-nums">{formatNumberTr(qCount)} Soru</span>
-                  </div>
+                    <span className="tabular-nums">{formatNumberTr(qCount)} Soru →</span>
+                  </button>
                 </div>
 
                 {/* Kart Aksiyonları */}
