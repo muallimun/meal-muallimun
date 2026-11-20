@@ -92,6 +92,8 @@ export const DEFAULT_STUDY_PROGRESS: StudyProgress = {
 export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
   mode: 'ar_then_meal',
   arabicAudioSource: 'hatim',
+  arabicReciterId: 'hatim',
+  favoriteReciterIds: ['hatim'],
   mealAudioSource: 'tdv',
   playbackRate: 1,
   repeatCount: 1,
@@ -377,6 +379,23 @@ function hydrateState(): PersistedAppState {
     };
 
     const rawAudio = parsed.audioPrefs;
+    const hydratedReciterId =
+      typeof rawAudio?.arabicReciterId === 'string' && rawAudio.arabicReciterId.trim()
+        ? rawAudio.arabicReciterId.trim()
+        : typeof rawAudio?.arabicAudioSource === 'string' && rawAudio.arabicAudioSource.trim()
+          ? rawAudio.arabicAudioSource.trim()
+          : DEFAULT_AUDIO_PREFS.arabicReciterId;
+
+    const hydratedFavoriteReciters = Array.isArray(rawAudio?.favoriteReciterIds)
+      ? Array.from(
+          new Set(
+            rawAudio.favoriteReciterIds.filter(
+              (id): id is string => typeof id === 'string' && id.trim().length > 0,
+            ),
+          ),
+        )
+      : [...DEFAULT_AUDIO_PREFS.favoriteReciterIds];
+
     const audioPrefs: AudioPrefs = {
       mode:
         rawAudio?.mode === 'ar' ||
@@ -384,10 +403,9 @@ function hydrateState(): PersistedAppState {
         rawAudio?.mode === 'ar_then_meal'
           ? rawAudio.mode
           : DEFAULT_AUDIO_PREFS.mode,
-      arabicAudioSource:
-        typeof rawAudio?.arabicAudioSource === 'string' && rawAudio.arabicAudioSource.trim()
-          ? rawAudio.arabicAudioSource.trim()
-          : DEFAULT_AUDIO_PREFS.arabicAudioSource,
+      arabicAudioSource: hydratedReciterId,
+      arabicReciterId: hydratedReciterId,
+      favoriteReciterIds: hydratedFavoriteReciters,
       mealAudioSource:
         typeof rawAudio?.mealAudioSource === 'string' && rawAudio.mealAudioSource.trim()
           ? rawAudio.mealAudioSource.trim()
@@ -611,6 +629,8 @@ interface AppContextValue {
   renamePageBookmark: (id: string, label: string, color?: PageBookmarkColor) => void;
   removePageBookmark: (id: string) => void;
   updateAudioPrefs: (patch: Partial<AudioPrefs>) => void;
+  setArabicReciter: (id: string) => void;
+  toggleFavoriteReciter: (id: string) => void;
   recordExamResult: (input: RecordExamResultInput) => RecordExamResultOutput;
   toggleBookmarkQuestion: (questionUid: string) => void;
   markQuestionMastered: (questionUid: string) => void;
@@ -642,6 +662,9 @@ interface AppContextValue {
   isSettingsModalOpen: boolean;
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
+  isReciterSelectorOpen: boolean;
+  openReciterSelector: () => void;
+  closeReciterSelector: () => void;
   isBookmarksDrawerOpen: boolean;
   openBookmarksDrawer: () => void;
   closeBookmarksDrawer: () => void;
@@ -706,6 +729,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isReciterSelectorOpen, setIsReciterSelectorOpen] = useState(false);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [introDismissed, setIntroDismissed] = useState<boolean>(() => readIntroDismissed());
@@ -1054,13 +1078,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const updateAudioPrefs = useCallback((patch: Partial<AudioPrefs>) => {
+    setPersisted((prev) => {
+      const nextReciterId =
+        patch.arabicReciterId ?? patch.arabicAudioSource ?? prev.audioPrefs.arabicReciterId;
+      return {
+        ...prev,
+        audioPrefs: {
+          ...prev.audioPrefs,
+          ...patch,
+          arabicReciterId: nextReciterId,
+          arabicAudioSource: nextReciterId,
+        },
+      };
+    });
+  }, []);
+
+  const setArabicReciter = useCallback((id: string) => {
+    const cleanId = id.trim();
+    if (!cleanId) return;
+    sfxService.play('click');
     setPersisted((prev) => ({
       ...prev,
       audioPrefs: {
         ...prev.audioPrefs,
-        ...patch,
+        arabicReciterId: cleanId,
+        arabicAudioSource: cleanId,
       },
     }));
+  }, []);
+
+  const toggleFavoriteReciter = useCallback((id: string) => {
+    const cleanId = id.trim();
+    if (!cleanId) return;
+    sfxService.play('click');
+    setPersisted((prev) => {
+      const current = prev.audioPrefs.favoriteReciterIds ?? [];
+      const exists = current.includes(cleanId);
+      const next = exists ? current.filter((item) => item !== cleanId) : [cleanId, ...current];
+      return {
+        ...prev,
+        audioPrefs: {
+          ...prev.audioPrefs,
+          favoriteReciterIds: next,
+        },
+      };
+    });
   }, []);
 
   const recordExamResult = useCallback(
@@ -1334,6 +1396,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSettingsModalOpen(false);
   }, []);
 
+  const openReciterSelector = useCallback(() => {
+    sfxService.play('click');
+    setIsReciterSelectorOpen(true);
+  }, []);
+
+  const closeReciterSelector = useCallback(() => {
+    setIsReciterSelectorOpen(false);
+  }, []);
+
   const openBookmarksDrawer = useCallback(() => {
     sfxService.play('click');
     setIsBookmarksDrawerOpen(true);
@@ -1425,6 +1496,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       renamePageBookmark,
       removePageBookmark,
       updateAudioPrefs,
+      setArabicReciter,
+      toggleFavoriteReciter,
       recordExamResult,
       toggleBookmarkQuestion,
       markQuestionMastered,
@@ -1454,6 +1527,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSettingsModalOpen,
       openSettingsModal,
       closeSettingsModal,
+      isReciterSelectorOpen,
+      openReciterSelector,
+      closeReciterSelector,
       isBookmarksDrawerOpen,
       openBookmarksDrawer,
       closeBookmarksDrawer,
@@ -1498,6 +1574,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       renamePageBookmark,
       removePageBookmark,
       updateAudioPrefs,
+      setArabicReciter,
+      toggleFavoriteReciter,
       recordExamResult,
       toggleBookmarkQuestion,
       markQuestionMastered,
@@ -1526,6 +1604,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSettingsModalOpen,
       openSettingsModal,
       closeSettingsModal,
+      isReciterSelectorOpen,
+      openReciterSelector,
+      closeReciterSelector,
       isBookmarksDrawerOpen,
       openBookmarksDrawer,
       closeBookmarksDrawer,

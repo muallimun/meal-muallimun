@@ -1,16 +1,28 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import {
   BookOpen,
+  ChevronRight,
   Eye,
+  Headphones,
   Layout,
+  Loader2,
+  Play,
   RotateCcw,
   Sparkles,
+  Square,
   Type,
   Volume2,
   VolumeX,
   X,
 } from 'lucide-react';
 import { ARABIC_FONTS, TURKISH_FONTS } from '../config/assetsConfig';
+import {
+  findReciterById,
+  formatReciterBadge,
+  getAllReciters,
+  RECITER_CATEGORIES,
+} from '../config/recitersConfig';
+import { audioQueueService } from '../services/audioQueueService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type {
@@ -115,9 +127,30 @@ export const SettingsModal: React.FC = () => {
     updateAudioPrefs,
     resetSettings,
     openIntroSplash,
+    openReciterSelector,
+    manifest,
   } = useAppStore();
 
+  const audioState = useSyncExternalStore(
+    audioQueueService.subscribe,
+    audioQueueService.getSnapshot,
+  );
+
   const [activeTab, setActiveTab] = useState<SettingsTabId>('appearance');
+
+  const allReciters = useMemo(() => getAllReciters(manifest), [manifest]);
+  const activeReciter = useMemo(
+    () => findReciterById(audioPrefs.arabicReciterId, manifest),
+    [audioPrefs.arabicReciterId, manifest],
+  );
+  const activeReciterCategory = useMemo(
+    () => RECITER_CATEGORIES.find((c) => c.id === activeReciter.category),
+    [activeReciter.category],
+  );
+  const activeReciterBadge = formatReciterBadge(activeReciter);
+  const isPreviewingActive =
+    audioState.previewReciterId === activeReciter.id &&
+    (audioState.previewStatus === 'playing' || audioState.previewStatus === 'loading');
 
   if (!isSettingsModalOpen) return null;
 
@@ -684,6 +717,109 @@ export const SettingsModal: React.FC = () => {
               ================================================================ */}
           {activeTab === 'audio_exam' && (
             <div className="space-y-4">
+              {/* Kur'an Okuyucu (Tilavet / Kurrâ) Seçici Kartı */}
+              <div
+                className="p-4 rounded-2xl border space-y-3"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  borderColor: 'var(--brand-primary)',
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <span
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white"
+                      style={{ backgroundColor: 'var(--brand-primary)' }}
+                    >
+                      <Headphones className="w-5 h-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p
+                        className="text-[11px] font-extrabold uppercase tracking-wider"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        Kur&apos;an Okuyucu (Arapça Tilavet)
+                      </p>
+                      <p
+                        className="text-sm sm:text-base font-extrabold truncate mt-0.5"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {activeReciter.label}
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                        {activeReciterCategory && (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {activeReciterCategory.label}
+                          </span>
+                        )}
+                        {activeReciterBadge && (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--brand-primary-text)',
+                            }}
+                          >
+                            {activeReciterBadge}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      openReciterSelector();
+                    }}
+                    className="flex-1 min-w-[180px] min-h-[42px] px-4 rounded-xl font-extrabold text-xs sm:text-sm text-white flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-transform active:scale-[0.99]"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <span>Okuyucu Değiştir ({allReciters.length} Kurrâ)</span>
+                    <ChevronRight className="w-4 h-4 shrink-0" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      audioQueueService.previewReciter(activeReciter);
+                    }}
+                    className="min-h-[42px] px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: isPreviewingActive
+                        ? 'var(--brand-accent)'
+                        : 'var(--border-subtle)',
+                      color: isPreviewingActive
+                        ? 'var(--brand-accent-text)'
+                        : 'var(--text-primary)',
+                    }}
+                  >
+                    {audioState.previewReciterId === activeReciter.id &&
+                    audioState.previewStatus === 'loading' ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : isPreviewingActive ? (
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                    )}
+                    <span>{isPreviewingActive ? 'Durdur' : 'Besmele Önizle'}</span>
+                  </button>
+                </div>
+              </div>
+
               {/* SFX Kontrolü */}
               <div
                 className="p-4 rounded-2xl border space-y-3.5"

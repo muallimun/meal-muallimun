@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   AlertCircle,
+  ChevronDown,
+  Headphones,
   Loader2,
   MonitorPlay,
   Pause,
@@ -11,10 +13,8 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
-import {
-  getDynamicArabicAudioSources,
-  getDynamicMealAudioSources,
-} from '../config/assetsConfig';
+import { getDynamicMealAudioSources } from '../config/assetsConfig';
+import { findReciterById } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -43,6 +43,7 @@ export const AudioPlayerBar: React.FC = () => {
     activeTab,
     setActiveTab,
     openPresentationMode,
+    openReciterSelector,
     manifest,
   } = useAppStore();
   const audioState = useSyncExternalStore(
@@ -50,7 +51,10 @@ export const AudioPlayerBar: React.FC = () => {
     audioQueueService.getSnapshot,
   );
 
-  const arabicSources = useMemo(() => getDynamicArabicAudioSources(manifest), [manifest]);
+  const activeReciter = useMemo(
+    () => findReciterById(audioPrefs.arabicReciterId, manifest),
+    [audioPrefs.arabicReciterId, manifest],
+  );
   const mealSources = useMemo(() => getDynamicMealAudioSources(manifest), [manifest]);
 
   // Store'daki audioPrefs değişince ses motorunu anlık senkronize et
@@ -65,9 +69,10 @@ export const AudioPlayerBar: React.FC = () => {
   const isPlaying = audioState.status === 'playing';
   const isLoading = audioState.status === 'loading';
 
-  const reciterSuffix = audioState.activeReciterLabel
-    ? ` · ${audioState.activeReciterLabel}`
-    : '';
+  const resolvedReciterLabel =
+    audioState.activeReciterLabel ||
+    (audioState.activePhase === 'meal' ? '' : activeReciter.shortLabel);
+  const reciterSuffix = resolvedReciterLabel ? ` · ${resolvedReciterLabel}` : '';
 
   const phaseText =
     audioState.activePhase === 'besmele'
@@ -173,12 +178,27 @@ export const AudioPlayerBar: React.FC = () => {
                     </span>
                   ) : (
                     <>
-                      <span
-                        className="font-semibold"
-                        style={{ color: 'var(--brand-primary-text)' }}
-                      >
-                        {phaseText}
-                      </span>
+                      {audioState.activePhase === 'ar' || audioState.activePhase === 'besmele' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            openReciterSelector();
+                          }}
+                          title="Kur'an okuyucusunu değiştir"
+                          className="font-semibold hover:underline cursor-pointer text-left"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        >
+                          {phaseText}
+                        </button>
+                      ) : (
+                        <span
+                          className="font-semibold"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        >
+                          {phaseText}
+                        </span>
+                      )}
                       {audioState.totalRepeats > 1 && (
                         <span className="tabular-nums">
                           {' '}
@@ -321,29 +341,31 @@ export const AudioPlayerBar: React.FC = () => {
               })}
             </div>
 
-            {/* Okuyucu (birden fazlaysa) + Meal Sesi + Hız + Tekrar */}
+            {/* Okuyucu Seçici (27 Kurrâ) + Meal Sesi + Hız + Tekrar */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {arabicSources.length > 1 && audioPrefs.mode !== 'meal' && (
-                <select
-                  aria-label="Arapça okuyucu seç"
-                  value={audioPrefs.arabicAudioSource}
-                  onChange={(e) => {
+              {audioPrefs.mode !== 'meal' && (
+                <button
+                  type="button"
+                  onClick={() => {
                     sfxService.play('click');
-                    updateAudioPrefs({ arabicAudioSource: e.target.value });
+                    openReciterSelector();
                   }}
-                  className="min-h-[34px] px-2 rounded-lg border font-bold cursor-pointer max-w-[130px]"
+                  aria-label="Arapça okuyucu seç"
+                  title={`Kur'an okuyucu: ${activeReciter.label} (Değiştirmek için tıklayın)`}
+                  className="min-h-[34px] px-2.5 rounded-lg border font-bold cursor-pointer max-w-[165px] sm:max-w-[195px] flex items-center gap-1.5 transition-colors"
                   style={{
                     backgroundColor: 'var(--bg-surface)',
                     borderColor: 'var(--border-subtle)',
                     color: 'var(--text-primary)',
                   }}
                 >
-                  {arabicSources.map((src) => (
-                    <option key={src.id} value={src.id}>
-                      {src.shortLabel}
-                    </option>
-                  ))}
-                </select>
+                  <Headphones
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  />
+                  <span className="truncate">{activeReciter.shortLabel}</span>
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65" />
+                </button>
               )}
 
               {(audioPrefs.mode !== 'ar' || audioState.activePhase === 'meal') &&

@@ -5,6 +5,7 @@ import { IntroSplash } from './components/IntroSplash';
 import { PageBookmarksDrawer } from './components/PageBookmarksDrawer';
 import { PoolSelectorModal } from './components/PoolSelectorModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { ReciterSelectorModal } from './components/ReciterSelectorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ExamCenterPage } from './features/exam/ExamCenterPage';
 import { MistakeCampPage } from './features/mistakes/MistakeCampPage';
@@ -29,6 +30,7 @@ const MainRouter: React.FC = () => {
       <AudioPlayerBar />
       <PoolSelectorModal />
       <SettingsModal />
+      <ReciterSelectorModal />
       <PageBookmarksDrawer />
       <GlobalSearchModal />
       <IntroSplash />

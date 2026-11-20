@@ -26,12 +26,33 @@ export interface MealSourceInfo {
   hasAudio?: boolean;
 }
 
+export type ReciterCategory = 'turk' | 'talim' | 'murattal' | 'mujawwad';
+export type ReciterFilePattern = 'underscore' | 'compact';
+
+export interface ReciterDefinition {
+  id: string;
+  label: string;
+  shortLabel: string;
+  category: ReciterCategory;
+  styleLabel: string;
+  bitrate?: string;
+  baseUrl: string;
+  fallbackBaseUrl?: string;
+  filePattern: ReciterFilePattern;
+  ext: 'mp3';
+}
+
 export interface AudioSourceInfo {
   id: string;
   kind: 'ar' | 'meal';
   mealId?: MealKey | (string & {});
   label: string;
+  shortLabel?: string;
   reciterName?: string;
+  category?: ReciterCategory;
+  styleLabel?: string;
+  bitrate?: string;
+  filePattern?: ReciterFilePattern;
   baseUrl: string;
   fallbackBaseUrl?: string;
   ext: string;
@@ -369,6 +390,8 @@ export interface StudyProgress {
 export interface AudioPrefs {
   mode: AudioPlayMode;
   arabicAudioSource: string;
+  arabicReciterId: string;
+  favoriteReciterIds: string[];
   mealAudioSource: MealAudioSourceId;
   playbackRate: PlaybackRateOption;
   repeatCount: RepeatCountOption;

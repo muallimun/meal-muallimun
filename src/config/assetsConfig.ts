@@ -1,4 +1,5 @@
-import type { ManifestData } from '../types/quran';
+import type { ManifestData, ReciterFilePattern } from '../types/quran';
+import { getAllReciters } from './recitersConfig';
 
 export const LIVE_ASSETS_ORIGIN = 'https://meal-muallimun.vercel.app';
 export const LIVE_DATA_BASE_URL = `${LIVE_ASSETS_ORIGIN}/data`;
@@ -214,6 +215,7 @@ export interface ResolvedAudioSource {
   reciterName: string;
   baseUrl: string;
   fallbackBaseUrl?: string;
+  filePattern?: ReciterFilePattern;
   ext: string;
 }
 
@@ -306,27 +308,17 @@ function extractReciterName(label: string): string {
 export function getDynamicArabicAudioSources(
   manifest: ManifestData | null,
 ): ResolvedAudioSource[] {
-  if (!manifest?.audioSources) return [...DEFAULT_ARABIC_AUDIO_SOURCES];
-
-  const list: ResolvedAudioSource[] = [];
-  for (const [key, src] of Object.entries(manifest.audioSources)) {
-    if (!src || src.kind !== 'ar' || !src.baseUrl?.trim()) continue;
-    const id = src.id || key;
-    const cleanBase = src.baseUrl.replace(/\/+$/, '');
-    const reciterName = src.reciterName || extractReciterName(src.label);
-    list.push({
-      id,
-      kind: 'ar',
-      label: src.label,
-      shortLabel: reciterName,
-      reciterName,
-      baseUrl: cleanBase,
-      fallbackBaseUrl: src.fallbackBaseUrl?.replace(/\/+$/, '') || inferArchiveFallbackUrl(cleanBase, id),
-      ext: src.ext || 'mp3',
-    });
-  }
-
-  return list.length > 0 ? list : [...DEFAULT_ARABIC_AUDIO_SOURCES];
+  return getAllReciters(manifest).map((r) => ({
+    id: r.id,
+    kind: 'ar',
+    label: r.label,
+    shortLabel: r.shortLabel,
+    reciterName: r.label,
+    baseUrl: r.baseUrl,
+    fallbackBaseUrl: r.fallbackBaseUrl,
+    filePattern: r.filePattern,
+    ext: r.ext,
+  }));
 }
 
 export function getDynamicMealAudioSources(

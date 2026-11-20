@@ -1,16 +1,20 @@
+import { getDynamicMealAudioSources } from '../config/assetsConfig';
 import {
-  getDynamicArabicAudioSources,
-  getDynamicMealAudioSources,
-} from '../config/assetsConfig';
+  buildReciterAudioUrls,
+  findReciterById,
+} from '../config/recitersConfig';
 import type {
   AudioPlayMode,
   AudioPrefs,
   CombinedVerse,
   ManifestData,
   MetaData,
+  ReciterDefinition,
+  ReciterFilePattern,
 } from '../types/quran';
 
 export type AudioQueueStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
+export type PreviewAudioStatus = 'idle' | 'loading' | 'playing' | 'error';
 export type AudioPhase = 'besmele' | 'ar' | 'meal';
 export type AudioQueueContext = 'page' | 'surah' | 'single';
 export type AudioSourceKey = string;
@@ -35,6 +39,8 @@ export interface AudioQueueSnapshot {
   errorMessage: string | null;
   infoMessage: string | null;
   missingMealAudio: boolean;
+  previewReciterId: string | null;
+  previewStatus: PreviewAudioStatus;
 }
 
 interface PlaybackStep {
@@ -88,11 +94,9 @@ const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   errorMessage: null,
   infoMessage: null,
   missingMealAudio: false,
+  previewReciterId: null,
+  previewStatus: 'idle',
 };
-
-function pad3(n: number): string {
-  return String(n).padStart(3, '0');
-}
 
 function dedupeUrls(urls: (string | null | undefined)[]): string[] {
   const seen = new Set<string>();
@@ -113,6 +117,9 @@ class AudioQueueService {
   private audio: HTMLAudioElement | null = null;
   private audioAbortController: AbortController | null = null;
   private preloader: HTMLAudioElement | null = null;
+  private previewAudio: HTMLAudioElement | null = null;
+  private previewAbortController: AbortController | null = null;
+  private previewSessionId = 0;
   private skipTimer: number | null = null;
   private loadTimer: number | null = null;
   private playSessionId = 0;
@@ -128,6 +135,8 @@ class AudioQueueService {
   private prefs: AudioPrefs = {
     mode: 'ar_then_meal',
     arabicAudioSource: 'hatim',
+    arabicReciterId: 'hatim',
+    favoriteReciterIds: ['hatim'],
     mealAudioSource: 'tdv',
     playbackRate: 1,
     repeatCount: 1,
@@ -166,10 +175,9 @@ class AudioQueueService {
     return found ? found.nameTr : `${surahNo}. Sure`;
   }
 
-  private resolveArabicSource() {
-    const sources = getDynamicArabicAudioSources(this.manifest);
-    const preferred = this.prefs.arabicAudioSource || 'hatim';
-    return sources.find((s) => s.id === preferred) ?? sources[0] ?? null;
+  private resolveArabicSource(): ReciterDefinition {
+    const preferred = this.prefs.arabicReciterId || this.prefs.arabicAudioSource || 'hatim';
+    return findReciterById(preferred, this.manifest);
   }
 
   private resolveMealSource() {
@@ -180,22 +188,22 @@ class AudioQueueService {
   }
 
   /**
-   * Archive.org / dinamik ses kaynağı dosya adı formatı: {SSS}_{AAA}.{ext}
-   * (örn: 049_005.mp3, Besmele: 001_001.mp3)
+   * Okuyucunun `filePattern` değerine göre URL üretir:
+   * - 'underscore' (Türk Kurrâlar ve TDV/DİB mealleri): {SSS}_{AAA}.mp3 (Besmele: 001_001.mp3)
+   * - 'compact' (EveryAyah Arap Kurrâlar): {SSS}{AAA}.mp3 (Besmele: 001001.mp3)
    */
   private buildAudioUrlsForSource(
-    source: { baseUrl: string; fallbackBaseUrl?: string; ext: string } | null,
+    source: {
+      baseUrl: string;
+      fallbackBaseUrl?: string;
+      filePattern?: ReciterFilePattern;
+      ext?: string;
+    } | null,
     surahNo: number,
     ayahNo: number,
   ): string[] {
     if (!source || !source.baseUrl) return [];
-    const ext = source.ext || 'mp3';
-    const fileName = `${pad3(surahNo)}_${pad3(ayahNo)}.${ext}`;
-    const primary = `${source.baseUrl.replace(/\/+$/, '')}/${fileName}`;
-    const fallback = source.fallbackBaseUrl
-      ? `${source.fallbackBaseUrl.replace(/\/+$/, '')}/${fileName}`
-      : null;
-    return dedupeUrls([primary, fallback]);
+    return dedupeUrls(buildReciterAudioUrls(source, surahNo, ayahNo));
   }
 
   private getEffectiveMode(): AudioPlayMode {
@@ -224,30 +232,45 @@ class AudioQueueService {
       return [];
     }
 
-    // 1. Besmele Kuralı: Sure 1 (Fâtiha) ve Sure 9 (Tevbe) hariç 1. ayette önce 001_001.mp3 çal
+    // 1. Besmele Kuralı: Sure 1 (Fâtiha) ve Sure 9 (Tevbe) hariç 1. ayette
+    // o an seçili okuyucunun kendi Besmele kaydını (001_001.mp3 veya 001001.mp3) çal
     const excludeBesmele = this.meta.besmele.excludeSurahs ?? [1, 9];
     if (
       includeBesmeleIfApplicable &&
       verse.ayah === 1 &&
       !excludeBesmele.includes(verse.surah)
     ) {
-      const besmeleSrc = mode === 'meal' ? mealSource : arabicSource;
-      const besmeleUrls = this.buildAudioUrlsForSource(besmeleSrc, 1, 1);
-      if (besmeleSrc && besmeleUrls.length > 0) {
-        steps.push({
-          phase: 'besmele',
-          sourceKey: besmeleSrc.id,
-          reciterLabel: besmeleSrc.label,
-          urls: besmeleUrls,
-          verseIndex,
-          repeatIndex: 1,
-        });
+      if (mode === 'meal' && mealSource) {
+        const mealBesmeleUrls = this.buildAudioUrlsForSource(mealSource, 1, 1);
+        if (mealBesmeleUrls.length > 0) {
+          steps.push({
+            phase: 'besmele',
+            sourceKey: mealSource.id,
+            reciterLabel: mealSource.label,
+            urls: mealBesmeleUrls,
+            verseIndex,
+            repeatIndex: 1,
+          });
+        }
+      } else if (arabicSource) {
+        const arBesmeleUrls = this.buildAudioUrlsForSource(arabicSource, 1, 1);
+        if (arBesmeleUrls.length > 0) {
+          steps.push({
+            phase: 'besmele',
+            sourceKey: arabicSource.id,
+            reciterLabel: arabicSource.shortLabel,
+            urls: arBesmeleUrls,
+            verseIndex,
+            repeatIndex: 1,
+          });
+        }
       }
     }
 
     // 2. Birleşik Meal (mg) Kuralı:
     // mg: [startAyet, endAyet] varsa ve ayetNo > startAyet ise sıralı oynatmada meal sesini tekrar çalma.
-    const activeMealObj = mealSource?.mealId === 'm2' || mealSource?.id === 'dib' ? verse.m2 : verse.m1;
+    const activeMealObj =
+      mealSource?.mealId === 'm2' || mealSource?.id === 'dib' ? verse.m2 : verse.m1;
     const mg = activeMealObj?.mg;
     const isMergedContinuation = Boolean(mg && verse.ayah > mg[0]);
 
@@ -264,7 +287,7 @@ class AudioQueueService {
         steps.push({
           phase: 'ar',
           sourceKey: arabicSource.id,
-          reciterLabel: arabicSource.label,
+          reciterLabel: arabicSource.shortLabel,
           urls: arUrls,
           verseIndex,
           repeatIndex: rep,
@@ -634,6 +657,7 @@ class AudioQueueService {
   }
 
   public startQueue(options: StartQueueOptions): void {
+    this.stopPreview();
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
     this.teardownAudioElement();
@@ -704,6 +728,7 @@ class AudioQueueService {
   public togglePlayPause(): void {
     if (!this.audio) {
       if (this.verses.length > 0 && this.steps.length > 0) {
+        this.stopPreview();
         this.playSessionId += 1;
         this.consecutiveFailures = 0;
         this.playCurrentStep(0);
@@ -721,6 +746,7 @@ class AudioQueueService {
       }
       this.emit({ status: 'paused' });
     } else if (this.snapshot.status === 'paused' || this.snapshot.status === 'error') {
+      this.stopPreview();
       const session = this.playSessionId;
       this.consecutiveFailures = 0;
       this.audio.playbackRate = this.prefs.playbackRate;
@@ -753,6 +779,7 @@ class AudioQueueService {
 
   public nextVerse(): void {
     if (this.verses.length === 0) return;
+    this.stopPreview();
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
     this.singleAyahOnly = false;
@@ -761,6 +788,7 @@ class AudioQueueService {
 
   public prevVerse(): void {
     if (this.verses.length === 0 || this.currentVerseIndex <= 0) return;
+    this.stopPreview();
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
     this.singleAyahOnly = false;
@@ -777,6 +805,133 @@ class AudioQueueService {
     }
   }
 
+  private teardownPreviewAudio(): void {
+    if (this.previewAbortController) {
+      this.previewAbortController.abort();
+      this.previewAbortController = null;
+    }
+    if (this.previewAudio) {
+      try {
+        this.previewAudio.pause();
+        this.previewAudio.removeAttribute('src');
+        this.previewAudio.load();
+      } catch {
+        // ignore
+      }
+      this.previewAudio = null;
+    }
+  }
+
+  public stopPreview(): void {
+    this.previewSessionId += 1;
+    this.teardownPreviewAudio();
+    if (this.snapshot.previewReciterId !== null || this.snapshot.previewStatus !== 'idle') {
+      this.emit({
+        previewReciterId: null,
+        previewStatus: 'idle',
+      });
+    }
+  }
+
+  /**
+   * Okuyucu seçicideki ▶ Önizle butonu için bağımsız Besmele kaydı çalar (001_001.mp3 / 001001.mp3).
+   * Ana oynatıcı çalıyorsa geçici duraklatır; aynı okuyucuya tekrar basılınca durdurur.
+   */
+  public previewReciter(reciter: ReciterDefinition): void {
+    if (
+      this.snapshot.previewReciterId === reciter.id &&
+      (this.snapshot.previewStatus === 'playing' || this.snapshot.previewStatus === 'loading')
+    ) {
+      this.stopPreview();
+      return;
+    }
+
+    if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
+      this.pause();
+    }
+
+    this.previewSessionId += 1;
+    const session = this.previewSessionId;
+    this.teardownPreviewAudio();
+
+    const urls = this.buildAudioUrlsForSource(reciter, 1, 1);
+    if (urls.length === 0 || typeof window === 'undefined' || typeof Audio === 'undefined') {
+      this.emit({ previewReciterId: reciter.id, previewStatus: 'error' });
+      return;
+    }
+
+    this.emit({
+      previewReciterId: reciter.id,
+      previewStatus: 'loading',
+    });
+
+    const playAt = (urlIndex: number) => {
+      if (session !== this.previewSessionId) return;
+      const targetUrl = urls[urlIndex];
+      if (!targetUrl) {
+        this.teardownPreviewAudio();
+        this.emit({ previewReciterId: reciter.id, previewStatus: 'error' });
+        return;
+      }
+
+      this.teardownPreviewAudio();
+      // CORS hatası olmaması için crossOrigin KULLANILMAZ
+      const audio = new Audio();
+      audio.preload = 'auto';
+      const controller = new AbortController();
+      const { signal } = controller;
+      this.previewAudio = audio;
+      this.previewAbortController = controller;
+
+      let failed = false;
+      const onFail = () => {
+        if (failed || session !== this.previewSessionId) return;
+        failed = true;
+        if (urlIndex + 1 < urls.length) {
+          playAt(urlIndex + 1);
+          return;
+        }
+        this.teardownPreviewAudio();
+        this.emit({ previewReciterId: reciter.id, previewStatus: 'error' });
+      };
+
+      audio.addEventListener(
+        'playing',
+        () => {
+          if (session !== this.previewSessionId) return;
+          this.emit({ previewReciterId: reciter.id, previewStatus: 'playing' });
+        },
+        { signal },
+      );
+
+      audio.addEventListener(
+        'ended',
+        () => {
+          if (session !== this.previewSessionId) return;
+          this.teardownPreviewAudio();
+          this.emit({ previewReciterId: null, previewStatus: 'idle' });
+        },
+        { signal },
+      );
+
+      audio.addEventListener('error', onFail, { signal });
+      audio.src = targetUrl;
+
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch((err) => {
+          if (session !== this.previewSessionId) return;
+          const errName =
+            err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
+          if (errName === 'AbortError') return;
+          onFail();
+        });
+      }
+    };
+
+    playAt(0);
+  }
+
   public syncPrefs(nextPrefs: AudioPrefs): void {
     const prevPrefs = this.prefs;
     this.prefs = { ...nextPrefs };
@@ -789,9 +944,13 @@ class AudioQueueService {
       this.audio.playbackRate = nextPrefs.playbackRate;
     }
 
+    const prevReciterId = prevPrefs.arabicReciterId || prevPrefs.arabicAudioSource;
+    const nextReciterId = nextPrefs.arabicReciterId || nextPrefs.arabicAudioSource;
+    const reciterChanged = prevReciterId !== nextReciterId;
+
     const structuralChanged =
       prevPrefs.mode !== nextPrefs.mode ||
-      prevPrefs.arabicAudioSource !== nextPrefs.arabicAudioSource ||
+      reciterChanged ||
       prevPrefs.mealAudioSource !== nextPrefs.mealAudioSource ||
       prevPrefs.repeatCount !== nextPrefs.repeatCount;
 
@@ -817,16 +976,28 @@ class AudioQueueService {
         return;
       }
 
-      this.steps = this.buildStepsForVerse(this.currentVerseIndex, false);
+      const includeBesmele = this.snapshot.activePhase === 'besmele';
+      this.steps = this.buildStepsForVerse(this.currentVerseIndex, includeBesmele);
       this.currentStepIndex = 0;
+      const firstStep = this.steps[0];
+
+      // Duraklatılmışken okuyucu değiştirildiyse mevcut audio elementini temizle ki Play basınca yeni okuyucu çalsın
+      if (!wasPlayingOrWaitingRecovery) {
+        this.teardownAudioElement();
+      }
+
       this.emit({
         totalRepeats: nextPrefs.repeatCount,
         currentRepeat: 1,
         missingMealAudio: false,
         infoMessage: this.activeInfoNotice,
+        activeSourceKey: firstStep?.sourceKey ?? this.snapshot.activeSourceKey,
+        activeReciterLabel: firstStep?.reciterLabel ?? this.snapshot.activeReciterLabel,
+        activePhase: firstStep?.phase ?? this.snapshot.activePhase,
       });
 
       if (wasPlayingOrWaitingRecovery && this.steps.length > 0) {
+        this.stopPreview();
         this.playSessionId += 1;
         this.consecutiveFailures = 0;
         this.playCurrentStep(0);
@@ -835,6 +1006,7 @@ class AudioQueueService {
   }
 
   public stopAndReset(hideBar = true): void {
+    this.stopPreview();
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
     this.teardownAudioElement();

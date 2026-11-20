@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  ChevronDown,
+  Headphones,
   Loader2,
   Maximize2,
   Minimize2,
@@ -11,6 +13,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { findReciterById } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
@@ -111,10 +114,22 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   besmele = DEFAULT_BESMELE,
   onStartAudioFromActive,
 }) => {
-  const { settings, audioPrefs, updateAudioPrefs } = useAppStore();
+  const {
+    settings,
+    audioPrefs,
+    updateAudioPrefs,
+    manifest,
+    isReciterSelectorOpen,
+    openReciterSelector,
+  } = useAppStore();
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
+  );
+
+  const activeReciter = useMemo(
+    () => findReciterById(audioPrefs.arabicReciterId, manifest),
+    [audioPrefs.arabicReciterId, manifest],
   );
 
   const [contentMode, setContentMode] = useState<PresentationContentMode>('both');
@@ -136,10 +151,12 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const audioStatusRef = useRef(audioState.status);
   const versesLenRef = useRef(verses.length);
   const onCloseRef = useRef(onClose);
+  const isReciterSelectorOpenRef = useRef(isReciterSelectorOpen);
 
   audioStatusRef.current = audioState.status;
   versesLenRef.current = verses.length;
   onCloseRef.current = onClose;
+  isReciterSelectorOpenRef.current = isReciterSelectorOpen;
 
   // Sunum açıldığında başlangıç mealini ve aktif ayet indeksini senkronize et (sadece açılışta)
   useEffect(() => {
@@ -184,6 +201,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
+      // Okuyucu seçici modalı açıkken Sunum klavye kısayollarını duraklat (tam ekrandan çıkma!)
+      if (isReciterSelectorOpenRef.current) return;
+
       if (e.key === 'Escape') {
         if (document.fullscreenElement) {
           document.exitFullscreen?.().catch(() => {});
@@ -460,15 +480,37 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               {displayedVerse
                 ? `Sayfa ${displayedVerse.page} · ${displayedVerse.cuz}. Cüz`
                 : 'Ayet bekleniyor'}
-              {isAudioRunning && audioState.activeReciterLabel
-                ? ` · ${audioState.activePhase === 'meal' ? 'Sesli Meal' : 'Tilavet'}: ${audioState.activeReciterLabel}`
+              {isAudioRunning && audioState.activePhase === 'meal' && audioState.activeReciterLabel
+                ? ` · Sesli Meal: ${audioState.activeReciterLabel}`
                 : ''}
             </p>
           </div>
         </div>
 
-        {/* Orta / Sağ: İçerik Modu + Meal + Tema + Tam Ekran + Çıkış */}
+        {/* Orta / Sağ: Okuyucu Seçici + İçerik Modu + Meal + Tema + Tam Ekran + Çıkış */}
         <div className="flex flex-wrap items-center gap-1.5">
+          {/* Tıklanabilir Okuyucu Butonu (Tam ekrandan çıkmadan ReciterSelectorModal açar) */}
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              openReciterSelector();
+            }}
+            title={`Kur'an Okuyucu: ${activeReciter.label} (Değiştirmek için tıklayın)`}
+            className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer max-w-[185px] sm:max-w-[230px] transition-colors"
+            style={{
+              borderColor: palette.border,
+              backgroundColor: palette.accentSoft,
+              color: palette.accent,
+            }}
+          >
+            <Headphones className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">
+              <span className="hidden sm:inline opacity-85">Tilavet: </span>
+              {activeReciter.shortLabel}
+            </span>
+            <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-80" />
+          </button>
           {/* İçerik Seçici */}
           <div
             className="flex items-center p-0.5 rounded-xl border text-xs"
