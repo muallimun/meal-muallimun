@@ -3,6 +3,7 @@ import { BookOpen, Info, X } from 'lucide-react';
 import { sfxService } from '../../services/sfxService';
 import type { SurahMeta } from '../../types/quran';
 import { formatNumberTr } from '../../utils/poolUtils';
+import { formatSafeArabicTitle } from '../../utils/arabicUtils';
 
 interface SurahInfoModalProps {
   surah: SurahMeta | null;
@@ -94,10 +95,10 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({ surah, onClose }
                   {surah.no}. {surah.nameTr}
                 </h2>
                 <span
-                  className="arabic-text text-xl leading-none hidden sm:inline"
+                  className="arabic-title text-xl leading-none hidden sm:inline"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  {surah.nameAr}
+                  {formatSafeArabicTitle(surah.nameAr)}
                 </span>
               </div>
               <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>

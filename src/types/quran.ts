@@ -9,6 +9,7 @@ export type NavTab = 'home' | 'reader' | 'exam' | 'mistakes';
 
 export type StudyViewMode = 'mushaf' | 'cards' | 'book';
 export type BookContentMode = 'ar_only' | 'meal_only' | 'interleaved';
+export type PageLayoutMode = 'single' | 'double';
 export type WordMealMode = 'off' | 'visible' | 'quiz';
 export type AudioPlayMode = 'ar' | 'meal' | 'ar_then_meal';
 export type MealAudioSourceId = 'tdv' | 'dib' | (string & {});
@@ -331,6 +332,7 @@ export interface StudyPrefs {
   wordMode: WordMealMode;
   bookContentMode: BookContentMode;
   mealAudioFocusOnly: boolean;
+  pageLayout: PageLayoutMode;
 }
 
 export interface LastReadPosition {
@@ -471,6 +473,29 @@ export interface GamificationState {
   examHistory: ExamHistoryRecord[];
 }
 
+export type QuestionIssueReason =
+  | 'logic_contradiction'
+  | 'language_typo'
+  | 'option_answer_error'
+  | 'other';
+
+export interface QuestionIssueReport {
+  uid: string;
+  id: string;
+  surah: number;
+  sourceRef: string;
+  verseRefs: number[];
+  reason: QuestionIssueReason;
+  note: string;
+  stemSnippet: string;
+  reportedAt: string;
+}
+
+export interface QuestionAuditState {
+  reports: Record<string, QuestionIssueReport>;
+  skipReportedInExams: boolean;
+}
+
 export interface PersistedAppState {
   settings: AppSettings;
   studyPool: StudyPool;
@@ -478,6 +503,7 @@ export interface PersistedAppState {
   studyProgress: StudyProgress;
   audioPrefs: AudioPrefs;
   gamification: GamificationState;
+  questionAudit: QuestionAuditState;
 }
 
 export interface PoolStatsSummary {

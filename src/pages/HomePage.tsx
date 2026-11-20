@@ -26,6 +26,7 @@ import {
   formatNumberTr,
   getSurahMap,
 } from '../utils/poolUtils';
+import { formatSafeArabicTitle } from '../utils/arabicUtils';
 
 interface AyahPreviewData {
   surahNo: number;
@@ -58,6 +59,7 @@ export const HomePage: React.FC = () => {
     navigateToExam,
     openPoolModal,
     openSettingsModal,
+    openIntroSplash,
   } = useAppStore();
 
   const [previewAyah, setPreviewAyah] = useState<AyahPreviewData | null>(null);
@@ -324,9 +326,19 @@ export const HomePage: React.FC = () => {
               Bugün hangi sureyle yolculuğa başlıyoruz?
             </h2>
           </div>
-          <p className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
-            Okuma, dinleme ve meal yarışması tek çalışma havuzunda.
-          </p>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <p className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
+              Okuma, dinleme ve meal yarışması tek çalışma havuzunda.
+            </p>
+            <button
+              type="button"
+              onClick={openIntroSplash}
+              className="text-xs font-bold underline underline-offset-4 cursor-pointer"
+              style={{ color: 'var(--brand-primary-text)' }}
+            >
+              İntroyu Göster
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -449,7 +461,11 @@ export const HomePage: React.FC = () => {
         const lastRead = studyProgress.lastRead;
         const lastSurahMeta = surahMap.get(lastRead.surah);
         const modeLabel =
-          lastRead.viewMode === 'mushaf' ? 'Mushaf Sayfa Düzeni' : 'Ayet & Karşılaştırmalı Meal';
+          lastRead.viewMode === 'mushaf'
+            ? 'Mushaf Sayfa Düzeni'
+            : lastRead.viewMode === 'book'
+              ? 'Kitap Modu'
+              : 'Ayet & Karşılaştırmalı Meal';
 
         return (
           <section aria-label="Kaldığım yerden devam et">
@@ -485,10 +501,10 @@ export const HomePage: React.FC = () => {
                     </h3>
                     {lastSurahMeta?.nameAr && (
                       <span
-                        className="arabic-text text-lg leading-none"
+                        className="arabic-title text-lg leading-none"
                         style={{ color: 'var(--text-secondary)' }}
                       >
-                        {lastSurahMeta.nameAr}
+                        {formatSafeArabicTitle(lastSurahMeta.nameAr)}
                       </span>
                     )}
                     <span
@@ -960,10 +976,10 @@ export const HomePage: React.FC = () => {
                     </span>
 
                     <span
-                      className="arabic-text text-xl leading-none pt-0.5"
+                      className="arabic-title text-xl leading-none pt-0.5"
                       style={{ color: 'var(--text-primary)' }}
                     >
-                      {surah.nameAr}
+                      {formatSafeArabicTitle(surah.nameAr)}
                     </span>
                   </div>
 

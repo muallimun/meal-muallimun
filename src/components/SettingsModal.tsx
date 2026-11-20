@@ -7,6 +7,7 @@ import {
   Plus,
   RotateCcw,
   Settings,
+  Sparkles,
   Sun,
   Volume2,
   VolumeX,
@@ -81,6 +82,7 @@ export const SettingsModal: React.FC = () => {
     settings,
     updateSettings,
     resetSettings,
+    openIntroSplash,
   } = useAppStore();
 
   useEffect(() => {
@@ -726,10 +728,28 @@ export const SettingsModal: React.FC = () => {
             </div>
           </section>
 
-          {/* 7. UYGULAMA KURULUMU VE ÇEVRİMDIŞI DURUM */}
+          {/* 7. UYGULAMA KURULUMU, ÇEVRİMDIŞI DURUM VE KARŞILAMA EKRANI */}
           <section className="space-y-2.5">
             <h3 className="text-sm font-extrabold">Uygulama ve Çevrimdışı Kullanım</h3>
             <PwaInstallControl variant="settings" />
+            <button
+              type="button"
+              onClick={openIntroSplash}
+              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4" style={{ color: 'var(--brand-accent-text)' }} />
+                <span>Karşılama Ekranını (İntro) Tekrar Göster</span>
+              </span>
+              <span className="text-xs font-semibold" style={{ color: 'var(--brand-primary-text)' }}>
+                Aç →
+              </span>
+            </button>
           </section>
         </div>
 

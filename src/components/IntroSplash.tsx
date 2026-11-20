@@ -93,7 +93,7 @@ export const IntroSplash: React.FC = () => {
         <div className="px-5 py-7 sm:px-8 sm:py-9 flex flex-col items-center text-center">
           {/* Logo ve Besmele Zarif Giriş */}
           <div className="inline-flex items-center justify-center p-2.5 rounded-2xl bg-white/10 ring-1 ring-amber-300/35 shadow-lg mb-4">
-            <BrandMark size={54} />
+            <BrandMark className="w-13 h-13 sm:w-14 sm:h-14" />
           </div>
 
           <p className="arabic-title text-lg sm:text-xl text-amber-300/95 tracking-normal mb-1.5">

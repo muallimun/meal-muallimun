@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   AlertCircle,
   Loader2,
+  MonitorPlay,
   Pause,
   Play,
   Repeat,
@@ -34,7 +35,16 @@ const MODE_LABELS: { id: AudioPlayMode; label: string }[] = [
 ];
 
 export const AudioPlayerBar: React.FC = () => {
-  const { audioPrefs, updateAudioPrefs, isExamActive, manifest } = useAppStore();
+  const {
+    audioPrefs,
+    updateAudioPrefs,
+    isExamActive,
+    isSidebarCollapsed,
+    activeTab,
+    setActiveTab,
+    openPresentationMode,
+    manifest,
+  } = useAppStore();
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
@@ -94,11 +104,20 @@ export const AudioPlayerBar: React.FC = () => {
     updateAudioPrefs({ mealAudioSource });
   };
 
+  const handleOpenPresentation = () => {
+    if (activeTab !== 'reader') {
+      setActiveTab('reader');
+    }
+    openPresentationMode();
+  };
+
   return (
     <div
       role="region"
       aria-label="Ses oynatıcı"
-      className="fixed bottom-16 lg:bottom-4 left-0 right-0 lg:left-72 z-35 px-2.5 sm:px-4 pointer-events-none"
+      className={`fixed bottom-16 lg:bottom-4 left-0 right-0 ${
+        isSidebarCollapsed ? 'lg:left-0' : 'lg:left-72'
+      } z-35 px-2.5 sm:px-4 pointer-events-none`}
     >
       <div
         className="pointer-events-auto max-w-4xl mx-auto rounded-2xl border backdrop-blur-md shadow-xl px-3 py-2.5 sm:px-4 sm:py-3"
@@ -391,6 +410,21 @@ export const AudioPlayerBar: React.FC = () => {
               >
                 <Repeat className="w-3.5 h-3.5" />
                 <span>{audioPrefs.repeatCount}x</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenPresentation}
+                title="Tam ekran Sunum Modunu aç (TV / Projeksiyon)"
+                className="min-h-[34px] px-2.5 rounded-lg border font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  borderColor: 'var(--brand-primary)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <MonitorPlay className="w-3.5 h-3.5" />
+                <span>Sunum</span>
               </button>
             </div>
           </div>

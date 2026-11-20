@@ -4,6 +4,7 @@ import {
   BookOpen,
   ClipboardCheck,
   Clock,
+  Flag,
   Flame,
   History,
   Layers,
@@ -18,6 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { PrintableExamModal } from '../../components/PrintableExamModal';
+import { QuestionAuditManagerModal } from '../../components/QuestionAuditManagerModal';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
@@ -66,6 +68,8 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
     questionIndex,
     poolStats,
     gamification,
+    questionAudit,
+    setSkipReportedInExams,
     openPoolModal,
     setActiveTab,
   } = useAppStore();
@@ -85,6 +89,9 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
   const [prioritizeUnsolved, setPrioritizeUnsolved] = useState<boolean>(true);
   const [arenaTimePerQuestion, setArenaTimePerQuestion] = useState<ArenaTimeLimit>(45);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState<boolean>(false);
+
+  const reportedCount = Object.keys(questionAudit.reports).length;
 
   useEffect(() => {
     if (initialSurahFilter !== undefined) {
@@ -108,17 +115,43 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
     return availableSurahs;
   }, [selectedSingleSurah, poolQuestionSurahs, availableSurahs]);
 
-  // Mevcut filtrelere göre q/index.json üzerinden anlık soru adedi hesabı
-  const filteredIndexItems = useMemo(() => {
-    if (!questionIndex) return [];
+  // Mevcut filtrelere göre q/index.json üzerinden anlık soru adedi hesabı (hatalı işaretlenenler ayara göre atlanır)
+  const { filteredIndexItems, skippedReportedCount } = useMemo(() => {
+    if (!questionIndex) return { filteredIndexItems: [], skippedReportedCount: 0 };
     const surahSet = new Set(targetSurahs);
-    return questionIndex.items.filter((item) => {
-      if (surahSet.size > 0 && !surahSet.has(item.surah)) return false;
-      if (difficulty !== 'all' && item.difficulty !== difficulty) return false;
-      if (mealBasis !== 'all' && normalizeMealBasis(item.mealBasis) !== mealBasis) return false;
-      return true;
-    });
-  }, [questionIndex, targetSurahs, difficulty, mealBasis]);
+    const reportsList = Object.values(questionAudit.reports);
+    const kept: typeof questionIndex.items = [];
+    let skipped = 0;
+
+    for (const item of questionIndex.items) {
+      if (surahSet.size > 0 && !surahSet.has(item.surah)) continue;
+      if (difficulty !== 'all' && item.difficulty !== difficulty) continue;
+      if (mealBasis !== 'all' && normalizeMealBasis(item.mealBasis) !== mealBasis) continue;
+
+      if (questionAudit.skipReportedInExams && reportsList.length > 0) {
+        const isReported = Boolean(
+          questionAudit.reports[`${item.surah}_${item.id}`] ||
+            questionAudit.reports[item.id] ||
+            reportsList.some((r) => r.id === item.id && r.surah === item.surah),
+        );
+        if (isReported) {
+          skipped += 1;
+          continue;
+        }
+      }
+
+      kept.push(item);
+    }
+
+    return { filteredIndexItems: kept, skippedReportedCount: skipped };
+  }, [
+    questionIndex,
+    targetSurahs,
+    difficulty,
+    mealBasis,
+    questionAudit.skipReportedInExams,
+    questionAudit.reports,
+  ]);
 
   const availableFilteredCount = filteredIndexItems.length;
   const effectiveLaunchCount =
@@ -248,6 +281,27 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
           >
             <Printer className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
             <span>A4 Yazdırılabilir Sınav Hazırla</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setIsAuditModalOpen(true);
+            }}
+            className="min-h-[44px] px-3.5 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-colors"
+            style={{
+              backgroundColor:
+                reportedCount > 0 ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-surface)',
+              borderColor:
+                reportedCount > 0 ? 'rgba(239, 68, 68, 0.30)' : 'var(--border-subtle)',
+              color: reportedCount > 0 ? '#DC2626' : 'var(--text-secondary)',
+            }}
+          >
+            <Flag className="w-4 h-4 shrink-0" />
+            <span>
+              Hata Bildirimleri{reportedCount > 0 ? ` (${formatNumberTr(reportedCount)})` : ''}
+            </span>
           </button>
 
           {gamification.wrongQuestionIds.length > 0 && (
@@ -509,6 +563,59 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Hatalı İşaretli Soru Denetim Şeridi */}
+        {reportedCount > 0 && (
+          <div
+            className="rounded-xl border px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs"
+            style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.06)',
+              borderColor: 'rgba(239, 68, 68, 0.22)',
+            }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Flag className="w-3.5 h-3.5 text-red-500 shrink-0" />
+              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {questionAudit.skipReportedInExams
+                  ? `${formatNumberTr(reportedCount)} hatalı işaretli soru sınavlarda otomatik atlanıyor${
+                      skippedReportedCount > 0
+                        ? ` (bu kapsamda ${formatNumberTr(skippedReportedCount)} soru)`
+                        : ''
+                    }.`
+                  : `${formatNumberTr(reportedCount)} hatalı işaretli soru mevcut (otomatik atlama kapalı).`}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setSkipReportedInExams(!questionAudit.skipReportedInExams);
+                }}
+                className="px-2.5 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {questionAudit.skipReportedInExams ? 'Atlamayı Kapat' : 'Otomatik Atla'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setIsAuditModalOpen(true);
+                }}
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer text-white"
+                style={{ backgroundColor: '#DC2626' }}
+              >
+                Raporu Yönet
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ====================================================================
@@ -925,6 +1032,12 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
         initialSurahNo={selectedSingleSurah}
+      />
+
+      {/* Hatalı İşaretlenen Sorular & JSON Denetim Raporu Penceresi */}
+      <QuestionAuditManagerModal
+        isOpen={isAuditModalOpen}
+        onClose={() => setIsAuditModalOpen(false)}
       />
     </div>
   );

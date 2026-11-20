@@ -4,6 +4,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Columns2,
   Copy,
   FileText,
   Headphones,
@@ -12,6 +13,7 @@ import {
   MoreHorizontal,
   Play,
   Share2,
+  Square,
   Star,
   Volume2,
 } from 'lucide-react';
@@ -254,21 +256,55 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             })}
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setOnlyFavorites((v) => !v);
-            }}
-            className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border inline-flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-              onlyFavorites
-                ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border-[var(--brand-accent)]'
-                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--brand-accent)]'
-            }`}
-          >
-            <Star className={`w-4 h-4 ${onlyFavorites ? 'fill-current' : ''}`} />
-            <span>Favoriler ({favoriteCountInSurah})</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                updateStudyPrefs({
+                  pageLayout: studyPrefs.pageLayout === 'double' ? 'single' : 'double',
+                });
+              }}
+              className={`hidden lg:inline-flex min-h-[44px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                studyPrefs.pageLayout === 'double'
+                  ? 'bg-[var(--brand-primary-soft)] text-[var(--brand-primary-text)] border-[var(--brand-primary)]'
+                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--brand-primary)]'
+              }`}
+              title={
+                studyPrefs.pageLayout === 'double'
+                  ? 'Tek sütun kitap düzenine geç'
+                  : 'Yan yana çift sayfa kitap düzenine geç'
+              }
+            >
+              {studyPrefs.pageLayout === 'double' ? (
+                <>
+                  <Square className="w-4 h-4" />
+                  <span>Tek Sayfa</span>
+                </>
+              ) : (
+                <>
+                  <Columns2 className="w-4 h-4" />
+                  <span>Çift Sayfa</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setOnlyFavorites((v) => !v);
+              }}
+              className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border inline-flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                onlyFavorites
+                  ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border-[var(--brand-accent)]'
+                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--brand-accent)]'
+              }`}
+            >
+              <Star className={`w-4 h-4 ${onlyFavorites ? 'fill-current' : ''}`} />
+              <span>Favoriler ({favoriteCountInSurah})</span>
+            </button>
+          </div>
         </div>
 
         <p className="text-xs text-[var(--text-muted)]">
@@ -281,8 +317,12 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
         </p>
       </div>
 
-      {/* Kitap Sayfası Çerçevesi */}
-      <article className="max-w-3xl mx-auto surface-card rounded-3xl border-2 border-[var(--border-strong)]/80 overflow-hidden shadow-md">
+      {/* Kitap Sayfası Çerçevesi (Masaüstünde Çift Sayfa seçiliyse geniş açılım) */}
+      <article
+        className={`${
+          studyPrefs.pageLayout === 'double' ? 'max-w-6xl' : 'max-w-3xl'
+        } mx-auto surface-card rounded-3xl border-2 border-[var(--border-strong)]/80 overflow-hidden shadow-md transition-all`}
+      >
         {/* Kitap Serlevha Başlığı */}
         <header className="px-5 py-5 sm:px-8 sm:py-6 border-b border-[var(--border-subtle)] bg-gradient-to-b from-[var(--brand-primary-soft)]/70 to-transparent text-center">
           <div className="flex items-center justify-between gap-2 mb-2">
@@ -352,7 +392,9 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             <div className="space-y-5">
               <div
                 dir="rtl"
-                className="arabic-text text-justify text-[var(--text-primary)] leading-[2.35]"
+                className={`arabic-text text-justify text-[var(--text-primary)] leading-[2.35] ${
+                  studyPrefs.pageLayout === 'double' ? 'lg:columns-2 lg:gap-10' : ''
+                }`}
                 style={{ fontSize: `${settings.arabicFontSize}px` }}
               >
                 {visibleVerses.map((verse) => {
@@ -472,7 +514,13 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             </div>
           ) : (
             /* 2. SADECE TÜRKÇE MEAL veya 3. ARAPÇA + MEAL KİTAP AKIŞI */
-            <div className="divide-y divide-[var(--border-subtle)]/70">
+            <div
+              className={
+                studyPrefs.pageLayout === 'double'
+                  ? 'grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8 gap-y-2'
+                  : 'divide-y divide-[var(--border-subtle)]/70'
+              }
+            >
               {visibleVerses.map((verse) => {
                 const isPlaying = playingAyahId === verse.id;
                 const fnList = [
@@ -485,7 +533,11 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   <section
                     key={verse.id}
                     id={`book-ayah-${verse.id}`}
-                    className={`py-4 sm:py-5 first:pt-1 last:pb-1 transition-all rounded-2xl px-2.5 sm:px-3.5 -mx-2.5 sm:-mx-3.5 ${
+                    className={`py-4 sm:py-5 transition-all rounded-2xl px-2.5 sm:px-3.5 ${
+                      studyPrefs.pageLayout === 'double'
+                        ? 'border-b border-[var(--border-subtle)]/70'
+                        : 'first:pt-1 last:pb-1 -mx-2.5 sm:-mx-3.5'
+                    } ${
                       isPlaying
                         ? 'bg-[var(--brand-primary-soft)]/85 ring-2 ring-[var(--brand-primary)]/50 shadow-xs'
                         : 'hover:bg-[var(--bg-surface-soft)]/45'

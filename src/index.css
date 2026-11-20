@@ -271,6 +271,27 @@
   display: none;
 }
 
+/* İki Sütunlu Sınav Kağıdı Önizleme ve Baskı Düzeni */
+.print-two-col-questions {
+  column-count: 1;
+  column-gap: 7mm;
+}
+
+@media (min-width: 640px) {
+  .print-two-col-questions {
+    column-count: 2;
+    column-gap: 7mm;
+    column-rule: 1px solid #d4d4d8;
+  }
+}
+
+.print-two-col-questions .print-question-item {
+  display: inline-block;
+  width: 100%;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 @page {
   size: A4 portrait;
   margin: 14mm 14mm 16mm 14mm;
@@ -308,6 +329,19 @@
 
   .no-print {
     display: none !important;
+  }
+
+  .print-two-col-questions {
+    column-count: 2 !important;
+    column-gap: 7mm !important;
+    column-rule: 1px solid #d4d4d8 !important;
+  }
+
+  .print-two-col-questions .print-question-item {
+    display: inline-block !important;
+    width: 100% !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .print-question-item {

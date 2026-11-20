@@ -27,7 +27,10 @@ import type {
   NavTab,
   PersistedAppState,
   PoolStatsSummary,
+  QuestionAuditState,
   QuestionIndexFile,
+  QuestionIssueReason,
+  QuestionIssueReport,
   StudyNavigationTarget,
   StudyPool,
   StudyPrefs,
@@ -45,6 +48,7 @@ import {
 
 export const STORAGE_KEY = 'muallimun_meal_v1';
 export const INTRO_DISMISSED_KEY = 'muallimun_intro_dismissed_v1';
+export const SIDEBAR_COLLAPSED_KEY = 'muallimun_sidebar_collapsed_v1';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'cream',
@@ -69,6 +73,7 @@ export const DEFAULT_STUDY_PREFS: StudyPrefs = {
   wordMode: 'off',
   bookContentMode: 'interleaved',
   mealAudioFocusOnly: false,
+  pageLayout: 'single',
 };
 
 export const DEFAULT_STUDY_PROGRESS: StudyProgress = {
@@ -96,6 +101,11 @@ export const DEFAULT_GAMIFICATION: GamificationState = {
   masteredQuestionIds: [],
   solvedQuestionUids: [],
   examHistory: [],
+};
+
+export const DEFAULT_QUESTION_AUDIT: QuestionAuditState = {
+  reports: {},
+  skipReportedInExams: true,
 };
 
 export interface RecordExamResultInput {
@@ -144,6 +154,7 @@ function createDefaultState(today: string): PersistedAppState {
     studyProgress: DEFAULT_STUDY_PROGRESS,
     audioPrefs: DEFAULT_AUDIO_PREFS,
     gamification: { ...DEFAULT_GAMIFICATION, lastActiveDate: today },
+    questionAudit: DEFAULT_QUESTION_AUDIT,
   };
 }
 
@@ -250,6 +261,10 @@ function hydrateState(): PersistedAppState {
         typeof rawStudyPrefs?.mealAudioFocusOnly === 'boolean'
           ? rawStudyPrefs.mealAudioFocusOnly
           : DEFAULT_STUDY_PREFS.mealAudioFocusOnly,
+      pageLayout:
+        rawStudyPrefs?.pageLayout === 'single' || rawStudyPrefs?.pageLayout === 'double'
+          ? rawStudyPrefs.pageLayout
+          : DEFAULT_STUDY_PREFS.pageLayout,
     };
 
     const rawProgress = parsed.studyProgress;
@@ -441,7 +456,56 @@ function hydrateState(): PersistedAppState {
       examHistory: normalizedHistory,
     };
 
-    return { settings, studyPool, studyPrefs, studyProgress, audioPrefs, gamification };
+    const rawAudit = parsed.questionAudit;
+    const validReasons: QuestionIssueReason[] = [
+      'logic_contradiction',
+      'language_typo',
+      'option_answer_error',
+      'other',
+    ];
+    const cleanReports: Record<string, QuestionIssueReport> = {};
+    if (rawAudit && rawAudit.reports && typeof rawAudit.reports === 'object') {
+      for (const [key, item] of Object.entries(rawAudit.reports)) {
+        if (!item || typeof item !== 'object') continue;
+        const r = item as Partial<QuestionIssueReport>;
+        const uid = typeof r.uid === 'string' && r.uid.trim() ? r.uid.trim() : key;
+        if (!uid) continue;
+        cleanReports[uid] = {
+          uid,
+          id: typeof r.id === 'string' ? r.id : uid,
+          surah: typeof r.surah === 'number' ? r.surah : 0,
+          sourceRef: typeof r.sourceRef === 'string' ? r.sourceRef : '',
+          verseRefs: Array.isArray(r.verseRefs)
+            ? r.verseRefs.filter((v): v is number => typeof v === 'number')
+            : [],
+          reason: validReasons.includes(r.reason as QuestionIssueReason)
+            ? (r.reason as QuestionIssueReason)
+            : 'other',
+          note: typeof r.note === 'string' ? r.note : '',
+          stemSnippet: typeof r.stemSnippet === 'string' ? r.stemSnippet : '',
+          reportedAt:
+            typeof r.reportedAt === 'string' ? r.reportedAt : new Date().toISOString(),
+        };
+      }
+    }
+
+    const questionAudit: QuestionAuditState = {
+      reports: cleanReports,
+      skipReportedInExams:
+        typeof rawAudit?.skipReportedInExams === 'boolean'
+          ? rawAudit.skipReportedInExams
+          : DEFAULT_QUESTION_AUDIT.skipReportedInExams,
+    };
+
+    return {
+      settings,
+      studyPool,
+      studyPrefs,
+      studyProgress,
+      audioPrefs,
+      gamification,
+      questionAudit,
+    };
   } catch {
     return createDefaultState(today);
   }
@@ -455,6 +519,7 @@ interface AppContextValue {
   studyProgress: StudyProgress;
   audioPrefs: AudioPrefs;
   gamification: GamificationState;
+  questionAudit: QuestionAuditState;
 
   // Güncelleyiciler
   updateSettings: (patch: Partial<AppSettings>) => void;
@@ -467,8 +532,12 @@ interface AppContextValue {
   recordExamResult: (input: RecordExamResultInput) => RecordExamResultOutput;
   toggleBookmarkQuestion: (questionUid: string) => void;
   markQuestionMastered: (questionUid: string) => void;
+  reportQuestionIssue: (report: QuestionIssueReport) => void;
+  removeQuestionIssueReport: (uid: string) => void;
+  clearAllQuestionIssueReports: () => void;
+  setSkipReportedInExams: (skip: boolean) => void;
 
-  // Navigasyon & Modallar
+  // Navigasyon, Görünüm & Modallar
   activeTab: NavTab;
   setActiveTab: (tab: NavTab) => void;
   studyNavTarget: StudyNavigationTarget | null;
@@ -479,6 +548,12 @@ interface AppContextValue {
   clearExamNavTarget: () => void;
   isExamActive: boolean;
   setIsExamActive: (active: boolean) => void;
+  isSidebarCollapsed: boolean;
+  toggleSidebarCollapsed: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  isPresentationOpen: boolean;
+  openPresentationMode: () => void;
+  closePresentationMode: () => void;
   isPoolModalOpen: boolean;
   openPoolModal: () => void;
   closePoolModal: () => void;
@@ -520,6 +595,15 @@ function readIntroDismissed(): boolean {
   }
 }
 
+function readSidebarCollapsed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 const AppContext = createContext<AppContextValue | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -528,6 +612,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [studyNavTarget, setStudyNavTarget] = useState<StudyNavigationTarget | null>(null);
   const [examNavTarget, setExamNavTarget] = useState<ExamNavigationTarget | null>(null);
   const [isExamActive, setIsExamActive] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsedState] = useState<boolean>(() =>
+    readSidebarCollapsed(),
+  );
+  const [isPresentationOpen, setIsPresentationOpen] = useState(false);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [introDismissed, setIntroDismissed] = useState<boolean>(() => readIntroDismissed());
@@ -901,6 +989,88 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, []);
 
+  const reportQuestionIssue = useCallback((report: QuestionIssueReport) => {
+    sfxService.play('click');
+    setPersisted((prev) => ({
+      ...prev,
+      questionAudit: {
+        ...prev.questionAudit,
+        reports: {
+          ...prev.questionAudit.reports,
+          [report.uid]: report,
+        },
+      },
+    }));
+  }, []);
+
+  const removeQuestionIssueReport = useCallback((uid: string) => {
+    sfxService.play('click');
+    setPersisted((prev) => {
+      const nextReports = { ...prev.questionAudit.reports };
+      delete nextReports[uid];
+      return {
+        ...prev,
+        questionAudit: {
+          ...prev.questionAudit,
+          reports: nextReports,
+        },
+      };
+    });
+  }, []);
+
+  const clearAllQuestionIssueReports = useCallback(() => {
+    sfxService.play('click');
+    setPersisted((prev) => ({
+      ...prev,
+      questionAudit: {
+        ...prev.questionAudit,
+        reports: {},
+      },
+    }));
+  }, []);
+
+  const setSkipReportedInExams = useCallback((skip: boolean) => {
+    sfxService.play('click');
+    setPersisted((prev) => ({
+      ...prev,
+      questionAudit: {
+        ...prev.questionAudit,
+        skipReportedInExams: skip,
+      },
+    }));
+  }, []);
+
+  const setSidebarCollapsed = useCallback((collapsed: boolean) => {
+    setIsSidebarCollapsedState(collapsed);
+    try {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    sfxService.play('click');
+    setIsSidebarCollapsedState((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
+  const openPresentationMode = useCallback(() => {
+    sfxService.play('click');
+    setIsPresentationOpen(true);
+  }, []);
+
+  const closePresentationMode = useCallback(() => {
+    setIsPresentationOpen(false);
+  }, []);
+
   const setActiveTab = useCallback((tab: NavTab) => {
     sfxService.play('click');
     setActiveTabState(tab);
@@ -1018,6 +1188,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       studyProgress: persisted.studyProgress,
       audioPrefs: persisted.audioPrefs,
       gamification: persisted.gamification,
+      questionAudit: persisted.questionAudit,
       updateSettings,
       resetSettings,
       setStudyPool,
@@ -1028,6 +1199,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       recordExamResult,
       toggleBookmarkQuestion,
       markQuestionMastered,
+      reportQuestionIssue,
+      removeQuestionIssueReport,
+      clearAllQuestionIssueReports,
+      setSkipReportedInExams,
       activeTab,
       setActiveTab,
       studyNavTarget,
@@ -1038,6 +1213,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearExamNavTarget,
       isExamActive,
       setIsExamActive,
+      isSidebarCollapsed,
+      toggleSidebarCollapsed,
+      setSidebarCollapsed,
+      isPresentationOpen,
+      openPresentationMode,
+      closePresentationMode,
       isPoolModalOpen,
       openPoolModal,
       closePoolModal,
@@ -1070,6 +1251,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       persisted.studyProgress,
       persisted.audioPrefs,
       persisted.gamification,
+      persisted.questionAudit,
       updateSettings,
       resetSettings,
       setStudyPool,
@@ -1080,6 +1262,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       recordExamResult,
       toggleBookmarkQuestion,
       markQuestionMastered,
+      reportQuestionIssue,
+      removeQuestionIssueReport,
+      clearAllQuestionIssueReports,
+      setSkipReportedInExams,
       activeTab,
       setActiveTab,
       studyNavTarget,
@@ -1089,6 +1275,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       navigateToExam,
       clearExamNavTarget,
       isExamActive,
+      isSidebarCollapsed,
+      toggleSidebarCollapsed,
+      setSidebarCollapsed,
+      isPresentationOpen,
+      openPresentationMode,
+      closePresentationMode,
       isPoolModalOpen,
       openPoolModal,
       closePoolModal,

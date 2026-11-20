@@ -20,6 +20,7 @@ import {
   getSurahMap,
   normalizeTurkish,
 } from '../utils/poolUtils';
+import { formatSafeArabicTitle } from '../utils/arabicUtils';
 
 type PoolTab = 'presets' | 'surahs' | 'juzs';
 
@@ -504,10 +505,10 @@ export const PoolSelectorModal: React.FC = () => {
                         </div>
 
                         <span
-                          className="arabic-text text-lg shrink-0 leading-none"
+                          className="arabic-title text-lg shrink-0 leading-none"
                           style={{ color: 'var(--text-secondary)' }}
                         >
-                          {surah.nameAr.replace(/^سُورَةُ\s+/, '')}
+                          {formatSafeArabicTitle(surah.nameAr, { stripSurahPrefix: true })}
                         </span>
                       </button>
                     );

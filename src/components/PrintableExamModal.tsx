@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
+  AlignJustify,
   BookOpen,
+  Columns2,
   FileText,
   KeyRound,
   Loader2,
@@ -20,6 +22,7 @@ import {
   formatPremiseItem,
   formatVerseRefSummary,
   getMealBasisLabel,
+  getQuestionUid,
   prepareQuestionOptions,
   shuffleArray,
 } from '../utils/examUtils';
@@ -80,6 +83,7 @@ interface PrintableExamSheetProps {
   surahMap: Map<number, SurahMeta>;
   includeAnswerKey: boolean;
   showSourcePerQuestion: boolean;
+  columns: 1 | 2;
   dateLabel: string;
   currentYear: number;
 }
@@ -91,9 +95,11 @@ const PrintableExamSheet: React.FC<PrintableExamSheetProps> = ({
   surahMap,
   includeAnswerKey,
   showSourcePerQuestion,
+  columns,
   dateLabel,
   currentYear,
 }) => {
+  const isTwoCol = columns === 2;
   return (
     <div
       className="bg-white text-neutral-900"
@@ -156,9 +162,9 @@ const PrintableExamSheet: React.FC<PrintableExamSheetProps> = ({
       </header>
 
       {/* ====================================================================
-          2. SORULAR LİSTESİ (Her soru break-inside: avoid korumalı)
+          2. SORULAR LİSTESİ (Tek veya İki Sütun — Her soru break-inside: avoid korumalı)
           ==================================================================== */}
-      <div className="space-y-4">
+      <div className={isTwoCol ? 'print-two-col-questions' : 'space-y-4'}>
         {questions.map((item, qIdx) => {
           const surahMeta = surahMap.get(item.question.surah);
           const surahName = surahMeta?.nameTr ?? `${item.question.surah}. Sure`;
@@ -168,29 +174,54 @@ const PrintableExamSheet: React.FC<PrintableExamSheetProps> = ({
           return (
             <article
               key={`${item.uid}-${qIdx}`}
-              className="print-question-item pb-3.5 border-b border-neutral-200 last:border-b-0"
+              className={
+                isTwoCol
+                  ? 'print-question-item mb-3 pb-2.5 border-b border-neutral-200'
+                  : 'print-question-item pb-3.5 border-b border-neutral-200 last:border-b-0'
+              }
             >
               {/* Soru Numarası + Opsiyonel Sure/Ayet Kaynağı */}
-              <div className="flex items-start gap-2.5">
-                <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-md bg-neutral-900 text-white text-xs font-extrabold tabular-nums shrink-0 mt-0.5">
+              <div className={`flex items-start ${isTwoCol ? 'gap-2' : 'gap-2.5'}`}>
+                <span
+                  className={`inline-flex items-center justify-center rounded-md bg-neutral-900 text-white font-extrabold tabular-nums shrink-0 mt-0.5 ${
+                    isTwoCol ? 'min-w-[20px] h-5 px-1 text-[10.5px]' : 'min-w-[24px] h-6 px-1.5 text-xs'
+                  }`}
+                >
                   {qIdx + 1}
                 </span>
 
-                <div className="flex-1 min-w-0 space-y-2">
+                <div className={`flex-1 min-w-0 ${isTwoCol ? 'space-y-1.5' : 'space-y-2'}`}>
                   {showSourcePerQuestion && (
-                    <p className="text-[10px] font-bold text-teal-800 tracking-wide">
+                    <p
+                      className={`font-bold text-teal-800 tracking-wide ${
+                        isTwoCol ? 'text-[9.5px]' : 'text-[10px]'
+                      }`}
+                    >
                       [{refText} · {mealLabel} Meali]
                     </p>
                   )}
 
                   {/* Varsa I, II, III Öncülleri */}
                   {item.question.premises && item.question.premises.length > 0 && (
-                    <div className="rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 space-y-1">
+                    <div
+                      className={`rounded-lg border border-neutral-300 bg-neutral-50 space-y-1 ${
+                        isTwoCol ? 'px-2.5 py-1.5' : 'px-3 py-2'
+                      }`}
+                    >
                       {item.question.premises.map((rawPremise, pIdx) => {
                         const formatted = formatPremiseItem(rawPremise, pIdx);
                         return (
-                          <div key={pIdx} className="flex items-start gap-2 text-[13px] leading-snug">
-                            <span className="font-extrabold text-neutral-900 min-w-[24px] shrink-0">
+                          <div
+                            key={pIdx}
+                            className={`flex items-start gap-1.5 leading-snug ${
+                              isTwoCol ? 'text-[11px]' : 'text-[13px]'
+                            }`}
+                          >
+                            <span
+                              className={`font-extrabold text-neutral-900 shrink-0 ${
+                                isTwoCol ? 'min-w-[20px]' : 'min-w-[24px]'
+                              }`}
+                            >
                               {formatted.roman}
                             </span>
                             <span className="text-neutral-800">{formatted.text}</span>
@@ -203,19 +234,35 @@ const PrintableExamSheet: React.FC<PrintableExamSheetProps> = ({
                   {/* Soru Kökü */}
                   <FormattedStem
                     text={item.question.stem}
-                    className="text-[13.5px] font-semibold leading-relaxed text-neutral-950"
+                    className={
+                      isTwoCol
+                        ? 'text-[11.5px] font-semibold leading-snug text-neutral-950'
+                        : 'text-[13.5px] font-semibold leading-relaxed text-neutral-950'
+                    }
                   />
 
                   {/* Şıklar: A) B) C) D) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1.5 pt-1">
+                  <div
+                    className={
+                      isTwoCol
+                        ? 'grid grid-cols-1 gap-y-1 pt-0.5'
+                        : 'grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1.5 pt-1'
+                    }
+                  >
                     {item.options.map((optText, optIdx) => {
                       const letter = OPTION_LETTERS[optIdx] ?? String.fromCharCode(65 + optIdx);
                       return (
                         <div
                           key={optIdx}
-                          className="flex items-start gap-1.5 text-[13px] leading-snug text-neutral-900"
+                          className={`flex items-start gap-1.5 leading-snug text-neutral-900 ${
+                            isTwoCol ? 'text-[11px]' : 'text-[13px]'
+                          }`}
                         >
-                          <span className="font-extrabold text-neutral-950 shrink-0 min-w-[20px]">
+                          <span
+                            className={`font-extrabold text-neutral-950 shrink-0 ${
+                              isTwoCol ? 'min-w-[16px]' : 'min-w-[20px]'
+                            }`}
+                          >
                             {letter})
                           </span>
                           <span>{optText}</span>
@@ -349,7 +396,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   onClose,
   initialSurahNo = null,
 }) => {
-  const { meta, questionIndex, poolStats } = useAppStore();
+  const { meta, questionIndex, poolStats, questionAudit } = useAppStore();
 
   const surahMap = useMemo(() => getSurahMap(meta), [meta]);
   const questionCountBySurah = useMemo(
@@ -375,6 +422,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   const [examTitle, setExamTitle] = useState<string>(DEFAULT_EXAM_TITLE);
   const [includeAnswerKey, setIncludeAnswerKey] = useState<boolean>(true);
   const [showSourcePerQuestion, setShowSourcePerQuestion] = useState<boolean>(false);
+  const [layoutColumns, setLayoutColumns] = useState<1 | 2>(1);
   const [shuffleNonce, setShuffleNonce] = useState<number>(0);
 
   const [rawPoolQuestions, setRawPoolQuestions] = useState<QuestionItem[]>([]);
@@ -450,11 +498,29 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, targetSurahsKey]);
 
+  // Hatalı işaretlenen soruları (ayara bağlı olarak) yazdırılabilir havuzdan ayıkla
+  const { eligiblePoolQuestions, skippedReportedCount } = useMemo(() => {
+    if (!questionAudit.skipReportedInExams) {
+      return { eligiblePoolQuestions: rawPoolQuestions, skippedReportedCount: 0 };
+    }
+    const eligible: QuestionItem[] = [];
+    let skipped = 0;
+    for (const q of rawPoolQuestions) {
+      const uid = getQuestionUid(q);
+      if (questionAudit.reports[uid] || questionAudit.reports[q.id]) {
+        skipped += 1;
+      } else {
+        eligible.push(q);
+      }
+    }
+    return { eligiblePoolQuestions: eligible, skippedReportedCount: skipped };
+  }, [rawPoolQuestions, questionAudit.skipReportedInExams, questionAudit.reports]);
+
   // Dengeli/karışık soru seti (shuffleNonce veya ayar değiştiğinde yeniden üretilir)
   const preparedQuestions = useMemo(() => {
     void shuffleNonce;
-    return pickBalancedPrintableQuestions(rawPoolQuestions, questionCount);
-  }, [rawPoolQuestions, questionCount, shuffleNonce]);
+    return pickBalancedPrintableQuestions(eligiblePoolQuestions, questionCount);
+  }, [eligiblePoolQuestions, questionCount, shuffleNonce]);
 
   const scopeSummary = useMemo(() => {
     if (scope !== 'pool') {
@@ -503,6 +569,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
       surahMap={surahMap}
       includeAnswerKey={includeAnswerKey}
       showSourcePerQuestion={showSourcePerQuestion}
+      columns={layoutColumns}
       dateLabel={dateLabel}
       currentYear={currentYear}
     />
@@ -673,7 +740,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                     className="text-xs font-bold block"
                     style={{ color: 'var(--text-secondary)' }}
                   >
-                    Soru Sayısı (Havuz: {formatNumberTr(rawPoolQuestions.length)})
+                    Soru Sayısı (Havuz: {formatNumberTr(eligiblePoolQuestions.length)})
                   </span>
                   <div
                     className="grid grid-cols-4 gap-1 p-1 rounded-xl border"
@@ -706,9 +773,53 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                 </div>
               </div>
 
-              {/* Seçenek Anahtarları + Soruları Yeniden Karıştır */}
+              {/* Seçenek Anahtarları + Sütun Düzeni + Soruları Yeniden Karıştır */}
               <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Sayfa Sütun Düzeni: Tek Sütun / İki Sütun */}
+                  <div
+                    className="inline-flex items-center p-1 rounded-xl border gap-1"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                    role="group"
+                    aria-label="Sınav kâğıdı sütun düzeni"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setLayoutColumns(1);
+                      }}
+                      className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor:
+                          layoutColumns === 1 ? 'var(--brand-primary)' : 'transparent',
+                        color: layoutColumns === 1 ? '#FFFFFF' : 'var(--text-secondary)',
+                      }}
+                    >
+                      <AlignJustify className="w-3.5 h-3.5 shrink-0" />
+                      <span>Tek Sütun</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setLayoutColumns(2);
+                      }}
+                      className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor:
+                          layoutColumns === 2 ? 'var(--brand-primary)' : 'transparent',
+                        color: layoutColumns === 2 ? '#FFFFFF' : 'var(--text-secondary)',
+                      }}
+                    >
+                      <Columns2 className="w-3.5 h-3.5 shrink-0" />
+                      <span>İki Sütun</span>
+                    </button>
+                  </div>
+
                   {/* Cevap Anahtarı Ekle */}
                   <button
                     type="button"
@@ -732,7 +843,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                     }}
                   >
                     <KeyRound className="w-3.5 h-3.5 shrink-0" />
-                    <span>Cevap Anahtarı ve Açıklamaları Ekle</span>
+                    <span>Cevap Anahtarı</span>
                     <span
                       className="w-8 h-4.5 rounded-full p-0.5 flex items-center transition-colors shrink-0"
                       style={{
@@ -769,7 +880,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                     }}
                   >
                     <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                    <span>Soru Başına Sure/Ayet Kaynağını Yazdır</span>
+                    <span>Sure/Ayet Kaynağı</span>
                     <span
                       className="w-8 h-4.5 rounded-full p-0.5 flex items-center transition-colors shrink-0"
                       style={{
@@ -787,7 +898,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                 <button
                   type="button"
                   onClick={handleReshuffle}
-                  disabled={isLoading || rawPoolQuestions.length === 0}
+                  disabled={isLoading || eligiblePoolQuestions.length === 0}
                   className="min-h-[40px] px-3.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-45"
                   style={{
                     backgroundColor: 'var(--bg-surface)',
@@ -837,18 +948,26 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                 <div className="max-w-[794px] mx-auto space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs px-1">
                     <span className="font-bold" style={{ color: 'var(--text-secondary)' }}>
-                      A4 Baskı Önizlemesi ({preparedQuestions.length} soru
-                      {includeAnswerKey ? ' + ayrı sayfada cevap anahtarı' : ''})
+                      A4 Baskı Önizlemesi ({preparedQuestions.length} soru ·{' '}
+                      {layoutColumns === 2 ? 'İki Sütun' : 'Tek Sütun'}
+                      {includeAnswerKey ? ' + cevap anahtarı' : ''})
                     </span>
-                    {rawPoolQuestions.length < questionCount && (
-                      <span
-                        className="font-semibold"
-                        style={{ color: 'var(--brand-accent-text)' }}
-                      >
-                        Bu kapsamda toplam {rawPoolQuestions.length} soru bulunduğu için tümü dahil
-                        edildi.
-                      </span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-3">
+                      {skippedReportedCount > 0 && (
+                        <span className="font-semibold text-red-600 dark:text-red-400">
+                          {skippedReportedCount} hatalı işaretli soru atlandı
+                        </span>
+                      )}
+                      {eligiblePoolQuestions.length < questionCount && (
+                        <span
+                          className="font-semibold"
+                          style={{ color: 'var(--brand-accent-text)' }}
+                        >
+                          Bu kapsamda toplam {eligiblePoolQuestions.length} uygun soru bulunduğu
+                          için tümü dahil edildi.
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* A4 Kağıt Kartı */}

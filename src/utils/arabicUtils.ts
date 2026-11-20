@@ -4,7 +4,7 @@
  */
 
 const ORNAMENT_AND_ISOLATED_MARKS =
-  /[\u06DD\u06DE\u06E9\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED\u200B-\u200F\u202A-\u202E\uFEFF\u25CC]/g;
+  /(?:[\u06DD\u06DE\u06E9\u200B-\u200F\u202A-\u202E\uFEFF\u25CC]|[\u06D6-\u06DC]|[\u06DF-\u06E4]|[\u06E7\u06E8]|[\u06EA-\u06ED])/g;
 
 /**
  * Özel mushaf fontlarının eksik bırakabildiği nadir Unicode karakterleri

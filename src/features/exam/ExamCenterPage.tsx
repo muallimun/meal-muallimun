@@ -10,6 +10,7 @@ import type {
 } from '../../types/quran';
 import {
   clearActiveExamSession,
+  getQuestionUid,
   loadActiveExamSession,
   saveActiveExamSession,
   selectAndPrepareExamQuestions,
@@ -24,6 +25,7 @@ export const ExamCenterPage: React.FC = () => {
   const {
     questionIndex,
     gamification,
+    questionAudit,
     recordExamResult,
     examNavTarget,
     clearExamNavTarget,
@@ -65,8 +67,15 @@ export const ExamCenterPage: React.FC = () => {
             : (questionIndex?.availableSurahs ?? []);
 
         const rawQuestions = await dataService.getQuestionsForSurahs(surahsToLoad);
+        const eligibleQuestions = questionAudit.skipReportedInExams
+          ? rawQuestions.filter((q) => {
+              const uid = getQuestionUid(q);
+              return !questionAudit.reports[uid] && !questionAudit.reports[q.id];
+            })
+          : rawQuestions;
+
         const prepared = selectAndPrepareExamQuestions({
-          allQuestions: rawQuestions,
+          allQuestions: eligibleQuestions,
           surahs: config.surahs,
           difficulty: config.difficulty,
           mealBasis: config.mealBasis,
@@ -77,7 +86,11 @@ export const ExamCenterPage: React.FC = () => {
         });
 
         if (prepared.length === 0) {
-          setStartError('Seçilen kriterlere uygun soru bulunamadı.');
+          setStartError(
+            rawQuestions.length > 0 && eligibleQuestions.length < rawQuestions.length
+              ? 'Seçilen kriterlerdeki sorular hatalı olarak işaretlendiği için atlandı. Hata Bildirimleri panelinden ayarı değiştirebilirsiniz.'
+              : 'Seçilen kriterlere uygun soru bulunamadı.',
+          );
           return;
         }
 
@@ -123,7 +136,12 @@ export const ExamCenterPage: React.FC = () => {
         setIsStarting(false);
       }
     },
-    [questionIndex?.availableSurahs, gamification.solvedQuestionUids],
+    [
+      questionIndex?.availableSurahs,
+      gamification.solvedQuestionUids,
+      questionAudit.skipReportedInExams,
+      questionAudit.reports,
+    ],
   );
 
   // Dışarıdan (Ana Sayfa, Okuma Ekranı, Hata Kampı) gelen sınav yönlendirmelerini işle

@@ -3,6 +3,7 @@ import {
   Award,
   CheckCircle2,
   Clock,
+  Flag,
   Flame,
   MinusCircle,
   PlusCircle,
@@ -11,9 +12,10 @@ import {
   Star,
   XCircle,
 } from 'lucide-react';
+import { QuestionReportModal } from '../../components/QuestionReportModal';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
-import type { ExamResultSummary } from '../../types/quran';
+import type { ExamResultSummary, QuestionItem } from '../../types/quran';
 import {
   OPTION_LETTERS,
   formatDurationTr,
@@ -39,8 +41,9 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
   onStartWrongMiniTest,
   onNewExam,
 }) => {
-  const { settings, meta, gamification, toggleBookmarkQuestion } = useAppStore();
+  const { settings, meta, gamification, questionAudit, toggleBookmarkQuestion } = useAppStore();
   const [filter, setFilter] = useState<ReviewFilter>('all');
+  const [reportTarget, setReportTarget] = useState<QuestionItem | null>(null);
   const reviewSectionRef = useRef<HTMLElement | null>(null);
 
   const surahMap = useMemo(() => getSurahMap(meta), [meta]);
@@ -380,6 +383,9 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
               const diffInfo = getDifficultyInfo(q.question.difficulty);
               const mealLabel = getMealBasisLabel(q.question.mealBasis);
               const isBookmarked = gamification.bookmarkedQuestionIds.includes(q.uid);
+              const isIssueReported = Boolean(
+                questionAudit.reports[q.uid] || questionAudit.reports[q.question.id],
+              );
               const isCorrect = Boolean(ans?.isCorrect);
               const isBlank = !ans || ans.selectedIndex === null;
 
@@ -441,21 +447,46 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => toggleBookmarkQuestion(q.uid)}
-                      aria-label={isBookmarked ? 'Yıldızlılardan çıkar' : 'Soruyu yıldızla'}
-                      className="min-w-[38px] min-h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
-                      style={{
-                        backgroundColor: isBookmarked
-                          ? 'var(--brand-accent-soft)'
-                          : 'var(--bg-surface-soft)',
-                        borderColor: isBookmarked ? 'var(--brand-accent)' : 'var(--border-subtle)',
-                        color: isBookmarked ? 'var(--brand-accent-text)' : 'var(--text-muted)',
-                      }}
-                    >
-                      <Star className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setReportTarget(q.question);
+                        }}
+                        aria-label="Soruyu hatalı olarak işaretle"
+                        title="Soruyu hatalı / gözden geçirilecek olarak işaretle"
+                        className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: isIssueReported
+                            ? 'rgba(239, 68, 68, 0.12)'
+                            : 'var(--bg-surface-soft)',
+                          borderColor: isIssueReported ? '#EF4444' : 'var(--border-subtle)',
+                          color: isIssueReported ? '#DC2626' : 'var(--text-muted)',
+                        }}
+                      >
+                        <Flag className={`w-3.5 h-3.5 shrink-0 ${isIssueReported ? 'fill-current' : ''}`} />
+                        <span className="hidden sm:inline">
+                          {isIssueReported ? 'Hatalı Bildirildi' : 'Hatalı İşaretle'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleBookmarkQuestion(q.uid)}
+                        aria-label={isBookmarked ? 'Yıldızlılardan çıkar' : 'Soruyu yıldızla'}
+                        className="min-w-[38px] min-h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
+                        style={{
+                          backgroundColor: isBookmarked
+                            ? 'var(--brand-accent-soft)'
+                            : 'var(--bg-surface-soft)',
+                          borderColor: isBookmarked ? 'var(--brand-accent)' : 'var(--border-subtle)',
+                          color: isBookmarked ? 'var(--brand-accent-text)' : 'var(--text-muted)',
+                        }}
+                      >
+                        <Star className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Öncüller */}
@@ -565,6 +596,11 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
           </div>
         )}
       </section>
+      {/* Hatalı Soru Bildirim Modalı */}
+      <QuestionReportModal
+        question={reportTarget}
+        onClose={() => setReportTarget(null)}
+      />
     </div>
   );
 };

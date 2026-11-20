@@ -4,6 +4,8 @@ import {
   Flame,
   Home,
   Layers,
+  PanelLeftClose,
+  PanelLeftOpen,
   RotateCcw,
   Settings,
   Star,
@@ -53,40 +55,64 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     retryCoreLoad,
     isExamActive,
     isOnline,
+    isSidebarCollapsed,
+    toggleSidebarCollapsed,
   } = useAppStore();
 
   const currentYear = new Date().getFullYear();
+  const contentWidthClass = isSidebarCollapsed
+    ? 'max-w-[1600px]'
+    : activeTab === 'reader'
+      ? 'max-w-7xl'
+      : 'max-w-6xl';
 
   return (
     <div className="min-h-dvh flex flex-col lg:flex-row">
       {/* ====================================================================
-          Masaüstü (lg+) Sol Sabit Yan Menü (Sidebar)
+          Masaüstü (lg+) Sol Sabit Yan Menü (Açılır / Kapanır Sidebar)
           ==================================================================== */}
-      <aside
-        className="hidden lg:flex lg:flex-col lg:w-72 lg:shrink-0 lg:sticky lg:top-0 lg:h-dvh border-r"
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          borderColor: 'var(--border-subtle)',
-        }}
-      >
-        {/* Marka Alanı */}
-        <div
-          className="px-5 h-16 flex items-center gap-3 border-b shrink-0"
-          style={{ borderColor: 'var(--border-subtle)' }}
+      {!isSidebarCollapsed && (
+        <aside
+          className="hidden lg:flex lg:flex-col lg:w-72 lg:shrink-0 lg:sticky lg:top-0 lg:h-dvh border-r"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderColor: 'var(--border-subtle)',
+          }}
         >
-          <BrandMark className="w-9 h-9 shrink-0" />
-          <div className="min-w-0">
-            <span className="block text-base font-extrabold tracking-tight truncate">
-              Muallimun
-            </span>
-            <span
-              className="block text-xs truncate"
-              style={{ color: 'var(--text-muted)' }}
+          {/* Marka Alanı + Sol Paneli Gizle */}
+          <div
+            className="px-4 h-16 flex items-center justify-between gap-2 border-b shrink-0"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <BrandMark className="w-9 h-9 shrink-0" />
+              <div className="min-w-0">
+                <span className="block text-base font-extrabold tracking-tight truncate">
+                  Muallimun
+                </span>
+                <span
+                  className="block text-xs truncate"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Kur&apos;an &amp; Meal Platformu
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={toggleSidebarCollapsed}
+              title="Sol menüyü gizle (Geniş ekran)"
+              aria-label="Sol menüyü gizle"
+              className="min-w-[36px] min-h-[36px] rounded-xl border flex items-center justify-center transition-colors cursor-pointer shrink-0 hover:opacity-85"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-secondary)',
+              }}
             >
-              Kur&apos;an &amp; Meal Platformu
-            </span>
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
           </div>
-        </div>
 
         {/* Ana Navigasyon Bağlantıları */}
         <nav aria-label="Ana menü" className="p-3.5 space-y-1 flex-1 overflow-y-auto">
@@ -197,6 +223,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </button>
         </div>
       </aside>
+      )}
 
       {/* ====================================================================
           Sağ Ana İçerik Kabuğu (Üst Çubuk + İçerik + Alt Bilgi)
@@ -210,8 +237,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="h-full max-w-6xl mx-auto px-4 lg:px-8 flex items-center justify-between gap-3">
-            {/* Sol: Mobilde Logo/Başlık, Masaüstünde Sayfa Başlığı */}
+          <div
+            className={`h-full ${contentWidthClass} mx-auto px-4 lg:px-6 flex items-center justify-between gap-3`}
+          >
+            {/* Sol: Mobilde Logo/Başlık, Masaüstünde Sidebar Aç/Kapa + Başlık + Hızlı Sekmeler */}
             <div className="flex items-center gap-2.5 min-w-0">
               <button
                 type="button"
@@ -225,10 +254,67 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 </span>
               </button>
 
-              <div className="hidden lg:flex items-center gap-3 min-w-0">
-                <h1 className="text-lg font-bold tracking-tight whitespace-nowrap">
-                  {TAB_TITLES[activeTab]}
-                </h1>
+              <div className="hidden lg:flex items-center gap-2.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={toggleSidebarCollapsed}
+                  title={isSidebarCollapsed ? 'Sol menüyü aç' : 'Sol menüyü gizle'}
+                  aria-label={isSidebarCollapsed ? 'Sol menüyü aç' : 'Sol menüyü gizle'}
+                  className="min-h-[38px] px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
+                  style={{
+                    backgroundColor: isSidebarCollapsed
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface)',
+                    borderColor: isSidebarCollapsed
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-subtle)',
+                    color: isSidebarCollapsed
+                      ? 'var(--brand-primary-text)'
+                      : 'var(--text-secondary)',
+                  }}
+                >
+                  {isSidebarCollapsed ? (
+                    <>
+                      <PanelLeftOpen className="w-4 h-4" />
+                      <span>Menü</span>
+                    </>
+                  ) : (
+                    <PanelLeftClose className="w-4 h-4" />
+                  )}
+                </button>
+
+                {isSidebarCollapsed ? (
+                  <nav aria-label="Hızlı masaüstü menü" className="flex items-center gap-1">
+                    {NAV_ITEMS.map((item) => {
+                      const Icon = item.icon;
+                      const active = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setActiveTab(item.id)}
+                          className="min-h-[38px] px-3 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: active
+                              ? 'var(--brand-primary-soft)'
+                              : 'transparent',
+                            color: active
+                              ? 'var(--brand-primary-text)'
+                              : 'var(--text-secondary)',
+                          }}
+                        >
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span>{item.shortLabel}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                ) : (
+                  <h1 className="text-lg font-bold tracking-tight whitespace-nowrap">
+                    {TAB_TITLES[activeTab]}
+                  </h1>
+                )}
+
                 {dataSourceMode === 'demo' && (
                   <button
                     type="button"
@@ -344,7 +430,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         )}
 
         {/* Sayfa İçeriği */}
-        <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+        <main
+          className={`flex-1 w-full ${contentWidthClass} mx-auto px-4 py-4 sm:px-6 lg:px-6 lg:py-5`}
+        >
           {children}
         </main>
 
@@ -353,7 +441,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           className={`mt-auto border-t ${isExamActive ? 'pb-6' : 'pb-20'} lg:pb-6`}
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <div className="max-w-6xl mx-auto px-4 py-5 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+          <div
+            className={`${contentWidthClass} mx-auto px-4 py-5 sm:px-6 lg:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs`}
+          >
             <p style={{ color: 'var(--text-muted)' }}>
               © {currentYear} Muallimun.Net — Kur&apos;an &amp; Meal Eğitim Platformu
             </p>

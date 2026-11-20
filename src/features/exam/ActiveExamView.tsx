@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AlertOctagon,
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
@@ -16,6 +17,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import { QuestionReportModal } from '../../components/QuestionReportModal';
 import { audioQueueService } from '../../services/audioQueueService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -46,11 +48,12 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   onExitKeepSession,
   onExitDiscardSession,
 }) => {
-  const { settings, meta, gamification, toggleBookmarkQuestion } = useAppStore();
+  const { settings, meta, gamification, questionAudit, toggleBookmarkQuestion } = useAppStore();
 
   const [showExitModal, setShowExitModal] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showPaletteModal, setShowPaletteModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const isCompletingRef = useRef(false);
 
@@ -80,6 +83,12 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     ? gamification.bookmarkedQuestionIds.includes(currentQuestion.uid)
     : false;
   const isFlagged = currentQuestion ? session.flaggedUids.includes(currentQuestion.uid) : false;
+  const isIssueReported = currentQuestion
+    ? Boolean(
+        questionAudit.reports[currentQuestion.uid] ||
+          questionAudit.reports[currentQuestion.question.id],
+      )
+    : false;
   const eliminatedSet = useMemo(
     () =>
       new Set(
@@ -102,7 +111,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   );
 
   useEffect(() => {
-    if (showExitModal || showFinishModal) return;
+    if (showExitModal || showFinishModal || showReportModal) return;
 
     const timer = window.setInterval(() => {
       onUpdateSession((prev) => {
@@ -168,7 +177,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [onUpdateSession, showExitModal, showFinishModal, triggerComplete]);
+  }, [onUpdateSession, showExitModal, showFinishModal, showReportModal, triggerComplete]);
 
   // Şık seçimi
   const handleSelectOption = useCallback(
@@ -337,7 +346,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   // Masaüstü klavye kısayolları: 1-4 / A-D ve Enter
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (showExitModal || showFinishModal || showPaletteModal) return;
+      if (showExitModal || showFinishModal || showPaletteModal || showReportModal) return;
       const target = e.target as HTMLElement | null;
       if (
         target &&
@@ -385,6 +394,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     showExitModal,
     showFinishModal,
     showPaletteModal,
+    showReportModal,
     currentQuestion,
     isMock,
     isAnswered,
@@ -511,6 +521,30 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               }}
             >
               <Star className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
+            </button>
+
+            {/* Soruyu Hatalı / Gözden Geçirilecek Olarak İşaretle */}
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setShowReportModal(true);
+              }}
+              title="Soruyu hatalı / gözden geçirilecek olarak işaretle"
+              aria-label="Soruyu hatalı olarak işaretle"
+              className="min-w-[40px] min-h-[40px] px-2.5 rounded-xl border flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              style={{
+                backgroundColor: isIssueReported
+                  ? 'rgba(239, 68, 68, 0.12)'
+                  : 'var(--bg-surface-soft)',
+                borderColor: isIssueReported ? '#EF4444' : 'var(--border-subtle)',
+                color: isIssueReported ? '#DC2626' : 'var(--text-muted)',
+              }}
+            >
+              <AlertOctagon className="w-4 h-4 shrink-0" />
+              <span className="hidden md:inline text-xs font-bold">
+                {isIssueReported ? 'Hatalı İşaretli' : 'Hatalı İşaretle'}
+              </span>
             </button>
           </div>
         </div>
@@ -828,9 +862,27 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                     {currentQuestion.question.explanation}
                   </p>
                 )}
-                <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                  Kaynak: {formatSourceRefLabel(currentQuestion.question.sourceRef)}
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                  <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    Kaynak: {formatSourceRefLabel(currentQuestion.question.sourceRef)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setShowReportModal(true);
+                    }}
+                    className="text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer hover:underline"
+                    style={{ color: isIssueReported ? '#DC2626' : 'var(--text-muted)' }}
+                  >
+                    <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {isIssueReported
+                        ? 'Hatalı soru bildirimi düzenle'
+                        : 'Soruda mantık/dil hatası bildir'}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -958,6 +1010,14 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
         tuşlarını kullanabilirsin.
         {isPractice ? ' (Süresiz Antrenman)' : ''}
       </p>
+
+      {/* ====================================================================
+          Modal 0: Hatalı Soru Bildirimi / Denetim İşaretleme
+          ==================================================================== */}
+      <QuestionReportModal
+        question={showReportModal ? currentQuestion.question : null}
+        onClose={() => setShowReportModal(false)}
+      />
 
       {/* ====================================================================
           Modal 1: Çıkış Onayı
