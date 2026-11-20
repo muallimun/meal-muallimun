@@ -1471,6 +1471,7 @@ export const StudyPage: React.FC = () => {
         verses={activeViewVerses}
         activeVerse={activeSelectedVerse}
         surahMap={surahMap}
+        besmele={meta?.besmele}
         onStartAudioFromActive={(v) => handlePlayFromVerse(v, false)}
       />
     </div>

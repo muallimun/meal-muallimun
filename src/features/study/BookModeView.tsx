@@ -18,6 +18,7 @@ import {
   Star,
   Volume2,
 } from 'lucide-react';
+import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
@@ -436,12 +437,18 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   const isPlaying = playingAyahId === verse.id;
                   const isSelected = selectedArabicAyahId === verse.id;
                   const isBookmarked = bookmarkedSet.has(verse.id);
+                  const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
                   return (
                     <span
                       key={verse.id}
                       id={`book-ayah-${verse.id}`}
                       role="button"
                       tabIndex={0}
+                      title={
+                        isSajdah
+                          ? `Tilâvet Secdesi Ayeti — ${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`
+                          : `${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`
+                      }
                       onClick={() => {
                         sfxService.play('click');
                         setSelectedArabicAyahId((prev) => (prev === verse.id ? null : verse.id));
@@ -457,15 +464,31 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           ? 'bg-[var(--brand-primary)]/18 ring-2 ring-[var(--brand-primary)]/60 text-[var(--text-primary)]'
                           : isSelected
                             ? 'bg-[var(--brand-accent-soft)] ring-1 ring-[var(--brand-accent)]/50'
-                            : 'hover:bg-[var(--bg-surface-soft)]'
+                            : isSajdah
+                              ? 'bg-amber-500/12 underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
+                              : 'hover:bg-[var(--bg-surface-soft)]'
                       }`}
                     >
                       {verse.ar.t}
+                      {isSajdah && (
+                        <span
+                          title="Tilâvet Secdesi Ayeti"
+                          aria-label="Tilâvet Secdesi Ayeti"
+                          className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
+                          style={{
+                            backgroundColor: 'var(--brand-accent-soft)',
+                            borderColor: 'rgba(217, 119, 6, 0.5)',
+                            color: 'var(--brand-accent-text)',
+                          }}
+                        >
+                          ۩
+                        </span>
+                      )}
                       <span
                         className={`inline-flex items-center justify-center mx-1.5 px-2 py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border ${
                           isPlaying
                             ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]'
-                            : isBookmarked
+                            : isBookmarked || isSajdah
                               ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border-[var(--brand-accent)]/60'
                               : 'bg-[var(--bg-surface-soft)] text-[var(--brand-primary-text)] border-[var(--border-strong)]'
                         }`}
@@ -480,10 +503,25 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               {/* Seçili Arapça Ayet İşlem Çubuğu */}
               {selectedArabicVerse && (
                 <div className="sticky bottom-24 z-20 rounded-2xl bg-[var(--bg-surface)] border-2 border-[var(--brand-primary)]/40 shadow-xl p-3.5 space-y-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-extrabold text-[var(--brand-primary-text)]">
-                      {bundle.surahMeta.nameTr} Suresi, {selectedArabicVerse.ayah}. Ayet
-                    </span>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-extrabold text-[var(--brand-primary-text)]">
+                        {bundle.surahMeta.nameTr} Suresi, {selectedArabicVerse.ayah}. Ayet
+                      </span>
+                      {SAJDAH_AYAH_IDS.has(selectedArabicVerse.id) && settings.highlightSajdah && (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-extrabold whitespace-nowrap"
+                          style={{
+                            backgroundColor: 'var(--brand-accent-soft)',
+                            borderColor: 'rgba(217, 119, 6, 0.5)',
+                            color: 'var(--brand-accent-text)',
+                          }}
+                        >
+                          <span>۩</span>
+                          <span>Tilâvet Secdesi Ayeti</span>
+                        </span>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => setSelectedArabicAyahId(null)}
@@ -558,6 +596,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             >
               {visibleVerses.map((verse) => {
                 const isPlaying = playingAyahId === verse.id;
+                const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
                 const fnList = settings.showFootnotes
                   ? [
                       ...(showM1 && verse.m1?.fn
@@ -581,7 +620,9 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     } ${
                       isPlaying
                         ? 'bg-[var(--brand-primary-soft)]/85 ring-2 ring-[var(--brand-primary)]/50 shadow-xs'
-                        : 'hover:bg-[var(--bg-surface-soft)]/45'
+                        : isSajdah
+                          ? 'bg-amber-500/[0.07] ring-1 ring-amber-500/45 my-1.5'
+                          : 'hover:bg-[var(--bg-surface-soft)]/45'
                     }`}
                   >
                     {/* Ayet Üst Satır */}
@@ -591,11 +632,28 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           className={`inline-flex items-center justify-center min-w-[34px] h-7 px-2 rounded-lg text-xs font-extrabold ${
                             isPlaying
                               ? 'bg-[var(--brand-primary)] text-white'
-                              : 'bg-[var(--bg-surface-soft)] text-[var(--brand-primary-text)] border border-[var(--border-subtle)]'
+                              : isSajdah
+                                ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border border-[var(--brand-accent)]/50'
+                                : 'bg-[var(--bg-surface-soft)] text-[var(--brand-primary-text)] border border-[var(--border-subtle)]'
                           }`}
                         >
                           {verse.surah}:{verse.ayah}
                         </span>
+
+                        {isSajdah && (
+                          <span
+                            title="Diyanet / Hanefî standardına göre Tilâvet Secdesi ayeti"
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg border text-[11px] font-extrabold whitespace-nowrap"
+                            style={{
+                              backgroundColor: 'var(--brand-accent-soft)',
+                              borderColor: 'rgba(217, 119, 6, 0.5)',
+                              color: 'var(--brand-accent-text)',
+                            }}
+                          >
+                            <span className="text-sm leading-none">۩</span>
+                            <span>Tilâvet Secdesi</span>
+                          </span>
+                        )}
 
                         {isPlaying && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[var(--brand-primary)] text-white">
@@ -625,6 +683,20 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                         style={{ fontSize: `${settings.arabicFontSize}px` }}
                       >
                         {verse.ar.t}
+                        {isSajdah && (
+                          <span
+                            title="Tilâvet Secdesi Ayeti"
+                            aria-label="Tilâvet Secdesi Ayeti"
+                            className="inline-flex items-center justify-center mx-1.5 px-1.5 py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
+                            style={{
+                              backgroundColor: 'var(--brand-accent-soft)',
+                              borderColor: 'rgba(217, 119, 6, 0.5)',
+                              color: 'var(--brand-accent-text)',
+                            }}
+                          >
+                            ۩
+                          </span>
+                        )}
                       </p>
                     )}
 

@@ -23,7 +23,6 @@ import {
   Star,
   Trash2,
   Volume2,
-  X,
 } from 'lucide-react';
 import { BOOKMARK_COLOR_STYLES } from '../../components/PageBookmarksDrawer';
 import {
@@ -43,6 +42,7 @@ import type {
   WordMealMode,
 } from '../../types/quran';
 import { formatSafeArabicTitle } from '../../utils/arabicUtils';
+import { DraggableVerseInspector } from './DraggableVerseInspector';
 import { WordMealGrid } from './WordMealGrid';
 
 interface MushafPageViewProps {
@@ -206,16 +206,6 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   useEffect(() => {
     setOpenRibbonPage(null);
   }, [pageBundle.pageNo]);
-
-  // Ayet İnceleme Çekmecesi için Escape tuşu desteği
-  useEffect(() => {
-    if (!isVerseDrawerOpen) return;
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsVerseDrawerOpen(false);
-    };
-    window.addEventListener('keydown', onEsc);
-    return () => window.removeEventListener('keydown', onEsc);
-  }, [isVerseDrawerOpen]);
 
   // Çalan/seçilen ayet değişince meal listesini de ilgili ayete yumuşakça kaydır
   useEffect(() => {
@@ -481,6 +471,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           : 'mushaf-paper-single rounded-2xl';
 
     const compactPadding = leafPosition !== 'single';
+    const pageHasSajdah =
+      settings.highlightSajdah && bundle.verses.some((v) => SAJDAH_AYAH_IDS.has(v.id));
 
     return (
       <div
@@ -518,15 +510,31 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   </span>
                 </div>
 
-                <span
-                  className="font-bold tabular-nums text-center px-2.5 py-0.5 rounded-lg text-[11px]"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {bundle.cuzs.map((c) => `${c}. Cüz`).join(' / ')}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className="font-bold tabular-nums text-center px-2.5 py-0.5 rounded-lg text-[11px]"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    {bundle.cuzs.map((c) => `${c}. Cüz`).join(' / ')}
+                  </span>
+                  {pageHasSajdah && (
+                    <span
+                      title="Bu sayfada Tilâvet Secdesi ayeti bulunmaktadır"
+                      className="font-extrabold px-2 py-0.5 rounded-lg border text-[11px] inline-flex items-center gap-1 whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--brand-accent-soft)',
+                        borderColor: 'rgba(217, 119, 6, 0.45)',
+                        color: 'var(--brand-accent-text)',
+                      }}
+                    >
+                      <span>۩</span>
+                      <span className="hidden xs:inline sm:inline">Secde</span>
+                    </span>
+                  )}
+                </div>
 
                 <div className="text-right min-w-0 flex items-center gap-1.5 justify-end">
                   <span
@@ -623,13 +631,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         const isSelected = selectedVerse?.id === verse.id;
                         const isPlaying = playingAyahId === verse.id;
                         const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
+                        const highlightSajdah = isSajdah && settings.highlightSajdah;
                         const hasDigitsAtEnd = ENDS_WITH_ARABIC_NUMERAL.test(verse.ar.t);
 
                         const highlightBg = isPlaying
                           ? 'rgba(13, 148, 136, 0.24)'
                           : isSelected
-                            ? 'rgba(217, 119, 6, 0.16)'
-                            : 'transparent';
+                            ? 'rgba(217, 119, 6, 0.18)'
+                            : highlightSajdah
+                              ? 'rgba(217, 119, 6, 0.10)'
+                              : 'transparent';
 
                         return (
                           <span
@@ -639,32 +650,45 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                             onClick={() => {
                               sfxService.play('click');
                               onSelectVerse(verse);
-                              // 2 Sayfa Mushaf modunda veya yan meal paneli kapalıyken tıklandığında temiz Ayet Detay çekmecesini aç
-                              if (isDoubleMushaf) {
+                              if (!showSideMealPanel) {
                                 setIsVerseDrawerOpen(true);
                               }
                             }}
                             role="button"
                             tabIndex={0}
+                            title={
+                              highlightSajdah
+                                ? `Tilâvet Secdesi Ayeti — ${segment.surahMeta.nameTr} ${verse.ayah}. Ayet`
+                                : `${segment.surahMeta.nameTr} ${verse.ayah}. Ayet`
+                            }
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
                                 sfxService.play('click');
                                 onSelectVerse(verse);
-                                if (isDoubleMushaf) {
+                                if (!showSideMealPanel) {
                                   setIsVerseDrawerOpen(true);
                                 }
                               }
                             }}
-                            className="inline rounded-lg px-1 py-0.5 transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600"
+                            className={`inline rounded-lg px-1 py-0.5 transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
+                              highlightSajdah
+                                ? 'underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
+                                : ''
+                            }`}
                             style={{ backgroundColor: highlightBg }}
                           >
                             {verse.ar.t}
-                            {isSajdah && settings.highlightSajdah && (
+                            {highlightSajdah && (
                               <span
                                 title="Tilâvet Secdesi Ayeti"
-                                className="inline-block mx-1 text-[0.72em] font-bold align-middle"
-                                style={{ color: 'var(--brand-accent)' }}
+                                aria-label="Tilâvet Secdesi Ayeti"
+                                className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-md border text-[0.64em] font-extrabold align-middle leading-none select-none"
+                                style={{
+                                  backgroundColor: 'var(--brand-accent-soft)',
+                                  borderColor: 'rgba(217, 119, 6, 0.5)',
+                                  color: 'var(--brand-accent-text)',
+                                }}
                               >
                                 ۩
                               </span>
@@ -675,11 +699,15 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 style={{
                                   color: isPlaying
                                     ? 'var(--brand-primary-text)'
-                                    : isSelected
+                                    : isSelected || highlightSajdah
                                       ? 'var(--brand-accent-text)'
                                       : 'var(--brand-primary-text)',
                                 }}
-                                title={`${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`}
+                                title={
+                                  highlightSajdah
+                                    ? `Tilâvet Secdesi · ${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
+                                    : `${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
+                                }
                               >
                                 ﴿{toArabicIndicDigits(verse.ayah)}﴾
                               </span>
@@ -804,6 +832,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         const isSelected = selectedVerse?.id === v.id;
                         const isPlaying = playingAyahId === v.id;
                         const isFav = bookmarkedSet.has(v.id);
+                        const isSajdah = SAJDAH_AYAH_IDS.has(v.id) && settings.highlightSajdah;
 
                         return (
                           <div
@@ -826,13 +855,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                               backgroundColor: isPlaying
                                 ? 'var(--brand-primary-soft)'
                                 : isSelected
-                                  ? 'rgba(217, 119, 6, 0.10)'
-                                  : 'transparent',
+                                  ? 'rgba(217, 119, 6, 0.12)'
+                                  : isSajdah
+                                    ? 'rgba(217, 119, 6, 0.07)'
+                                    : 'transparent',
                               borderColor: isPlaying
                                 ? 'var(--brand-primary)'
                                 : isSelected
-                                  ? 'rgba(217, 119, 6, 0.35)'
-                                  : 'transparent',
+                                  ? 'rgba(217, 119, 6, 0.4)'
+                                  : isSajdah
+                                    ? 'rgba(217, 119, 6, 0.38)'
+                                    : 'transparent',
                             }}
                           >
                             <div className="flex items-start gap-2">
@@ -841,11 +874,11 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 style={{
                                   backgroundColor: isPlaying
                                     ? 'var(--brand-primary)'
-                                    : isSelected
+                                    : isSelected || isSajdah
                                       ? 'var(--brand-accent)'
                                       : 'var(--bg-surface-soft)',
                                   color:
-                                    isPlaying || isSelected
+                                    isPlaying || isSelected || isSajdah
                                       ? '#FFFFFF'
                                       : 'var(--brand-primary-text)',
                                 }}
@@ -854,6 +887,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                               </span>
 
                               <div className="flex-1 min-w-0 space-y-1">
+                                {isSajdah && (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-extrabold"
+                                    style={{
+                                      backgroundColor: 'var(--brand-accent-soft)',
+                                      borderColor: 'rgba(217, 119, 6, 0.45)',
+                                      color: 'var(--brand-accent-text)',
+                                    }}
+                                  >
+                                    <span>۩</span>
+                                    <span>Tilâvet Secdesi</span>
+                                  </span>
+                                )}
                                 {(settings.preferredMeal === 'm1' ||
                                   settings.preferredMeal === 'both') &&
                                   v.m1 && (
@@ -1481,26 +1527,33 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 </button>
               )}
 
-            {/* Yan Panel Yokken (Çift Sayfa / Sadece AR / Sadece Meal) İsteğe Bağlı Ayet İnceleme Çekmecesi */}
+            {/* Yan Panel Yokken Taşınabilir Kompakt İnceleme Penceresi Tetikleyicisi */}
             {!showSideMealPanel && selectedVerse && (
               <button
                 type="button"
                 onClick={() => {
                   sfxService.play('click');
-                  setIsVerseDrawerOpen(true);
+                  setIsVerseDrawerOpen((prev) => !prev);
                 }}
-                className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                aria-pressed={isVerseDrawerOpen}
+                className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
                 style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: isVerseDrawerOpen
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface)',
+                  borderColor: isVerseDrawerOpen
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
                   color: 'var(--brand-primary-text)',
                 }}
               >
                 <BookOpen className="w-3.5 h-3.5 shrink-0" />
                 <span>
-                  {isArOnly || isDoubleMushaf
-                    ? `Ayet Meal & Detay (${selectedVerse.ayah})`
-                    : `Ayet Detay (${selectedVerse.ayah})`}
+                  {isVerseDrawerOpen
+                    ? `İncelemeyi Kapat (${selectedVerse.ayah})`
+                    : isArOnly || isDoubleMushaf
+                      ? `Ayet Meal & Detay (${selectedVerse.ayah})`
+                      : `Ayet Detay (${selectedVerse.ayah})`}
                 </span>
               </button>
             )}
@@ -1527,7 +1580,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           </button>
         </div>
 
-        {/* Mobil (<640px) Hızlı Yardımcı Şerit: Meal Panelini Aç & Ayet Detay Çekmecesi */}
+        {/* Mobil (<640px) Hızlı Yardımcı Şerit: Meal Panelini Aç & Taşınabilir İnceleme Penceresi */}
         {((!isBookSpread && contentMode === 'interleaved' && !sidePanelOpen && onToggleSidePanel) ||
           (!showSideMealPanel && selectedVerse)) && (
           <div className="flex sm:hidden flex-wrap items-center justify-center gap-2">
@@ -1558,20 +1611,27 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 type="button"
                 onClick={() => {
                   sfxService.play('click');
-                  setIsVerseDrawerOpen(true);
+                  setIsVerseDrawerOpen((prev) => !prev);
                 }}
+                aria-pressed={isVerseDrawerOpen}
                 className="flex-1 min-h-[38px] px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: isVerseDrawerOpen
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface)',
+                  borderColor: isVerseDrawerOpen
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
                   color: 'var(--brand-primary-text)',
                 }}
               >
                 <BookOpen className="w-3.5 h-3.5 shrink-0" />
                 <span>
-                  {isArOnly || isDoubleMushaf
-                    ? `Ayet Meal & Detay (${selectedVerse.ayah})`
-                    : `Ayet Detay (${selectedVerse.ayah})`}
+                  {isVerseDrawerOpen
+                    ? `İncelemeyi Kapat (${selectedVerse.ayah})`
+                    : isArOnly || isDoubleMushaf
+                      ? `Ayet Meal & Detay (${selectedVerse.ayah})`
+                      : `Ayet Detay (${selectedVerse.ayah})`}
                 </span>
               </button>
             )}
@@ -1673,6 +1733,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   const isSelected = selectedVerse?.id === v.id;
                   const isPlaying = playingAyahId === v.id;
                   const isFav = bookmarkedSet.has(v.id);
+                  const isSajdah = SAJDAH_AYAH_IDS.has(v.id) && settings.highlightSajdah;
                   const fnTotal = settings.showFootnotes
                     ? (settings.preferredMeal !== 'm2' ? v.m1?.fn?.length ?? 0 : 0) +
                       (settings.preferredMeal !== 'm1' ? v.m2?.fn?.length ?? 0 : 0)
@@ -1702,12 +1763,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           ? 'var(--brand-primary-soft)'
                           : isSelected
                             ? 'var(--bg-surface-soft)'
-                            : 'var(--bg-surface)',
+                            : isSajdah
+                              ? 'rgba(217, 119, 6, 0.06)'
+                              : 'var(--bg-surface)',
                         borderColor: isPlaying
                           ? 'var(--brand-primary)'
                           : isSelected
                             ? 'var(--brand-accent)'
-                            : 'var(--border-subtle)',
+                            : isSajdah
+                              ? 'rgba(217, 119, 6, 0.42)'
+                              : 'var(--border-subtle)',
                       }}
                     >
                       <div className="flex items-center justify-between gap-2 text-xs">
@@ -1718,6 +1783,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           >
                             {surahMeta?.shortNameTr ?? `${v.surah}. Sure`} · {v.ayah}. Ayet
                           </span>
+                          {isSajdah && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10px] font-extrabold whitespace-nowrap"
+                              style={{
+                                backgroundColor: 'var(--brand-accent-soft)',
+                                borderColor: 'rgba(217, 119, 6, 0.45)',
+                                color: 'var(--brand-accent-text)',
+                              }}
+                            >
+                              <span>۩</span>
+                              <span>Tilâvet Secdesi</span>
+                            </span>
+                          )}
                           {isPlaying && (
                             <span
                               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white"
@@ -1857,73 +1935,23 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       )}
 
       {/* ====================================================================
-          TALEP ÜZERİNE AÇILAN AYET İNCELEME ÇEKMECESİ
-          (2 Sayfa Mushaf, Sağ Mushaf · Sol Meal, Sadece Arapça ve Sadece Meal modlarında
-           sayfa altını kirletmeden tek ayetin meal, dipnot ve kelime analizini sunar)
+          TAŞINABİLİR KOMPAKT AYET İNCELEME PENCERESİ (Arka Planı Karartmaz/Kilitlemez)
           ==================================================================== */}
-      {isVerseDrawerOpen && !showSideMealPanel && selectedVerse && selectedSurahMeta && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Seçili ayet inceleme çekmecesi"
-          className="fixed inset-0 z-[65] flex items-end sm:items-center justify-end bg-black/45 backdrop-blur-[1px]"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsVerseDrawerOpen(false);
-          }}
-        >
-          <div
-            className="w-full sm:w-[440px] max-h-[84dvh] sm:h-full sm:max-h-none rounded-t-3xl sm:rounded-none sm:rounded-l-2xl border-t sm:border-t-0 sm:border-l shadow-2xl flex flex-col overflow-hidden"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-subtle)',
-            }}
-          >
-            <div
-              className="px-4 py-3 border-b flex items-center justify-between gap-2 shrink-0"
-              style={{ borderColor: 'var(--border-subtle)' }}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <BookOpen className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                <span className="text-sm font-extrabold truncate">
-                  Ayet İnceleme · {selectedSurahMeta.shortNameTr} {selectedVerse.ayah}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setIsVerseDrawerOpen(false);
-                }}
-                aria-label="İnceleme çekmecesini kapat"
-                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              {/* Arapça Ayet Özeti */}
-              <div
-                dir="rtl"
-                className="arabic-text rounded-xl p-3 text-right leading-loose"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  fontSize: `${Math.min(30, Math.max(22, settings.arabicFontSize - 2))}px`,
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {selectedVerse.ar.t}
-              </div>
-
-              {renderSelectedVerseDetail()}
-            </div>
-          </div>
-        </div>
-      )}
+      <DraggableVerseInspector
+        isOpen={isVerseDrawerOpen && !showSideMealPanel}
+        verse={selectedVerse}
+        surahMeta={selectedSurahMeta}
+        settings={settings}
+        wordMode={wordMode}
+        isBookmarked={Boolean(selectedVerse && bookmarkedSet.has(selectedVerse.id))}
+        isPlaying={Boolean(selectedVerse && playingAyahId === selectedVerse.id)}
+        onClose={() => setIsVerseDrawerOpen(false)}
+        onPlayFromVerse={(v) => onPlayFromVerse(v, false)}
+        onPlayMealFromVerse={onPlayMealFromVerse}
+        onToggleBookmark={onToggleBookmark}
+        onShareVerse={onShareVerse}
+        onOpenSurahInfo={onOpenSurahInfo}
+      />
     </div>
   );
 };

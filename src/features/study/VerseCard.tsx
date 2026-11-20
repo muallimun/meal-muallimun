@@ -190,16 +190,28 @@ export const VerseCard: React.FC<VerseCardProps> = ({
     );
   };
 
+  const highlightSajdah = isSajdah && settings.highlightSajdah;
+
   return (
     <article
       id={`verse-card-${verse.id}`}
       data-ayah-id={verse.id}
       className="surface-card rounded-2xl p-4 sm:p-6 transition-all"
       style={{
-        borderColor: isPlayingThisAyah ? 'var(--brand-primary)' : 'var(--border-subtle)',
+        borderColor: isPlayingThisAyah
+          ? 'var(--brand-primary)'
+          : highlightSajdah
+            ? 'rgba(217, 119, 6, 0.55)'
+            : 'var(--border-subtle)',
+        backgroundColor:
+          highlightSajdah && !isPlayingThisAyah
+            ? 'color-mix(in srgb, var(--bg-surface) 95%, #D97706 5%)'
+            : undefined,
         boxShadow: isPlayingThisAyah
           ? '0 0 0 2px rgba(15, 118, 110, 0.22), var(--shadow-card)'
-          : 'var(--shadow-card)',
+          : highlightSajdah
+            ? '0 0 0 1px rgba(217, 119, 6, 0.18), var(--shadow-card)'
+            : 'var(--shadow-card)',
       }}
     >
       {/* Üst Bar: Sure:Ayet · Cüz · Sayfa ve Aksiyon Butonları */}
@@ -236,15 +248,18 @@ export const VerseCard: React.FC<VerseCardProps> = ({
               Hurûf-ı Mukattaa
             </span>
           )}
-          {isSajdah && settings.highlightSajdah && (
+          {highlightSajdah && (
             <span
-              className="text-[11px] font-bold px-2 py-0.5 rounded-md"
+              title="Diyanet / Hanefî standardına göre Tilâvet Secdesi ayeti"
+              className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-lg border whitespace-nowrap"
               style={{
                 backgroundColor: 'var(--brand-accent-soft)',
+                borderColor: 'rgba(217, 119, 6, 0.5)',
                 color: 'var(--brand-accent-text)',
               }}
             >
-              ۩ Tilâvet Secdesi
+              <span className="text-sm leading-none">۩</span>
+              <span>Tilâvet Secdesi</span>
             </span>
           )}
         </div>
@@ -388,6 +403,20 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             }}
           >
             {verse.ar.t}
+            {highlightSajdah && (
+              <span
+                title="Tilâvet Secdesi Ayeti"
+                aria-label="Tilâvet Secdesi Ayeti"
+                className="inline-flex items-center justify-center mx-1.5 px-1.5 py-0.5 rounded-md border text-[0.62em] font-extrabold align-middle leading-none select-none"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  borderColor: 'rgba(217, 119, 6, 0.5)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                ۩
+              </span>
+            )}
           </p>
         </div>
       )}

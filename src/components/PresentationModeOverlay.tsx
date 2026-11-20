@@ -12,10 +12,12 @@ import {
   X,
 } from 'lucide-react';
 import { audioQueueService } from '../services/audioQueueService';
+import { SAJDAH_AYAH_IDS } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type {
   AudioPlayMode,
+  BesmeleInfo,
   CombinedVerse,
   PlaybackRateOption,
   SurahMeta,
@@ -26,12 +28,22 @@ type PresentationContentMode = 'both' | 'ar' | 'meal';
 type PresentationTheme = 'dark' | 'emerald' | 'cream';
 type PresentationMealChoice = 'm1' | 'm2';
 
+const DEFAULT_BESMELE: BesmeleInfo = {
+  ayahId: 1001,
+  audioCode: '001001',
+  ar: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+  tdv: "Rahmân ve Rahîm olan Allah'ın adıyla.",
+  dib: "Rahmân ve Rahîm olan Allah'ın adıyla.",
+  excludeSurahs: [1, 9],
+};
+
 interface PresentationModeOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   verses: CombinedVerse[];
   activeVerse: CombinedVerse | null;
   surahMap: Map<number, SurahMeta>;
+  besmele?: BesmeleInfo;
   onStartAudioFromActive?: (verse: CombinedVerse) => void;
 }
 
@@ -96,6 +108,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   verses,
   activeVerse,
   surahMap,
+  besmele = DEFAULT_BESMELE,
   onStartAudioFromActive,
 }) => {
   const { settings, audioPrefs, updateAudioPrefs } = useAppStore();
@@ -225,6 +238,17 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       ? displayedVerse?.m2?.t || displayedVerse?.m1?.t || ''
       : displayedVerse?.m1?.t || displayedVerse?.m2?.t || '';
   const arabicText = displayedVerse?.ar.t || '';
+  const showBesmele = Boolean(
+    displayedVerse &&
+      displayedVerse.ayah === 1 &&
+      displayedVerse.surah !== 1 &&
+      displayedVerse.surah !== 9,
+  );
+  const isSajdah = Boolean(
+    displayedVerse &&
+      SAJDAH_AYAH_IDS.has(displayedVerse.id) &&
+      settings.highlightSajdah,
+  );
 
   // Deterministik Tek Geçişli Otomatik Punto Hesabı (DOM ölçüm/reflow olmadan)
   const fontMetrics = useMemo(() => {
@@ -232,7 +256,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     const trLen = mealText.length;
     const hFactor = clamp(viewport.h / 820, 0.72, 1.25);
     const wFactor = clamp(viewport.w / 1280, 0.68, 1.18);
-    const scale = Math.min(hFactor, wFactor);
+    const baseScale = Math.min(hFactor, wFactor);
+    const scale = showBesmele && contentMode === 'both' ? baseScale * 0.91 : baseScale;
 
     let arPx = 46;
     let arLine = 2.02;
@@ -309,8 +334,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       arLine,
       trSize: `${Math.round(clamp(trPx * scale, 14, 46))}px`,
       trLine,
+      besmeleArSize: `${Math.round(clamp(34 * baseScale, 20, 42))}px`,
+      besmeleTrSize: `${Math.round(clamp(20 * baseScale, 14, 26))}px`,
     };
-  }, [arabicText.length, mealText.length, contentMode, viewport.w, viewport.h]);
+  }, [arabicText.length, mealText.length, contentMode, viewport.w, viewport.h, showBesmele]);
 
   if (!isOpen) return null;
 
@@ -318,7 +345,15 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const isAudioRunning = audioState.status !== 'idle';
   const isPlaying = audioState.status === 'playing';
   const isLoading = audioState.status === 'loading';
+  const isAudioActiveOnVerse =
+    (isPlaying || isLoading) &&
+    displayedVerse !== null &&
+    audioState.currentAyahId === displayedVerse.id;
   const isBesmelePhase = audioState.activePhase === 'besmele';
+  const isBesmeleHighlighted = isAudioActiveOnVerse && isBesmelePhase;
+  const isArabicHighlighted = isAudioActiveOnVerse && audioState.activePhase === 'ar';
+  const isMealHighlighted = isAudioActiveOnVerse && audioState.activePhase === 'meal';
+  const besmeleTrText = mealChoice === 'm2' ? besmele.dib : besmele.tdv;
 
   const currentIdx = displayedVerse ? verses.findIndex((v) => v.id === displayedVerse.id) : -1;
   const canPrev = isAudioRunning ? audioState.canGoPrev : currentIdx > 0;
@@ -564,8 +599,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       {/* Orta Sahne: Kırpışmasız, Deterministik Ölçeklenen Geniş Ayet & Meal Alanı */}
       <main className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-12 lg:px-20 py-4 overflow-y-auto">
         {displayedVerse ? (
-          <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-5 sm:gap-7 text-center transition-opacity duration-200">
-            {/* Canlı Durum / Besmele Rozeti */}
+          <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-4 sm:gap-6 text-center transition-opacity duration-200">
+            {/* Canlı Durum / Tilâvet Secdesi / Besmele Şeridi */}
             <div className="flex items-center justify-center gap-2 flex-wrap">
               <span
                 className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-extrabold tracking-wide tabular-nums border"
@@ -578,6 +613,27 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                 {surahMeta?.nameTr ?? `Sure ${displayedVerse.surah}`} · {displayedVerse.surah}:
                 {displayedVerse.ayah}
               </span>
+
+              {isSajdah && (
+                <span
+                  className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 border shadow-sm"
+                  style={{
+                    backgroundColor:
+                      presTheme === 'cream'
+                        ? 'rgba(217, 119, 6, 0.16)'
+                        : 'rgba(251, 191, 36, 0.22)',
+                    borderColor:
+                      presTheme === 'cream'
+                        ? 'rgba(180, 83, 9, 0.45)'
+                        : 'rgba(251, 191, 36, 0.6)',
+                    color: presTheme === 'cream' ? '#92400E' : '#FDE68A',
+                  }}
+                >
+                  <span className="text-base leading-none">۩</span>
+                  <span>Tilâvet Secdesi Ayeti</span>
+                </span>
+              )}
+
               {(isPlaying || isLoading) && (
                 <span
                   className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border"
@@ -597,19 +653,89 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               )}
             </div>
 
+            {/* Sure Başı Besmelesi (1. Ayette — Fâtiha ve Tevbe hariç) */}
+            {showBesmele && (contentMode === 'both' || contentMode === 'ar') && (
+              <div
+                className="w-full max-w-3xl mx-auto rounded-2xl px-5 py-2.5 sm:py-3 border transition-all duration-200"
+                style={{
+                  backgroundColor: isBesmeleHighlighted ? palette.accentSoft : 'transparent',
+                  borderColor: isBesmeleHighlighted ? palette.accent : palette.border,
+                  boxShadow: isBesmeleHighlighted
+                    ? `0 0 0 2px ${palette.accentSoft}, 0 8px 24px -10px rgba(0,0,0,0.35)`
+                    : 'none',
+                }}
+              >
+                <p
+                  dir="rtl"
+                  lang="ar"
+                  className="arabic-text text-center leading-relaxed"
+                  style={{
+                    fontSize: fontMetrics.besmeleArSize,
+                    color: isBesmeleHighlighted ? palette.accent : palette.arabicColor,
+                  }}
+                >
+                  {besmele.ar}
+                </p>
+              </div>
+            )}
+
+            {showBesmele && contentMode === 'meal' && (
+              <div
+                className="w-full max-w-3xl mx-auto rounded-2xl px-5 py-2 border transition-all duration-200"
+                style={{
+                  backgroundColor: isBesmeleHighlighted ? palette.accentSoft : 'transparent',
+                  borderColor: isBesmeleHighlighted ? palette.accent : palette.border,
+                }}
+              >
+                <p
+                  className="turkish-reading italic font-semibold text-center"
+                  style={{
+                    fontSize: fontMetrics.besmeleTrSize,
+                    color: isBesmeleHighlighted ? palette.accent : palette.muted,
+                  }}
+                >
+                  {besmeleTrText}
+                </p>
+              </div>
+            )}
+
             {/* Arapça Metin */}
             {(contentMode === 'both' || contentMode === 'ar') && (
               <div
                 dir="rtl"
                 lang="ar"
-                className="arabic-text w-full text-center px-2 transition-opacity duration-200"
+                className={`arabic-text w-full text-center px-4 py-2 rounded-2xl border transition-all duration-200 ${
+                  isBesmeleHighlighted ? 'opacity-70' : 'opacity-100'
+                }`}
                 style={{
                   fontSize: fontMetrics.arSize,
                   lineHeight: fontMetrics.arLine,
                   color: palette.arabicColor,
+                  backgroundColor: isArabicHighlighted ? palette.accentSoft : 'transparent',
+                  borderColor: isArabicHighlighted ? palette.accent : 'transparent',
                 }}
               >
                 {displayedVerse.ar.t}
+                {isSajdah && (
+                  <span
+                    title="Tilâvet Secdesi Ayeti"
+                    className="inline-flex items-center justify-center mx-1.5 text-[0.62em] font-extrabold px-2 py-0.5 rounded-lg align-middle border"
+                    style={{
+                      backgroundColor:
+                        presTheme === 'cream'
+                          ? 'rgba(217, 119, 6, 0.16)'
+                          : 'rgba(251, 191, 36, 0.22)',
+                      borderColor:
+                        presTheme === 'cream'
+                          ? 'rgba(180, 83, 9, 0.45)'
+                          : 'rgba(251, 191, 36, 0.55)',
+                      color: presTheme === 'cream' ? '#92400E' : '#FDE68A',
+                      fontFamily: 'var(--font-turkish)',
+                    }}
+                  >
+                    ۩
+                  </span>
+                )}
                 <span
                   className="inline-flex items-center justify-center mx-2.5 text-[0.56em] font-bold tabular-nums px-2.5 py-0.5 rounded-full align-middle"
                   style={{
@@ -633,7 +759,15 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
             {/* Türkçe Meal */}
             {(contentMode === 'both' || contentMode === 'meal') && (
-              <div className="w-full max-w-4xl mx-auto transition-opacity duration-200">
+              <div
+                className={`w-full max-w-4xl mx-auto px-4 py-2.5 rounded-2xl border transition-all duration-200 ${
+                  isBesmeleHighlighted ? 'opacity-70' : 'opacity-100'
+                }`}
+                style={{
+                  backgroundColor: isMealHighlighted ? palette.accentSoft : 'transparent',
+                  borderColor: isMealHighlighted ? palette.accent : 'transparent',
+                }}
+              >
                 <p
                   className="turkish-reading font-medium text-center"
                   style={{
