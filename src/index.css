@@ -1,0 +1,228 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================================
+   9 Arapça Mushaf & Hat Yazı Tipi Tanımları (/public/fonts)
+   ============================================================================ */
+@font-face {
+  font-family: "Elif Mushaf Hattı";
+  src: url("/fonts/elfmshf.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Şeyh Hamdullah Kitap";
+  src: url("/fonts/ShaikhHamdullahBook.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Şeyh Hamdullah Klasik";
+  src: url("/fonts/ShaikhHamdullahBasic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Süleyman Feyzullah Hattı";
+  src: url("/fonts/slymnfyzlgl.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Hasenât Mushaf Hattı";
+  src: url("/fonts/hsnt.TTF") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Arakom Nesih";
+  src: url("/fonts/Arakom.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Edvâü's-Selef";
+  src: url("/fonts/adwa-assalaf.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Abdo Line Modern";
+  src: url("/fonts/AbdoLineNormal-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "WinSoft Pro";
+  src: url("/fonts/WinSoftPro-Med.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================================
+   3 Tema Renk Değişkenleri (light / cream / dark)
+   ============================================================================ */
+:root,
+[data-theme="light"] {
+  --bg-canvas: #f4f7f7;
+  --bg-surface: #ffffff;
+  --bg-surface-soft: #edf4f3;
+  --bg-surface-hover: #e5f0ee;
+  --bg-nav: rgba(255, 255, 255, 0.92);
+  --border-subtle: #dbe5e4;
+  --border-strong: #c2d4d2;
+  --text-primary: #0f201e;
+  --text-secondary: #3f5754;
+  --text-muted: #5d7471;
+  --brand-primary: #0f766e;
+  --brand-primary-hover: #0d665f;
+  --brand-primary-soft: #e6f4f2;
+  --brand-primary-text: #0f766e;
+  --brand-accent: #d97706;
+  --brand-accent-soft: #fef3c7;
+  --brand-accent-text: #b45309;
+  --state-success: #10b981;
+  --state-danger: #ef4444;
+  --shadow-card: 0 1px 2px rgba(15, 32, 30, 0.04), 0 4px 16px rgba(15, 32, 30, 0.04);
+  --font-turkish: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-arabic: "Elif Mushaf Hattı", serif;
+}
+
+[data-theme="cream"] {
+  --bg-canvas: #faf6ee;
+  --bg-surface: #fffdf8;
+  --bg-surface-soft: #f3ece0;
+  --bg-surface-hover: #ebe2d2;
+  --bg-nav: rgba(255, 253, 248, 0.94);
+  --border-subtle: #e7decb;
+  --border-strong: #d4c6ab;
+  --text-primary: #1f1b14;
+  --text-secondary: #4c4334;
+  --text-muted: #6c614f;
+  --brand-primary: #0f766e;
+  --brand-primary-hover: #0b5e57;
+  --brand-primary-soft: #e5f2ef;
+  --brand-primary-text: #0f766e;
+  --brand-accent: #d97706;
+  --brand-accent-soft: #faecd1;
+  --brand-accent-text: #a15407;
+  --state-success: #10b981;
+  --state-danger: #ef4444;
+  --shadow-card: 0 1px 2px rgba(56, 42, 20, 0.04), 0 6px 20px rgba(56, 42, 20, 0.05);
+}
+
+[data-theme="dark"],
+.dark {
+  --bg-canvas: #0b1314;
+  --bg-surface: #121e20;
+  --bg-surface-soft: #18272a;
+  --bg-surface-hover: #1f3337;
+  --bg-nav: rgba(18, 30, 32, 0.92);
+  --border-subtle: #223539;
+  --border-strong: #314b50;
+  --text-primary: #f1f6f5;
+  --text-secondary: #bfd0ce;
+  --text-muted: #8ea7a4;
+  --brand-primary: #0d9488;
+  --brand-primary-hover: #14b8a6;
+  --brand-primary-soft: rgba(13, 148, 136, 0.16);
+  --brand-primary-text: #2dd4bf;
+  --brand-accent: #f59e0b;
+  --brand-accent-soft: rgba(245, 158, 11, 0.16);
+  --brand-accent-text: #fbbf24;
+  --state-success: #10b981;
+  --state-danger: #ef4444;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+@layer base {
+  html {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-turkish);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    min-height: 100dvh;
+    transition: background-color 180ms ease, color 180ms ease;
+  }
+
+  .dark body {
+    letter-spacing: 0.008em;
+  }
+}
+
+/* Yardımcı Semantik Sınıflar */
+.surface-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+.surface-soft {
+  background-color: var(--bg-surface-soft);
+}
+
+.arabic-text {
+  font-family: var(--font-arabic), "Elif Mushaf Hattı", serif;
+  direction: rtl;
+  unicode-bidi: isolate;
+  line-height: 2.05;
+  font-feature-settings: "liga" 1, "calt" 1, "mark" 1, "mkmk" 1;
+}
+
+.turkish-reading {
+  font-family: var(--font-turkish);
+  line-height: 1.7;
+}
+
+.pb-safe {
+  padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
+}
+
+/* İnce Özel Kaydırma Çubuğu */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

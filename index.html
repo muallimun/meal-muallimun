@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="tr" data-theme="cream">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Muallimun Kur'an &amp; Meal</title>
+    <meta
+      name="description"
+      content="Gençler ve çocuklar için Kur'an-ı Kerim okuma, çift meal dinleme ve etkileşimli meal yarışması platformu."
+    />
+    <meta property="og:title" content="Muallimun Kur'an &amp; Meal" />
+    <meta
+      property="og:description"
+      content="Gençler ve çocuklar için Kur'an-ı Kerim okuma, çift meal dinleme ve etkileşimli meal yarışması platformu."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#0F766E" />
+    <link rel="icon" href="/icons/favicon.ico" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('muallimun_meal_v1');
+          var theme = 'cream';
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.settings && parsed.settings.theme) {
+              theme = parsed.settings.theme;
+            }
+          }
+          var root = document.documentElement;
+          root.setAttribute('data-theme', theme);
+          if (theme === 'dark') {
+            root.classList.add('dark');
+          } else {
+            root.classList.remove('dark');
+          }
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'cream');
+        }
+      })();
+    </script>
+  </head>
+  <body class="antialiased selection:bg-teal-600/20 selection:text-teal-900 dark:selection:text-teal-100">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
