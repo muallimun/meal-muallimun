@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
   Check,
@@ -10,14 +10,17 @@ import {
   Info,
   Languages,
   Link2,
+  Scale,
   Share2,
   Sparkles,
   Star,
   Volume2,
   X,
 } from 'lucide-react';
+import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
+import { useAppStore } from '../../store/useAppStore';
 import type {
   AppSettings,
   CombinedVerse,
@@ -74,6 +77,21 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   onShareVerse,
   onOpenSurahInfo,
 }) => {
+  const { openMealCompare } = useAppStore();
+  const verseSurah = verse?.surah;
+  const activeSurahNos = useMemo(
+    () => (verseSurah ? [verseSurah] : []),
+    [verseSurah],
+  );
+  const {
+    primaryMeal,
+    secondaryMeal,
+    isDual,
+    isLoadingExtra,
+    getPrimaryVerse,
+    getSecondaryVerse,
+  } = useActiveMeals(activeSurahNos);
+
   const panelRef = useRef<HTMLDivElement | null>(null);
   const hasDraggedRef = useRef(false);
   const dragOffsetRef = useRef<{ dx: number; dy: number } | null>(null);
@@ -230,14 +248,12 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   if (!isOpen || !verse || !surahMeta) return null;
 
   const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
-  const tdvFootnotes = verse.m1?.fn ?? [];
-  const dibFootnotes = verse.m2?.fn ?? [];
+  const primaryVerse = getPrimaryVerse(verse);
+  const secondaryVerse = isDual ? getSecondaryVerse(verse) : null;
+  const primaryFootnotes = primaryVerse?.fn ?? [];
+  const secondaryFootnotes = isDual ? (secondaryVerse?.fn ?? []) : [];
   const footnoteCount = settings.showFootnotes
-    ? settings.preferredMeal === 'm1'
-      ? tdvFootnotes.length
-      : settings.preferredMeal === 'm2'
-        ? dibFootnotes.length
-        : tdvFootnotes.length + dibFootnotes.length
+    ? primaryFootnotes.length + secondaryFootnotes.length
     : 0;
   const effectiveWordsOpen =
     settings.wordByWordEnabled && (wordMode !== 'off' || showWords);
@@ -245,11 +261,11 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   const handleCopyVerse = async () => {
     sfxService.play('click');
     const lines = [`${surahMeta.nameTr} ${verse.surah}:${verse.ayah}`, verse.ar.t];
-    if ((settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') && verse.m1?.t) {
-      lines.push(`TDV: ${verse.m1.t}`);
+    if (primaryVerse?.t) {
+      lines.push(`${primaryMeal.shortLabel}: ${primaryVerse.t}`);
     }
-    if ((settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') && verse.m2?.t) {
-      lines.push(`DİB: ${verse.m2.t}`);
+    if (isDual && secondaryVerse?.t) {
+      lines.push(`${secondaryMeal.shortLabel}: ${secondaryVerse.t}`);
     }
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
@@ -498,28 +514,28 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
             borderColor: 'var(--border-subtle)',
           }}
         >
-          {(settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') && verse.m1 && (
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+              <span
+                className="text-xs font-extrabold"
+                style={{ color: 'var(--brand-primary-text)' }}
+              >
+                {primaryMeal.label}
+              </span>
+              {primaryVerse?.mg && (
                 <span
-                  className="text-xs font-extrabold"
-                  style={{ color: 'var(--brand-primary-text)' }}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
+                  style={{
+                    backgroundColor: 'var(--brand-accent-soft)',
+                    color: 'var(--brand-accent-text)',
+                  }}
                 >
-                  Diyanet Vakfı Meali (TDV)
+                  <Link2 className="w-3 h-3" />
+                  {primaryVerse.mg[0]}–{primaryVerse.mg[1]} Birleşik
                 </span>
-                {verse.m1.mg && (
-                  <span
-                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
-                    style={{
-                      backgroundColor: 'var(--brand-accent-soft)',
-                      color: 'var(--brand-accent-text)',
-                    }}
-                  >
-                    <Link2 className="w-3 h-3" />
-                    {verse.m1.mg[0]}–{verse.m1.mg[1]} Birleşik
-                  </span>
-                )}
-              </div>
+              )}
+            </div>
+            {primaryVerse?.t ? (
               <p
                 className="turkish-reading"
                 style={{
@@ -527,28 +543,30 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
                   color: 'var(--text-primary)',
                 }}
               >
-                {verse.m1.t}
+                {primaryVerse.t}
               </p>
-            </div>
-          )}
+            ) : isLoadingExtra ? (
+              <div className="h-4 w-3/4 rounded bg-current/10 animate-pulse" />
+            ) : (
+              <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                Bu ayet için meal metni bulunamadı.
+              </p>
+            )}
+          </div>
 
-          {(settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') && verse.m2 && (
+          {isDual && (
             <div
-              className={settings.preferredMeal === 'both' ? 'pt-2.5 border-t' : undefined}
-              style={
-                settings.preferredMeal === 'both'
-                  ? { borderColor: 'var(--border-subtle)' }
-                  : undefined
-              }
+              className="pt-2.5 border-t"
+              style={{ borderColor: 'var(--border-subtle)' }}
             >
               <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
                 <span
                   className="text-xs font-extrabold"
                   style={{ color: 'var(--brand-accent-text)' }}
                 >
-                  Diyanet İşleri Meali (DİB Yeni)
+                  {secondaryMeal.label}
                 </span>
-                {verse.m2.mg && (
+                {secondaryVerse?.mg && (
                   <span
                     className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
                     style={{
@@ -557,21 +575,51 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
                     }}
                   >
                     <Link2 className="w-3 h-3" />
-                    {verse.m2.mg[0]}–{verse.m2.mg[1]} Birleşik
+                    {secondaryVerse.mg[0]}–{secondaryVerse.mg[1]} Birleşik
                   </span>
                 )}
               </div>
-              <p
-                className="turkish-reading"
-                style={{
-                  fontSize: `${Math.max(14, settings.turkishFontSize - 1)}px`,
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {verse.m2.t}
-              </p>
+              {secondaryVerse?.t ? (
+                <p
+                  className="turkish-reading"
+                  style={{
+                    fontSize: `${Math.max(14, settings.turkishFontSize - 1)}px`,
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {secondaryVerse.t}
+                </p>
+              ) : isLoadingExtra ? (
+                <div className="h-4 w-3/4 rounded bg-current/10 animate-pulse" />
+              ) : (
+                <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                  Bu ayet için karşılaştırma meali bulunamadı.
+                </p>
+              )}
             </div>
           )}
+
+          <div
+            className="pt-2 border-t flex justify-end"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openMealCompare(verse.surah, verse.ayah);
+              }}
+              className="w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--brand-primary)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <Scale className="w-3.5 h-3.5 shrink-0" />
+              <span>Tüm Mealleri Karşılaştır (24)</span>
+            </button>
+          </div>
         </div>
 
         {/* Dipnot / Tefsir Açıklaması */}
@@ -612,39 +660,37 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
                   color: 'var(--text-secondary)',
                 }}
               >
-                {(settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') &&
-                  tdvFootnotes.length > 0 && (
-                    <div className="space-y-1">
-                      <p
-                        className="text-xs font-extrabold"
-                        style={{ color: 'var(--brand-primary-text)' }}
-                      >
-                        TDV Dipnotları
-                      </p>
-                      <ol className="space-y-1 list-decimal list-inside">
-                        {tdvFootnotes.map((n, idx) => (
-                          <li key={`drag-m1-fn-${idx}`}>{n}</li>
-                        ))}
-                      </ol>
-                    </div>
-                  )}
+                {primaryFootnotes.length > 0 && (
+                  <div className="space-y-1">
+                    <p
+                      className="text-xs font-extrabold"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      {primaryMeal.shortLabel} Dipnotları
+                    </p>
+                    <ol className="space-y-1 list-decimal list-inside">
+                      {primaryFootnotes.map((n, idx) => (
+                        <li key={`drag-p-fn-${idx}`}>{n}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
 
-                {(settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') &&
-                  dibFootnotes.length > 0 && (
-                    <div className="space-y-1">
-                      <p
-                        className="text-xs font-extrabold"
-                        style={{ color: 'var(--brand-accent-text)' }}
-                      >
-                        DİB Dipnotları
-                      </p>
-                      <ol className="space-y-1 list-decimal list-inside">
-                        {dibFootnotes.map((n, idx) => (
-                          <li key={`drag-m2-fn-${idx}`}>{n}</li>
-                        ))}
-                      </ol>
-                    </div>
-                  )}
+                {isDual && secondaryFootnotes.length > 0 && (
+                  <div className="space-y-1">
+                    <p
+                      className="text-xs font-extrabold"
+                      style={{ color: 'var(--brand-accent-text)' }}
+                    >
+                      {secondaryMeal.shortLabel} Dipnotları
+                    </p>
+                    <ol className="space-y-1 list-decimal list-inside">
+                      {secondaryFootnotes.map((n, idx) => (
+                        <li key={`drag-s-fn-${idx}`}>{n}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
               </div>
             )}
           </div>

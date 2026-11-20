@@ -33,11 +33,9 @@ import {
 } from 'lucide-react';
 import { PresentationModeOverlay } from '../../components/PresentationModeOverlay';
 import { VerseShareModal } from '../../components/VerseShareModal';
-import {
-  getDynamicArabicAudioSources,
-  getDynamicMealAudioSources,
-  mealHasAudio,
-} from '../../config/assetsConfig';
+import { getDynamicMealAudioSources } from '../../config/assetsConfig';
+import { findMealById } from '../../config/mealsConfig';
+import { findReciterById } from '../../config/recitersConfig';
 import { audioQueueService } from '../../services/audioQueueService';
 import {
   dataService,
@@ -53,7 +51,6 @@ import type {
   CombinedVerse,
   PageBundle,
   PageLayoutMode,
-  PreferredMeal,
   StudyViewMode,
   SurahBundle,
   SurahMeta,
@@ -69,7 +66,7 @@ import { VerseCardsView } from './VerseCardsView';
 export const StudyPage: React.FC = () => {
   const {
     settings,
-    updateSettings,
+    setMealDisplayMode,
     studyPrefs,
     updateStudyPrefs,
     studyProgress,
@@ -87,6 +84,8 @@ export const StudyPage: React.FC = () => {
     isPresentationOpen,
     openPresentationMode,
     closePresentationMode,
+    openMealSelector,
+    openReciterSelector,
   } = useAppStore();
 
   const audioState = useSyncExternalStore(
@@ -99,7 +98,19 @@ export const StudyPage: React.FC = () => {
     [meta],
   );
   const surahMap = useMemo(() => getSurahMap(meta), [meta]);
-  const arabicAudioSources = useMemo(() => getDynamicArabicAudioSources(manifest), [manifest]);
+  const activeReciter = useMemo(
+    () => findReciterById(audioPrefs.arabicReciterId, manifest),
+    [audioPrefs.arabicReciterId, manifest],
+  );
+  const primaryMealDef = useMemo(
+    () => findMealById(settings.primaryMealId, manifest),
+    [settings.primaryMealId, manifest],
+  );
+  const secondaryMealDef = useMemo(
+    () => findMealById(settings.secondaryMealId, manifest),
+    [settings.secondaryMealId, manifest],
+  );
+  const isDualMeal = settings.mealDisplayMode === 'dual' || settings.preferredMeal === 'both';
   const mealAudioSources = useMemo(() => getDynamicMealAudioSources(manifest), [manifest]);
 
   // İlk açılış konumu: studyNavTarget > lastRead > havuzun ilk suresi > 49 (Hucurat)
@@ -396,11 +407,8 @@ export const StudyPage: React.FC = () => {
 
   const activeAyahNumber = activeSelectedVerse?.ayah ?? 1;
 
-  // Sesli meal seçiliyken seçilen mealin seslendirmesi var mı kontrol et
-  const selectedMealAudioAvailable = useMemo(() => {
-    if (settings.preferredMeal === 'both') return true;
-    return mealHasAudio(settings.preferredMeal, manifest);
-  }, [settings.preferredMeal, manifest]);
+  // Sesli meal seçiliyken seçilen ana mealin seslendirmesi var mı kontrol et
+  const selectedMealAudioAvailable = primaryMealDef.hasAudio;
 
   const handleSelectSurah = useCallback(
     (surahNo: number) => {
@@ -589,16 +597,10 @@ export const StudyPage: React.FC = () => {
 
   // Kompakt üst çubuk özet etiketi
   const filterSummaryText = useMemo(() => {
-    const mealTag =
-      settings.preferredMeal === 'both'
-        ? 'Çift Meal'
-        : settings.preferredMeal === 'm2'
-          ? 'DİB'
-          : 'TDV';
     const audioTag =
       audioPrefs.mode === 'ar' ? 'AR' : audioPrefs.mode === 'meal' ? 'Sesli Meal' : 'AR+Meal';
-    return `${mealTag} · ${audioTag}`;
-  }, [settings.preferredMeal, audioPrefs.mode]);
+    return `Filtre · ${audioTag}`;
+  }, [audioPrefs.mode]);
 
   return (
     <div className="space-y-3.5 sm:space-y-4 pb-4">
@@ -751,8 +753,28 @@ export const StudyPage: React.FC = () => {
             )}
           </div>
 
-          {/* Sağ: Hızlı Aksiyonlar (Dinle · Sunum · Favoriler · Filtreler Aç/Kapa) */}
+          {/* Sağ: Hızlı Aksiyonlar (24 Meal · Dinle · Sunum · Favoriler · Filtreler Aç/Kapa) */}
           <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => openMealSelector('primary')}
+              title={`Aktif Meal: ${primaryMealDef.label}${isDualMeal ? ` + ${secondaryMealDef.label}` : ''} (24 Meal arasından seç)`}
+              className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer max-w-[165px] sm:max-w-[205px]"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                borderColor: 'var(--brand-primary)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">
+                {isDualMeal
+                  ? `${primaryMealDef.shortLabel} + ${secondaryMealDef.shortLabel}`
+                  : primaryMealDef.shortLabel}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-75" />
+            </button>
+
             <button
               type="button"
               onClick={handleHeaderListen}
@@ -887,43 +909,72 @@ export const StudyPage: React.FC = () => {
           >
             {/* Satır A: Meal + Kelime Meali + Masaüstü Çift Sayfa + Sure Sınavı */}
             <div className="flex flex-wrap items-center justify-between gap-2">
-              {/* Meal Seçici */}
-              <div className="flex items-center gap-1.5">
+              {/* 24 Meal Seçici & Tek/Çift Meal Anahtarı */}
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
                   Meal:
                 </span>
+                <button
+                  type="button"
+                  onClick={() => openMealSelector('primary')}
+                  className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer max-w-[190px]"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--brand-primary)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{primaryMealDef.shortLabel}</span>
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                </button>
+
                 <div
                   className="flex items-center p-0.5 rounded-xl"
                   style={{ backgroundColor: 'var(--bg-surface-soft)' }}
                 >
-                  {(
-                    [
-                      { id: 'm1', label: 'TDV' },
-                      { id: 'm2', label: 'DİB' },
-                      { id: 'both', label: 'Çift Meal' },
-                    ] as { id: PreferredMeal; label: string }[]
-                  ).map((opt) => {
-                    const active = settings.preferredMeal === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          updateSettings({ preferredMeal: opt.id });
-                        }}
-                        className="min-h-[34px] px-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
-                        style={{
-                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
+                  <button
+                    type="button"
+                    onClick={() => setMealDisplayMode('single')}
+                    className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: !isDualMeal ? 'var(--bg-surface)' : 'transparent',
+                      color: !isDualMeal ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                      boxShadow: !isDualMeal ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    }}
+                  >
+                    Tek
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMealDisplayMode('dual')}
+                    className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: isDualMeal ? 'var(--bg-surface)' : 'transparent',
+                      color: isDualMeal ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                      boxShadow: isDualMeal ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    }}
+                  >
+                    Çift Meal
+                  </button>
                 </div>
+
+                {isDualMeal && (
+                  <button
+                    type="button"
+                    onClick={() => openMealSelector('secondary')}
+                    className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1 cursor-pointer max-w-[165px]"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      borderColor: 'var(--brand-accent)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                  >
+                    <span className="opacity-80">2:</span>
+                    <span className="truncate">{secondaryMealDef.shortLabel}</span>
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                  </button>
+                )}
               </div>
 
               {/* Okuma İçerik Tercihi (Mushaf & Kitap: Arapça + Meal | Sadece Arapça | Sadece Meal) */}
@@ -1151,29 +1202,27 @@ export const StudyPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Dinamik Okuyucu ve Sesli Meal Seçicileri */}
+              {/* Dinamik Okuyucu (27 Kurrâ) ve Sesli Meal Seçicileri */}
               <div className="flex items-center gap-2 flex-wrap">
-                {arabicAudioSources.length > 1 && audioPrefs.mode !== 'meal' && (
-                  <select
-                    aria-label="Arapça okuyucu seç"
-                    value={audioPrefs.arabicAudioSource}
-                    onChange={(e) => {
-                      sfxService.play('click');
-                      updateAudioPrefs({ arabicAudioSource: e.target.value });
-                    }}
-                    className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
+                {audioPrefs.mode !== 'meal' && (
+                  <button
+                    type="button"
+                    onClick={openReciterSelector}
+                    title={`Kur'an Okuyucu: ${activeReciter.label} (27 okuyucu arasından seç)`}
+                    className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer max-w-[205px]"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
                       borderColor: 'var(--border-subtle)',
                       color: 'var(--text-primary)',
                     }}
                   >
-                    {arabicAudioSources.map((src) => (
-                      <option key={src.id} value={src.id}>
-                        Tilavet: {src.shortLabel}
-                      </option>
-                    ))}
-                  </select>
+                    <Headphones
+                      className="w-3.5 h-3.5 shrink-0"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <span className="truncate">Tilavet: {activeReciter.shortLabel}</span>
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                  </button>
                 )}
 
                 {audioPrefs.mode !== 'ar' && mealAudioSources.length > 0 && (

@@ -5,6 +5,8 @@ import { IntroSplash } from './components/IntroSplash';
 import { PageBookmarksDrawer } from './components/PageBookmarksDrawer';
 import { PoolSelectorModal } from './components/PoolSelectorModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { MealCompareModal } from './components/MealCompareModal';
+import { MealSelectorModal } from './components/MealSelectorModal';
 import { ReciterSelectorModal } from './components/ReciterSelectorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ExamCenterPage } from './features/exam/ExamCenterPage';
@@ -31,6 +33,8 @@ const MainRouter: React.FC = () => {
       <PoolSelectorModal />
       <SettingsModal />
       <ReciterSelectorModal />
+      <MealSelectorModal />
+      <MealCompareModal />
       <PageBookmarksDrawer />
       <GlobalSearchModal />
       <IntroSplash />

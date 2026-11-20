@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  BookOpen,
   ChevronDown,
   Headphones,
   Loader2,
@@ -14,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { findReciterById } from '../config/recitersConfig';
+import { useActiveMeals } from '../hooks/useActiveMeals';
 import { audioQueueService } from '../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
@@ -29,7 +31,6 @@ import { formatSafeArabicTitle } from '../utils/arabicUtils';
 
 type PresentationContentMode = 'both' | 'ar' | 'meal';
 type PresentationTheme = 'dark' | 'emerald' | 'cream';
-type PresentationMealChoice = 'm1' | 'm2';
 
 const DEFAULT_BESMELE: BesmeleInfo = {
   ayahId: 1001,
@@ -121,11 +122,19 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     manifest,
     isReciterSelectorOpen,
     openReciterSelector,
+    isMealSelectorOpen,
+    openMealSelector,
   } = useAppStore();
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
   );
+
+  const visibleSurahNos = useMemo(
+    () => (isOpen ? Array.from(new Set(verses.map((v) => v.surah))) : []),
+    [isOpen, verses],
+  );
+  const { primaryMeal, getPrimaryVerse } = useActiveMeals(visibleSurahNos);
 
   const activeReciter = useMemo(
     () => findReciterById(audioPrefs.arabicReciterId, manifest),
@@ -134,9 +143,6 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
   const [contentMode, setContentMode] = useState<PresentationContentMode>('both');
   const [presTheme, setPresTheme] = useState<PresentationTheme>('emerald');
-  const [mealChoice, setMealChoice] = useState<PresentationMealChoice>(
-    settings.preferredMeal === 'm2' ? 'm2' : 'm1',
-  );
   const [manualIndex, setManualIndex] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
@@ -152,16 +158,17 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const versesLenRef = useRef(verses.length);
   const onCloseRef = useRef(onClose);
   const isReciterSelectorOpenRef = useRef(isReciterSelectorOpen);
+  const isMealSelectorOpenRef = useRef(isMealSelectorOpen);
 
   audioStatusRef.current = audioState.status;
   versesLenRef.current = verses.length;
   onCloseRef.current = onClose;
   isReciterSelectorOpenRef.current = isReciterSelectorOpen;
+  isMealSelectorOpenRef.current = isMealSelectorOpen;
 
-  // Sunum açıldığında başlangıç mealini ve aktif ayet indeksini senkronize et (sadece açılışta)
+  // Sunum açıldığında aktif ayet indeksini senkronize et (sadece açılışta)
   useEffect(() => {
     if (!isOpen) return;
-    setMealChoice(settings.preferredMeal === 'm2' ? 'm2' : 'm1');
     if (activeVerse) {
       const idx = verses.findIndex((v) => v.id === activeVerse.id);
       if (idx >= 0) setManualIndex(idx);
@@ -201,8 +208,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      // Okuyucu seçici modalı açıkken Sunum klavye kısayollarını duraklat (tam ekrandan çıkma!)
-      if (isReciterSelectorOpenRef.current) return;
+      // Okuyucu veya meal seçici modalı açıkken Sunum klavye kısayollarını duraklat (tam ekrandan çıkma!)
+      if (isReciterSelectorOpenRef.current || isMealSelectorOpenRef.current) return;
 
       if (e.key === 'Escape') {
         if (document.fullscreenElement) {
@@ -253,10 +260,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const displayedVerse = resolvedVerse ?? lastValidVerseRef.current;
 
   const surahMeta = displayedVerse ? surahMap.get(displayedVerse.surah) : undefined;
+  const resolvedPrimaryMealVerse = displayedVerse ? getPrimaryVerse(displayedVerse) : null;
   const mealText =
-    mealChoice === 'm2'
-      ? displayedVerse?.m2?.t || displayedVerse?.m1?.t || ''
-      : displayedVerse?.m1?.t || displayedVerse?.m2?.t || '';
+    resolvedPrimaryMealVerse?.t || displayedVerse?.m1?.t || displayedVerse?.m2?.t || '';
   const arabicText = displayedVerse?.ar.t || '';
   const showBesmele = Boolean(
     displayedVerse &&
@@ -373,7 +379,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const isBesmeleHighlighted = isAudioActiveOnVerse && isBesmelePhase;
   const isArabicHighlighted = isAudioActiveOnVerse && audioState.activePhase === 'ar';
   const isMealHighlighted = isAudioActiveOnVerse && audioState.activePhase === 'meal';
-  const besmeleTrText = mealChoice === 'm2' ? besmele.dib : besmele.tdv;
+  const besmeleTrText = primaryMeal.id === 'm2' ? besmele.dib : besmele.tdv;
 
   const currentIdx = displayedVerse ? verses.findIndex((v) => v.id === displayedVerse.id) : -1;
   const canPrev = isAudioRunning ? audioState.canGoPrev : currentIdx > 0;
@@ -544,38 +550,23 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             })}
           </div>
 
-          {/* Meal Seçici */}
+          {/* 24 Meal Seçici Butonu (Tam ekrandan çıkmadan MealSelectorModal açar) */}
           {contentMode !== 'ar' && (
-            <div
-              className="flex items-center p-0.5 rounded-xl border text-xs"
-              style={{ borderColor: palette.border, backgroundColor: 'rgba(0,0,0,0.14)' }}
+            <button
+              type="button"
+              onClick={() => openMealSelector('primary')}
+              title={`Aktif Meal: ${primaryMeal.label} (24 Meal arasından seç)`}
+              className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer max-w-[175px] sm:max-w-[215px]"
+              style={{
+                borderColor: palette.border,
+                backgroundColor: 'rgba(0,0,0,0.16)',
+                color: palette.text,
+              }}
             >
-              {(
-                [
-                  { id: 'm1', label: 'TDV' },
-                  { id: 'm2', label: 'DİB' },
-                ] as const
-              ).map((m) => {
-                const active = mealChoice === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setMealChoice(m.id);
-                    }}
-                    className="min-h-[32px] px-2.5 rounded-lg font-bold cursor-pointer"
-                    style={{
-                      backgroundColor: active ? palette.accentSoft : 'transparent',
-                      color: active ? palette.accent : palette.muted,
-                    }}
-                  >
-                    {m.label}
-                  </button>
-                );
-              })}
-            </div>
+              <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: palette.accent }} />
+              <span className="truncate">{primaryMeal.shortLabel}</span>
+              <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-75" />
+            </button>
           )}
 
           {/* Sunum Teması */}
@@ -824,7 +815,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   className="mt-2.5 text-xs sm:text-sm font-semibold"
                   style={{ color: palette.muted }}
                 >
-                  {mealChoice === 'm2' ? 'DİB Yeni Meali' : 'TDV Meali'}
+                  {primaryMeal.label}
                 </p>
               </div>
             )}

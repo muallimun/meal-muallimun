@@ -17,9 +17,11 @@ import {
 import type {
   ArabicSurahFile,
   CombinedVerse,
+  ExtraMealsSurahFile,
   ManifestData,
   MealKey,
   MealSurahFile,
+  MealVerse,
   MetaData,
   MushafPageSegment,
   PageBundle,
@@ -49,6 +51,31 @@ const memoryCache = new Map<string, unknown>();
 const inflightRequests = new Map<string, Promise<unknown>>();
 const surahBundleCache = new Map<string, SurahBundle>();
 
+// Tembel yüklemeli ek 22 meal (m3..m24) sure bazlı bellek önbelleği: surahNo -> mealId -> ayahNo -> MealVerse
+const extraMealsSurahMap = new Map<number, Map<string, Map<number, MealVerse>>>();
+const extraMealsRawCache = new Map<number, Record<string, MealVerse[]>>();
+const extraMealsInflight = new Map<number, Promise<Record<string, MealVerse[]>>>();
+const extraMealsListeners = new Set<() => void>();
+let extraMealsVersion = 0;
+
+function notifyExtraMealsListeners(): void {
+  extraMealsVersion += 1;
+  for (const listener of extraMealsListeners) {
+    listener();
+  }
+}
+
+export function subscribeExtraMeals(listener: () => void): () => void {
+  extraMealsListeners.add(listener);
+  return () => {
+    extraMealsListeners.delete(listener);
+  };
+}
+
+export function getExtraMealsVersion(): number {
+  return extraMealsVersion;
+}
+
 let resolvedBaseUrl: string | null = null;
 let activeSourceMode: DataSourceMode = HAS_CUSTOM_DATA_BASE_URL ? 'remote' : 'local';
 let demoMode = false;
@@ -71,6 +98,10 @@ export function enableDemoMode(): void {
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
+  extraMealsSurahMap.clear();
+  extraMealsRawCache.clear();
+  extraMealsInflight.clear();
+  notifyExtraMealsListeners();
 }
 
 export function disableDemoMode(): void {
@@ -79,12 +110,20 @@ export function disableDemoMode(): void {
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
+  extraMealsSurahMap.clear();
+  extraMealsRawCache.clear();
+  extraMealsInflight.clear();
+  notifyExtraMealsListeners();
 }
 
 export function clearDataCache(): void {
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
+  extraMealsSurahMap.clear();
+  extraMealsRawCache.clear();
+  extraMealsInflight.clear();
+  notifyExtraMealsListeners();
 }
 
 function getCandidateBaseUrls(): string[] {
@@ -231,6 +270,169 @@ export async function getMealSurah(meal: MealKey, surahNo: number): Promise<Meal
     return source[surahNo] ?? source[49];
   }
   return fetchJsonWithFallback<MealSurahFile>(`${meal}/s${padSurahNo(surahNo)}.json`);
+}
+
+function normalizeExtraMealEntry(
+  surahNo: number,
+  raw: unknown,
+  fallbackAyah?: number,
+): MealVerse | null {
+  if (typeof raw === 'string') {
+    if (!fallbackAyah) return null;
+    const t = raw.trim();
+    return {
+      id: surahNo * 1000 + fallbackAyah,
+      a: fallbackAyah,
+      t,
+      len: t.length,
+    };
+  }
+
+  if (!raw || typeof raw !== 'object') return null;
+  const obj = raw as Partial<MealVerse> & { text?: string };
+  const ayahNo =
+    typeof obj.a === 'number' && obj.a > 0
+      ? obj.a
+      : typeof obj.id === 'number' && obj.id > 0
+        ? obj.id % 1000
+        : fallbackAyah ?? 0;
+  if (!ayahNo) return null;
+
+  const text =
+    typeof obj.t === 'string'
+      ? obj.t
+      : typeof obj.text === 'string'
+        ? obj.text
+        : '';
+
+  const fn = Array.isArray(obj.fn)
+    ? obj.fn.filter((n): n is string => typeof n === 'string' && n.trim().length > 0)
+    : undefined;
+
+  const mg =
+    Array.isArray(obj.mg) &&
+    obj.mg.length === 2 &&
+    typeof obj.mg[0] === 'number' &&
+    typeof obj.mg[1] === 'number'
+      ? ([obj.mg[0], obj.mg[1]] as [number, number])
+      : undefined;
+
+  return {
+    id: typeof obj.id === 'number' ? obj.id : surahNo * 1000 + ayahNo,
+    a: ayahNo,
+    t: text,
+    len: typeof obj.len === 'number' ? obj.len : text.length,
+    ...(fn && fn.length > 0 ? { fn } : {}),
+    ...(mg ? { mg } : {}),
+  };
+}
+
+/**
+ * Bir surenin ek 22 Türkçe mealini (m3..m24) `mx/sXXX.json` dosyasından tek HTTP isteğiyle
+ * tembel olarak çeker ve bellek önbelleğinde (Map) saklar.
+ */
+export async function loadExtraMealsForSurah(
+  surahNo: number,
+): Promise<Record<string, MealVerse[]>> {
+  if (!Number.isInteger(surahNo) || surahNo < 1 || surahNo > 114) {
+    return {};
+  }
+
+  const cachedRaw = extraMealsRawCache.get(surahNo);
+  if (cachedRaw) return cachedRaw;
+
+  const inflight = extraMealsInflight.get(surahNo);
+  if (inflight) return inflight;
+
+  const promise = (async () => {
+    if (demoMode) {
+      const empty: Record<string, MealVerse[]> = {};
+      extraMealsRawCache.set(surahNo, empty);
+      extraMealsSurahMap.set(surahNo, new Map());
+      notifyExtraMealsListeners();
+      return empty;
+    }
+
+    const file = await fetchJsonWithFallback<ExtraMealsSurahFile>(
+      `mx/s${padSurahNo(surahNo)}.json`,
+    );
+
+    const normalizedRaw: Record<string, MealVerse[]> = {};
+    const mealIndexMap = new Map<string, Map<number, MealVerse>>();
+
+    const rawMeals = file?.meals ?? {};
+    for (const [mealId, entries] of Object.entries(rawMeals)) {
+      const ayahMap = new Map<number, MealVerse>();
+      const list: MealVerse[] = [];
+
+      if (Array.isArray(entries)) {
+        for (const item of entries) {
+          const parsed = normalizeExtraMealEntry(surahNo, item);
+          if (parsed) {
+            ayahMap.set(parsed.a, parsed);
+            list.push(parsed);
+          }
+        }
+      } else if (entries && typeof entries === 'object') {
+        for (const [ayahKey, item] of Object.entries(entries as Record<string, unknown>)) {
+          const ayahNo = Number.parseInt(ayahKey, 10);
+          const parsed = normalizeExtraMealEntry(
+            surahNo,
+            item,
+            Number.isFinite(ayahNo) ? ayahNo : undefined,
+          );
+          if (parsed) {
+            ayahMap.set(parsed.a, parsed);
+            list.push(parsed);
+          }
+        }
+      }
+
+      mealIndexMap.set(mealId, ayahMap);
+      normalizedRaw[mealId] = list;
+    }
+
+    extraMealsSurahMap.set(surahNo, mealIndexMap);
+    extraMealsRawCache.set(surahNo, normalizedRaw);
+    notifyExtraMealsListeners();
+    return normalizedRaw;
+  })();
+
+  extraMealsInflight.set(surahNo, promise);
+  try {
+    return await promise;
+  } finally {
+    extraMealsInflight.delete(surahNo);
+  }
+}
+
+export function hasExtraMealsLoaded(surahNo: number): boolean {
+  return extraMealsSurahMap.has(surahNo);
+}
+
+/**
+ * Seçili mealId (m1..m24) için ilgili sure ve ayetin MealVerse (t, fn, mg) kaydını döndürür.
+ * m1/m2 için önce verilen `verse` veya önbellekteki SurahBundle'ı kullanır;
+ * m3..m24 için `loadExtraMealsForSurah` ile yüklenmiş önbelleği okur.
+ */
+export function getMealVerse(
+  surahNo: number,
+  ayahNo: number,
+  mealId: string,
+  verse?: CombinedVerse | null,
+): MealVerse | null {
+  if (mealId === 'm1') {
+    if (verse?.m1) return verse.m1;
+    const cachedBundle = surahBundleCache.get(`${demoMode ? 'demo:' : ''}${surahNo}`);
+    return cachedBundle?.verses.find((v) => v.ayah === ayahNo)?.m1 ?? null;
+  }
+  if (mealId === 'm2') {
+    if (verse?.m2) return verse.m2;
+    const cachedBundle = surahBundleCache.get(`${demoMode ? 'demo:' : ''}${surahNo}`);
+    return cachedBundle?.verses.find((v) => v.ayah === ayahNo)?.m2 ?? null;
+  }
+
+  return extraMealsSurahMap.get(surahNo)?.get(mealId)?.get(ayahNo) ?? null;
 }
 
 export async function getWordsSurah(surahNo: number): Promise<WordSurahFile> {
@@ -450,6 +652,11 @@ export const dataService = {
   getQuestionIndex,
   getArabicSurah,
   getMealSurah,
+  loadExtraMealsForSurah,
+  hasExtraMealsLoaded,
+  getMealVerse,
+  subscribeExtraMeals,
+  getExtraMealsVersion,
   getWordsSurah,
   getSurahQuestions,
   getQuestionsForSurahs,

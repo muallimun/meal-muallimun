@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { ARABIC_FONTS, TURKISH_FONTS } from '../config/assetsConfig';
+import { findMealById, getAllMeals } from '../config/mealsConfig';
 import {
   findReciterById,
   formatReciterBadge,
@@ -28,7 +29,6 @@ import { useAppStore } from '../store/useAppStore';
 import type {
   BookContentMode,
   PageLayoutMode,
-  PreferredMeal,
   StudyViewMode,
   ThemeMode,
   WordMealMode,
@@ -70,12 +70,6 @@ const BOOK_CONTENT_OPTIONS: { id: BookContentMode; label: string; desc: string }
   { id: 'interleaved', label: 'Arapça + Meal', desc: 'Mushaf ve meal birlikte' },
   { id: 'ar_only', label: 'Sadece Arapça', desc: 'Odaklı Arapça okuma' },
   { id: 'meal_only', label: 'Sadece Türkçe Meal', desc: 'Mushaf çerçevesinde meal' },
-];
-
-const MEAL_OPTIONS: { id: PreferredMeal; label: string; desc: string }[] = [
-  { id: 'm1', label: 'TDV Meali', desc: 'Diyanet Vakfı' },
-  { id: 'm2', label: 'DİB Yeni', desc: 'Diyanet İşleri' },
-  { id: 'both', label: 'Çift Meal', desc: 'TDV + DİB birlikte' },
 ];
 
 const ToggleRow: React.FC<{
@@ -123,11 +117,13 @@ export const SettingsModal: React.FC = () => {
     studyPrefs,
     audioPrefs,
     updateSettings,
+    setMealDisplayMode,
     updateStudyPrefs,
     updateAudioPrefs,
     resetSettings,
     openIntroSplash,
     openReciterSelector,
+    openMealSelector,
     manifest,
   } = useAppStore();
 
@@ -137,6 +133,17 @@ export const SettingsModal: React.FC = () => {
   );
 
   const [activeTab, setActiveTab] = useState<SettingsTabId>('appearance');
+
+  const allMeals = useMemo(() => getAllMeals(manifest), [manifest]);
+  const activePrimaryMeal = useMemo(
+    () => findMealById(settings.primaryMealId, manifest),
+    [settings.primaryMealId, manifest],
+  );
+  const activeSecondaryMeal = useMemo(
+    () => findMealById(settings.secondaryMealId, manifest),
+    [settings.secondaryMealId, manifest],
+  );
+  const isDualMeal = settings.mealDisplayMode === 'dual' || settings.preferredMeal === 'both';
 
   const allReciters = useMemo(() => getAllReciters(manifest), [manifest]);
   const activeReciter = useMemo(
@@ -466,44 +473,88 @@ export const SettingsModal: React.FC = () => {
                 </p>
               </section>
 
-              {/* Tercih Edilen Meal */}
-              <section className="space-y-2">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                  Tercih Edilen Meal
-                </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {MEAL_OPTIONS.map((m) => {
-                    const active = settings.preferredMeal === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          updateSettings({ preferredMeal: m.id });
-                        }}
-                        className="p-2.5 rounded-xl border text-left cursor-pointer transition-colors"
-                        style={{
-                          backgroundColor: active
-                            ? 'var(--brand-primary-soft)'
-                            : 'var(--bg-surface-soft)',
-                          borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                        }}
-                      >
-                        <p
-                          className="text-xs sm:text-sm font-extrabold"
-                          style={{
-                            color: active ? 'var(--brand-primary-text)' : 'var(--text-primary)',
-                          }}
-                        >
-                          {m.label}
-                        </p>
-                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                          {m.desc}
-                        </p>
-                      </button>
-                    );
-                  })}
+              {/* Tercih Edilen Türkçe Meal (24 Meal Kataloğu) */}
+              <section
+                className="p-4 rounded-2xl border space-y-3"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  borderColor: 'var(--brand-primary)',
+                }}
+              >
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p
+                      className="text-[11px] font-extrabold uppercase tracking-wider"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      Tercih Edilen Türkçe Meal ({allMeals.length} Meal)
+                    </p>
+                    <p className="text-sm sm:text-base font-extrabold mt-0.5 truncate">
+                      {activePrimaryMeal.label}
+                    </p>
+                    {isDualMeal && (
+                      <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                        2. Karşılaştırma Meali: <span className="font-extrabold">{activeSecondaryMeal.label}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div
+                    className="flex items-center p-0.5 rounded-xl border"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setMealDisplayMode('single')}
+                      className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold cursor-pointer"
+                      style={{
+                        backgroundColor: !isDualMeal ? 'var(--brand-primary)' : 'transparent',
+                        color: !isDualMeal ? '#FFFFFF' : 'var(--text-secondary)',
+                      }}
+                    >
+                      Tek Meal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMealDisplayMode('dual')}
+                      className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold cursor-pointer"
+                      style={{
+                        backgroundColor: isDualMeal ? 'var(--brand-primary)' : 'transparent',
+                        color: isDualMeal ? '#FFFFFF' : 'var(--text-secondary)',
+                      }}
+                    >
+                      Çift Meal
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openMealSelector('primary')}
+                    className="flex-1 min-w-[180px] min-h-[40px] px-4 rounded-xl font-extrabold text-xs sm:text-sm text-white flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <span>Meal Değiştir ({allMeals.length} Meal)</span>
+                    <ChevronRight className="w-4 h-4 shrink-0" />
+                  </button>
+                  {isDualMeal && (
+                    <button
+                      type="button"
+                      onClick={() => openMealSelector('secondary')}
+                      className="min-h-[40px] px-3.5 rounded-xl border text-xs font-bold cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      2. Meali Değiştir
+                    </button>
+                  )}
                 </div>
               </section>
 
@@ -692,7 +743,7 @@ export const SettingsModal: React.FC = () => {
 
               <ToggleRow
                 title="Dipnotları ve Açıklamaları Göster"
-                description="TDV ve DİB meallerindeki ayet dipnotlarını okuma ekranında görüntüle."
+                description="Seçili Türkçe meallerdeki ayet dipnotlarını okuma ekranında görüntüle."
                 checked={settings.showFootnotes}
                 onToggle={() => {
                   sfxService.play('click');

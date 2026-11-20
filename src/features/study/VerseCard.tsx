@@ -9,15 +9,19 @@ import {
   Languages,
   Link2,
   MoreHorizontal,
+  Scale,
   Share2,
   Star,
   Volume2,
 } from 'lucide-react';
+import { findMealById } from '../../config/mealsConfig';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
+import { useAppStore } from '../../store/useAppStore';
 import type {
   AppSettings,
   CombinedVerse,
+  MealDefinition,
   MealVerse,
   SurahMeta,
   WordMealMode,
@@ -32,6 +36,12 @@ interface VerseCardProps {
   mealAudioFocusOnly?: boolean;
   isBookmarked: boolean;
   isPlayingThisAyah: boolean;
+  primaryMeal?: MealDefinition;
+  secondaryMeal?: MealDefinition;
+  isDual?: boolean;
+  primaryVerse?: MealVerse | null;
+  secondaryVerse?: MealVerse | null;
+  isLoadingExtra?: boolean;
   onToggleBookmark: (ayahId: number) => void;
   onPlayFromHere: (verse: CombinedVerse) => void;
   onPlayMealFromHere: (verse: CombinedVerse) => void;
@@ -46,18 +56,43 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   mealAudioFocusOnly = false,
   isBookmarked,
   isPlayingThisAyah,
+  primaryMeal,
+  secondaryMeal,
+  isDual,
+  primaryVerse,
+  secondaryVerse,
+  isLoadingExtra = false,
   onToggleBookmark,
   onPlayFromHere,
   onPlayMealFromHere,
   onShareVerse,
 }) => {
+  const { openMealCompare, manifest } = useAppStore();
   const surahNameTr = surahMeta.nameTr;
   const [localWordOverride, setLocalWordOverride] = useState<boolean | null>(null);
   const [showFootnotes, setShowFootnotes] = useState(false);
-  const [expandedMergedM1, setExpandedMergedM1] = useState(false);
-  const [expandedMergedM2, setExpandedMergedM2] = useState(false);
+  const [expandedMergedPrimary, setExpandedMergedPrimary] = useState(false);
+  const [expandedMergedSecondary, setExpandedMergedSecondary] = useState(false);
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const resolvedPrimaryMeal = primaryMeal ?? findMealById(settings.primaryMealId, manifest);
+  const resolvedSecondaryMeal = secondaryMeal ?? findMealById(settings.secondaryMealId, manifest);
+  const resolvedIsDual =
+    isDual ?? (settings.mealDisplayMode === 'dual' || settings.preferredMeal === 'both');
+  const resolvedPrimaryVerse =
+    primaryVerse !== undefined
+      ? primaryVerse
+      : resolvedPrimaryMeal.id === 'm2'
+        ? verse.m2
+        : verse.m1;
+  const resolvedSecondaryVerse = resolvedIsDual
+    ? secondaryVerse !== undefined
+      ? secondaryVerse
+      : resolvedSecondaryMeal.id === 'm1'
+        ? verse.m1
+        : verse.m2
+    : null;
 
   const isMuqattaat = Boolean(verse.ar.mq);
   const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
@@ -68,14 +103,10 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   const effectiveWordMode: Exclude<WordMealMode, 'off'> =
     globalWordMode === 'quiz' ? 'quiz' : 'visible';
 
-  const tdvFootnotes = verse.m1?.fn ?? [];
-  const dibFootnotes = verse.m2?.fn ?? [];
+  const primaryFootnotes = resolvedPrimaryVerse?.fn ?? [];
+  const secondaryFootnotes = resolvedIsDual ? (resolvedSecondaryVerse?.fn ?? []) : [];
   const totalFootnotes = settings.showFootnotes
-    ? settings.preferredMeal === 'm1'
-      ? tdvFootnotes.length
-      : settings.preferredMeal === 'm2'
-        ? dibFootnotes.length
-        : tdvFootnotes.length + dibFootnotes.length
+    ? primaryFootnotes.length + secondaryFootnotes.length
     : 0;
 
   const handleCopy = async () => {
@@ -84,11 +115,11 @@ export const VerseCard: React.FC<VerseCardProps> = ({
       `${surahNameTr} ${verse.surah}:${verse.ayah} (${verse.cuz}. Cüz · Sayfa ${verse.page})`,
       verse.ar.t,
     ];
-    if ((settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') && verse.m1?.t) {
-      parts.push(`TDV: ${verse.m1.t}`);
+    if (resolvedPrimaryVerse?.t) {
+      parts.push(`${resolvedPrimaryMeal.shortLabel}: ${resolvedPrimaryVerse.t}`);
     }
-    if ((settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') && verse.m2?.t) {
-      parts.push(`DİB: ${verse.m2.t}`);
+    if (resolvedIsDual && resolvedSecondaryVerse?.t) {
+      parts.push(`${resolvedSecondaryMeal.shortLabel}: ${resolvedSecondaryVerse.t}`);
     }
     try {
       await navigator.clipboard.writeText(parts.join('\n'));
@@ -321,6 +352,21 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 
           <button
             type="button"
+            onClick={() => {
+              sfxService.play('click');
+              openMealCompare(verse.surah, verse.ayah);
+            }}
+            title="Bu ayeti 24 farklı Türkçe mealde karşılaştır"
+            aria-label="24 mealde karşılaştır"
+            className="min-w-[40px] min-h-[40px] px-2 rounded-xl flex items-center justify-center gap-1 text-xs font-bold transition-colors cursor-pointer hover:bg-[var(--brand-primary-soft)]"
+            style={{ color: 'var(--brand-primary-text)' }}
+          >
+            <Scale className="w-4 h-4 shrink-0" />
+            <span className="hidden lg:inline whitespace-nowrap">Karşılaştır</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => onToggleBookmark(verse.id)}
             title={isBookmarked ? 'Yıldızlılardan çıkar' : 'Ayeti yıldızla'}
             aria-label={isBookmarked ? 'Yıldızlılardan çıkar' : 'Ayeti yıldızla'}
@@ -340,7 +386,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                 sfxService.play('click');
                 setMenuOpen((v) => !v);
               }}
-              title="Diğer işlemler (Paylaş / Kopyala)"
+              title="Diğer işlemler (Karşılaştır / Paylaş / Kopyala)"
               aria-label="Ayet işlem menüsü"
               aria-expanded={menuOpen}
               className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
@@ -354,12 +400,26 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 
             {menuOpen && (
               <div
-                className="absolute right-0 top-11 z-30 w-52 rounded-2xl border shadow-xl p-1.5 space-y-0.5"
+                className="absolute right-0 top-11 z-30 w-56 rounded-2xl border shadow-xl p-1.5 space-y-0.5"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-strong)',
                 }}
               >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    sfxService.play('click');
+                    openMealCompare(verse.surah, verse.ayah);
+                  }}
+                  className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <Scale className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
+                  <span>Mealleri Karşılaştır (24)</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -439,27 +499,47 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         </div>
       )}
 
-      {/* TDV / DİB / Çift Meal */}
+      {/* Seçili Meal / Çift Meal (24 Meal Desteği) */}
       <div className="space-y-3.5">
-        {(settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') &&
+        {resolvedPrimaryVerse ? (
           renderMealBlock(
-            verse.m1,
-            'Diyanet Vakfı Meali (TDV)',
+            resolvedPrimaryVerse,
+            resolvedPrimaryMeal.label,
             'var(--brand-primary-text)',
-            expandedMergedM1,
-            () => setExpandedMergedM1((v) => !v),
+            expandedMergedPrimary,
+            () => setExpandedMergedPrimary((v) => !v),
             false,
-          )}
+          )
+        ) : isLoadingExtra ? (
+          <div className="space-y-1.5">
+            <span className="text-xs font-bold" style={{ color: 'var(--brand-primary-text)' }}>
+              {resolvedPrimaryMeal.label}
+            </span>
+            <div className="h-4 w-5/6 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+          </div>
+        ) : null}
 
-        {(settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') &&
-          renderMealBlock(
-            verse.m2,
-            'Diyanet İşleri Meali (DİB Yeni)',
-            'var(--brand-accent-text)',
-            expandedMergedM2,
-            () => setExpandedMergedM2((v) => !v),
-            settings.preferredMeal === 'both',
-          )}
+        {resolvedIsDual &&
+          (resolvedSecondaryVerse ? (
+            renderMealBlock(
+              resolvedSecondaryVerse,
+              resolvedSecondaryMeal.label,
+              'var(--brand-accent-text)',
+              expandedMergedSecondary,
+              () => setExpandedMergedSecondary((v) => !v),
+              true,
+            )
+          ) : isLoadingExtra ? (
+            <div
+              className="pt-3.5 border-t space-y-1.5"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <span className="text-xs font-bold" style={{ color: 'var(--brand-accent-text)' }}>
+                {resolvedSecondaryMeal.label}
+              </span>
+              <div className="h-4 w-5/6 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+            </div>
+          ) : null)}
       </div>
 
       {/* Dipnotlar (fn) Akordeonu */}
@@ -500,50 +580,48 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                 color: 'var(--text-secondary)',
               }}
             >
-              {(settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') &&
-                tdvFootnotes.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p
-                      className="text-xs font-extrabold"
-                      style={{ color: 'var(--brand-primary-text)' }}
-                    >
-                      TDV Meali Dipnotları
-                    </p>
-                    <ol className="space-y-1.5 list-decimal list-inside">
-                      {tdvFootnotes.map((note, idx) => (
-                        <li key={`tdv-${idx}`} className="turkish-reading">
-                          {note}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-
-              {(settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') &&
-                dibFootnotes.length > 0 && (
-                  <div
-                    className={
-                      settings.preferredMeal === 'both' && tdvFootnotes.length > 0
-                        ? 'pt-3 border-t space-y-1.5'
-                        : 'space-y-1.5'
-                    }
-                    style={{ borderColor: 'var(--border-subtle)' }}
+              {primaryFootnotes.length > 0 && (
+                <div className="space-y-1.5">
+                  <p
+                    className="text-xs font-extrabold"
+                    style={{ color: 'var(--brand-primary-text)' }}
                   >
-                    <p
-                      className="text-xs font-extrabold"
-                      style={{ color: 'var(--brand-accent-text)' }}
-                    >
-                      DİB Yeni Meal Dipnotları
-                    </p>
-                    <ol className="space-y-1.5 list-decimal list-inside">
-                      {dibFootnotes.map((note, idx) => (
-                        <li key={`dib-${idx}`} className="turkish-reading">
-                          {note}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
+                    {resolvedPrimaryMeal.label} Dipnotları
+                  </p>
+                  <ol className="space-y-1.5 list-decimal list-inside">
+                    {primaryFootnotes.map((note, idx) => (
+                      <li key={`p-fn-${idx}`} className="turkish-reading">
+                        {note}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {resolvedIsDual && secondaryFootnotes.length > 0 && (
+                <div
+                  className={
+                    primaryFootnotes.length > 0
+                      ? 'pt-3 border-t space-y-1.5'
+                      : 'space-y-1.5'
+                  }
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
+                  <p
+                    className="text-xs font-extrabold"
+                    style={{ color: 'var(--brand-accent-text)' }}
+                  >
+                    {resolvedSecondaryMeal.label} Dipnotları
+                  </p>
+                  <ol className="space-y-1.5 list-decimal list-inside">
+                    {secondaryFootnotes.map((note, idx) => (
+                      <li key={`s-fn-${idx}`} className="turkish-reading">
+                        {note}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
             </div>
           )}
         </div>

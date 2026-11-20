@@ -12,6 +12,12 @@ import {
   resolveArabicFontFamily,
   resolveTurkishFontStack,
 } from '../config/assetsConfig';
+import {
+  DEFAULT_FAVORITE_MEAL_IDS,
+  DEFAULT_PRIMARY_MEAL_ID,
+  DEFAULT_SECONDARY_MEAL_ID,
+  findMealById,
+} from '../config/mealsConfig';
 import { dataService, type DataSourceMode } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import type {
@@ -23,6 +29,8 @@ import type {
   GamificationState,
   LastReadPosition,
   ManifestData,
+  MealDisplayMode,
+  MealKey,
   MetaData,
   NavTab,
   PageBookmark,
@@ -56,6 +64,11 @@ export const SIDEBAR_COLLAPSED_KEY = 'muallimun_sidebar_collapsed_v1';
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'cream',
   preferredMeal: 'm1',
+  primaryMealId: DEFAULT_PRIMARY_MEAL_ID,
+  secondaryMealId: DEFAULT_SECONDARY_MEAL_ID,
+  mealDisplayMode: 'single',
+  favoriteMealIds: [...DEFAULT_FAVORITE_MEAL_IDS],
+  compareMealIds: [],
   arabicFont: ARABIC_FONTS[0].label, // 'Elif Mushaf Hattı'
   turkishFont: TURKISH_FONTS[0].label, // 'Plus Jakarta Sans'
   arabicFontSize: 28,
@@ -190,6 +203,61 @@ function hydrateState(): PersistedAppState {
       ? (rawSettings.turkishFont as string)
       : DEFAULT_SETTINGS.turkishFont;
 
+    const hydratedLegacyMeal: MealKey | 'both' =
+      rawSettings.preferredMeal === 'm1' ||
+      rawSettings.preferredMeal === 'm2' ||
+      rawSettings.preferredMeal === 'both'
+        ? rawSettings.preferredMeal
+        : DEFAULT_SETTINGS.preferredMeal;
+
+    const hydratedPrimaryMealId =
+      typeof rawSettings.primaryMealId === 'string' && rawSettings.primaryMealId.trim()
+        ? rawSettings.primaryMealId.trim()
+        : hydratedLegacyMeal === 'm2'
+          ? 'm2'
+          : DEFAULT_PRIMARY_MEAL_ID;
+
+    const hydratedSecondaryMealId =
+      typeof rawSettings.secondaryMealId === 'string' && rawSettings.secondaryMealId.trim()
+        ? rawSettings.secondaryMealId.trim()
+        : hydratedPrimaryMealId === 'm2'
+          ? 'm1'
+          : DEFAULT_SECONDARY_MEAL_ID;
+
+    const hydratedMealDisplayMode: MealDisplayMode =
+      rawSettings.mealDisplayMode === 'single' || rawSettings.mealDisplayMode === 'dual'
+        ? rawSettings.mealDisplayMode
+        : hydratedLegacyMeal === 'both'
+          ? 'dual'
+          : 'single';
+
+    const hydratedFavoriteMealIds = Array.isArray(rawSettings.favoriteMealIds)
+      ? Array.from(
+          new Set(
+            rawSettings.favoriteMealIds.filter(
+              (id): id is string => typeof id === 'string' && id.trim().length > 0,
+            ),
+          ),
+        )
+      : [...DEFAULT_FAVORITE_MEAL_IDS];
+
+    const hydratedCompareMealIds = Array.isArray(rawSettings.compareMealIds)
+      ? Array.from(
+          new Set(
+            rawSettings.compareMealIds.filter(
+              (id): id is string => typeof id === 'string' && id.trim().length > 0,
+            ),
+          ),
+        )
+      : [];
+
+    const syncedPreferredMeal: MealKey | 'both' =
+      hydratedMealDisplayMode === 'dual'
+        ? 'both'
+        : hydratedPrimaryMealId === 'm2'
+          ? 'm2'
+          : 'm1';
+
     const settings: AppSettings = {
       theme:
         rawSettings.theme === 'light' ||
@@ -197,12 +265,12 @@ function hydrateState(): PersistedAppState {
         rawSettings.theme === 'dark'
           ? rawSettings.theme
           : DEFAULT_SETTINGS.theme,
-      preferredMeal:
-        rawSettings.preferredMeal === 'm1' ||
-        rawSettings.preferredMeal === 'm2' ||
-        rawSettings.preferredMeal === 'both'
-          ? rawSettings.preferredMeal
-          : DEFAULT_SETTINGS.preferredMeal,
+      preferredMeal: syncedPreferredMeal,
+      primaryMealId: hydratedPrimaryMealId,
+      secondaryMealId: hydratedSecondaryMealId,
+      mealDisplayMode: hydratedMealDisplayMode,
+      favoriteMealIds: hydratedFavoriteMealIds,
+      compareMealIds: hydratedCompareMealIds,
       arabicFont: validArabicFont,
       turkishFont: validTurkishFont,
       arabicFontSize: clamp(
@@ -613,6 +681,11 @@ interface AppContextValue {
 
   // Güncelleyiciler
   updateSettings: (patch: Partial<AppSettings>) => void;
+  setPrimaryMeal: (mealId: string) => void;
+  setSecondaryMeal: (mealId: string) => void;
+  setMealDisplayMode: (mode: MealDisplayMode) => void;
+  toggleFavoriteMeal: (mealId: string) => void;
+  setCompareMealIds: (ids: string[]) => void;
   resetSettings: () => void;
   setStudyPool: (next: { selectedSurahs: number[]; selectedJuzs: number[] }) => void;
   updateStudyPrefs: (patch: Partial<StudyPrefs>) => void;
@@ -665,6 +738,13 @@ interface AppContextValue {
   isReciterSelectorOpen: boolean;
   openReciterSelector: () => void;
   closeReciterSelector: () => void;
+  isMealSelectorOpen: boolean;
+  mealSelectorTarget: 'primary' | 'secondary';
+  openMealSelector: (target?: 'primary' | 'secondary') => void;
+  closeMealSelector: () => void;
+  compareTarget: { surah: number; ayah: number } | null;
+  openMealCompare: (surah: number, ayah: number) => void;
+  closeMealCompare: () => void;
   isBookmarksDrawerOpen: boolean;
   openBookmarksDrawer: () => void;
   closeBookmarksDrawer: () => void;
@@ -730,6 +810,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isReciterSelectorOpen, setIsReciterSelectorOpen] = useState(false);
+  const [isMealSelectorOpen, setIsMealSelectorOpen] = useState(false);
+  const [mealSelectorTarget, setMealSelectorTarget] = useState<'primary' | 'secondary'>('primary');
+  const [compareTarget, setCompareTarget] = useState<{ surah: number; ayah: number } | null>(null);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [introDismissed, setIntroDismissed] = useState<boolean>(() => readIntroDismissed());
@@ -878,11 +961,136 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [reloadTick]);
 
   const updateSettings = useCallback((patch: Partial<AppSettings>) => {
+    setPersisted((prev) => {
+      let nextPrimary = patch.primaryMealId ?? prev.settings.primaryMealId;
+      let nextSecondary = patch.secondaryMealId ?? prev.settings.secondaryMealId;
+      let nextDisplayMode: MealDisplayMode = patch.mealDisplayMode ?? prev.settings.mealDisplayMode;
+
+      // Eski preferredMeal çağrılarıyla tam geriye dönük uyum
+      if (patch.preferredMeal !== undefined && patch.primaryMealId === undefined && patch.mealDisplayMode === undefined) {
+        if (patch.preferredMeal === 'both') {
+          nextDisplayMode = 'dual';
+        } else {
+          nextDisplayMode = 'single';
+          nextPrimary = patch.preferredMeal;
+          if (nextSecondary === nextPrimary) {
+            nextSecondary = nextPrimary === 'm1' ? 'm2' : 'm1';
+          }
+        }
+      }
+
+      const nextPreferredMeal: MealKey | 'both' =
+        nextDisplayMode === 'dual' ? 'both' : nextPrimary === 'm2' ? 'm2' : 'm1';
+
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          ...patch,
+          primaryMealId: nextPrimary,
+          secondaryMealId: nextSecondary,
+          mealDisplayMode: nextDisplayMode,
+          preferredMeal: nextPreferredMeal,
+        },
+      };
+    });
+  }, []);
+
+  const setPrimaryMeal = useCallback(
+    (mealId: string) => {
+      const cleanId = mealId.trim();
+      if (!cleanId) return;
+      sfxService.play('click');
+      const mealDef = findMealById(cleanId, manifest);
+      setPersisted((prev) => {
+        const nextSecondary =
+          prev.settings.secondaryMealId === cleanId
+            ? cleanId === 'm1'
+              ? 'm2'
+              : 'm1'
+            : prev.settings.secondaryMealId;
+        const nextPreferredMeal: MealKey | 'both' =
+          prev.settings.mealDisplayMode === 'dual'
+            ? 'both'
+            : cleanId === 'm2'
+              ? 'm2'
+              : 'm1';
+
+        // Sesli bir meal seçildiyse sesli meal kaynağını otomatik eşleştir;
+        // seslendirmesiz meal seçildiyse mevcut sesli meal kaynağını (TDV/DİB) koru!
+        const nextAudioPrefs =
+          mealDef.hasAudio && mealDef.audioSource
+            ? { ...prev.audioPrefs, mealAudioSource: mealDef.audioSource }
+            : prev.audioPrefs;
+
+        return {
+          ...prev,
+          settings: {
+            ...prev.settings,
+            primaryMealId: cleanId,
+            secondaryMealId: nextSecondary,
+            preferredMeal: nextPreferredMeal,
+          },
+          audioPrefs: nextAudioPrefs,
+        };
+      });
+    },
+    [manifest],
+  );
+
+  const setSecondaryMeal = useCallback((mealId: string) => {
+    const cleanId = mealId.trim();
+    if (!cleanId) return;
+    sfxService.play('click');
     setPersisted((prev) => ({
       ...prev,
       settings: {
         ...prev.settings,
-        ...patch,
+        secondaryMealId: cleanId,
+      },
+    }));
+  }, []);
+
+  const setMealDisplayMode = useCallback((mode: MealDisplayMode) => {
+    sfxService.play('click');
+    setPersisted((prev) => {
+      const nextPreferredMeal: MealKey | 'both' =
+        mode === 'dual' ? 'both' : prev.settings.primaryMealId === 'm2' ? 'm2' : 'm1';
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          mealDisplayMode: mode,
+          preferredMeal: nextPreferredMeal,
+        },
+      };
+    });
+  }, []);
+
+  const toggleFavoriteMeal = useCallback((mealId: string) => {
+    const cleanId = mealId.trim();
+    if (!cleanId) return;
+    sfxService.play('click');
+    setPersisted((prev) => {
+      const current = prev.settings.favoriteMealIds ?? [];
+      const exists = current.includes(cleanId);
+      const next = exists ? current.filter((id) => id !== cleanId) : [cleanId, ...current];
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          favoriteMealIds: next,
+        },
+      };
+    });
+  }, []);
+
+  const setCompareMealIds = useCallback((ids: string[]) => {
+    setPersisted((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        compareMealIds: Array.from(new Set(ids)),
       },
     }));
   }, []);
@@ -1405,6 +1613,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsReciterSelectorOpen(false);
   }, []);
 
+  const openMealSelector = useCallback((target: 'primary' | 'secondary' = 'primary') => {
+    sfxService.play('click');
+    setMealSelectorTarget(target);
+    setIsMealSelectorOpen(true);
+  }, []);
+
+  const closeMealSelector = useCallback(() => {
+    setIsMealSelectorOpen(false);
+  }, []);
+
+  const openMealCompare = useCallback((surah: number, ayah: number) => {
+    sfxService.play('click');
+    setCompareTarget({ surah, ayah });
+  }, []);
+
+  const closeMealCompare = useCallback(() => {
+    setCompareTarget(null);
+  }, []);
+
   const openBookmarksDrawer = useCallback(() => {
     sfxService.play('click');
     setIsBookmarksDrawerOpen(true);
@@ -1486,6 +1713,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       gamification: persisted.gamification,
       questionAudit: persisted.questionAudit,
       updateSettings,
+      setPrimaryMeal,
+      setSecondaryMeal,
+      setMealDisplayMode,
+      toggleFavoriteMeal,
+      setCompareMealIds,
       resetSettings,
       setStudyPool,
       updateStudyPrefs,
@@ -1530,6 +1762,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isReciterSelectorOpen,
       openReciterSelector,
       closeReciterSelector,
+      isMealSelectorOpen,
+      mealSelectorTarget,
+      openMealSelector,
+      closeMealSelector,
+      compareTarget,
+      openMealCompare,
+      closeMealCompare,
       isBookmarksDrawerOpen,
       openBookmarksDrawer,
       closeBookmarksDrawer,
@@ -1564,6 +1803,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       persisted.gamification,
       persisted.questionAudit,
       updateSettings,
+      setPrimaryMeal,
+      setSecondaryMeal,
+      setMealDisplayMode,
+      toggleFavoriteMeal,
+      setCompareMealIds,
       resetSettings,
       setStudyPool,
       updateStudyPrefs,
@@ -1607,6 +1851,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isReciterSelectorOpen,
       openReciterSelector,
       closeReciterSelector,
+      isMealSelectorOpen,
+      mealSelectorTarget,
+      openMealSelector,
+      closeMealSelector,
+      compareTarget,
+      openMealCompare,
+      closeMealCompare,
       isBookmarksDrawerOpen,
       openBookmarksDrawer,
       closeBookmarksDrawer,

@@ -13,11 +13,13 @@ import {
   Link2,
   MoreHorizontal,
   Play,
+  Scale,
   Share2,
   Square,
   Star,
   Volume2,
 } from 'lucide-react';
+import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -68,7 +70,18 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     updateStudyPrefs,
     toggleBookmarkAyah,
     moveHatimBookmark,
+    openMealCompare,
   } = useAppStore();
+
+  const bookSurahNos = useMemo(() => [bundle.surahMeta.no], [bundle.surahMeta.no]);
+  const {
+    primaryMeal,
+    secondaryMeal,
+    isDual,
+    isLoadingExtra,
+    getPrimaryVerse,
+    getSecondaryVerse,
+  } = useActiveMeals(bookSurahNos);
 
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [selectedArabicAyahId, setSelectedArabicAyahId] = useState<number | null>(null);
@@ -102,25 +115,28 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     return map;
   }, [bundle.verses]);
 
-  const showM1 = settings.preferredMeal === 'm1' || settings.preferredMeal === 'both';
-  const showM2 = settings.preferredMeal === 'm2' || settings.preferredMeal === 'both';
-
   const selectedArabicVerse = useMemo(
     () => bundle.verses.find((v) => v.id === selectedArabicAyahId) ?? null,
     [bundle.verses, selectedArabicAyahId],
   );
 
   const handleCopyVerse = async (verse: CombinedVerse) => {
-    const mealText =
-      settings.preferredMeal === 'm2'
-        ? verse.m2?.t || verse.m1?.t || ''
-        : verse.m1?.t || verse.m2?.t || '';
+    const pVerse = getPrimaryVerse(verse);
+    const sVerse = isDual ? getSecondaryVerse(verse) : null;
+    const mealLines: string[] = [];
+    if (pVerse?.t) {
+      mealLines.push(isDual ? `${primaryMeal.shortLabel}: ${pVerse.t}` : pVerse.t);
+    }
+    if (isDual && sVerse?.t) {
+      mealLines.push(`${secondaryMeal.shortLabel}: ${sVerse.t}`);
+    }
+    const mealText = mealLines.join('\n') || verse.m1?.t || verse.m2?.t || '';
     const text =
       bookMode === 'ar_only'
         ? `${verse.ar.t}\n— ${bundle.surahMeta.nameTr} Suresi, ${verse.ayah}. Ayet`
         : bookMode === 'meal_only'
-          ? `${mealText}\n— ${bundle.surahMeta.nameTr} Suresi, ${verse.ayah}. Ayet`
-          : `${verse.ar.t}\n\n${mealText}\n— ${bundle.surahMeta.nameTr} Suresi, ${verse.ayah}. Ayet`;
+          ? `${mealText}\n— ${bundle.surahMeta.nameTr} Suresi, ${verse.ayah}. Ayet (${primaryMeal.shortLabel})`
+          : `${verse.ar.t}\n\n${mealText}\n— ${bundle.surahMeta.nameTr} Suresi, ${verse.ayah}. Ayet (${primaryMeal.shortLabel})`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -178,7 +194,20 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
         </button>
 
         {isMenuOpen && (
-          <div className="absolute right-0 top-10 z-30 w-52 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-strong)] shadow-xl p-1.5 space-y-0.5">
+          <div className="absolute right-0 top-10 z-30 w-56 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-strong)] shadow-xl p-1.5 space-y-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setOpenMenuAyahId(null);
+                sfxService.play('click');
+                openMealCompare(verse.surah, verse.ayah);
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
+            >
+              <Scale className="w-4 h-4 text-[var(--brand-primary-text)]" />
+              <span>Mealleri Karşılaştır (24)</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -581,6 +610,18 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                       <Share2 className="w-3.5 h-3.5 text-[var(--brand-accent-text)]" />
                       <span>Paylaş Kartı</span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        openMealCompare(selectedArabicVerse.surah, selectedArabicVerse.ayah);
+                      }}
+                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface-soft)] border border-[var(--brand-primary)]/40 text-[var(--brand-primary-text)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Scale className="w-3.5 h-3.5" />
+                      <span>Mealleri Karşılaştır (24)</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -597,13 +638,18 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               {visibleVerses.map((verse) => {
                 const isPlaying = playingAyahId === verse.id;
                 const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
+                const primaryVerse = getPrimaryVerse(verse);
+                const secondaryVerse = isDual ? getSecondaryVerse(verse) : null;
                 const fnList = settings.showFootnotes
                   ? [
-                      ...(showM1 && verse.m1?.fn
-                        ? verse.m1.fn.map((t) => ({ src: 'TDV', text: t }))
+                      ...(primaryVerse?.fn
+                        ? primaryVerse.fn.map((t) => ({ src: primaryMeal.shortLabel, text: t }))
                         : []),
-                      ...(showM2 && verse.m2?.fn
-                        ? verse.m2.fn.map((t) => ({ src: 'DİB', text: t }))
+                      ...(isDual && secondaryVerse?.fn
+                        ? secondaryVerse.fn.map((t) => ({
+                            src: secondaryMeal.shortLabel,
+                            text: t,
+                          }))
                         : []),
                     ]
                   : [];
@@ -664,10 +710,10 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           </span>
                         )}
 
-                        {verse.m1?.mg && showM1 && (
+                        {primaryVerse?.mg && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[var(--bg-surface-soft)] text-[var(--text-muted)]">
                             <Link2 className="w-3 h-3" />
-                            TDV {verse.m1.mg[0]}–{verse.m1.mg[1]}
+                            {primaryMeal.shortLabel} {primaryVerse.mg[0]}–{primaryVerse.mg[1]}
                           </span>
                         )}
                       </div>
@@ -702,41 +748,39 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 
                     {/* Türkçe Meal Bloğu */}
                     <div className="space-y-2.5">
-                      {showM1 && verse.m1 && (
-                        <div className="space-y-1">
-                          {settings.preferredMeal === 'both' && (
-                            <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-[var(--brand-primary-text)]">
-                              TDV Meali
-                            </span>
-                          )}
+                      <div className="space-y-1">
+                        {(isDual || primaryMeal.id !== 'm1') && (
+                          <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-[var(--brand-primary-text)]">
+                            {primaryMeal.label}
+                          </span>
+                        )}
+                        {primaryVerse?.t ? (
                           <p
                             className="turkish-reading text-[var(--text-primary)]"
                             style={{ fontSize: `${settings.turkishFontSize}px` }}
                           >
-                            {verse.m1.t}
+                            {primaryVerse.t}
                           </p>
-                        </div>
-                      )}
+                        ) : isLoadingExtra ? (
+                          <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                        ) : null}
+                      </div>
 
-                      {showM2 && verse.m2 && (
-                        <div
-                          className={`space-y-1 ${
-                            settings.preferredMeal === 'both'
-                              ? 'pt-2 border-t border-dashed border-[var(--border-subtle)]'
-                              : ''
-                          }`}
-                        >
-                          {settings.preferredMeal === 'both' && (
-                            <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-[var(--brand-accent-text)]">
-                              DİB Meali
-                            </span>
-                          )}
-                          <p
-                            className="turkish-reading text-[var(--text-primary)]"
-                            style={{ fontSize: `${settings.turkishFontSize}px` }}
-                          >
-                            {verse.m2.t}
-                          </p>
+                      {isDual && (
+                        <div className="space-y-1 pt-2 border-t border-dashed border-[var(--border-subtle)]">
+                          <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-[var(--brand-accent-text)]">
+                            {secondaryMeal.label}
+                          </span>
+                          {secondaryVerse?.t ? (
+                            <p
+                              className="turkish-reading text-[var(--text-primary)]"
+                              style={{ fontSize: `${settings.turkishFontSize}px` }}
+                            >
+                              {secondaryVerse.t}
+                            </p>
+                          ) : isLoadingExtra ? (
+                            <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                          ) : null}
                         </div>
                       )}
                     </div>

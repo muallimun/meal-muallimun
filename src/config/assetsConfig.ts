@@ -1,4 +1,5 @@
 import type { ManifestData, ReciterFilePattern } from '../types/quran';
+import { getAllMeals } from './mealsConfig';
 import { getAllReciters } from './recitersConfig';
 
 export const LIVE_ASSETS_ORIGIN = 'https://meal-muallimun.vercel.app';
@@ -289,14 +290,6 @@ function inferArchiveFallbackUrl(baseUrl: string, id: string): string | undefine
   return undefined;
 }
 
-function extractShortMealLabel(id: string, label: string): string {
-  if (id === 'm1') return 'TDV';
-  if (id === 'm2') return 'DİB';
-  const parenMatch = label.match(/\(([^)]{2,12})\)/);
-  if (parenMatch) return parenMatch[1];
-  return label.split(' ').slice(0, 2).join(' ');
-}
-
 function extractReciterName(label: string): string {
   const parenMatch = label.match(/\(([^)]+)\)/);
   if (parenMatch && parenMatch[1] && !/hatim/i.test(parenMatch[1])) {
@@ -357,30 +350,16 @@ export function getDynamicMealAudioSources(
 export function getDynamicMealDefinitions(
   manifest: ManifestData | null,
 ): ResolvedMealDefinition[] {
-  if (!manifest?.meals) return [...DEFAULT_MEAL_DEFINITIONS];
+  const catalog = getAllMeals(manifest);
+  if (catalog.length === 0) return [...DEFAULT_MEAL_DEFINITIONS];
 
-  const audioMap = manifest.audioSources ?? {};
-  const list: ResolvedMealDefinition[] = [];
-
-  for (const [key, info] of Object.entries(manifest.meals)) {
-    if (!info) continue;
-    const rawAudioKey = info.audioSourceKey ?? info.audioSource ?? null;
-    const matchedAudio = rawAudioKey ? audioMap[rawAudioKey] : undefined;
-    const hasValidAudio =
-      info.hasAudio === false
-        ? false
-        : Boolean(rawAudioKey && matchedAudio && matchedAudio.baseUrl?.trim());
-
-    list.push({
-      id: info.id || key,
-      label: info.label,
-      shortLabel: info.shortLabel || extractShortMealLabel(info.id || key, info.label),
-      hasAudio: hasValidAudio,
-      audioSourceKey: hasValidAudio ? rawAudioKey : null,
-    });
-  }
-
-  return list.length > 0 ? list : [...DEFAULT_MEAL_DEFINITIONS];
+  return catalog.map((m) => ({
+    id: m.id,
+    label: m.label,
+    shortLabel: m.shortLabel,
+    hasAudio: m.hasAudio,
+    audioSourceKey: m.audioSource,
+  }));
 }
 
 export function resolveAudioSourceForMeal(

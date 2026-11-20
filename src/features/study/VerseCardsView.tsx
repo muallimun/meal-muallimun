@@ -7,6 +7,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
+import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { sfxService } from '../../services/sfxService';
 import type {
   AppSettings,
@@ -59,6 +60,15 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   onOpenPageInMushaf,
 }) => {
   const { surahMeta, verses, hasBesmele } = surahBundle;
+  const surahNos = useMemo(() => [surahMeta.no], [surahMeta.no]);
+  const {
+    primaryMeal,
+    secondaryMeal,
+    isDual,
+    isLoadingExtra,
+    getPrimaryVerse,
+    getSecondaryVerse,
+  } = useActiveMeals(surahNos);
 
   const [introOpen, setIntroOpen] = useState(false);
   const [introTab, setIntroTab] = useState<IntroTabKey>('hakkinda');
@@ -97,10 +107,12 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
 
     for (const v of verses) {
       if (bookmarkedSet.has(v.id)) bookmarked += 1;
+      const pVerse = getPrimaryVerse(v);
+      const sVerse = isDual ? getSecondaryVerse(v) : null;
       const hasFn =
-        (v.m1?.fn && v.m1.fn.length > 0) || (v.m2?.fn && v.m2.fn.length > 0);
+        (pVerse?.fn && pVerse.fn.length > 0) || (sVerse?.fn && sVerse.fn.length > 0);
       if (hasFn) footnotes += 1;
-      if (v.m1?.mg || v.m2?.mg) merged += 1;
+      if (pVerse?.mg || sVerse?.mg) merged += 1;
     }
 
     return {
@@ -109,27 +121,29 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
       footnotes,
       merged,
     };
-  }, [verses, bookmarkedSet]);
+  }, [verses, bookmarkedSet, getPrimaryVerse, getSecondaryVerse, isDual]);
 
   const filteredVerses = useMemo(() => {
     const norm = normalizeTurkish(searchQuery);
 
     return verses.filter((v) => {
+      const pVerse = getPrimaryVerse(v);
+      const sVerse = isDual ? getSecondaryVerse(v) : null;
       if (filterMode === 'bookmarked' && !bookmarkedSet.has(v.id)) return false;
       if (filterMode === 'footnotes') {
         const hasFn =
-          (v.m1?.fn && v.m1.fn.length > 0) || (v.m2?.fn && v.m2.fn.length > 0);
+          (pVerse?.fn && pVerse.fn.length > 0) || (sVerse?.fn && sVerse.fn.length > 0);
         if (!hasFn) return false;
       }
-      if (filterMode === 'merged' && !v.m1?.mg && !v.m2?.mg) return false;
+      if (filterMode === 'merged' && !pVerse?.mg && !sVerse?.mg) return false;
 
       if (!norm) return true;
       const haystack = normalizeTurkish(
-        `${v.ayah} ${v.m1?.t ?? ''} ${v.m2?.t ?? ''}`,
+        `${v.ayah} ${pVerse?.t ?? ''} ${sVerse?.t ?? ''}`,
       );
       return haystack.includes(norm);
     });
-  }, [verses, filterMode, bookmarkedSet, searchQuery]);
+  }, [verses, filterMode, bookmarkedSet, searchQuery, getPrimaryVerse, getSecondaryVerse, isDual]);
 
   // Kademeli yükleme (IntersectionObserver ile 30'ar ayet)
   useEffect(() => {
@@ -432,6 +446,12 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                   mealAudioFocusOnly={mealAudioFocusOnly}
                   isBookmarked={bookmarkedSet.has(verse.id)}
                   isPlayingThisAyah={playingAyahId === verse.id}
+                  primaryMeal={primaryMeal}
+                  secondaryMeal={secondaryMeal}
+                  isDual={isDual}
+                  primaryVerse={getPrimaryVerse(verse)}
+                  secondaryVerse={isDual ? getSecondaryVerse(verse) : null}
+                  isLoadingExtra={isLoadingExtra}
                   onToggleBookmark={onToggleBookmark}
                   onPlayFromHere={onPlayFromVerse}
                   onPlayMealFromHere={onPlayMealFromVerse}

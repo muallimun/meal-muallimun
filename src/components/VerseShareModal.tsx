@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   Check,
   Copy,
@@ -9,6 +9,8 @@ import {
   X,
 } from 'lucide-react';
 import { resolveArabicFontFamily } from '../config/assetsConfig';
+import { findMealById, getAllMeals, isExtraMealId } from '../config/mealsConfig';
+import { dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { CombinedVerse, SurahMeta } from '../types/quran';
@@ -16,7 +18,6 @@ import { formatSafeArabicTitle } from '../utils/arabicUtils';
 
 type ShareContentMode = 'both' | 'ar' | 'meal';
 type ShareCardTheme = 'cream' | 'emerald' | 'dark';
-type ShareMealPick = 'm1' | 'm2';
 
 interface VerseShareModalProps {
   verse: CombinedVerse | null;
@@ -138,22 +139,32 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
   surahMeta,
   onClose,
 }) => {
-  const { settings } = useAppStore();
+  const { settings, manifest } = useAppStore();
+  const extraVersion = useSyncExternalStore(
+    dataService.subscribeExtraMeals,
+    dataService.getExtraMealsVersion,
+  );
+  const allMeals = useMemo(() => getAllMeals(manifest), [manifest]);
   const [contentMode, setContentMode] = useState<ShareContentMode>('both');
   const [cardTheme, setCardTheme] = useState<ShareCardTheme>('cream');
-  const [mealPick, setMealPick] = useState<ShareMealPick>(
-    settings.preferredMeal === 'm2' ? 'm2' : 'm1',
-  );
+  const [mealPick, setMealPick] = useState<string>(settings.primaryMealId || 'm1');
   const [copied, setCopied] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!verse) return;
-    setMealPick(settings.preferredMeal === 'm2' ? 'm2' : 'm1');
+    setMealPick(settings.primaryMealId || 'm1');
     setCopied(false);
     setStatusMessage(null);
-  }, [verse, settings.preferredMeal]);
+  }, [verse, settings.primaryMealId]);
+
+  useEffect(() => {
+    if (!verse || !isExtraMealId(mealPick)) return;
+    if (!dataService.hasExtraMealsLoaded(verse.surah)) {
+      dataService.loadExtraMealsForSurah(verse.surah).catch(() => {});
+    }
+  }, [verse, mealPick]);
 
   useEffect(() => {
     if (!verse) return;
@@ -164,13 +175,19 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     return () => window.removeEventListener('keydown', handleKey);
   }, [verse, onClose]);
 
-  const activeMealText = useMemo(() => {
-    if (!verse) return '';
-    if (mealPick === 'm2') return verse.m2?.t || verse.m1?.t || '';
-    return verse.m1?.t || verse.m2?.t || '';
-  }, [verse, mealPick]);
+  const selectedMealDef = useMemo(
+    () => findMealById(mealPick, manifest),
+    [mealPick, manifest],
+  );
 
-  const activeMealLabel = mealPick === 'm2' ? 'Diyanet İşleri Meali (DİB)' : 'Diyanet Vakfı Meali (TDV)';
+  const activeMealText = useMemo(() => {
+    void extraVersion;
+    if (!verse) return '';
+    const resolved = dataService.getMealVerse(verse.surah, verse.ayah, mealPick, verse);
+    return resolved?.t || verse.m1?.t || verse.m2?.t || '';
+  }, [verse, mealPick, extraVersion]);
+
+  const activeMealLabel = selectedMealDef.label;
   const surahLabel = surahMeta
     ? `${surahMeta.nameTr} Suresi, ${verse?.ayah ?? ''}. Ayet`
     : verse
@@ -189,12 +206,11 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
         parts.push(`"${activeMealText}"`);
       }
     }
-    const mealSuffix =
-      contentMode === 'ar' ? '' : ` • ${mealPick === 'm2' ? 'DİB Meali' : 'TDV Meali'}`;
+    const mealSuffix = contentMode === 'ar' ? '' : ` • ${selectedMealDef.label}`;
     parts.push(`— ${surahLabel}${mealSuffix}`);
     parts.push('meal.muallimun.net');
     return parts.join('\n\n');
-  }, [verse, contentMode, activeMealText, surahLabel, mealPick]);
+  }, [verse, contentMode, activeMealText, surahLabel, selectedMealDef.label]);
 
   if (!verse) return null;
 
@@ -593,39 +609,27 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
 
             {contentMode !== 'ar' && (
               <div className="space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                  Meal Kaynağı
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setMealPick('m1');
-                    }}
-                    className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                      mealPick === 'm1'
-                        ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]'
-                        : 'bg-[var(--bg-surface-soft)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
-                    }`}
-                  >
-                    TDV Meali
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setMealPick('m2');
-                    }}
-                    className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                      mealPick === 'm2'
-                        ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]'
-                        : 'bg-[var(--bg-surface-soft)] text-[var(--text-secondary)] border-[var(--border-subtle)]'
-                    }`}
-                  >
-                    DİB Meali
-                  </button>
-                </div>
+                <label
+                  htmlFor="share-meal-select"
+                  className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]"
+                >
+                  Meal Kaynağı (24 Meal)
+                </label>
+                <select
+                  id="share-meal-select"
+                  value={mealPick}
+                  onChange={(e) => {
+                    sfxService.play('click');
+                    setMealPick(e.target.value);
+                  }}
+                  className="w-full min-h-[44px] px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border bg-[var(--bg-surface-soft)] text-[var(--text-primary)] border-[var(--border-subtle)] cursor-pointer focus:outline-none focus:border-[var(--brand-primary)]"
+                >
+                  {allMeals.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
           </div>

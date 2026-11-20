@@ -3,6 +3,9 @@
 // ============================================================================
 
 export type MealKey = 'm1' | 'm2';
+export type MealCategory = 'resmi' | 'klasik' | 'cagdas';
+export type MealStorageType = 'm1' | 'm2' | 'mx';
+export type MealDisplayMode = 'single' | 'dual';
 export type PreferredMeal = 'm1' | 'm2' | 'both';
 export type ThemeMode = 'light' | 'cream' | 'dark';
 export type NavTab = 'home' | 'reader' | 'exam' | 'mistakes';
@@ -19,11 +22,27 @@ export type RepeatCountOption = 1 | 2 | 3;
 // 1. manifest.json
 export interface MealSourceInfo {
   id: MealKey | (string & {});
+  slug?: string;
   label: string;
   shortLabel?: string;
+  category?: MealCategory;
+  storage?: MealStorageType;
   audioSource?: string | null;
   audioSourceKey?: string | null;
   hasAudio?: boolean;
+  hasFootnotes?: boolean;
+}
+
+export interface MealDefinition {
+  id: string;
+  slug: string;
+  label: string;
+  shortLabel: string;
+  category: MealCategory;
+  hasAudio: boolean;
+  audioSource: string | null;
+  storage: MealStorageType;
+  hasFootnotes?: boolean;
 }
 
 export type ReciterCategory = 'turk' | 'talim' | 'murattal' | 'mujawwad';
@@ -92,7 +111,7 @@ export interface ManifestData {
     supportsPdfExport: boolean;
     supportsBookletAB: boolean;
   };
-  meals: Record<MealKey, MealSourceInfo>;
+  meals: Record<string, MealSourceInfo>;
   audioSources: Record<string, AudioSourceInfo>;
   stats: ManifestStats;
 }
@@ -218,6 +237,12 @@ export interface MealSurahFile {
   verses: MealVerse[];
 }
 
+// 4b. mx/s001.json .. s114.json (m3..m24 ek Türkçe mealler)
+export interface ExtraMealsSurahFile {
+  s: number;
+  meals: Record<string, MealVerse[]>;
+}
+
 // 5. w/s001.json
 export type WordPair = [string, string];
 
@@ -333,6 +358,11 @@ export interface StudyNavigationTarget {
 export interface AppSettings {
   theme: ThemeMode;
   preferredMeal: PreferredMeal;
+  primaryMealId: string;
+  secondaryMealId: string;
+  mealDisplayMode: MealDisplayMode;
+  favoriteMealIds: string[];
+  compareMealIds: string[];
   arabicFont: string;
   turkishFont: string;
   arabicFontSize: number; // 20..44

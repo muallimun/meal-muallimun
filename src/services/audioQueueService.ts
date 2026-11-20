@@ -182,9 +182,14 @@ class AudioQueueService {
 
   private resolveMealSource() {
     const sources = getDynamicMealAudioSources(this.manifest);
+    if (sources.length === 0) return null;
     const preferred = this.prefs.mealAudioSource;
-    if (!preferred) return null;
-    return sources.find((s) => s.id === preferred) ?? null;
+    if (preferred) {
+      const exact = sources.find((s) => s.id === preferred);
+      if (exact) return exact;
+    }
+    // Seslendirmesi olmayan meal (m3..m24) okunurken ses motoru varsayılan sesli meale (TDV) düşer
+    return sources[0] ?? null;
   }
 
   /**

@@ -17,6 +17,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Play,
+  Scale,
   Share2,
   Sparkles,
   Square,
@@ -25,6 +26,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { BOOKMARK_COLOR_STYLES } from '../../components/PageBookmarksDrawer';
+import { useActiveMeals } from '../../hooks/useActiveMeals';
 import {
   SAJDAH_AYAH_IDS,
   toArabicIndicDigits,
@@ -151,6 +153,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     moveHatimBookmark,
     removePageBookmark,
     openBookmarksDrawer,
+    openMealCompare,
+    openMealSelector,
   } = useAppStore();
 
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('all_page');
@@ -189,6 +193,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     }
     return map;
   }, [pageBundle.segments, secondPageBundle]);
+
+  const visibleSurahNos = useMemo(
+    () => Array.from(surahMetaByNo.keys()),
+    [surahMetaByNo],
+  );
+  const {
+    primaryMeal,
+    secondaryMeal,
+    isDual,
+    isLoadingExtra,
+    getPrimaryVerse,
+    getSecondaryVerse,
+  } = useActiveMeals(visibleSurahNos);
 
   const selectedVerse =
     allVisibleVerses.find((v) => v.id === selectedVerseId) ?? allVisibleVerses[0] ?? null;
@@ -281,15 +298,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
   const handleCopyVerse = async (verse: CombinedVerse, surahNameTr: string) => {
     sfxService.play('click');
+    const pVerse = getPrimaryVerse(verse);
+    const sVerse = isDual ? getSecondaryVerse(verse) : null;
     const lines: string[] = [
       `${surahNameTr} ${verse.surah}:${verse.ayah} (${verse.cuz}. Cüz · Sayfa ${verse.page})`,
       verse.ar.t,
     ];
-    if ((settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') && verse.m1?.t) {
-      lines.push(`TDV: ${verse.m1.t}`);
+    if (pVerse?.t) {
+      lines.push(`${primaryMeal.shortLabel}: ${pVerse.t}`);
     }
-    if ((settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') && verse.m2?.t) {
-      lines.push(`DİB: ${verse.m2.t}`);
+    if (isDual && sVerse?.t) {
+      lines.push(`${secondaryMeal.shortLabel}: ${sVerse.t}`);
     }
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
@@ -300,14 +319,13 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     }
   };
 
-  const tdvFootnotes = selectedVerse?.m1?.fn ?? [];
-  const dibFootnotes = selectedVerse?.m2?.fn ?? [];
+  const selectedPrimaryVerse = selectedVerse ? getPrimaryVerse(selectedVerse) : null;
+  const selectedSecondaryVerse =
+    selectedVerse && isDual ? getSecondaryVerse(selectedVerse) : null;
+  const primaryFootnotes = selectedPrimaryVerse?.fn ?? [];
+  const secondaryFootnotes = isDual ? (selectedSecondaryVerse?.fn ?? []) : [];
   const footnoteCount = settings.showFootnotes
-    ? settings.preferredMeal === 'm1'
-      ? tdvFootnotes.length
-      : settings.preferredMeal === 'm2'
-        ? dibFootnotes.length
-        : tdvFootnotes.length + dibFootnotes.length
+    ? primaryFootnotes.length + secondaryFootnotes.length
     : 0;
 
   const isSelectedBookmarked = selectedVerse ? bookmarkedSet.has(selectedVerse.id) : false;
@@ -744,12 +762,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     bundle: PageBundle,
     side: 'single' | 'right' | 'left' = 'left',
   ) => {
-    const mealTitle =
-      settings.preferredMeal === 'both'
-        ? 'TDV & DİB Karşılaştırmalı Meal'
-        : settings.preferredMeal === 'm2'
-          ? 'Diyanet İşleri Yeni Meali (DİB)'
-          : 'Diyanet Vakfı Meali (TDV)';
+    const mealTitle = isDual
+      ? `${primaryMeal.shortLabel} & ${secondaryMeal.shortLabel}`
+      : primaryMeal.label;
 
     const paperClass =
       side === 'right'
@@ -780,12 +795,18 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 className="pb-2.5 mb-3.5 border-b flex items-center justify-between gap-2 text-xs"
                 style={{ borderColor: 'var(--border-subtle)' }}
               >
-                <span
-                  className="font-extrabold truncate"
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    openMealSelector('primary');
+                  }}
+                  title="24 Türkçe meal arasından değiştir"
+                  className="font-extrabold truncate hover:underline text-left cursor-pointer"
                   style={{ color: 'var(--brand-primary-text)' }}
                 >
                   {mealTitle}
-                </span>
+                </button>
                 <span
                   className="font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-lg text-[11px]"
                   style={{
@@ -823,7 +844,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         className="turkish-reading text-xs sm:text-sm italic text-center font-semibold py-0.5"
                         style={{ color: 'var(--brand-primary-text)' }}
                       >
-                        {settings.preferredMeal === 'm2' ? besmele.dib : besmele.tdv}
+                        {primaryMeal.id === 'm2' ? besmele.dib : besmele.tdv}
                       </p>
                     )}
 
@@ -833,6 +854,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         const isPlaying = playingAyahId === v.id;
                         const isFav = bookmarkedSet.has(v.id);
                         const isSajdah = SAJDAH_AYAH_IDS.has(v.id) && settings.highlightSajdah;
+                        const pVerse = getPrimaryVerse(v);
+                        const sVerse = isDual ? getSecondaryVerse(v) : null;
 
                         return (
                           <div
@@ -900,52 +923,48 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                     <span>Tilâvet Secdesi</span>
                                   </span>
                                 )}
-                                {(settings.preferredMeal === 'm1' ||
-                                  settings.preferredMeal === 'both') &&
-                                  v.m1 && (
-                                    <p
-                                      className="turkish-reading"
-                                      style={{
-                                        fontSize: `${settings.turkishFontSize}px`,
-                                        color: 'var(--text-primary)',
-                                      }}
-                                    >
-                                      {settings.preferredMeal === 'both' && (
-                                        <span
-                                          className="font-extrabold mr-1.5 text-xs"
-                                          style={{ color: 'var(--brand-primary-text)' }}
-                                        >
-                                          TDV:
-                                        </span>
-                                      )}
-                                      {v.m1.t}
-                                    </p>
-                                  )}
+                                {pVerse?.t ? (
+                                  <p
+                                    className="turkish-reading"
+                                    style={{
+                                      fontSize: `${settings.turkishFontSize}px`,
+                                      color: 'var(--text-primary)',
+                                    }}
+                                  >
+                                    {isDual && (
+                                      <span
+                                        className="font-extrabold mr-1.5 text-xs"
+                                        style={{ color: 'var(--brand-primary-text)' }}
+                                      >
+                                        {primaryMeal.shortLabel}:
+                                      </span>
+                                    )}
+                                    {pVerse.t}
+                                  </p>
+                                ) : isLoadingExtra ? (
+                                  <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                                ) : null}
 
-                                {(settings.preferredMeal === 'm2' ||
-                                  settings.preferredMeal === 'both') &&
-                                  v.m2 && (
+                                {isDual &&
+                                  (sVerse?.t ? (
                                     <p
                                       className="turkish-reading"
                                       style={{
                                         fontSize: `${settings.turkishFontSize}px`,
-                                        color:
-                                          settings.preferredMeal === 'both'
-                                            ? 'var(--text-secondary)'
-                                            : 'var(--text-primary)',
+                                        color: 'var(--text-secondary)',
                                       }}
                                     >
-                                      {settings.preferredMeal === 'both' && (
-                                        <span
-                                          className="font-extrabold mr-1.5 text-xs"
-                                          style={{ color: 'var(--brand-accent-text)' }}
-                                        >
-                                          DİB:
-                                        </span>
-                                      )}
-                                      {v.m2.t}
+                                      <span
+                                        className="font-extrabold mr-1.5 text-xs"
+                                        style={{ color: 'var(--brand-accent-text)' }}
+                                      >
+                                        {secondaryMeal.shortLabel}:
+                                      </span>
+                                      {sVerse.t}
                                     </p>
-                                  )}
+                                  ) : isLoadingExtra ? (
+                                    <div className="h-4 w-3/4 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                                  ) : null)}
                               </div>
 
                               {/* Satır içi zarif hızlı aksiyonlar */}
@@ -962,6 +981,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                   style={{ color: 'var(--brand-primary-text)' }}
                                 >
                                   <Play className="w-3.5 h-3.5 fill-current" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    sfxService.play('click');
+                                    openMealCompare(v.surah, v.ayah);
+                                  }}
+                                  title="24 Mealde Karşılaştır"
+                                  aria-label={`${v.ayah}. ayeti 24 mealde karşılaştır`}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                  style={{ color: 'var(--brand-primary-text)' }}
+                                >
+                                  <Scale className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   type="button"
@@ -1144,71 +1176,72 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             borderColor: 'var(--border-subtle)',
           }}
         >
-          {(settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') &&
-            selectedVerse.m1 && (
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
-                  <span
-                    className="text-xs font-extrabold"
-                    style={{ color: 'var(--brand-primary-text)' }}
-                  >
-                    Diyanet Vakfı Meali (TDV)
-                  </span>
-                  {selectedVerse.m1.mg && (
-                    <span
-                      className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
-                      style={{
-                        backgroundColor: 'var(--brand-accent-soft)',
-                        color: 'var(--brand-accent-text)',
-                      }}
-                    >
-                      <Link2 className="w-3 h-3" />
-                      {selectedVerse.m1.mg[0]}–{selectedVerse.m1.mg[1]} Birleşik Meal
-                    </span>
-                  )}
-                </div>
-                <p
-                  className="turkish-reading"
-                  style={{
-                    fontSize: `${settings.turkishFontSize}px`,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {selectedVerse.m1.t}
-                </p>
-              </div>
-            )}
-
-          {(settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') &&
-            selectedVerse.m2 && (
-              <div
-                className={settings.preferredMeal === 'both' ? 'pt-3 border-t' : undefined}
-                style={
-                  settings.preferredMeal === 'both'
-                    ? { borderColor: 'var(--border-subtle)' }
-                    : undefined
-                }
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+              <span
+                className="text-xs font-extrabold"
+                style={{ color: 'var(--brand-primary-text)' }}
               >
-                <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                {primaryMeal.label}
+              </span>
+              {selectedPrimaryVerse?.mg && (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
+                  style={{
+                    backgroundColor: 'var(--brand-accent-soft)',
+                    color: 'var(--brand-accent-text)',
+                  }}
+                >
+                  <Link2 className="w-3 h-3" />
+                  {selectedPrimaryVerse.mg[0]}–{selectedPrimaryVerse.mg[1]} Birleşik Meal
+                </span>
+              )}
+            </div>
+            {selectedPrimaryVerse?.t ? (
+              <p
+                className="turkish-reading"
+                style={{
+                  fontSize: `${settings.turkishFontSize}px`,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {selectedPrimaryVerse.t}
+              </p>
+            ) : isLoadingExtra ? (
+              <div className="h-4 w-4/5 rounded bg-current/10 animate-pulse" />
+            ) : (
+              <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                Bu ayet için meal metni bulunamadı.
+              </p>
+            )}
+          </div>
+
+          {isDual && (
+            <div
+              className="pt-3 border-t"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                <span
+                  className="text-xs font-extrabold"
+                  style={{ color: 'var(--brand-accent-text)' }}
+                >
+                  {secondaryMeal.label}
+                </span>
+                {selectedSecondaryVerse?.mg && (
                   <span
-                    className="text-xs font-extrabold"
-                    style={{ color: 'var(--brand-accent-text)' }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      color: 'var(--brand-accent-text)',
+                    }}
                   >
-                    Diyanet İşleri Meali (DİB Yeni)
+                    <Link2 className="w-3 h-3" />
+                    {selectedSecondaryVerse.mg[0]}–{selectedSecondaryVerse.mg[1]} Birleşik Meal
                   </span>
-                  {selectedVerse.m2.mg && (
-                    <span
-                      className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
-                      style={{
-                        backgroundColor: 'var(--brand-accent-soft)',
-                        color: 'var(--brand-accent-text)',
-                      }}
-                    >
-                      <Link2 className="w-3 h-3" />
-                      {selectedVerse.m2.mg[0]}–{selectedVerse.m2.mg[1]} Birleşik Meal
-                    </span>
-                  )}
-                </div>
+                )}
+              </div>
+              {selectedSecondaryVerse?.t ? (
                 <p
                   className="turkish-reading"
                   style={{
@@ -1216,10 +1249,39 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                     color: 'var(--text-primary)',
                   }}
                 >
-                  {selectedVerse.m2.t}
+                  {selectedSecondaryVerse.t}
                 </p>
-              </div>
-            )}
+              ) : isLoadingExtra ? (
+                <div className="h-4 w-4/5 rounded bg-current/10 animate-pulse" />
+              ) : (
+                <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                  Bu ayet için karşılaştırma meali bulunamadı.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div
+            className="pt-2.5 border-t"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openMealCompare(selectedVerse.surah, selectedVerse.ayah);
+              }}
+              className="w-full min-h-[38px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--brand-primary)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <Scale className="w-3.5 h-3.5 shrink-0" />
+              <span>Tüm Mealleri Karşılaştır (24)</span>
+            </button>
+          </div>
         </div>
 
         {/* Dipnot / Tefsir Açıklaması (fn) */}
@@ -1260,38 +1322,36 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   color: 'var(--text-secondary)',
                 }}
               >
-                {(settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') &&
-                  tdvFootnotes.length > 0 && (
-                    <div className="space-y-1">
-                      <p
-                        className="text-xs font-extrabold"
-                        style={{ color: 'var(--brand-primary-text)' }}
-                      >
-                        TDV Dipnotları
-                      </p>
-                      <ol className="space-y-1.5 list-decimal list-inside">
-                        {tdvFootnotes.map((n, idx) => (
-                          <li key={`m1-fn-${idx}`}>{n}</li>
-                        ))}
-                      </ol>
-                    </div>
-                  )}
-                {(settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') &&
-                  dibFootnotes.length > 0 && (
-                    <div className="space-y-1">
-                      <p
-                        className="text-xs font-extrabold"
-                        style={{ color: 'var(--brand-accent-text)' }}
-                      >
-                        DİB Dipnotları
-                      </p>
-                      <ol className="space-y-1.5 list-decimal list-inside">
-                        {dibFootnotes.map((n, idx) => (
-                          <li key={`m2-fn-${idx}`}>{n}</li>
-                        ))}
-                      </ol>
-                    </div>
-                  )}
+                {primaryFootnotes.length > 0 && (
+                  <div className="space-y-1">
+                    <p
+                      className="text-xs font-extrabold"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      {primaryMeal.shortLabel} Dipnotları
+                    </p>
+                    <ol className="space-y-1.5 list-decimal list-inside">
+                      {primaryFootnotes.map((n, idx) => (
+                        <li key={`p-fn-${idx}`}>{n}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                {isDual && secondaryFootnotes.length > 0 && (
+                  <div className="space-y-1">
+                    <p
+                      className="text-xs font-extrabold"
+                      style={{ color: 'var(--brand-accent-text)' }}
+                    >
+                      {secondaryMeal.shortLabel} Dipnotları
+                    </p>
+                    <ol className="space-y-1.5 list-decimal list-inside">
+                      {secondaryFootnotes.map((n, idx) => (
+                        <li key={`s-fn-${idx}`}>{n}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1734,9 +1794,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   const isPlaying = playingAyahId === v.id;
                   const isFav = bookmarkedSet.has(v.id);
                   const isSajdah = SAJDAH_AYAH_IDS.has(v.id) && settings.highlightSajdah;
+                  const pVerse = getPrimaryVerse(v);
+                  const sVerse = isDual ? getSecondaryVerse(v) : null;
                   const fnTotal = settings.showFootnotes
-                    ? (settings.preferredMeal !== 'm2' ? v.m1?.fn?.length ?? 0 : 0) +
-                      (settings.preferredMeal !== 'm1' ? v.m2?.fn?.length ?? 0 : 0)
+                    ? (pVerse?.fn?.length ?? 0) + (isDual ? (sVerse?.fn?.length ?? 0) : 0)
                     : 0;
 
                   return (
@@ -1805,7 +1866,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                               <span>Okunuyor</span>
                             </span>
                           )}
-                          {v.m1?.mg && settings.preferredMeal !== 'm2' && (
+                          {pVerse?.mg && (
                             <span
                               className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
                               style={{
@@ -1813,7 +1874,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 color: 'var(--brand-accent-text)',
                               }}
                             >
-                              {v.m1.mg[0]}–{v.m1.mg[1]}
+                              {pVerse.mg[0]}–{pVerse.mg[1]}
                             </span>
                           )}
                         </div>
@@ -1831,6 +1892,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                             style={{ color: 'var(--brand-primary-text)' }}
                           >
                             <Play className="w-3.5 h-3.5 fill-current" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              openMealCompare(v.surah, v.ayah);
+                            }}
+                            title="24 Mealde Karşılaştır"
+                            aria-label={`${v.ayah}. ayeti 24 mealde karşılaştır`}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                            style={{ color: 'var(--brand-primary-text)' }}
+                          >
+                            <Scale className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
@@ -1879,50 +1953,48 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         </div>
                       </div>
 
-                      {(settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') &&
-                        v.m1 && (
-                          <p
-                            className="turkish-reading"
-                            style={{
-                              fontSize: `${Math.max(13, settings.turkishFontSize - 1)}px`,
-                              color: 'var(--text-primary)',
-                            }}
-                          >
-                            {settings.preferredMeal === 'both' && (
-                              <span
-                                className="font-extrabold mr-1.5 text-xs"
-                                style={{ color: 'var(--brand-primary-text)' }}
-                              >
-                                TDV:
-                              </span>
-                            )}
-                            {v.m1.t}
-                          </p>
-                        )}
+                      {pVerse?.t ? (
+                        <p
+                          className="turkish-reading"
+                          style={{
+                            fontSize: `${Math.max(13, settings.turkishFontSize - 1)}px`,
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {isDual && (
+                            <span
+                              className="font-extrabold mr-1.5 text-xs"
+                              style={{ color: 'var(--brand-primary-text)' }}
+                            >
+                              {primaryMeal.shortLabel}:
+                            </span>
+                          )}
+                          {pVerse.t}
+                        </p>
+                      ) : isLoadingExtra ? (
+                        <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                      ) : null}
 
-                      {(settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') &&
-                        v.m2 && (
+                      {isDual &&
+                        (sVerse?.t ? (
                           <p
                             className="turkish-reading"
                             style={{
                               fontSize: `${Math.max(13, settings.turkishFontSize - 1)}px`,
-                              color:
-                                settings.preferredMeal === 'both'
-                                  ? 'var(--text-secondary)'
-                                  : 'var(--text-primary)',
+                              color: 'var(--text-secondary)',
                             }}
                           >
-                            {settings.preferredMeal === 'both' && (
-                              <span
-                                className="font-extrabold mr-1.5 text-xs"
-                                style={{ color: 'var(--brand-accent-text)' }}
-                              >
-                                DİB:
-                              </span>
-                            )}
-                            {v.m2.t}
+                            <span
+                              className="font-extrabold mr-1.5 text-xs"
+                              style={{ color: 'var(--brand-accent-text)' }}
+                            >
+                              {secondaryMeal.shortLabel}:
+                            </span>
+                            {sVerse.t}
                           </p>
-                        )}
+                        ) : isLoadingExtra ? (
+                          <div className="h-4 w-3/4 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                        ) : null)}
                     </div>
                   );
                 })}

@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { getDynamicMealAudioSources } from '../config/assetsConfig';
+import { findMealById } from '../config/mealsConfig';
 import { findReciterById } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { sfxService } from '../services/sfxService';
@@ -36,6 +37,7 @@ const MODE_LABELS: { id: AudioPlayMode; label: string }[] = [
 
 export const AudioPlayerBar: React.FC = () => {
   const {
+    settings,
     audioPrefs,
     updateAudioPrefs,
     isExamActive,
@@ -44,6 +46,7 @@ export const AudioPlayerBar: React.FC = () => {
     setActiveTab,
     openPresentationMode,
     openReciterSelector,
+    openMealSelector,
     manifest,
   } = useAppStore();
   const audioState = useSyncExternalStore(
@@ -55,7 +58,19 @@ export const AudioPlayerBar: React.FC = () => {
     () => findReciterById(audioPrefs.arabicReciterId, manifest),
     [audioPrefs.arabicReciterId, manifest],
   );
+  const activePrimaryMeal = useMemo(
+    () => findMealById(settings.primaryMealId, manifest),
+    [settings.primaryMealId, manifest],
+  );
   const mealSources = useMemo(() => getDynamicMealAudioSources(manifest), [manifest]);
+  const activeMealAudioSource = useMemo(
+    () => mealSources.find((s) => s.id === audioPrefs.mealAudioSource) ?? mealSources[0] ?? null,
+    [mealSources, audioPrefs.mealAudioSource],
+  );
+  const showUnvoicedMealBanner =
+    !activePrimaryMeal.hasAudio &&
+    (audioPrefs.mode !== 'ar' || audioState.activePhase === 'meal') &&
+    !audioState.missingMealAudio;
 
   // Store'daki audioPrefs değişince ses motorunu anlık senkronize et
   useEffect(() => {
@@ -306,6 +321,67 @@ export const AudioPlayerBar: React.FC = () => {
                   style={{ backgroundColor: 'var(--brand-primary)' }}
                 >
                   Arapça Tilavet
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Seslendirmesiz Meal (m3..m24) Okunurken Sesli Meal Bilgilendirme Şeridi */}
+          {showUnvoicedMealBanner && activeMealAudioSource && (
+            <div
+              className="rounded-xl px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] border"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--brand-accent-text)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => openMealSelector('primary')}
+                className="font-semibold text-left hover:underline cursor-pointer truncate max-w-full"
+                title="Okuma mealini değiştir (24 Meal)"
+              >
+                Metin: <span className="font-extrabold">{activePrimaryMeal.shortLabel}</span> · Sesli
+                Meal:{' '}
+                <span className="font-extrabold">
+                  {activeMealAudioSource.id === 'tdv'
+                    ? 'TDV'
+                    : activeMealAudioSource.id === 'dib'
+                      ? 'DİB'
+                      : activeMealAudioSource.shortLabel}
+                </span>
+              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                {mealSources.map((src) => {
+                  const isActive = activeMealAudioSource.id === src.id;
+                  const shortTag = src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
+                  return (
+                    <button
+                      key={src.id}
+                      type="button"
+                      onClick={() => handleMealSourceChange(src.id)}
+                      className="min-h-[26px] px-2 rounded-md font-bold transition-colors cursor-pointer"
+                      style={{
+                        backgroundColor: isActive ? 'var(--brand-accent)' : 'var(--bg-surface)',
+                        color: isActive ? '#FFFFFF' : 'var(--text-primary)',
+                      }}
+                    >
+                      {shortTag}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('ar')}
+                  className="min-h-[26px] px-2 rounded-md font-bold cursor-pointer border"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  Sadece AR
                 </button>
               </div>
             </div>
