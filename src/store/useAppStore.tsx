@@ -34,6 +34,14 @@ import type {
   StudyProgress,
 } from '../types/quran';
 import { computePoolStats } from '../utils/poolUtils';
+import {
+  detectIosDevice,
+  getDeferredInstallPrompt,
+  getInitialOnlineStatus,
+  isStandaloneMode,
+  subscribeInstallPrompt,
+  triggerPwaInstallPrompt,
+} from '../utils/pwaUtils';
 
 export const STORAGE_KEY = 'muallimun_meal_v1';
 
@@ -468,6 +476,13 @@ interface AppContextValue {
 
   // Türetilmiş İstatistikler
   poolStats: PoolStatsSummary;
+
+  // PWA & Bağlantı Durumu
+  isOnline: boolean;
+  canInstallPwa: boolean;
+  isPwaInstalled: boolean;
+  isIosDevice: boolean;
+  promptPwaInstall: () => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -489,6 +504,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>('local');
   const [reloadTick, setReloadTick] = useState(0);
 
+  // PWA & Çevrimiçi/Çevrimdışı Durumu
+  const [isOnline, setIsOnline] = useState<boolean>(() => getInitialOnlineStatus());
+  const [canInstallPwa, setCanInstallPwa] = useState<boolean>(
+    () => getDeferredInstallPrompt() !== null,
+  );
+  const [isPwaInstalled, setIsPwaInstalled] = useState<boolean>(() => isStandaloneMode());
+  const [isIosDevice] = useState<boolean>(() => detectIosDevice());
+
+  // Çevrimiçi/Çevrimdışı ve PWA kurulum olaylarını izle
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    const handleInstalled = () => {
+      setIsPwaInstalled(true);
+      setCanInstallPwa(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('appinstalled', handleInstalled);
+
+    const unsubscribePrompt = subscribeInstallPrompt((evt) => {
+      setCanInstallPwa(evt !== null);
+    });
+
+    const standaloneQuery =
+      typeof window.matchMedia === 'function'
+        ? window.matchMedia('(display-mode: standalone)')
+        : null;
+    const handleDisplayModeChange = () => {
+      setIsPwaInstalled(isStandaloneMode());
+    };
+    standaloneQuery?.addEventListener?.('change', handleDisplayModeChange);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('appinstalled', handleInstalled);
+      unsubscribePrompt();
+      standaloneQuery?.removeEventListener?.('change', handleDisplayModeChange);
+    };
+  }, []);
+
   // Kalıcı localStorage kaydı
   useEffect(() => {
     try {
@@ -498,7 +556,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [persisted]);
 
-  // Tema, yazı tipi ve SFX senkronizasyonu
+  // Tema, yazı tipi, theme-color ve SFX senkronizasyonu
   useEffect(() => {
     const root = document.documentElement;
     const { theme, arabicFont, turkishFont, sfxEnabled, sfxVolume } = persisted.settings;
@@ -508,6 +566,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
+    }
+
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', theme === 'dark' ? '#0B1314' : '#0F766E');
     }
 
     root.style.setProperty('--font-arabic', resolveArabicFontFamily(arabicFont));
@@ -869,6 +932,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setReloadTick((t) => t + 1);
   }, []);
 
+  const promptPwaInstall = useCallback(async (): Promise<boolean> => {
+    sfxService.play('click');
+    const outcome = await triggerPwaInstallPrompt();
+    if (outcome === 'accepted') {
+      setIsPwaInstalled(true);
+      setCanInstallPwa(false);
+      return true;
+    }
+    return false;
+  }, []);
+
   const poolStats = useMemo(
     () => computePoolStats(persisted.studyPool, meta, questionIndex),
     [persisted.studyPool, meta, questionIndex],
@@ -917,6 +991,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       retryCoreLoad,
       activateDemoData,
       poolStats,
+      isOnline,
+      canInstallPwa,
+      isPwaInstalled,
+      isIosDevice,
+      promptPwaInstall,
     }),
     [
       persisted.settings,
@@ -959,6 +1038,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       retryCoreLoad,
       activateDemoData,
       poolStats,
+      isOnline,
+      canInstallPwa,
+      isPwaInstalled,
+      isIosDevice,
+      promptPwaInstall,
     ],
   );
 

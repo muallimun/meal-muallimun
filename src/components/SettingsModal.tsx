@@ -21,6 +21,7 @@ import {
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { PreferredMeal, ThemeMode } from '../types/quran';
+import { PwaInstallControl } from './PwaInstallControl';
 
 const PREVIEW_ARABIC =
   'اِنَّمَا الْمُؤْمِنُونَ اِخْوَةٌ فَاَصْلِحُوا بَيْنَ اَخَوَيْكُمْ وَاتَّقُوا اللّٰهَ لَعَلَّكُمْ تُرْحَمُونَ۟';
@@ -723,6 +724,12 @@ export const SettingsModal: React.FC = () => {
                 />
               </button>
             </div>
+          </section>
+
+          {/* 7. UYGULAMA KURULUMU VE ÇEVRİMDIŞI DURUM */}
+          <section className="space-y-2.5">
+            <h3 className="text-sm font-extrabold">Uygulama ve Çevrimdışı Kullanım</h3>
+            <PwaInstallControl variant="settings" />
           </section>
         </div>
 

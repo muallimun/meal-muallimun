@@ -8,11 +8,13 @@ import {
   Settings,
   Star,
   Trophy,
+  WifiOff,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
 import { formatNumberTr } from '../utils/poolUtils';
 import { BrandMark } from './BrandMark';
+import { PwaInstallControl } from './PwaInstallControl';
 
 interface NavItemConfig {
   id: NavTab;
@@ -50,6 +52,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     dataSourceMode,
     retryCoreLoad,
     isExamActive,
+    isOnline,
   } = useAppStore();
 
   const currentYear = new Date().getFullYear();
@@ -174,11 +177,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </div>
         </nav>
 
-        {/* Alt Ayarlar Tetikleyicisi */}
+        {/* Alt Kurulum & Ayarlar Tetikleyicisi */}
         <div
-          className="p-3.5 border-t shrink-0"
+          className="p-3.5 border-t shrink-0 space-y-2"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
+          <PwaInstallControl variant="sidebar" />
           <button
             type="button"
             onClick={openSettingsModal}
@@ -295,6 +299,28 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             </div>
           </div>
         </header>
+
+        {/* Çevrimdışı Durum Şeridi */}
+        {!isOnline && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="px-4 py-2 text-xs border-b"
+            style={{
+              backgroundColor: 'var(--brand-accent-soft)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--brand-accent-text)',
+            }}
+          >
+            <div className="max-w-6xl mx-auto flex items-center justify-center sm:justify-start gap-2 font-semibold">
+              <WifiOff className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                Çevrimdışı moddasınız — Daha önce yüklenen sure, meal ve sorular önbellekten
+                kesintisiz çalışmaya devam eder.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Demo Modu Mobil Uyarısı */}
         {dataSourceMode === 'demo' && (

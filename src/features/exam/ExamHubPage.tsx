@@ -9,6 +9,7 @@ import {
   Layers,
   Loader2,
   Play,
+  Printer,
   RotateCcw,
   SlidersHorizontal,
   Sparkles,
@@ -16,6 +17,7 @@ import {
   Trophy,
   Zap,
 } from 'lucide-react';
+import { PrintableExamModal } from '../../components/PrintableExamModal';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
@@ -82,6 +84,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [prioritizeUnsolved, setPrioritizeUnsolved] = useState<boolean>(true);
   const [arenaTimePerQuestion, setArenaTimePerQuestion] = useState<ArenaTimeLimit>(45);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialSurahFilter !== undefined) {
@@ -229,21 +232,40 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
           </p>
         </div>
 
-        {gamification.wrongQuestionIds.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={() => setActiveTab('mistakes')}
-            className="min-h-[44px] px-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            onClick={() => {
+              sfxService.play('click');
+              setIsPrintModalOpen(true);
+            }}
+            className="min-h-[44px] px-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-colors"
             style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.08)',
-              borderColor: 'rgba(239, 68, 68, 0.25)',
-              color: '#DC2626',
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-strong)',
+              color: 'var(--text-primary)',
             }}
           >
-            <RotateCcw className="w-4 h-4 shrink-0" />
-            <span>Hata Kampı ({formatNumberTr(gamification.wrongQuestionIds.length)})</span>
+            <Printer className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+            <span>A4 Yazdırılabilir Sınav Hazırla</span>
           </button>
-        )}
+
+          {gamification.wrongQuestionIds.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('mistakes')}
+              className="min-h-[44px] px-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                borderColor: 'rgba(239, 68, 68, 0.25)',
+                color: '#DC2626',
+              }}
+            >
+              <RotateCcw className="w-4 h-4 shrink-0" />
+              <span>Hata Kampı ({formatNumberTr(gamification.wrongQuestionIds.length)})</span>
+            </button>
+          )}
+        </div>
       </section>
 
       {/* ====================================================================
@@ -897,6 +919,13 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
           <span>Sınav öncesi surelerin mealine göz atmak ister misin?</span>
         </button>
       </div>
+
+      {/* A4 Yazdırılabilir Sınav Kâğıdı ve Cevap Anahtarı Penceresi */}
+      <PrintableExamModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        initialSurahNo={selectedSingleSurah}
+      />
     </div>
   );
 };

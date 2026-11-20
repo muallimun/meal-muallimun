@@ -98,6 +98,37 @@ function getCandidateBaseUrls(): string[] {
   return [LOCAL_DATA_BASE_URL, LIVE_DATA_BASE_URL];
 }
 
+const PERSISTENT_DATA_CACHE_NAME = 'muallimun-offline-json-v1';
+
+async function readPersistentJsonCache<T>(cleanPath: string): Promise<T | null> {
+  if (typeof window === 'undefined' || !('caches' in window)) return null;
+  try {
+    const cache = await window.caches.open(PERSISTENT_DATA_CACHE_NAME);
+    const key = `/__offline_cache__/data/${cleanPath}`;
+    const res = await cache.match(key);
+    if (!res) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function writePersistentJsonCache(cleanPath: string, rawText: string): Promise<void> {
+  if (typeof window === 'undefined' || !('caches' in window)) return;
+  try {
+    const cache = await window.caches.open(PERSISTENT_DATA_CACHE_NAME);
+    const key = `/__offline_cache__/data/${cleanPath}`;
+    await cache.put(
+      key,
+      new Response(rawText, {
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      }),
+    );
+  } catch {
+    // Depolama kısıtlıysa sessizce geç
+  }
+}
+
 async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
   const cleanPath = relativePath.replace(/^\/+/, '');
   const cacheKey = `${demoMode ? 'demo:' : ''}${cleanPath}`;
@@ -112,6 +143,17 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
   }
 
   const promise = (async () => {
+    const isOfflineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
+
+    // Çevrimdışıysa doğrudan kalıcı tarayıcı önbelleğinden anında dön
+    if (isOfflineNow) {
+      const offlineCached = await readPersistentJsonCache<T>(cleanPath);
+      if (offlineCached !== null) {
+        memoryCache.set(cacheKey, offlineCached);
+        return offlineCached;
+      }
+    }
+
     const candidates = getCandidateBaseUrls();
     let lastError: Error | null = null;
 
@@ -133,10 +175,18 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
         resolvedBaseUrl = base;
         activeSourceMode = base === LOCAL_DATA_BASE_URL ? 'local' : 'remote';
         memoryCache.set(cacheKey, data);
+        void writePersistentJsonCache(cleanPath, text);
         return data;
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
       }
+    }
+
+    // Ağ istekleri başarısız olduysa kalıcı önbellekteki son kopyaya düş
+    const cachedFallback = await readPersistentJsonCache<T>(cleanPath);
+    if (cachedFallback !== null) {
+      memoryCache.set(cacheKey, cachedFallback);
+      return cachedFallback;
     }
 
     throw new Error(

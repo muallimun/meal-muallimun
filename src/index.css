@@ -244,3 +244,65 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================================
+   A4 Yazdırılabilir Sınav Kâğıdı ve Cevap Anahtarı Baskı Kuralları (@media print)
+   ============================================================================ */
+.print-only-sheet {
+  display: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 14mm 14mm 16mm 14mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Sınav kağıdı yazdırma penceresi açıkken uygulama arayüzünü tamamen gizle */
+  body.print-exam-active #root {
+    display: none !important;
+  }
+
+  body.print-exam-active .print-only-sheet {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-question-item {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-page-break {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  .print-table-row {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

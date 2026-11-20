@@ -16,6 +16,7 @@ import {
   Trophy,
   Type,
 } from 'lucide-react';
+import { PwaInstallControl } from '../components/PwaInstallControl';
 import { dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -576,6 +577,11 @@ export const HomePage: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* ====================================================================
+          1.7. PWA Kurulum Önerisi (Sadece kurulabilir tarayıcı / iOS'ta görünür)
+          ==================================================================== */}
+      <PwaInstallControl variant="banner" />
 
       {/* ====================================================================
           2. Ana 2-Sütunlu Alan: Aktif Çalışma Havuzu + Rastgele Ayet Önizleme

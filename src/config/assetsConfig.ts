@@ -47,6 +47,18 @@ export function getLocalSfxUrl(fileName: string): string {
   return `/sfx/${clean}`;
 }
 
+export function getIconUrl(fileName: string): string {
+  const clean = fileName.replace(/^\/+/, '');
+  return isNativeMuallimunHost()
+    ? `/icons/${clean}`
+    : `${LIVE_ASSETS_ORIGIN}/icons/${clean}`;
+}
+
+export function getLocalIconUrl(fileName: string): string {
+  const clean = fileName.replace(/^\/+/, '');
+  return `/icons/${clean}`;
+}
+
 export interface ArabicFontOption {
   id: string;
   label: string;
