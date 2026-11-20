@@ -13,8 +13,10 @@ import type {
   BesmeleInfo,
   CombinedVerse,
   SurahBundle,
+  SurahMeta,
   WordMealMode,
 } from '../../types/quran';
+import { formatSafeArabicTitle } from '../../utils/arabicUtils';
 import { formatNumberTr, normalizeTurkish } from '../../utils/poolUtils';
 import { VerseCard } from './VerseCard';
 
@@ -23,6 +25,7 @@ interface VerseCardsViewProps {
   besmele: BesmeleInfo;
   settings: AppSettings;
   wordMode: WordMealMode;
+  mealAudioFocusOnly?: boolean;
   bookmarkedSet: Set<number>;
   playingAyahId: number | null;
   jumpToAyahNo: number | null;
@@ -30,6 +33,7 @@ interface VerseCardsViewProps {
   onToggleBookmark: (ayahId: number) => void;
   onPlayFromVerse: (verse: CombinedVerse) => void;
   onPlayMealFromVerse: (verse: CombinedVerse) => void;
+  onShareVerse: (verse: CombinedVerse, surahMeta: SurahMeta) => void;
   onOpenPageInMushaf: (pageNo: number, ayahId: number) => void;
 }
 
@@ -43,6 +47,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   besmele,
   settings,
   wordMode,
+  mealAudioFocusOnly = false,
   bookmarkedSet,
   playingAyahId,
   jumpToAyahNo,
@@ -50,6 +55,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   onToggleBookmark,
   onPlayFromVerse,
   onPlayMealFromVerse,
+  onShareVerse,
   onOpenPageInMushaf,
 }) => {
   const { surahMeta, verses, hasBesmele } = surahBundle;
@@ -208,10 +214,10 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                   {surahMeta.nameTr}
                 </h2>
                 <span
-                  className="arabic-text text-xl leading-none"
+                  className="arabic-title text-xl leading-none"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  {surahMeta.nameAr}
+                  {formatSafeArabicTitle(surahMeta.nameAr)}
                 </span>
               </div>
               <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
@@ -425,14 +431,16 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
 
                 <VerseCard
                   verse={verse}
-                  surahNameTr={surahMeta.nameTr}
+                  surahMeta={surahMeta}
                   settings={settings}
                   globalWordMode={wordMode}
+                  mealAudioFocusOnly={mealAudioFocusOnly}
                   isBookmarked={bookmarkedSet.has(verse.id)}
                   isPlayingThisAyah={playingAyahId === verse.id}
                   onToggleBookmark={onToggleBookmark}
                   onPlayFromHere={onPlayFromVerse}
                   onPlayMealFromHere={onPlayMealFromVerse}
+                  onShareVerse={onShareVerse}
                 />
               </React.Fragment>
             );

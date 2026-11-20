@@ -7,26 +7,32 @@ export type PreferredMeal = 'm1' | 'm2' | 'both';
 export type ThemeMode = 'light' | 'cream' | 'dark';
 export type NavTab = 'home' | 'reader' | 'exam' | 'mistakes';
 
-export type StudyViewMode = 'mushaf' | 'cards';
+export type StudyViewMode = 'mushaf' | 'cards' | 'book';
+export type BookContentMode = 'ar_only' | 'meal_only' | 'interleaved';
 export type WordMealMode = 'off' | 'visible' | 'quiz';
 export type AudioPlayMode = 'ar' | 'meal' | 'ar_then_meal';
-export type MealAudioSourceId = 'tdv' | 'dib';
+export type MealAudioSourceId = 'tdv' | 'dib' | (string & {});
 export type PlaybackRateOption = 0.75 | 1 | 1.25 | 1.5;
 export type RepeatCountOption = 1 | 2 | 3;
 
 // 1. manifest.json
 export interface MealSourceInfo {
-  id: MealKey;
+  id: MealKey | (string & {});
   label: string;
-  audioSource: string;
+  shortLabel?: string;
+  audioSource?: string | null;
+  audioSourceKey?: string | null;
+  hasAudio?: boolean;
 }
 
 export interface AudioSourceInfo {
   id: string;
   kind: 'ar' | 'meal';
-  mealId?: MealKey;
+  mealId?: MealKey | (string & {});
   label: string;
+  reciterName?: string;
   baseUrl: string;
+  fallbackBaseUrl?: string;
   ext: string;
 }
 
@@ -323,6 +329,8 @@ export interface StudyPool {
 export interface StudyPrefs {
   viewMode: StudyViewMode;
   wordMode: WordMealMode;
+  bookContentMode: BookContentMode;
+  mealAudioFocusOnly: boolean;
 }
 
 export interface LastReadPosition {
@@ -340,6 +348,7 @@ export interface StudyProgress {
 
 export interface AudioPrefs {
   mode: AudioPlayMode;
+  arabicAudioSource: string;
   mealAudioSource: MealAudioSourceId;
   playbackRate: PlaybackRateOption;
   repeatCount: RepeatCountOption;

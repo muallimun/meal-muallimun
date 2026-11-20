@@ -1,3 +1,5 @@
+import type { ManifestData } from '../types/quran';
+
 export const LIVE_ASSETS_ORIGIN = 'https://meal-muallimun.vercel.app';
 export const LIVE_DATA_BASE_URL = `${LIVE_ASSETS_ORIGIN}/data`;
 export const LOCAL_DATA_BASE_URL = '/data';
@@ -190,3 +192,221 @@ export function resolveTurkishFontStack(label: string): string {
   const found = TURKISH_FONTS.find((f) => f.label === label);
   return found ? found.fontStack : TURKISH_FONTS[0].fontStack;
 }
+
+// ============================================================================
+// Dinamik Okuyucu (Tilavet) ve Sesli/Sessiz Meal Katalog Altyapısı
+// ============================================================================
+
+export interface ResolvedMealDefinition {
+  id: string;
+  label: string;
+  shortLabel: string;
+  hasAudio: boolean;
+  audioSourceKey: string | null;
+}
+
+export interface ResolvedAudioSource {
+  id: string;
+  kind: 'ar' | 'meal';
+  mealId?: string;
+  label: string;
+  shortLabel: string;
+  reciterName: string;
+  baseUrl: string;
+  fallbackBaseUrl?: string;
+  ext: string;
+}
+
+const DEFAULT_MEAL_DEFINITIONS: readonly ResolvedMealDefinition[] = [
+  {
+    id: 'm1',
+    label: 'Diyanet Vakfı Meali (TDV)',
+    shortLabel: 'TDV',
+    hasAudio: true,
+    audioSourceKey: 'tdv',
+  },
+  {
+    id: 'm2',
+    label: 'Diyanet İşleri Meali (DİB)',
+    shortLabel: 'DİB',
+    hasAudio: true,
+    audioSourceKey: 'dib',
+  },
+];
+
+const DEFAULT_ARABIC_AUDIO_SOURCES: readonly ResolvedAudioSource[] = [
+  {
+    id: 'hatim',
+    kind: 'ar',
+    label: 'İshak Danış (Hatim)',
+    shortLabel: 'İshak Danış',
+    reciterName: 'İshak Danış',
+    baseUrl:
+      'https://dn721808.ca.archive.org/0/items/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
+    fallbackBaseUrl:
+      'https://archive.org/download/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
+    ext: 'mp3',
+  },
+];
+
+const DEFAULT_MEAL_AUDIO_SOURCES: readonly ResolvedAudioSource[] = [
+  {
+    id: 'tdv',
+    kind: 'meal',
+    mealId: 'm1',
+    label: 'TDV Meali (Seyfullah Kartal)',
+    shortLabel: 'TDV Sesli',
+    reciterName: 'Seyfullah Kartal',
+    baseUrl: 'https://dn710902.ca.archive.org/0/items/seyfullah-kartal-ayet-ayet-meal-arsivi',
+    fallbackBaseUrl: 'https://archive.org/download/seyfullah-kartal-ayet-ayet-meal-arsivi',
+    ext: 'mp3',
+  },
+  {
+    id: 'dib',
+    kind: 'meal',
+    mealId: 'm2',
+    label: 'DİB Yeni Meal (Mehmet Emin Ay)',
+    shortLabel: 'DİB Sesli',
+    reciterName: 'Mehmet Emin Ay',
+    baseUrl: 'https://dn711208.ca.archive.org/0/items/mehmet-emin-ay-ayet-ayet-meal-arsivi',
+    fallbackBaseUrl: 'https://archive.org/download/mehmet-emin-ay-ayet-ayet-meal-arsivi',
+    ext: 'mp3',
+  },
+];
+
+function inferArchiveFallbackUrl(baseUrl: string, id: string): string | undefined {
+  const known = [...DEFAULT_ARABIC_AUDIO_SOURCES, ...DEFAULT_MEAL_AUDIO_SOURCES].find(
+    (item) => item.id === id,
+  );
+  if (known?.fallbackBaseUrl) return known.fallbackBaseUrl;
+
+  const match = baseUrl.match(/\/0\/items\/(.+)$/);
+  if (match && match[1]) {
+    return `https://archive.org/download/${match[1].replace(/\/+$/, '')}`;
+  }
+  return undefined;
+}
+
+function extractShortMealLabel(id: string, label: string): string {
+  if (id === 'm1') return 'TDV';
+  if (id === 'm2') return 'DİB';
+  const parenMatch = label.match(/\(([^)]{2,12})\)/);
+  if (parenMatch) return parenMatch[1];
+  return label.split(' ').slice(0, 2).join(' ');
+}
+
+function extractReciterName(label: string): string {
+  const parenMatch = label.match(/\(([^)]+)\)/);
+  if (parenMatch && parenMatch[1] && !/hatim/i.test(parenMatch[1])) {
+    return parenMatch[1].trim();
+  }
+  return label.replace(/\s*\([^)]*\)\s*/g, '').trim() || label;
+}
+
+export function getDynamicArabicAudioSources(
+  manifest: ManifestData | null,
+): ResolvedAudioSource[] {
+  if (!manifest?.audioSources) return [...DEFAULT_ARABIC_AUDIO_SOURCES];
+
+  const list: ResolvedAudioSource[] = [];
+  for (const [key, src] of Object.entries(manifest.audioSources)) {
+    if (!src || src.kind !== 'ar' || !src.baseUrl?.trim()) continue;
+    const id = src.id || key;
+    const cleanBase = src.baseUrl.replace(/\/+$/, '');
+    const reciterName = src.reciterName || extractReciterName(src.label);
+    list.push({
+      id,
+      kind: 'ar',
+      label: src.label,
+      shortLabel: reciterName,
+      reciterName,
+      baseUrl: cleanBase,
+      fallbackBaseUrl: src.fallbackBaseUrl?.replace(/\/+$/, '') || inferArchiveFallbackUrl(cleanBase, id),
+      ext: src.ext || 'mp3',
+    });
+  }
+
+  return list.length > 0 ? list : [...DEFAULT_ARABIC_AUDIO_SOURCES];
+}
+
+export function getDynamicMealAudioSources(
+  manifest: ManifestData | null,
+): ResolvedAudioSource[] {
+  if (!manifest?.audioSources) return [...DEFAULT_MEAL_AUDIO_SOURCES];
+
+  const list: ResolvedAudioSource[] = [];
+  for (const [key, src] of Object.entries(manifest.audioSources)) {
+    if (!src || src.kind !== 'meal' || !src.baseUrl?.trim()) continue;
+    const id = src.id || key;
+    const cleanBase = src.baseUrl.replace(/\/+$/, '');
+    const reciterName = src.reciterName || extractReciterName(src.label);
+    const shortTag =
+      id === 'tdv'
+        ? 'TDV Sesli'
+        : id === 'dib'
+          ? 'DİB Sesli'
+          : src.label.split('(')[0].trim().slice(0, 18);
+    list.push({
+      id,
+      kind: 'meal',
+      mealId: src.mealId,
+      label: src.label,
+      shortLabel: shortTag,
+      reciterName,
+      baseUrl: cleanBase,
+      fallbackBaseUrl: src.fallbackBaseUrl?.replace(/\/+$/, '') || inferArchiveFallbackUrl(cleanBase, id),
+      ext: src.ext || 'mp3',
+    });
+  }
+
+  return list.length > 0 ? list : [...DEFAULT_MEAL_AUDIO_SOURCES];
+}
+
+export function getDynamicMealDefinitions(
+  manifest: ManifestData | null,
+): ResolvedMealDefinition[] {
+  if (!manifest?.meals) return [...DEFAULT_MEAL_DEFINITIONS];
+
+  const audioMap = manifest.audioSources ?? {};
+  const list: ResolvedMealDefinition[] = [];
+
+  for (const [key, info] of Object.entries(manifest.meals)) {
+    if (!info) continue;
+    const rawAudioKey = info.audioSourceKey ?? info.audioSource ?? null;
+    const matchedAudio = rawAudioKey ? audioMap[rawAudioKey] : undefined;
+    const hasValidAudio =
+      info.hasAudio === false
+        ? false
+        : Boolean(rawAudioKey && matchedAudio && matchedAudio.baseUrl?.trim());
+
+    list.push({
+      id: info.id || key,
+      label: info.label,
+      shortLabel: info.shortLabel || extractShortMealLabel(info.id || key, info.label),
+      hasAudio: hasValidAudio,
+      audioSourceKey: hasValidAudio ? rawAudioKey : null,
+    });
+  }
+
+  return list.length > 0 ? list : [...DEFAULT_MEAL_DEFINITIONS];
+}
+
+export function resolveAudioSourceForMeal(
+  mealId: string,
+  manifest: ManifestData | null,
+): ResolvedAudioSource | null {
+  const meals = getDynamicMealDefinitions(manifest);
+  const target = meals.find((m) => m.id === mealId);
+  if (!target || !target.hasAudio || !target.audioSourceKey) return null;
+
+  const mealSources = getDynamicMealAudioSources(manifest);
+  return mealSources.find((src) => src.id === target.audioSourceKey) ?? null;
+}
+
+export function mealHasAudio(mealId: string, manifest: ManifestData | null): boolean {
+  if (mealId === 'both') {
+    return getDynamicMealAudioSources(manifest).length > 0;
+  }
+  return resolveAudioSourceForMeal(mealId, manifest) !== null;
+}
+

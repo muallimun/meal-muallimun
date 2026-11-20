@@ -1,16 +1,19 @@
+import {
+  getDynamicArabicAudioSources,
+  getDynamicMealAudioSources,
+} from '../config/assetsConfig';
 import type {
   AudioPlayMode,
   AudioPrefs,
   CombinedVerse,
   ManifestData,
-  MealAudioSourceId,
   MetaData,
 } from '../types/quran';
 
 export type AudioQueueStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 export type AudioPhase = 'besmele' | 'ar' | 'meal';
 export type AudioQueueContext = 'page' | 'surah' | 'single';
-export type AudioSourceKey = 'hatim' | MealAudioSourceId;
+export type AudioSourceKey = string;
 
 export interface AudioQueueSnapshot {
   status: AudioQueueStatus;
@@ -24,16 +27,20 @@ export interface AudioQueueSnapshot {
   currentAyahId: number | null;
   activePhase: AudioPhase | null;
   activeSourceKey: AudioSourceKey | null;
+  activeReciterLabel: string;
   currentRepeat: number;
   totalRepeats: number;
   canGoPrev: boolean;
   canGoNext: boolean;
   errorMessage: string | null;
+  infoMessage: string | null;
+  missingMealAudio: boolean;
 }
 
 interface PlaybackStep {
   phase: AudioPhase;
   sourceKey: AudioSourceKey;
+  reciterLabel: string;
   urls: string[];
   verseIndex: number;
   repeatIndex: number;
@@ -58,20 +65,6 @@ type NextPageProvider = (nextPage: number) => Promise<{
 
 type Listener = () => void;
 
-const PRIMARY_ARCHIVE_BASE: Record<AudioSourceKey, string> = {
-  hatim:
-    'https://dn721808.ca.archive.org/0/items/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
-  tdv: 'https://dn710902.ca.archive.org/0/items/seyfullah-kartal-ayet-ayet-meal-arsivi',
-  dib: 'https://dn711208.ca.archive.org/0/items/mehmet-emin-ay-ayet-ayet-meal-arsivi',
-};
-
-const FALLBACK_ARCHIVE_BASE: Record<AudioSourceKey, string> = {
-  hatim:
-    'https://archive.org/download/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
-  tdv: 'https://archive.org/download/seyfullah-kartal-ayet-ayet-meal-arsivi',
-  dib: 'https://archive.org/download/mehmet-emin-ay-ayet-ayet-meal-arsivi',
-};
-
 const MAX_CONSECUTIVE_FAILURES = 3;
 const LOAD_TIMEOUT_MS = 12000;
 
@@ -87,11 +80,14 @@ const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   currentAyahId: null,
   activePhase: null,
   activeSourceKey: null,
+  activeReciterLabel: '',
   currentRepeat: 1,
   totalRepeats: 1,
   canGoPrev: false,
   canGoNext: false,
   errorMessage: null,
+  infoMessage: null,
+  missingMealAudio: false,
 };
 
 function pad3(n: number): string {
@@ -131,6 +127,7 @@ class AudioQueueService {
   private meta: MetaData | null = null;
   private prefs: AudioPrefs = {
     mode: 'ar_then_meal',
+    arabicAudioSource: 'hatim',
     mealAudioSource: 'tdv',
     playbackRate: 1,
     repeatCount: 1,
@@ -140,6 +137,7 @@ class AudioQueueService {
   private activeModeOverride: AudioPlayMode | undefined;
   private context: AudioQueueContext | null = null;
   private contextKey: string | null = null;
+  private activeInfoNotice: string | null = null;
 
   private nextPageProvider: NextPageProvider | null = null;
 
@@ -168,24 +166,36 @@ class AudioQueueService {
     return found ? found.nameTr : `${surahNo}. Sure`;
   }
 
+  private resolveArabicSource() {
+    const sources = getDynamicArabicAudioSources(this.manifest);
+    const preferred = this.prefs.arabicAudioSource || 'hatim';
+    return sources.find((s) => s.id === preferred) ?? sources[0] ?? null;
+  }
+
+  private resolveMealSource() {
+    const sources = getDynamicMealAudioSources(this.manifest);
+    const preferred = this.prefs.mealAudioSource;
+    if (!preferred) return null;
+    return sources.find((s) => s.id === preferred) ?? null;
+  }
+
   /**
-   * Archive.org dosya adı formatı: {SSS}_{AAA}.mp3 (örn: 049_005.mp3, Besmele: 001_001.mp3)
-   * Önce manifest baseUrl (dn*.ca.archive.org), ardından archive.org/download yedek URL'sini üretir.
+   * Archive.org / dinamik ses kaynağı dosya adı formatı: {SSS}_{AAA}.{ext}
+   * (örn: 049_005.mp3, Besmele: 001_001.mp3)
    */
-  private buildAudioUrls(
-    sourceKey: AudioSourceKey,
+  private buildAudioUrlsForSource(
+    source: { baseUrl: string; fallbackBaseUrl?: string; ext: string } | null,
     surahNo: number,
     ayahNo: number,
   ): string[] {
-    const source = this.manifest?.audioSources[sourceKey];
-    const ext = source?.ext || 'mp3';
+    if (!source || !source.baseUrl) return [];
+    const ext = source.ext || 'mp3';
     const fileName = `${pad3(surahNo)}_${pad3(ayahNo)}.${ext}`;
-
-    const manifestBase = source?.baseUrl?.replace(/\/+$/, '');
-    const primaryBase = manifestBase || PRIMARY_ARCHIVE_BASE[sourceKey];
-    const fallbackBase = FALLBACK_ARCHIVE_BASE[sourceKey];
-
-    return dedupeUrls([`${primaryBase}/${fileName}`, `${fallbackBase}/${fileName}`]);
+    const primary = `${source.baseUrl.replace(/\/+$/, '')}/${fileName}`;
+    const fallback = source.fallbackBaseUrl
+      ? `${source.fallbackBaseUrl.replace(/\/+$/, '')}/${fileName}`
+      : null;
+    return dedupeUrls([primary, fallback]);
   }
 
   private getEffectiveMode(): AudioPlayMode {
@@ -194,6 +204,7 @@ class AudioQueueService {
 
   /**
    * Seçili ayet için Besmele, Arapça, Meal ve Tekrar kurallarına göre adımları oluşturur.
+   * Seslendirmesi bulunmayan meal seçiliyse güvenli fallback uygular.
    */
   private buildStepsForVerse(
     verseIndex: number,
@@ -203,9 +214,15 @@ class AudioQueueService {
     if (!verse || !this.manifest || !this.meta) return [];
 
     const mode = this.getEffectiveMode();
-    const mealSource = this.prefs.mealAudioSource;
+    const arabicSource = this.resolveArabicSource();
+    const mealSource = this.resolveMealSource();
     const repeatCount = this.prefs.repeatCount;
     const steps: PlaybackStep[] = [];
+
+    // Sadece Sesli Meal modunda seçili mealin ses kaydı yoksa boş adım dön (startQueue nazikçe uyarır)
+    if (mode === 'meal' && !mealSource) {
+      return [];
+    }
 
     // 1. Besmele Kuralı: Sure 1 (Fâtiha) ve Sure 9 (Tevbe) hariç 1. ayette önce 001_001.mp3 çal
     const excludeBesmele = this.meta.besmele.excludeSurahs ?? [1, 9];
@@ -214,12 +231,13 @@ class AudioQueueService {
       verse.ayah === 1 &&
       !excludeBesmele.includes(verse.surah)
     ) {
-      const besmeleSource: AudioSourceKey = mode === 'meal' ? mealSource : 'hatim';
-      const besmeleUrls = this.buildAudioUrls(besmeleSource, 1, 1);
-      if (besmeleUrls.length > 0) {
+      const besmeleSrc = mode === 'meal' ? mealSource : arabicSource;
+      const besmeleUrls = this.buildAudioUrlsForSource(besmeleSrc, 1, 1);
+      if (besmeleSrc && besmeleUrls.length > 0) {
         steps.push({
           phase: 'besmele',
-          sourceKey: besmeleSource,
+          sourceKey: besmeleSrc.id,
+          reciterLabel: besmeleSrc.label,
           urls: besmeleUrls,
           verseIndex,
           repeatIndex: 1,
@@ -229,40 +247,40 @@ class AudioQueueService {
 
     // 2. Birleşik Meal (mg) Kuralı:
     // mg: [startAyet, endAyet] varsa ve ayetNo > startAyet ise sıralı oynatmada meal sesini tekrar çalma.
-    const activeMealObj = mealSource === 'tdv' ? verse.m1 : verse.m2;
+    const activeMealObj = mealSource?.mealId === 'm2' || mealSource?.id === 'dib' ? verse.m2 : verse.m1;
     const mg = activeMealObj?.mg;
     const isMergedContinuation = Boolean(mg && verse.ayah > mg[0]);
 
-    const arUrls = this.buildAudioUrls('hatim', verse.surah, verse.ayah);
-    const primaryMealUrls = this.buildAudioUrls(mealSource, verse.surah, verse.ayah);
+    const arUrls = this.buildAudioUrlsForSource(arabicSource, verse.surah, verse.ayah);
+    const primaryMealUrls = this.buildAudioUrlsForSource(mealSource, verse.surah, verse.ayah);
     const mergedStartMealUrls =
-      mg && mg[0] !== verse.ayah
-        ? this.buildAudioUrls(mealSource, verse.surah, mg[0])
+      mealSource && mg && mg[0] !== verse.ayah
+        ? this.buildAudioUrlsForSource(mealSource, verse.surah, mg[0])
         : [];
     const combinedMealUrls = dedupeUrls([...primaryMealUrls, ...mergedStartMealUrls]);
 
     for (let rep = 1; rep <= repeatCount; rep += 1) {
-      if (mode === 'ar' || mode === 'ar_then_meal') {
-        if (arUrls.length > 0) {
-          steps.push({
-            phase: 'ar',
-            sourceKey: 'hatim',
-            urls: arUrls,
-            verseIndex,
-            repeatIndex: rep,
-          });
-        }
+      if ((mode === 'ar' || mode === 'ar_then_meal') && arabicSource && arUrls.length > 0) {
+        steps.push({
+          phase: 'ar',
+          sourceKey: arabicSource.id,
+          reciterLabel: arabicSource.label,
+          urls: arUrls,
+          verseIndex,
+          repeatIndex: rep,
+        });
       }
 
       const shouldPlayMeal =
-        mode === 'meal' || mode === 'ar_then_meal'
+        (mode === 'meal' || mode === 'ar_then_meal') && Boolean(mealSource)
           ? this.singleAyahOnly || !isMergedContinuation
           : false;
 
-      if (shouldPlayMeal && combinedMealUrls.length > 0) {
+      if (shouldPlayMeal && mealSource && combinedMealUrls.length > 0) {
         steps.push({
           phase: 'meal',
-          sourceKey: mealSource,
+          sourceKey: mealSource.id,
+          reciterLabel: mealSource.label,
           urls: combinedMealUrls,
           verseIndex,
           repeatIndex: rep,
@@ -381,11 +399,14 @@ class AudioQueueService {
       currentAyahId: verse.id,
       activePhase: step.phase,
       activeSourceKey: step.sourceKey,
+      activeReciterLabel: step.reciterLabel,
       currentRepeat: step.repeatIndex,
       totalRepeats: this.prefs.repeatCount,
       canGoPrev: nav.canGoPrev,
       canGoNext: nav.canGoNext,
       errorMessage: null,
+      infoMessage: this.activeInfoNotice,
+      missingMealAudio: false,
     });
 
     if (typeof window === 'undefined' || typeof Audio === 'undefined') {
@@ -413,7 +434,6 @@ class AudioQueueService {
       handledFailure = true;
       this.clearLoadTimer();
 
-      // Sıradaki yedek URL varsa (örn. archive.org/download veya birleşik meal başlangıç ayeti) önce onu dene
       if (urlIndex + 1 < step.urls.length) {
         this.playCurrentStep(urlIndex + 1);
         return;
@@ -422,7 +442,6 @@ class AudioQueueService {
       this.handleStepExhausted(session);
     };
 
-    // Sunucu yanıt vermezse (zaman aşımı) yedek sunucuya geç
     this.loadTimer = window.setTimeout(() => {
       if (session !== this.playSessionId) return;
       handleFailure();
@@ -505,7 +524,6 @@ class AudioQueueService {
     if (session !== this.playSessionId) return;
     this.consecutiveFailures += 1;
 
-    // Sonsuz Atlama Koruması: Üst üste 3 ses dosyası yüklenemezse duraklat ve kullanıcıyı bilgilendir
     if (this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
       this.teardownAudioElement();
       this.emit({
@@ -541,7 +559,6 @@ class AudioQueueService {
       return;
     }
 
-    // Aynı kuyruk içinde sonraki ayet
     let nextIdx = this.currentVerseIndex + 1;
     while (nextIdx < this.verses.length) {
       const nextSteps = this.buildStepsForVerse(nextIdx, true);
@@ -555,7 +572,6 @@ class AudioQueueService {
       nextIdx += 1;
     }
 
-    // Mushaf sayfa modunda sayfanın son ayeti bittiyse otomatik bir sonraki sayfaya geç
     if (this.context === 'page' && this.nextPageProvider && this.verses.length > 0) {
       const lastVerse = this.verses[this.verses.length - 1];
       const nextPageNo = lastVerse.page + 1;
@@ -570,7 +586,6 @@ class AudioQueueService {
           this.contextKey = nextPageData.contextKey;
           this.currentVerseIndex = 0;
 
-          // Yeni sayfanın ilk uygun ayetinden başlat
           for (let i = 0; i < this.verses.length; i += 1) {
             const nextSteps = this.buildStepsForVerse(i, true);
             if (nextSteps.length > 0) {
@@ -587,9 +602,35 @@ class AudioQueueService {
       }
     }
 
-    // Kuyruk sonlandı
     this.teardownAudioElement();
     this.emit({ status: 'paused', activePhase: null });
+  }
+
+  private emitMissingMealAudioNotice(verse: CombinedVerse): void {
+    const nav = this.updateNavigationAvailability();
+    this.teardownAudioElement();
+    this.emit({
+      status: 'paused',
+      isVisible: true,
+      context: this.context,
+      contextKey: this.contextKey,
+      currentSurah: verse.surah,
+      currentSurahName: this.getSurahName(verse.surah),
+      currentAyah: verse.ayah,
+      currentPage: verse.page,
+      currentAyahId: verse.id,
+      activePhase: null,
+      activeSourceKey: null,
+      activeReciterLabel: '',
+      currentRepeat: 1,
+      totalRepeats: this.prefs.repeatCount,
+      canGoPrev: nav.canGoPrev,
+      canGoNext: nav.canGoNext,
+      errorMessage:
+        'Seçili mealin sesli kaydı bulunmuyor. Aşağıdan sesli bir meal (TDV / DİB) veya Arapça tilavet seçebilirsiniz.',
+      infoMessage: null,
+      missingMealAudio: true,
+    });
   }
 
   public startQueue(options: StartQueueOptions): void {
@@ -609,6 +650,7 @@ class AudioQueueService {
     this.prefs = { ...options.prefs };
     this.singleAyahOnly = Boolean(options.singleAyahOnly);
     this.activeModeOverride = options.modeOverride;
+    this.activeInfoNotice = null;
 
     if (this.verses.length === 0) {
       this.stopAndReset(false);
@@ -616,9 +658,26 @@ class AudioQueueService {
     }
 
     const targetIndex = this.currentVerseIndex;
+    const targetVerse = this.verses[targetIndex];
+    const effectiveMode = this.getEffectiveMode();
+    const resolvedMeal = this.resolveMealSource();
+
+    // Sadece sesli meal istendi ama o mealin seslendirmesi yoksa hızlı atlama/çökme yapma; net bildirim ver
+    if (effectiveMode === 'meal' && !resolvedMeal) {
+      this.steps = [];
+      this.emitMissingMealAudioNotice(targetVerse);
+      return;
+    }
+
+    // Arapça + Meal modunda meal sesi yoksa Arapça tilaveti oynat ve nazik bilgi göster
+    if (effectiveMode === 'ar_then_meal' && !resolvedMeal) {
+      this.activeInfoNotice =
+        'Seçili mealin ses kaydı olmadığı için Arapça tilavet oynatılıyor.';
+    }
+
     let builtSteps = this.buildStepsForVerse(targetIndex, true);
 
-    // Eğer meal modunda birleşik meal devam ayetinden başlandıysa mevcut ayeti zorla çal
+    // Meal modunda birleşik meal devam ayetinden başlandıysa mevcut ayeti zorla çal
     if (builtSteps.length === 0) {
       const prevSingle = this.singleAyahOnly;
       this.singleAyahOnly = true;
@@ -628,9 +687,10 @@ class AudioQueueService {
 
     if (builtSteps.length === 0) {
       this.emit({
-        status: 'error',
+        status: 'paused',
         isVisible: true,
         errorMessage: 'Bu ayet için ses kaynağı yapılandırılamadı.',
+        missingMealAudio: effectiveMode === 'meal',
       });
       return;
     }
@@ -721,7 +781,6 @@ class AudioQueueService {
     const prevPrefs = this.prefs;
     this.prefs = { ...nextPrefs };
 
-    // Kullanıcı açıkça oynatma modunu değiştirdiyse tek-tıklama geçersiz kılmasını kaldır
     if (prevPrefs.mode !== nextPrefs.mode) {
       this.activeModeOverride = undefined;
     }
@@ -732,16 +791,42 @@ class AudioQueueService {
 
     const structuralChanged =
       prevPrefs.mode !== nextPrefs.mode ||
+      prevPrefs.arabicAudioSource !== nextPrefs.arabicAudioSource ||
       prevPrefs.mealAudioSource !== nextPrefs.mealAudioSource ||
       prevPrefs.repeatCount !== nextPrefs.repeatCount;
 
     if (structuralChanged && this.snapshot.isVisible && this.verses.length > 0) {
-      const wasPlaying =
-        this.snapshot.status === 'playing' || this.snapshot.status === 'loading';
+      const wasPlayingOrWaitingRecovery =
+        this.snapshot.status === 'playing' ||
+        this.snapshot.status === 'loading' ||
+        this.snapshot.missingMealAudio;
+
+      const effectiveMode = this.getEffectiveMode();
+      const resolvedMeal = this.resolveMealSource();
+      this.activeInfoNotice =
+        effectiveMode === 'ar_then_meal' && !resolvedMeal
+          ? 'Seçili mealin ses kaydı olmadığı için Arapça tilavet oynatılıyor.'
+          : null;
+
+      if (effectiveMode === 'meal' && !resolvedMeal) {
+        const currentVerse = this.verses[this.currentVerseIndex];
+        if (currentVerse) {
+          this.steps = [];
+          this.emitMissingMealAudioNotice(currentVerse);
+        }
+        return;
+      }
+
       this.steps = this.buildStepsForVerse(this.currentVerseIndex, false);
       this.currentStepIndex = 0;
-      this.emit({ totalRepeats: nextPrefs.repeatCount, currentRepeat: 1 });
-      if (wasPlaying) {
+      this.emit({
+        totalRepeats: nextPrefs.repeatCount,
+        currentRepeat: 1,
+        missingMealAudio: false,
+        infoMessage: this.activeInfoNotice,
+      });
+
+      if (wasPlayingOrWaitingRecovery && this.steps.length > 0) {
         this.playSessionId += 1;
         this.consecutiveFailures = 0;
         this.playCurrentStep(0);
@@ -761,6 +846,7 @@ class AudioQueueService {
     this.contextKey = null;
     this.singleAyahOnly = false;
     this.activeModeOverride = undefined;
+    this.activeInfoNotice = null;
     this.emit({
       ...INITIAL_SNAPSHOT,
       isVisible: !hideBar,

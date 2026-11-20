@@ -44,6 +44,7 @@ import {
 } from '../utils/pwaUtils';
 
 export const STORAGE_KEY = 'muallimun_meal_v1';
+export const INTRO_DISMISSED_KEY = 'muallimun_intro_dismissed_v1';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'cream',
@@ -66,6 +67,8 @@ export const DEFAULT_STUDY_POOL: StudyPool = {
 export const DEFAULT_STUDY_PREFS: StudyPrefs = {
   viewMode: 'mushaf',
   wordMode: 'off',
+  bookContentMode: 'interleaved',
+  mealAudioFocusOnly: false,
 };
 
 export const DEFAULT_STUDY_PROGRESS: StudyProgress = {
@@ -75,6 +78,7 @@ export const DEFAULT_STUDY_PROGRESS: StudyProgress = {
 
 export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
   mode: 'ar_then_meal',
+  arabicAudioSource: 'hatim',
   mealAudioSource: 'tdv',
   playbackRate: 1,
   repeatCount: 1,
@@ -225,7 +229,9 @@ function hydrateState(): PersistedAppState {
     const rawStudyPrefs = parsed.studyPrefs;
     const studyPrefs: StudyPrefs = {
       viewMode:
-        rawStudyPrefs?.viewMode === 'mushaf' || rawStudyPrefs?.viewMode === 'cards'
+        rawStudyPrefs?.viewMode === 'mushaf' ||
+        rawStudyPrefs?.viewMode === 'cards' ||
+        rawStudyPrefs?.viewMode === 'book'
           ? rawStudyPrefs.viewMode
           : DEFAULT_STUDY_PREFS.viewMode,
       wordMode:
@@ -234,6 +240,16 @@ function hydrateState(): PersistedAppState {
         rawStudyPrefs?.wordMode === 'quiz'
           ? rawStudyPrefs.wordMode
           : DEFAULT_STUDY_PREFS.wordMode,
+      bookContentMode:
+        rawStudyPrefs?.bookContentMode === 'ar_only' ||
+        rawStudyPrefs?.bookContentMode === 'meal_only' ||
+        rawStudyPrefs?.bookContentMode === 'interleaved'
+          ? rawStudyPrefs.bookContentMode
+          : DEFAULT_STUDY_PREFS.bookContentMode,
+      mealAudioFocusOnly:
+        typeof rawStudyPrefs?.mealAudioFocusOnly === 'boolean'
+          ? rawStudyPrefs.mealAudioFocusOnly
+          : DEFAULT_STUDY_PREFS.mealAudioFocusOnly,
     };
 
     const rawProgress = parsed.studyProgress;
@@ -248,7 +264,9 @@ function hydrateState(): PersistedAppState {
             ayah: rawLast.ayah,
             page: rawLast.page,
             viewMode:
-              rawLast.viewMode === 'mushaf' || rawLast.viewMode === 'cards'
+              rawLast.viewMode === 'mushaf' ||
+              rawLast.viewMode === 'cards' ||
+              rawLast.viewMode === 'book'
                 ? rawLast.viewMode
                 : 'mushaf',
             updatedAt:
@@ -279,9 +297,13 @@ function hydrateState(): PersistedAppState {
         rawAudio?.mode === 'ar_then_meal'
           ? rawAudio.mode
           : DEFAULT_AUDIO_PREFS.mode,
+      arabicAudioSource:
+        typeof rawAudio?.arabicAudioSource === 'string' && rawAudio.arabicAudioSource.trim()
+          ? rawAudio.arabicAudioSource.trim()
+          : DEFAULT_AUDIO_PREFS.arabicAudioSource,
       mealAudioSource:
-        rawAudio?.mealAudioSource === 'tdv' || rawAudio?.mealAudioSource === 'dib'
-          ? rawAudio.mealAudioSource
+        typeof rawAudio?.mealAudioSource === 'string' && rawAudio.mealAudioSource.trim()
+          ? rawAudio.mealAudioSource.trim()
           : DEFAULT_AUDIO_PREFS.mealAudioSource,
       playbackRate:
         rawAudio?.playbackRate === 0.75 ||
@@ -463,6 +485,10 @@ interface AppContextValue {
   isSettingsModalOpen: boolean;
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
+  isIntroOpen: boolean;
+  introDismissed: boolean;
+  openIntroSplash: () => void;
+  closeIntroSplash: (dontShowAgain?: boolean) => void;
 
   // Çekirdek Veri Katmanı
   manifest: ManifestData | null;
@@ -485,6 +511,15 @@ interface AppContextValue {
   promptPwaInstall: () => Promise<boolean>;
 }
 
+function readIntroDismissed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(INTRO_DISMISSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 const AppContext = createContext<AppContextValue | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -495,6 +530,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isExamActive, setIsExamActive] = useState(false);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [introDismissed, setIntroDismissed] = useState<boolean>(() => readIntroDismissed());
+  const [isIntroOpen, setIsIntroOpen] = useState<boolean>(() => !readIntroDismissed());
 
   const [manifest, setManifest] = useState<ManifestData | null>(null);
   const [meta, setMeta] = useState<MetaData | null>(null);
@@ -920,6 +957,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSettingsModalOpen(false);
   }, []);
 
+  const openIntroSplash = useCallback(() => {
+    sfxService.play('click');
+    setIsSettingsModalOpen(false);
+    setIsIntroOpen(true);
+  }, []);
+
+  const closeIntroSplash = useCallback((dontShowAgain?: boolean) => {
+    if (dontShowAgain === true) {
+      setIntroDismissed(true);
+      try {
+        window.localStorage.setItem(INTRO_DISMISSED_KEY, '1');
+      } catch {
+        // ignore storage restrictions
+      }
+    } else if (dontShowAgain === false) {
+      setIntroDismissed(false);
+      try {
+        window.localStorage.removeItem(INTRO_DISMISSED_KEY);
+      } catch {
+        // ignore storage restrictions
+      }
+    }
+    setIsIntroOpen(false);
+  }, []);
+
   const retryCoreLoad = useCallback(() => {
     sfxService.play('click');
     dataService.disableDemoMode();
@@ -982,6 +1044,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSettingsModalOpen,
       openSettingsModal,
       closeSettingsModal,
+      isIntroOpen,
+      introDismissed,
+      openIntroSplash,
+      closeIntroSplash,
       manifest,
       meta,
       questionIndex,
@@ -1029,6 +1095,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSettingsModalOpen,
       openSettingsModal,
       closeSettingsModal,
+      isIntroOpen,
+      introDismissed,
+      openIntroSplash,
+      closeIntroSplash,
       manifest,
       meta,
       questionIndex,

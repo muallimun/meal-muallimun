@@ -176,12 +176,14 @@
     color: var(--text-primary);
     font-family: var(--font-turkish);
     scroll-behavior: smooth;
+    overflow-x: clip;
   }
 
   body {
     background-color: var(--bg-canvas);
     color: var(--text-primary);
     min-height: 100dvh;
+    overflow-x: clip;
     transition: background-color 180ms ease, color 180ms ease;
   }
 
@@ -207,6 +209,23 @@
   unicode-bidi: isolate;
   line-height: 2.05;
   font-feature-settings: "liga" 1, "calt" 1, "mark" 1, "mkmk" 1;
+}
+
+/* Sure adları için tam Unicode glif destekli güvenli Arapça başlık sınıfı (□ / ◌ hatasını önler) */
+.arabic-title {
+  font-family:
+    "Arakom Nesih",
+    "Şeyh Hamdullah Kitap",
+    "Noto Naskh Arabic",
+    "Geeza Pro",
+    "Arabic Typesetting",
+    "Segoe UI",
+    Tahoma,
+    sans-serif;
+  direction: rtl;
+  unicode-bidi: isolate;
+  line-height: 1.5;
+  font-feature-settings: "liga" 1, "calt" 1;
 }
 
 .turkish-reading {

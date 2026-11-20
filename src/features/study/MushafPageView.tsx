@@ -12,6 +12,7 @@ import {
   Languages,
   Link2,
   List,
+  Share2,
   Star,
   Volume2,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ import type {
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
+import { formatSafeArabicTitle } from '../../utils/arabicUtils';
 import { WordMealGrid } from './WordMealGrid';
 
 interface MushafPageViewProps {
@@ -43,6 +45,7 @@ interface MushafPageViewProps {
   onPlayFromVerse: (verse: CombinedVerse, singleAyahOnly?: boolean) => void;
   onPlayMealFromVerse: (verse: CombinedVerse) => void;
   onToggleBookmark: (ayahId: number) => void;
+  onShareVerse: (verse: CombinedVerse, surahMeta: SurahMeta) => void;
   onOpenSurahInfo: (surah: SurahMeta) => void;
 }
 
@@ -63,6 +66,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   onPlayFromVerse,
   onPlayMealFromVerse,
   onToggleBookmark,
+  onShareVerse,
   onOpenSurahInfo,
 }) => {
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('selected');
@@ -133,7 +137,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
   const pageSurahTitlesTr = pageBundle.segments.map((s) => s.surahMeta.shortNameTr).join(' · ');
   const pageSurahTitlesAr = pageBundle.segments
-    .map((s) => s.surahMeta.nameAr)
+    .map((s) => formatSafeArabicTitle(s.surahMeta.nameAr))
     .slice(0, 2)
     .join(' · ');
 
@@ -205,7 +209,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   {pageSurahTitlesTr}
                 </span>
                 <span
-                  className="arabic-text text-base sm:text-lg leading-none truncate"
+                  className="arabic-title text-base sm:text-lg leading-none truncate"
                   style={{ color: 'var(--text-primary)' }}
                 >
                   {pageSurahTitlesAr}
@@ -240,10 +244,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         </div>
 
                         <span
-                          className="arabic-text text-2xl sm:text-3xl leading-none"
+                          className="arabic-title text-2xl sm:text-3xl leading-none"
                           style={{ color: 'var(--brand-primary-text)' }}
                         >
-                          {segment.surahMeta.nameAr}
+                          {formatSafeArabicTitle(segment.surahMeta.nameAr)}
                         </span>
 
                         <button
@@ -587,6 +591,24 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                     <span className="hidden sm:inline">
                       {copiedId === selectedVerse.id ? 'Kopyalandı' : 'Kopyala'}
                     </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      onShareVerse(selectedVerse, selectedSegment.surahMeta);
+                    }}
+                    aria-label="Paylaşım kartı oluştur"
+                    className="min-h-[42px] px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Paylaş</span>
                   </button>
                 </div>
               </div>

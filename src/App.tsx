@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppShell } from './components/AppShell';
 import { AudioPlayerBar } from './components/AudioPlayerBar';
+import { IntroSplash } from './components/IntroSplash';
 import { PoolSelectorModal } from './components/PoolSelectorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ExamCenterPage } from './features/exam/ExamCenterPage';
@@ -26,6 +27,7 @@ const MainRouter: React.FC = () => {
       <AudioPlayerBar />
       <PoolSelectorModal />
       <SettingsModal />
+      <IntroSplash />
     </AppShell>
   );
 };

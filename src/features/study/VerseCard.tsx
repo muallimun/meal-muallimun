@@ -8,6 +8,8 @@ import {
   Headphones,
   Languages,
   Link2,
+  MoreHorizontal,
+  Share2,
   Star,
   Volume2,
 } from 'lucide-react';
@@ -17,38 +19,45 @@ import type {
   AppSettings,
   CombinedVerse,
   MealVerse,
+  SurahMeta,
   WordMealMode,
 } from '../../types/quran';
 import { WordMealGrid } from './WordMealGrid';
 
 interface VerseCardProps {
   verse: CombinedVerse;
-  surahNameTr: string;
+  surahMeta: SurahMeta;
   settings: AppSettings;
   globalWordMode: WordMealMode;
+  mealAudioFocusOnly?: boolean;
   isBookmarked: boolean;
   isPlayingThisAyah: boolean;
   onToggleBookmark: (ayahId: number) => void;
   onPlayFromHere: (verse: CombinedVerse) => void;
   onPlayMealFromHere: (verse: CombinedVerse) => void;
+  onShareVerse: (verse: CombinedVerse, surahMeta: SurahMeta) => void;
 }
 
 export const VerseCard: React.FC<VerseCardProps> = ({
   verse,
-  surahNameTr,
+  surahMeta,
   settings,
   globalWordMode,
+  mealAudioFocusOnly = false,
   isBookmarked,
   isPlayingThisAyah,
   onToggleBookmark,
   onPlayFromHere,
   onPlayMealFromHere,
+  onShareVerse,
 }) => {
+  const surahNameTr = surahMeta.nameTr;
   const [localWordOverride, setLocalWordOverride] = useState<boolean | null>(null);
   const [showFootnotes, setShowFootnotes] = useState(false);
   const [expandedMergedM1, setExpandedMergedM1] = useState(false);
   const [expandedMergedM2, setExpandedMergedM2] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isMuqattaat = Boolean(verse.ar.mq);
   const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
@@ -198,7 +207,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
       >
         <div className="flex items-center gap-2.5 flex-wrap">
           <span
-            className="px-2.5 py-1 rounded-lg text-xs font-extrabold tabular-nums"
+            className="px-2.5 py-1 rounded-lg text-xs font-extrabold tabular-nums inline-flex items-center gap-1"
             style={{
               backgroundColor: isPlayingThisAyah
                 ? 'var(--brand-primary)'
@@ -206,7 +215,10 @@ export const VerseCard: React.FC<VerseCardProps> = ({
               color: isPlayingThisAyah ? '#FFFFFF' : 'var(--brand-primary-text)',
             }}
           >
-            {verse.surah}:{verse.ayah}
+            {isPlayingThisAyah && <Volume2 className="w-3.5 h-3.5 animate-pulse" />}
+            <span>
+              {verse.surah}:{verse.ayah}
+            </span>
           </span>
           <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
             {verse.cuz}. Cüz · Sayfa {verse.page}
@@ -304,36 +316,82 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             <Star className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
           </button>
 
-          <button
-            type="button"
-            onClick={handleCopy}
-            title="Ayeti ve mealini kopyala"
-            aria-label="Kopyala"
-            className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
-            style={{
-              color: copied ? '#10B981' : 'var(--text-muted)',
-            }}
-          >
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setMenuOpen((v) => !v);
+              }}
+              title="Diğer işlemler (Paylaş / Kopyala)"
+              aria-label="Ayet işlem menüsü"
+              aria-expanded={menuOpen}
+              className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
+              style={{
+                backgroundColor: menuOpen ? 'var(--bg-surface-soft)' : 'transparent',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-11 z-30 w-52 rounded-2xl border shadow-xl p-1.5 space-y-0.5"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-strong)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    sfxService.play('click');
+                    onShareVerse(verse, surahMeta);
+                  }}
+                  className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <Share2 className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
+                  <span>Paylaşım Kartı Oluştur</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void handleCopy();
+                  }}
+                  className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                  style={{ color: copied ? '#10B981' : 'var(--text-primary)' }}
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copied ? 'Kopyalandı' : 'Ayeti Kopyala'}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Arapça Metin */}
-      <div className="mb-4">
-        <p
-          className="arabic-text text-right break-words"
-          style={{
-            fontSize: `${settings.arabicFontSize}px`,
-            color: 'var(--text-primary)',
-          }}
-        >
-          {verse.ar.t}
-        </p>
-      </div>
+      {/* Arapça Metin (Odaklı Sesli Meal modunda gizlenir) */}
+      {!mealAudioFocusOnly && (
+        <div className="mb-4">
+          <p
+            className="arabic-text text-right break-words"
+            style={{
+              fontSize: `${settings.arabicFontSize}px`,
+              color: 'var(--text-primary)',
+            }}
+          >
+            {verse.ar.t}
+          </p>
+        </div>
+      )}
 
       {/* Etkileşimli Kelime-Kelime Meal */}
-      {showWordGrid && verse.words.length > 0 && (
+      {!mealAudioFocusOnly && showWordGrid && verse.words.length > 0 && (
         <div
           className="mb-4 p-3.5 rounded-xl border"
           style={{

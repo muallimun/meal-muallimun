@@ -1,5 +1,6 @@
-import React, { useEffect, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
+  AlertCircle,
   Loader2,
   Pause,
   Play,
@@ -9,6 +10,10 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import {
+  getDynamicArabicAudioSources,
+  getDynamicMealAudioSources,
+} from '../config/assetsConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -29,11 +34,14 @@ const MODE_LABELS: { id: AudioPlayMode; label: string }[] = [
 ];
 
 export const AudioPlayerBar: React.FC = () => {
-  const { audioPrefs, updateAudioPrefs, isExamActive } = useAppStore();
+  const { audioPrefs, updateAudioPrefs, isExamActive, manifest } = useAppStore();
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
   );
+
+  const arabicSources = useMemo(() => getDynamicArabicAudioSources(manifest), [manifest]);
+  const mealSources = useMemo(() => getDynamicMealAudioSources(manifest), [manifest]);
 
   // Store'daki audioPrefs değişince ses motorunu anlık senkronize et
   useEffect(() => {
@@ -47,24 +55,17 @@ export const AudioPlayerBar: React.FC = () => {
   const isPlaying = audioState.status === 'playing';
   const isLoading = audioState.status === 'loading';
 
-  const activeMealSource: MealAudioSourceId =
-    audioState.activeSourceKey === 'dib' || audioState.activeSourceKey === 'tdv'
-      ? audioState.activeSourceKey
-      : audioPrefs.mealAudioSource;
+  const reciterSuffix = audioState.activeReciterLabel
+    ? ` · ${audioState.activeReciterLabel}`
+    : '';
 
   const phaseText =
     audioState.activePhase === 'besmele'
-      ? audioState.activeSourceKey === 'tdv'
-        ? '🇹🇷 Besmele · Seyfullah Kartal'
-        : audioState.activeSourceKey === 'dib'
-          ? '🇹🇷 Besmele · Mehmet Emin Ay'
-          : '🕋 Besmele · İshak Danış'
+      ? `Besmele${reciterSuffix}`
       : audioState.activePhase === 'ar'
-        ? '🕋 Arapça Tilavet · İshak Danış'
+        ? `Arapça Tilavet${reciterSuffix}`
         : audioState.activePhase === 'meal'
-          ? activeMealSource === 'tdv'
-            ? '🇹🇷 TDV Sesli Meal · Seyfullah Kartal'
-            : '🇹🇷 DİB Sesli Meal · Mehmet Emin Ay'
+          ? `Sesli Meal${reciterSuffix}`
           : isPlaying
             ? 'Oynatılıyor'
             : 'Duraklatıldı';
@@ -114,11 +115,19 @@ export const AudioPlayerBar: React.FC = () => {
               <span
                 className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                 style={{
-                  backgroundColor: 'var(--brand-primary-soft)',
-                  color: 'var(--brand-primary-text)',
+                  backgroundColor: audioState.missingMealAudio
+                    ? 'var(--brand-accent-soft)'
+                    : 'var(--brand-primary-soft)',
+                  color: audioState.missingMealAudio
+                    ? 'var(--brand-accent-text)'
+                    : 'var(--brand-primary-text)',
                 }}
               >
-                <Volume2 className="w-4 h-4" />
+                {audioState.missingMealAudio ? (
+                  <AlertCircle className="w-4 h-4" />
+                ) : (
+                  <Volume2 className={`w-4 h-4 ${isPlaying ? 'animate-pulse' : ''}`} />
+                )}
               </span>
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm font-extrabold truncate tabular-nums">
@@ -134,7 +143,15 @@ export const AudioPlayerBar: React.FC = () => {
                 </p>
                 <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
                   {audioState.errorMessage ? (
-                    <span style={{ color: '#EF4444' }}>{audioState.errorMessage}</span>
+                    <span
+                      style={{
+                        color: audioState.missingMealAudio
+                          ? 'var(--brand-accent-text)'
+                          : '#EF4444',
+                      }}
+                    >
+                      {audioState.errorMessage}
+                    </span>
                   ) : (
                     <>
                       <span
@@ -147,6 +164,14 @@ export const AudioPlayerBar: React.FC = () => {
                         <span className="tabular-nums">
                           {' '}
                           · Tekrar {audioState.currentRepeat}/{audioState.totalRepeats}
+                        </span>
+                      )}
+                      {audioState.infoMessage && (
+                        <span
+                          className="ml-1.5 font-medium"
+                          style={{ color: 'var(--brand-accent-text)' }}
+                        >
+                          · {audioState.infoMessage}
                         </span>
                       )}
                     </>
@@ -171,8 +196,9 @@ export const AudioPlayerBar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => audioQueueService.togglePlayPause()}
+                disabled={audioState.missingMealAudio}
                 aria-label={isPlaying ? 'Duraklat' : 'Oynat'}
-                className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-white shadow-sm transition-transform active:scale-95 cursor-pointer"
+                className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-white shadow-sm transition-transform active:scale-95 cursor-pointer disabled:opacity-45"
                 style={{ backgroundColor: 'var(--brand-primary)' }}
               >
                 {isLoading ? (
@@ -211,7 +237,42 @@ export const AudioPlayerBar: React.FC = () => {
             </div>
           </div>
 
-          {/* Alt Satır: Mod (AR | Meal | AR+Meal), Meal Sesi (TDV | DİB), Hız ve Tekrar */}
+          {/* Seslendirmesi Olmayan Meal İçin Tek Dokunuşlu Alternatif Çubuğu */}
+          {audioState.missingMealAudio && (
+            <div
+              className="rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                color: 'var(--brand-accent-text)',
+              }}
+            >
+              <span className="font-semibold">
+                Alternatif ses kaynağına geçin:
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {mealSources.map((src) => (
+                  <button
+                    key={src.id}
+                    type="button"
+                    onClick={() => handleMealSourceChange(src.id)}
+                    className="min-h-[34px] px-2.5 rounded-lg font-bold bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] cursor-pointer"
+                  >
+                    {src.shortLabel}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('ar')}
+                  className="min-h-[34px] px-2.5 rounded-lg font-bold text-white cursor-pointer"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                >
+                  Arapça Tilavet
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Alt Satır: Mod (AR | Meal | AR+Meal), Dinamik Okuyucu / Meal Sesi, Hız ve Tekrar */}
           <div
             className="pt-2 border-t flex flex-wrap items-center justify-between gap-2 text-xs"
             style={{ borderColor: 'var(--border-subtle)' }}
@@ -228,7 +289,7 @@ export const AudioPlayerBar: React.FC = () => {
                     key={item.id}
                     type="button"
                     onClick={() => handleModeChange(item.id)}
-                    className="min-h-[32px] px-2.5 rounded-md font-bold transition-colors cursor-pointer whitespace-nowrap"
+                    className="min-h-[34px] px-2.5 rounded-md font-bold transition-colors cursor-pointer whitespace-nowrap"
                     style={{
                       backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                       color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
@@ -241,38 +302,64 @@ export const AudioPlayerBar: React.FC = () => {
               })}
             </div>
 
-            {/* Meal Sesi (TDV | DİB) + Hız + Tekrar */}
+            {/* Okuyucu (birden fazlaysa) + Meal Sesi + Hız + Tekrar */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {(audioPrefs.mode !== 'ar' || audioState.activePhase === 'meal') && (
-                <div
-                  className="flex items-center p-0.5 rounded-lg"
-                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+              {arabicSources.length > 1 && audioPrefs.mode !== 'meal' && (
+                <select
+                  aria-label="Arapça okuyucu seç"
+                  value={audioPrefs.arabicAudioSource}
+                  onChange={(e) => {
+                    sfxService.play('click');
+                    updateAudioPrefs({ arabicAudioSource: e.target.value });
+                  }}
+                  className="min-h-[34px] px-2 rounded-lg border font-bold cursor-pointer max-w-[130px]"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
                 >
-                  {(['tdv', 'dib'] as const).map((src) => {
-                    const active = audioPrefs.mealAudioSource === src;
-                    return (
-                      <button
-                        key={src}
-                        type="button"
-                        onClick={() => handleMealSourceChange(src)}
-                        className="min-h-[32px] px-2 rounded-md font-bold uppercase transition-colors cursor-pointer"
-                        style={{
-                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                          color: active ? 'var(--brand-accent-text)' : 'var(--text-muted)',
-                        }}
-                      >
-                        {src === 'tdv' ? 'TDV' : 'DİB'}
-                      </button>
-                    );
-                  })}
-                </div>
+                  {arabicSources.map((src) => (
+                    <option key={src.id} value={src.id}>
+                      {src.shortLabel}
+                    </option>
+                  ))}
+                </select>
               )}
+
+              {(audioPrefs.mode !== 'ar' || audioState.activePhase === 'meal') &&
+                mealSources.length > 0 && (
+                  <div
+                    className="flex items-center p-0.5 rounded-lg"
+                    style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                  >
+                    {mealSources.map((src) => {
+                      const active = audioPrefs.mealAudioSource === src.id;
+                      const label =
+                        src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
+                      return (
+                        <button
+                          key={src.id}
+                          type="button"
+                          onClick={() => handleMealSourceChange(src.id)}
+                          className="min-h-[34px] px-2 rounded-md font-bold transition-colors cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                            color: active ? 'var(--brand-accent-text)' : 'var(--text-muted)',
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
               <button
                 type="button"
                 onClick={cycleRate}
                 title="Oynatma hızını değiştir"
-                className="min-h-[32px] px-2.5 rounded-lg border font-bold tabular-nums cursor-pointer whitespace-nowrap"
+                className="min-h-[34px] px-2.5 rounded-lg border font-bold tabular-nums cursor-pointer whitespace-nowrap"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -286,7 +373,7 @@ export const AudioPlayerBar: React.FC = () => {
                 type="button"
                 onClick={cycleRepeat}
                 title="Ayet tekrar sayısını değiştir"
-                className="min-h-[32px] px-2.5 rounded-lg border font-bold tabular-nums flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                className="min-h-[34px] px-2.5 rounded-lg border font-bold tabular-nums flex items-center gap-1 cursor-pointer whitespace-nowrap"
                 style={{
                   backgroundColor:
                     audioPrefs.repeatCount > 1
