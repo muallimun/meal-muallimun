@@ -2,11 +2,13 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================================
-   9 Arapça Mushaf & Hat Yazı Tipi Tanımları (/public/fonts)
+   9 Arapça Mushaf & Hat Yazı Tipi Tanımları (Yerel /fonts + Canlı Vercel Yedek)
    ============================================================================ */
 @font-face {
   font-family: "Elif Mushaf Hattı";
-  src: url("/fonts/elfmshf.ttf") format("truetype");
+  src:
+    url("/fonts/elfmshf.ttf") format("truetype"),
+    url("https://meal-muallimun.vercel.app/fonts/elfmshf.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -14,7 +16,9 @@
 
 @font-face {
   font-family: "Şeyh Hamdullah Kitap";
-  src: url("/fonts/ShaikhHamdullahBook.ttf") format("truetype");
+  src:
+    url("/fonts/ShaikhHamdullahBook.ttf") format("truetype"),
+    url("https://meal-muallimun.vercel.app/fonts/ShaikhHamdullahBook.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -22,7 +26,9 @@
 
 @font-face {
   font-family: "Şeyh Hamdullah Klasik";
-  src: url("/fonts/ShaikhHamdullahBasic.ttf") format("truetype");
+  src:
+    url("/fonts/ShaikhHamdullahBasic.ttf") format("truetype"),
+    url("https://meal-muallimun.vercel.app/fonts/ShaikhHamdullahBasic.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -30,7 +36,9 @@
 
 @font-face {
   font-family: "Süleyman Feyzullah Hattı";
-  src: url("/fonts/slymnfyzlgl.ttf") format("truetype");
+  src:
+    url("/fonts/slymnfyzlgl.ttf") format("truetype"),
+    url("https://meal-muallimun.vercel.app/fonts/slymnfyzlgl.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -38,7 +46,9 @@
 
 @font-face {
   font-family: "Hasenât Mushaf Hattı";
-  src: url("/fonts/hsnt.TTF") format("truetype");
+  src:
+    url("/fonts/hsnt.TTF") format("truetype"),
+    url("https://meal-muallimun.vercel.app/fonts/hsnt.TTF") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -46,7 +56,9 @@
 
 @font-face {
   font-family: "Arakom Nesih";
-  src: url("/fonts/Arakom.ttf") format("truetype");
+  src:
+    url("/fonts/Arakom.ttf") format("truetype"),
+    url("https://meal-muallimun.vercel.app/fonts/Arakom.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -54,7 +66,9 @@
 
 @font-face {
   font-family: "Edvâü's-Selef";
-  src: url("/fonts/adwa-assalaf.ttf") format("truetype");
+  src:
+    url("/fonts/adwa-assalaf.ttf") format("truetype"),
+    url("https://meal-muallimun.vercel.app/fonts/adwa-assalaf.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -62,7 +76,9 @@
 
 @font-face {
   font-family: "Abdo Line Modern";
-  src: url("/fonts/AbdoLineNormal-Regular.otf") format("opentype");
+  src:
+    url("/fonts/AbdoLineNormal-Regular.otf") format("opentype"),
+    url("https://meal-muallimun.vercel.app/fonts/AbdoLineNormal-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -70,7 +86,9 @@
 
 @font-face {
   font-family: "WinSoft Pro";
-  src: url("/fonts/WinSoftPro-Med.otf") format("opentype");
+  src:
+    url("/fonts/WinSoftPro-Med.otf") format("opentype"),
+    url("https://meal-muallimun.vercel.app/fonts/WinSoftPro-Med.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;

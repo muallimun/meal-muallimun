@@ -1,4 +1,9 @@
-import { SFX_BASE_PATH, SFX_MAP, type SfxKey } from '../config/assetsConfig';
+import {
+  SFX_MAP,
+  getLocalSfxUrl,
+  getSfxUrl,
+  type SfxKey,
+} from '../config/assetsConfig';
 
 interface SfxConfigState {
   enabled: boolean;
@@ -13,6 +18,7 @@ class SfxService {
 
   private lastPlayedIndex: Partial<Record<SfxKey, number>> = {};
   private audioCache = new Map<string, HTMLAudioElement>();
+  private failedPrimary = new Set<string>();
 
   public configure(enabled: boolean, volume: number): void {
     this.config.enabled = enabled;
@@ -41,12 +47,23 @@ class SfxService {
     return files[chosenIndex];
   }
 
-  private getAudioElement(fileName: string): HTMLAudioElement | null {
+  private resolveUrlForFile(fileName: string): string {
+    const localUrl = getLocalSfxUrl(fileName);
+    const hostUrl = getSfxUrl(fileName);
+    if (localUrl === hostUrl) return hostUrl;
+    // Önce yerel /sfx denenmiş ve hata vermişse doğrudan canlı Vercel adresini kullan
+    if (this.failedPrimary.has(fileName)) {
+      return hostUrl;
+    }
+    // AI Studio önizlemede /public/sfx yerel olarak da bulunabilir; ilk olarak hostUrl ya da localUrl
+    return localUrl;
+  }
+
+  private createOrCloneAudio(url: string, volume: number): HTMLAudioElement | null {
     if (typeof window === 'undefined' || typeof Audio === 'undefined') {
       return null;
     }
 
-    const url = `${SFX_BASE_PATH}/${fileName}`;
     let baseAudio = this.audioCache.get(url);
     if (!baseAudio) {
       try {
@@ -59,13 +76,12 @@ class SfxService {
     }
 
     try {
-      // Hızlı ardışık tıklamalarda kesilmemesi için klonla
       const instance = baseAudio.cloneNode(true) as HTMLAudioElement;
-      instance.volume = this.config.volume;
+      instance.volume = volume;
       return instance;
     } catch {
       baseAudio.currentTime = 0;
-      baseAudio.volume = this.config.volume;
+      baseAudio.volume = volume;
       return baseAudio;
     }
   }
@@ -83,15 +99,36 @@ class SfxService {
     const fileName = this.pickFile(key);
     if (!fileName) return;
 
-    const audio = this.getAudioElement(fileName);
+    const primaryUrl = this.resolveUrlForFile(fileName);
+    const fallbackUrl = getSfxUrl(fileName);
+    const audio = this.createOrCloneAudio(primaryUrl, effectiveVolume);
     if (!audio) return;
 
-    audio.volume = effectiveVolume;
+    const tryFallback = () => {
+      if (primaryUrl === fallbackUrl) return;
+      this.failedPrimary.add(fileName);
+      const fbAudio = this.createOrCloneAudio(fallbackUrl, effectiveVolume);
+      if (!fbAudio) return;
+      try {
+        const p = fbAudio.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => {});
+        }
+      } catch {
+        // Sessiz fallback
+      }
+    };
+
+    audio.addEventListener('error', tryFallback, { once: true });
+
     try {
       const playPromise = audio.play();
       if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
-          // Tarayıcı otomatik oynatma politikası veya eksik dosya durumunda sessizce yoksay
+        playPromise.catch((err) => {
+          // Yalnızca kaynak bulunamadığında fallback dene (NotAllowedError autoplay engeli ise deneme)
+          if (err && typeof err === 'object' && 'name' in err && err.name === 'NotSupportedError') {
+            tryFallback();
+          }
         });
       }
     } catch {

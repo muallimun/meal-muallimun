@@ -16,19 +16,37 @@ import {
 } from '../data/demoFallback';
 import type {
   ArabicSurahFile,
+  CombinedVerse,
   ManifestData,
   MealKey,
   MealSurahFile,
   MetaData,
+  MushafPageSegment,
+  PageBundle,
   QuestionIndexFile,
   QuestionSurahFile,
+  SurahBundle,
   WordSurahFile,
 } from '../types/quran';
 
 export type DataSourceMode = 'local' | 'remote' | 'demo';
 
+/**
+ * Diyanet / Hanefî standardına göre 14 Tilâvet Secdesi ayet ID'leri (sureNo * 1000 + ayetNo).
+ */
+export const SAJDAH_AYAH_IDS = new Set<number>([
+  7206, 13015, 16050, 17109, 19058, 22018, 25060, 27026, 32015, 38024, 41038, 53062, 84021, 96019,
+]);
+
+const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'] as const;
+
+export function toArabicIndicDigits(value: number | string): string {
+  return String(value).replace(/\d/g, (digit) => ARABIC_INDIC_DIGITS[Number(digit)] ?? digit);
+}
+
 const memoryCache = new Map<string, unknown>();
 const inflightRequests = new Map<string, Promise<unknown>>();
+const surahBundleCache = new Map<string, SurahBundle>();
 
 let resolvedBaseUrl: string | null = null;
 let activeSourceMode: DataSourceMode = HAS_CUSTOM_DATA_BASE_URL ? 'remote' : 'local';
@@ -51,6 +69,7 @@ export function enableDemoMode(): void {
   activeSourceMode = 'demo';
   memoryCache.clear();
   inflightRequests.clear();
+  surahBundleCache.clear();
 }
 
 export function disableDemoMode(): void {
@@ -58,11 +77,13 @@ export function disableDemoMode(): void {
   resolvedBaseUrl = null;
   memoryCache.clear();
   inflightRequests.clear();
+  surahBundleCache.clear();
 }
 
 export function clearDataCache(): void {
   memoryCache.clear();
   inflightRequests.clear();
+  surahBundleCache.clear();
 }
 
 function getCandidateBaseUrls(): string[] {
@@ -104,7 +125,6 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
         }
         const contentType = res.headers.get('content-type') || '';
         const text = await res.text();
-        // SPA fallback index.html dönmüşse JSON hatası olarak ele al
         if (text.trimStart().startsWith('<!doctype') || text.trimStart().startsWith('<html')) {
           throw new Error(`Beklenmeyen HTML yanıtı (${url}) ${contentType}`);
         }
@@ -172,6 +192,174 @@ export async function getSurahQuestions(surahNo: number): Promise<QuestionSurahF
   return fetchJsonWithFallback<QuestionSurahFile>(`q/s${padSurahNo(surahNo)}.json`);
 }
 
+/**
+ * meta.verseIndex içindeki entry[4] (page) değerlerinden dinamik olarak minPage ve maxPage hesaplar.
+ */
+export function getPageBounds(meta: MetaData): { minPage: number; maxPage: number } {
+  let minPage = Infinity;
+  let maxPage = -Infinity;
+
+  if (meta.verseIndex && meta.verseIndex.length > 0) {
+    for (const row of meta.verseIndex) {
+      const p = row[4];
+      if (typeof p === 'number') {
+        if (p < minPage) minPage = p;
+        if (p > maxPage) maxPage = p;
+      }
+    }
+  }
+
+  if (!Number.isFinite(minPage) || !Number.isFinite(maxPage)) {
+    for (const s of meta.surahs) {
+      if (s.pageStart < minPage) minPage = s.pageStart;
+      if (s.pageEnd > maxPage) maxPage = s.pageEnd;
+    }
+  }
+
+  if (!Number.isFinite(minPage) || !Number.isFinite(maxPage)) {
+    return { minPage: 1, maxPage: 604 };
+  }
+
+  return { minPage, maxPage };
+}
+
+export function findPageForSurahAyah(meta: MetaData, surahNo: number, ayahNo: number): number {
+  const row = meta.verseIndex.find((r) => r[1] === surahNo && r[2] === ayahNo);
+  if (row) return row[4];
+  const surah = meta.surahs.find((s) => s.no === surahNo);
+  return surah ? surah.pageStart : getPageBounds(meta).minPage;
+}
+
+export function findFirstLocationForJuz(
+  meta: MetaData,
+  juzNo: number,
+): { surah: number; ayah: number; page: number } {
+  const juz = meta.juzs.find((j) => j.no === juzNo);
+  if (juz) {
+    const page = findPageForSurahAyah(meta, juz.start.s, juz.start.a);
+    return { surah: juz.start.s, ayah: juz.start.a, page };
+  }
+  const row = meta.verseIndex.find((r) => r[3] === juzNo);
+  if (row) {
+    return { surah: row[1], ayah: row[2], page: row[4] };
+  }
+  const { minPage } = getPageBounds(meta);
+  return { surah: 1, ayah: 1, page: minPage };
+}
+
+/**
+ * Bir surenin Arapça, TDV (m1), DİB (m2) ve kelime-kelime (w) verilerini tekilleştirip birleştirir.
+ */
+export async function getSurahBundle(surahNo: number): Promise<SurahBundle> {
+  const cacheKey = `${demoMode ? 'demo:' : ''}${surahNo}`;
+  const cached = surahBundleCache.get(cacheKey);
+  if (cached) return cached;
+
+  const [meta, arFile, m1File, m2File, wordsFile] = await Promise.all([
+    getMeta(),
+    getArabicSurah(surahNo),
+    getMealSurah('m1', surahNo),
+    getMealSurah('m2', surahNo),
+    getWordsSurah(surahNo).catch(() => ({ s: surahNo, words: {} }) as WordSurahFile),
+  ]);
+
+  const surahMeta = meta.surahs.find((s) => s.no === surahNo);
+  if (!surahMeta) {
+    throw new Error(`${surahNo} numaralı sure meta verisi bulunamadı.`);
+  }
+
+  const m1Map = new Map(m1File.verses.map((v) => [v.a, v]));
+  const m2Map = new Map(m2File.verses.map((v) => [v.a, v]));
+
+  const verses: CombinedVerse[] = arFile.verses.map((ar) => ({
+    id: ar.id,
+    surah: surahNo,
+    ayah: ar.a,
+    cuz: ar.c,
+    page: ar.p,
+    ar,
+    m1: m1Map.get(ar.a) ?? null,
+    m2: m2Map.get(ar.a) ?? null,
+    words: wordsFile.words[String(ar.a)] ?? [],
+  }));
+
+  const bundle: SurahBundle = {
+    surahMeta,
+    verses,
+    hasBesmele: !meta.besmele.excludeSurahs.includes(surahNo),
+  };
+
+  surahBundleCache.set(cacheKey, bundle);
+  return bundle;
+}
+
+/**
+ * Verilen Mushaf sayfa numarasındaki tüm ayetleri sure bölümleri (segments) halinde paralel yükler.
+ */
+export async function getPageBundle(pageNo: number): Promise<PageBundle> {
+  const meta = await getMeta();
+  const { minPage, maxPage } = getPageBounds(meta);
+  const clampedPage = Math.max(minPage, Math.min(maxPage, pageNo));
+
+  const pageRows = meta.verseIndex.filter((row) => row[4] === clampedPage);
+  const uniqueSurahNos: number[] = [];
+  const seenSurahs = new Set<number>();
+
+  for (const row of pageRows) {
+    const sNo = row[1];
+    if (!seenSurahs.has(sNo)) {
+      seenSurahs.add(sNo);
+      uniqueSurahNos.push(sNo);
+    }
+  }
+
+  const bundles = await Promise.all(uniqueSurahNos.map((sNo) => getSurahBundle(sNo)));
+  const bundleBySurah = new Map<number, SurahBundle>(
+    bundles.map((b) => [b.surahMeta.no, b]),
+  );
+
+  const segments: MushafPageSegment[] = [];
+  const allVerses: CombinedVerse[] = [];
+  const juzSet = new Set<number>();
+
+  let currentSegment: MushafPageSegment | null = null;
+
+  for (const row of pageRows) {
+    const [, surahNo, ayahNo, cuzNo] = row;
+    juzSet.add(cuzNo);
+
+    const surahBundle = bundleBySurah.get(surahNo);
+    if (!surahBundle) continue;
+
+    const combinedVerse = surahBundle.verses.find((v) => v.ayah === ayahNo);
+    if (!combinedVerse) continue;
+
+    allVerses.push(combinedVerse);
+
+    if (!currentSegment || currentSegment.surahMeta.no !== surahNo) {
+      const startsAtAyah1 = ayahNo === 1;
+      currentSegment = {
+        surahMeta: surahBundle.surahMeta,
+        startsAtAyah1,
+        showBesmele: startsAtAyah1 && surahBundle.hasBesmele,
+        verses: [combinedVerse],
+      };
+      segments.push(currentSegment);
+    } else {
+      currentSegment.verses.push(combinedVerse);
+    }
+  }
+
+  return {
+    pageNo: clampedPage,
+    minPage,
+    maxPage,
+    cuzs: Array.from(juzSet).sort((a, b) => a - b),
+    segments,
+    verses: allVerses,
+  };
+}
+
 export const dataService = {
   getManifest,
   getMeta,
@@ -180,6 +368,11 @@ export const dataService = {
   getMealSurah,
   getWordsSurah,
   getSurahQuestions,
+  getSurahBundle,
+  getPageBundle,
+  getPageBounds,
+  findPageForSurahAyah,
+  findFirstLocationForJuz,
   enableDemoMode,
   disableDemoMode,
   isDemoMode,

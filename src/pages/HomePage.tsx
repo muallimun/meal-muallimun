@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
+  BookMarked,
   BookOpen,
   Check,
   CheckCircle2,
@@ -42,6 +43,7 @@ export const HomePage: React.FC = () => {
     settings,
     studyPool,
     setStudyPool,
+    studyProgress,
     gamification,
     meta,
     questionIndex,
@@ -51,6 +53,7 @@ export const HomePage: React.FC = () => {
     activateDemoData,
     poolStats,
     setActiveTab,
+    navigateToStudy,
     openPoolModal,
     openSettingsModal,
   } = useAppStore();
@@ -180,10 +183,31 @@ export const HomePage: React.FC = () => {
     }
     if (targetTab === 'exam') {
       sfxService.play('start');
+      setActiveTab('exam');
     } else {
       sfxService.play('click');
+      navigateToStudy({ surah: surahNo, ayah: 1 });
     }
-    setActiveTab(targetTab);
+  };
+
+  const handleOpenPoolReader = () => {
+    sfxService.play('click');
+    const last = studyProgress.lastRead;
+    if (last && poolStats.effectiveSurahs.includes(last.surah)) {
+      navigateToStudy({
+        surah: last.surah,
+        ayah: last.ayah,
+        page: last.page,
+        viewMode: last.viewMode,
+      });
+      return;
+    }
+    const firstSurah = poolStats.effectiveSurahs[0];
+    if (firstSurah) {
+      navigateToStudy({ surah: firstSurah, ayah: 1 });
+    } else {
+      setActiveTab('reader');
+    }
   };
 
   // ============================================================================
@@ -419,6 +443,96 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ====================================================================
+          1.5. Kaldığım Yerden Devam Et Kartı (Son Okuma Kaydı Varsa)
+          ==================================================================== */}
+      {studyProgress.lastRead && (() => {
+        const lastRead = studyProgress.lastRead;
+        const lastSurahMeta = surahMap.get(lastRead.surah);
+        const modeLabel =
+          lastRead.viewMode === 'mushaf' ? 'Mushaf Sayfa Düzeni' : 'Ayet & Karşılaştırmalı Meal';
+
+        return (
+          <section aria-label="Kaldığım yerden devam et">
+            <div
+              className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
+              style={{ borderLeftColor: 'var(--brand-primary)' }}
+            >
+              <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                  style={{
+                    backgroundColor: 'var(--brand-primary-soft)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <BookMarked className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span
+                      className="text-xs font-bold"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      Kaldığım Yerden Devam Et
+                    </span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      · {modeLabel}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 mt-0.5">
+                    <h3 className="text-base sm:text-lg font-extrabold tracking-tight truncate">
+                      {lastSurahMeta?.nameTr ?? `${lastRead.surah}. Sure`}
+                    </h3>
+                    {lastSurahMeta?.nameAr && (
+                      <span
+                        className="arabic-text text-lg leading-none"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        {lastSurahMeta.nameAr}
+                      </span>
+                    )}
+                    <span
+                      className="text-xs sm:text-sm font-semibold tabular-nums"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {lastRead.ayah}. Ayet · Sayfa {lastRead.page}
+                    </span>
+                    {studyProgress.bookmarkedAyahIds.length > 0 && (
+                      <span
+                        className="text-xs font-semibold tabular-nums"
+                        style={{ color: 'var(--brand-accent-text)' }}
+                      >
+                        · {formatNumberTr(studyProgress.bookmarkedAyahIds.length)} yıldızlı ayet
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  navigateToStudy({
+                    surah: lastRead.surah,
+                    ayah: lastRead.ayah,
+                    page: lastRead.page,
+                    viewMode: lastRead.viewMode,
+                  });
+                }}
+                className="min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 shrink-0 transition-transform active:scale-[0.99] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                style={{ backgroundColor: 'var(--brand-primary)' }}
+              >
+                <BookOpen className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">Okumaya Devam Et</span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </button>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* ====================================================================
           2. Ana 2-Sütunlu Alan: Aktif Çalışma Havuzu + Rastgele Ayet Önizleme
           ==================================================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
@@ -553,7 +667,7 @@ export const HomePage: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => setActiveTab('reader')}
+              onClick={handleOpenPoolReader}
               className="flex-1 sm:flex-initial min-h-[48px] px-5 py-3 rounded-xl text-sm font-bold border flex items-center justify-center gap-2 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
               style={{
                 backgroundColor: 'var(--bg-surface)',
@@ -703,22 +817,46 @@ export const HomePage: React.FC = () => {
             )}
           </div>
 
-          {/* Alt Yazı Tipi Kısayolu */}
+          {/* Alt Okuyucuda Aç & Yazı Tipi Kısayolları */}
           <div
-            className="mt-5 pt-3 border-t flex items-center justify-between gap-2 text-xs"
+            className="mt-5 pt-3 border-t flex flex-wrap items-center justify-between gap-2 text-xs"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <span className="truncate" style={{ color: 'var(--text-muted)' }}>
-              {settings.arabicFont} · {settings.arabicFontSize}px
-            </span>
+            {previewAyah ? (
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  navigateToStudy({
+                    surah: previewAyah.surahNo,
+                    ayah: previewAyah.ayahNo,
+                    page: previewAyah.pageNo,
+                  });
+                }}
+                className="min-h-[40px] px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-teal-600"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                <span className="whitespace-nowrap">Okuyucuda Aç</span>
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+              </button>
+            ) : (
+              <span className="truncate" style={{ color: 'var(--text-muted)' }}>
+                {settings.arabicFont} · {settings.arabicFontSize}px
+              </span>
+            )}
+
             <button
               type="button"
               onClick={openSettingsModal}
-              className="min-h-[36px] px-2.5 rounded-lg font-bold flex items-center gap-1.5 shrink-0 cursor-pointer hover:underline"
-              style={{ color: 'var(--brand-primary-text)' }}
+              className="min-h-[40px] px-2.5 rounded-lg font-bold flex items-center gap-1.5 shrink-0 cursor-pointer hover:underline"
+              style={{ color: 'var(--text-muted)' }}
             >
-              <Type className="w-3.5 h-3.5" />
-              <span>Yazı Tipini Ayarla</span>
+              <Type className="w-3.5 h-3.5 shrink-0" />
+              <span className="whitespace-nowrap">Yazı Tipi ({settings.arabicFontSize}px)</span>
             </button>
           </div>
         </div>

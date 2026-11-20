@@ -1,4 +1,5 @@
-export const LIVE_DATA_BASE_URL = 'https://meal-muallimun.vercel.app/data';
+export const LIVE_ASSETS_ORIGIN = 'https://meal-muallimun.vercel.app';
+export const LIVE_DATA_BASE_URL = `${LIVE_ASSETS_ORIGIN}/data`;
 export const LOCAL_DATA_BASE_URL = '/data';
 
 const envBaseUrl = (import.meta.env.VITE_DATA_BASE_URL as string | undefined)?.trim();
@@ -11,6 +12,40 @@ export const HAS_CUSTOM_DATA_BASE_URL = Boolean(envBaseUrl);
  * dataService çalışma zamanında aynı kökteki /data erişilebilirliğini de esnek biçimde destekler.
  */
 export const DATA_BASE_URL = (envBaseUrl || LIVE_DATA_BASE_URL).replace(/\/+$/, '');
+
+/**
+ * Uygulama kendi canlı domaininde (vercel.app veya muallimun.net) mi çalışıyor kontrolü.
+ * AI Studio önizleme veya farklı hostlarda yerel statik dosya yoksa Vercel CDN'e sorunsuz düşülmesini sağlar.
+ */
+export function isNativeMuallimunHost(): boolean {
+  if (typeof window === 'undefined') return true;
+  const host = window.location.hostname.toLowerCase();
+  return host.includes('vercel.app') || host.includes('muallimun.net');
+}
+
+export function getFontUrl(fileName: string): string {
+  const clean = fileName.replace(/^\/+/, '');
+  return isNativeMuallimunHost()
+    ? `/fonts/${clean}`
+    : `${LIVE_ASSETS_ORIGIN}/fonts/${clean}`;
+}
+
+export function getLocalFontUrl(fileName: string): string {
+  const clean = fileName.replace(/^\/+/, '');
+  return `/fonts/${clean}`;
+}
+
+export function getSfxUrl(fileName: string): string {
+  const clean = fileName.replace(/^\/+/, '');
+  return isNativeMuallimunHost()
+    ? `/sfx/${clean}`
+    : `${LIVE_ASSETS_ORIGIN}/sfx/${clean}`;
+}
+
+export function getLocalSfxUrl(fileName: string): string {
+  const clean = fileName.replace(/^\/+/, '');
+  return `/sfx/${clean}`;
+}
 
 export interface ArabicFontOption {
   id: string;
@@ -122,7 +157,9 @@ export const TURKISH_FONTS: readonly TurkishFontOption[] = [
 
 export type SfxKey = 'start' | 'click' | 'correct' | 'wrong' | 'success';
 
-export const SFX_BASE_PATH = '/sfx';
+export const SFX_BASE_PATH = isNativeMuallimunHost()
+  ? '/sfx'
+  : `${LIVE_ASSETS_ORIGIN}/sfx`;
 
 export const SFX_MAP: Record<SfxKey, readonly string[]> = {
   start: ['baslangic.mp3'],

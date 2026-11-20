@@ -7,6 +7,13 @@ export type PreferredMeal = 'm1' | 'm2' | 'both';
 export type ThemeMode = 'light' | 'cream' | 'dark';
 export type NavTab = 'home' | 'reader' | 'exam' | 'mistakes';
 
+export type StudyViewMode = 'mushaf' | 'cards';
+export type WordMealMode = 'off' | 'visible' | 'quiz';
+export type AudioPlayMode = 'ar' | 'meal' | 'ar_then_meal';
+export type MealAudioSourceId = 'tdv' | 'dib';
+export type PlaybackRateOption = 0.75 | 1 | 1.25 | 1.5;
+export type RepeatCountOption = 1 | 2 | 3;
+
 // 1. manifest.json
 export interface MealSourceInfo {
   id: MealKey;
@@ -155,9 +162,9 @@ export interface ArabicVerse {
   p: number;
   t: string;
   wc: number;
-  mq?: boolean;
-  dup?: boolean;
-  dupX?: boolean;
+  mq?: boolean | number;
+  dup?: boolean | number;
+  dupX?: boolean | number;
 }
 
 export interface ArabicSurahFile {
@@ -173,8 +180,8 @@ export interface MealVerse {
   len: number;
   fn?: string[];
   mg?: [number, number];
-  dup?: boolean;
-  dupX?: boolean;
+  dup?: boolean | number;
+  dupX?: boolean | number;
 }
 
 export interface MealSurahFile {
@@ -246,6 +253,52 @@ export interface QuestionSurahFile {
 }
 
 // ============================================================================
+// Okuyucu & Mushaf Birleştirilmiş Veri Tipleri
+// ============================================================================
+
+export interface CombinedVerse {
+  id: number;
+  surah: number;
+  ayah: number;
+  cuz: number;
+  page: number;
+  ar: ArabicVerse;
+  m1: MealVerse | null;
+  m2: MealVerse | null;
+  words: WordPair[];
+}
+
+export interface SurahBundle {
+  surahMeta: SurahMeta;
+  verses: CombinedVerse[];
+  hasBesmele: boolean;
+}
+
+export interface MushafPageSegment {
+  surahMeta: SurahMeta;
+  startsAtAyah1: boolean;
+  showBesmele: boolean;
+  verses: CombinedVerse[];
+}
+
+export interface PageBundle {
+  pageNo: number;
+  minPage: number;
+  maxPage: number;
+  cuzs: number[];
+  segments: MushafPageSegment[];
+  verses: CombinedVerse[];
+}
+
+export interface StudyNavigationTarget {
+  viewMode?: StudyViewMode;
+  surah?: number;
+  ayah?: number;
+  page?: number;
+  nonce: number;
+}
+
+// ============================================================================
 // Uygulama Durum & Kalıcı Depo Tipleri (localStorage: muallimun_meal_v1)
 // ============================================================================
 
@@ -265,6 +318,32 @@ export interface StudyPool {
   selectedSurahs: number[];
   selectedJuzs: number[];
   isCustomized?: boolean;
+}
+
+export interface StudyPrefs {
+  viewMode: StudyViewMode;
+  wordMode: WordMealMode;
+}
+
+export interface LastReadPosition {
+  surah: number;
+  ayah: number;
+  page: number;
+  viewMode: StudyViewMode;
+  updatedAt: string;
+}
+
+export interface StudyProgress {
+  lastRead: LastReadPosition | null;
+  bookmarkedAyahIds: number[];
+}
+
+export interface AudioPrefs {
+  mode: AudioPlayMode;
+  mealAudioSource: MealAudioSourceId;
+  playbackRate: PlaybackRateOption;
+  repeatCount: RepeatCountOption;
+  autoScroll: boolean;
 }
 
 export interface ExamHistoryRecord {
@@ -291,6 +370,9 @@ export interface GamificationState {
 export interface PersistedAppState {
   settings: AppSettings;
   studyPool: StudyPool;
+  studyPrefs: StudyPrefs;
+  studyProgress: StudyProgress;
+  audioPrefs: AudioPrefs;
   gamification: GamificationState;
 }
 

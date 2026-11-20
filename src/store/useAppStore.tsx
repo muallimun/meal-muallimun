@@ -16,14 +16,19 @@ import { dataService, type DataSourceMode } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import type {
   AppSettings,
+  AudioPrefs,
   GamificationState,
+  LastReadPosition,
   ManifestData,
   MetaData,
   NavTab,
   PersistedAppState,
   PoolStatsSummary,
   QuestionIndexFile,
+  StudyNavigationTarget,
   StudyPool,
+  StudyPrefs,
+  StudyProgress,
 } from '../types/quran';
 import { computePoolStats } from '../utils/poolUtils';
 
@@ -45,6 +50,24 @@ export const DEFAULT_STUDY_POOL: StudyPool = {
   selectedSurahs: [17, 24, 31, 49],
   selectedJuzs: [],
   isCustomized: false,
+};
+
+export const DEFAULT_STUDY_PREFS: StudyPrefs = {
+  viewMode: 'mushaf',
+  wordMode: 'off',
+};
+
+export const DEFAULT_STUDY_PROGRESS: StudyProgress = {
+  lastRead: null,
+  bookmarkedAyahIds: [],
+};
+
+export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
+  mode: 'ar_then_meal',
+  mealAudioSource: 'tdv',
+  playbackRate: 1,
+  repeatCount: 1,
+  autoScroll: true,
 };
 
 export const DEFAULT_GAMIFICATION: GamificationState = {
@@ -76,25 +99,28 @@ function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, val));
 }
 
+function createDefaultState(today: string): PersistedAppState {
+  return {
+    settings: DEFAULT_SETTINGS,
+    studyPool: DEFAULT_STUDY_POOL,
+    studyPrefs: DEFAULT_STUDY_PREFS,
+    studyProgress: DEFAULT_STUDY_PROGRESS,
+    audioPrefs: DEFAULT_AUDIO_PREFS,
+    gamification: { ...DEFAULT_GAMIFICATION, lastActiveDate: today },
+  };
+}
+
 function hydrateState(): PersistedAppState {
   const today = getTodayIsoDate();
 
   if (typeof window === 'undefined') {
-    return {
-      settings: DEFAULT_SETTINGS,
-      studyPool: DEFAULT_STUDY_POOL,
-      gamification: { ...DEFAULT_GAMIFICATION, lastActiveDate: today },
-    };
+    return createDefaultState(today);
   }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return {
-        settings: DEFAULT_SETTINGS,
-        studyPool: DEFAULT_STUDY_POOL,
-        gamification: { ...DEFAULT_GAMIFICATION, lastActiveDate: today },
-      };
+      return createDefaultState(today);
     }
 
     const parsed = JSON.parse(raw) as Partial<PersistedAppState>;
@@ -163,6 +189,86 @@ function hydrateState(): PersistedAppState {
       isCustomized: Boolean(rawPool?.isCustomized),
     };
 
+    const rawStudyPrefs = parsed.studyPrefs;
+    const studyPrefs: StudyPrefs = {
+      viewMode:
+        rawStudyPrefs?.viewMode === 'mushaf' || rawStudyPrefs?.viewMode === 'cards'
+          ? rawStudyPrefs.viewMode
+          : DEFAULT_STUDY_PREFS.viewMode,
+      wordMode:
+        rawStudyPrefs?.wordMode === 'off' ||
+        rawStudyPrefs?.wordMode === 'visible' ||
+        rawStudyPrefs?.wordMode === 'quiz'
+          ? rawStudyPrefs.wordMode
+          : DEFAULT_STUDY_PREFS.wordMode,
+    };
+
+    const rawProgress = parsed.studyProgress;
+    const rawLast = rawProgress?.lastRead;
+    const lastRead: LastReadPosition | null =
+      rawLast &&
+      typeof rawLast.surah === 'number' &&
+      typeof rawLast.ayah === 'number' &&
+      typeof rawLast.page === 'number'
+        ? {
+            surah: rawLast.surah,
+            ayah: rawLast.ayah,
+            page: rawLast.page,
+            viewMode:
+              rawLast.viewMode === 'mushaf' || rawLast.viewMode === 'cards'
+                ? rawLast.viewMode
+                : 'mushaf',
+            updatedAt:
+              typeof rawLast.updatedAt === 'string'
+                ? rawLast.updatedAt
+                : new Date().toISOString(),
+          }
+        : null;
+
+    const studyProgress: StudyProgress = {
+      lastRead,
+      bookmarkedAyahIds: Array.isArray(rawProgress?.bookmarkedAyahIds)
+        ? Array.from(
+            new Set(
+              rawProgress.bookmarkedAyahIds.filter(
+                (id): id is number => typeof id === 'number' && id > 0,
+              ),
+            ),
+          )
+        : [],
+    };
+
+    const rawAudio = parsed.audioPrefs;
+    const audioPrefs: AudioPrefs = {
+      mode:
+        rawAudio?.mode === 'ar' ||
+        rawAudio?.mode === 'meal' ||
+        rawAudio?.mode === 'ar_then_meal'
+          ? rawAudio.mode
+          : DEFAULT_AUDIO_PREFS.mode,
+      mealAudioSource:
+        rawAudio?.mealAudioSource === 'tdv' || rawAudio?.mealAudioSource === 'dib'
+          ? rawAudio.mealAudioSource
+          : DEFAULT_AUDIO_PREFS.mealAudioSource,
+      playbackRate:
+        rawAudio?.playbackRate === 0.75 ||
+        rawAudio?.playbackRate === 1 ||
+        rawAudio?.playbackRate === 1.25 ||
+        rawAudio?.playbackRate === 1.5
+          ? rawAudio.playbackRate
+          : DEFAULT_AUDIO_PREFS.playbackRate,
+      repeatCount:
+        rawAudio?.repeatCount === 1 ||
+        rawAudio?.repeatCount === 2 ||
+        rawAudio?.repeatCount === 3
+          ? rawAudio.repeatCount
+          : DEFAULT_AUDIO_PREFS.repeatCount,
+      autoScroll:
+        typeof rawAudio?.autoScroll === 'boolean'
+          ? rawAudio.autoScroll
+          : DEFAULT_AUDIO_PREFS.autoScroll,
+    };
+
     const rawGam = parsed.gamification;
     let streakDays =
       typeof rawGam?.streakDays === 'number' && rawGam.streakDays >= 1 ? rawGam.streakDays : 1;
@@ -189,13 +295,9 @@ function hydrateState(): PersistedAppState {
       examHistory: Array.isArray(rawGam?.examHistory) ? rawGam.examHistory : [],
     };
 
-    return { settings, studyPool, gamification };
+    return { settings, studyPool, studyPrefs, studyProgress, audioPrefs, gamification };
   } catch {
-    return {
-      settings: DEFAULT_SETTINGS,
-      studyPool: DEFAULT_STUDY_POOL,
-      gamification: { ...DEFAULT_GAMIFICATION, lastActiveDate: today },
-    };
+    return createDefaultState(today);
   }
 }
 
@@ -203,16 +305,26 @@ interface AppContextValue {
   // Kalıcı durumlar
   settings: AppSettings;
   studyPool: StudyPool;
+  studyPrefs: StudyPrefs;
+  studyProgress: StudyProgress;
+  audioPrefs: AudioPrefs;
   gamification: GamificationState;
 
   // Güncelleyiciler
   updateSettings: (patch: Partial<AppSettings>) => void;
   resetSettings: () => void;
   setStudyPool: (next: { selectedSurahs: number[]; selectedJuzs: number[] }) => void;
+  updateStudyPrefs: (patch: Partial<StudyPrefs>) => void;
+  setLastRead: (pos: Omit<LastReadPosition, 'updatedAt'>) => void;
+  toggleBookmarkAyah: (ayahId: number) => void;
+  updateAudioPrefs: (patch: Partial<AudioPrefs>) => void;
 
   // Navigasyon & Modallar
   activeTab: NavTab;
   setActiveTab: (tab: NavTab) => void;
+  studyNavTarget: StudyNavigationTarget | null;
+  navigateToStudy: (target: Omit<StudyNavigationTarget, 'nonce'>) => void;
+  clearStudyNavTarget: () => void;
   isPoolModalOpen: boolean;
   openPoolModal: () => void;
   closePoolModal: () => void;
@@ -239,6 +351,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [persisted, setPersisted] = useState<PersistedAppState>(() => hydrateState());
   const [activeTab, setActiveTabState] = useState<NavTab>('home');
+  const [studyNavTarget, setStudyNavTarget] = useState<StudyNavigationTarget | null>(null);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
@@ -297,7 +410,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setQuestionIndex(qIndexRes);
         setDataSourceMode(dataService.getActiveDataSource());
 
-        // Kullanıcı havuzu özelleştirmediyse q/index.json availableSurahs ile otomatik eşle
         if (qIndexRes.availableSurahs.length > 0) {
           setPersisted((prev) => {
             if (prev.studyPool.isCustomized) return prev;
@@ -368,10 +480,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   }, []);
 
+  const updateStudyPrefs = useCallback((patch: Partial<StudyPrefs>) => {
+    setPersisted((prev) => ({
+      ...prev,
+      studyPrefs: {
+        ...prev.studyPrefs,
+        ...patch,
+      },
+    }));
+  }, []);
+
+  const setLastRead = useCallback((pos: Omit<LastReadPosition, 'updatedAt'>) => {
+    setPersisted((prev) => {
+      const prevLast = prev.studyProgress.lastRead;
+      if (
+        prevLast &&
+        prevLast.surah === pos.surah &&
+        prevLast.ayah === pos.ayah &&
+        prevLast.page === pos.page &&
+        prevLast.viewMode === pos.viewMode
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        studyProgress: {
+          ...prev.studyProgress,
+          lastRead: {
+            ...pos,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      };
+    });
+  }, []);
+
+  const toggleBookmarkAyah = useCallback((ayahId: number) => {
+    sfxService.play('click');
+    setPersisted((prev) => {
+      const exists = prev.studyProgress.bookmarkedAyahIds.includes(ayahId);
+      const nextIds = exists
+        ? prev.studyProgress.bookmarkedAyahIds.filter((id) => id !== ayahId)
+        : [...prev.studyProgress.bookmarkedAyahIds, ayahId];
+      return {
+        ...prev,
+        studyProgress: {
+          ...prev.studyProgress,
+          bookmarkedAyahIds: nextIds,
+        },
+      };
+    });
+  }, []);
+
+  const updateAudioPrefs = useCallback((patch: Partial<AudioPrefs>) => {
+    setPersisted((prev) => ({
+      ...prev,
+      audioPrefs: {
+        ...prev.audioPrefs,
+        ...patch,
+      },
+    }));
+  }, []);
+
   const setActiveTab = useCallback((tab: NavTab) => {
     sfxService.play('click');
     setActiveTabState(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const navigateToStudy = useCallback((target: Omit<StudyNavigationTarget, 'nonce'>) => {
+    sfxService.play('click');
+    if (target.viewMode) {
+      setPersisted((prev) => ({
+        ...prev,
+        studyPrefs: {
+          ...prev.studyPrefs,
+          viewMode: target.viewMode!,
+        },
+      }));
+    }
+    setStudyNavTarget({ ...target, nonce: Date.now() });
+    setActiveTabState('reader');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const clearStudyNavTarget = useCallback(() => {
+    setStudyNavTarget(null);
   }, []);
 
   const openPoolModal = useCallback(() => {
@@ -413,12 +607,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     () => ({
       settings: persisted.settings,
       studyPool: persisted.studyPool,
+      studyPrefs: persisted.studyPrefs,
+      studyProgress: persisted.studyProgress,
+      audioPrefs: persisted.audioPrefs,
       gamification: persisted.gamification,
       updateSettings,
       resetSettings,
       setStudyPool,
+      updateStudyPrefs,
+      setLastRead,
+      toggleBookmarkAyah,
+      updateAudioPrefs,
       activeTab,
       setActiveTab,
+      studyNavTarget,
+      navigateToStudy,
+      clearStudyNavTarget,
       isPoolModalOpen,
       openPoolModal,
       closePoolModal,
@@ -438,12 +642,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [
       persisted.settings,
       persisted.studyPool,
+      persisted.studyPrefs,
+      persisted.studyProgress,
+      persisted.audioPrefs,
       persisted.gamification,
       updateSettings,
       resetSettings,
       setStudyPool,
+      updateStudyPrefs,
+      setLastRead,
+      toggleBookmarkAyah,
+      updateAudioPrefs,
       activeTab,
       setActiveTab,
+      studyNavTarget,
+      navigateToStudy,
+      clearStudyNavTarget,
       isPoolModalOpen,
       openPoolModal,
       closePoolModal,
