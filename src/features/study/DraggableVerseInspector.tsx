@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
+  BookMarked,
   BookOpen,
   Check,
   ChevronDown,
@@ -77,7 +78,7 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   onShareVerse,
   onOpenSurahInfo,
 }) => {
-  const { openMealCompare } = useAppStore();
+  const { openMealCompare, openQuickMemorize } = useAppStore();
   const verseSurah = verse?.surah;
   const activeSurahNos = useMemo(
     () => (verseSurah ? [verseSurah] : []),
@@ -600,9 +601,26 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
           )}
 
           <div
-            className="pt-2 border-t flex justify-end"
+            className="pt-2 border-t grid grid-cols-1 sm:grid-cols-2 gap-1.5"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openQuickMemorize(verse.surah, verse.ayah, verse.page);
+              }}
+              className="w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                borderColor: 'var(--brand-primary)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <BookMarked className="w-3.5 h-3.5 shrink-0" />
+              <span>Buradan Ezber Başlat</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -617,7 +635,7 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               }}
             >
               <Scale className="w-3.5 h-3.5 shrink-0" />
-              <span>Tüm Mealleri Karşılaştır (24)</span>
+              <span>Mealleri Karşılaştır (24)</span>
             </button>
           </div>
         </div>

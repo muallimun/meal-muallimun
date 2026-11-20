@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, BookOpen, Layers, RotateCcw, Settings, Trophy } from 'lucide-react';
+import { ArrowLeft, BookMarked, BookOpen, Layers, RotateCcw, Settings, Trophy } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
 import { formatNumberTr } from '../utils/poolUtils';
@@ -27,6 +27,17 @@ const PLACEHOLDER_META: Record<
       'Dipnotlar ve kelime-kelime Arapça ↔ Türkçe anlam kartları',
     ],
     icon: BookOpen,
+  },
+  memorize: {
+    title: 'Ezber Modu',
+    subtitle:
+      'Kümeli Kar Topu yöntemi, 3 kademeli geri çağırma maskesi ve 27 kurrâ desteğiyle sakin ezber çalışma alanı.',
+    highlights: [
+      'Hazır aşırlar, Mushaf sayfası, sure ve özel aralıklarla esnek ezber havuzu',
+      'Akıllı sekte (Dinle & Tekrar Et) ve Muallim kurrâ uyumu',
+      'Odak Kartı ve Mushaf görünümü arasında anında geçiş',
+    ],
+    icon: BookMarked,
   },
   exam: {
     title: 'Editoryal Sınav Merkezi',

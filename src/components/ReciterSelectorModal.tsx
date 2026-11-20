@@ -41,12 +41,16 @@ const CATEGORY_MAP = new Map(RECITER_CATEGORIES.map((c) => [c.id, c]));
 export const ReciterSelectorModal: React.FC = () => {
   const {
     isReciterSelectorOpen,
+    reciterSelectorContext,
+    activeTab,
     closeReciterSelector,
     audioPrefs,
     setArabicReciter,
     toggleFavoriteReciter,
     manifest,
   } = useAppStore();
+
+  const isMemorizeMode = reciterSelectorContext === 'memorize' || activeTab === 'memorize';
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
@@ -127,18 +131,23 @@ export const ReciterSelectorModal: React.FC = () => {
       return q.split(' ').every((token) => haystack.includes(token));
     });
 
-    // Favori okuyucuları listenin en üstünde topla (kategori sırasını koruyarak)
+    // Ezber modunda Husary (Muallim) ve Minshawy (Muallim) en üstte "Ezber İçin Önerilen" olarak vurgulanır
+    const recommendedIds = new Set(['husary_muallim', 'minshawy_teacher']);
+    const recommended: ReciterDefinition[] = [];
     const favs: ReciterDefinition[] = [];
     const rest: ReciterDefinition[] = [];
+
     for (const r of matched) {
-      if (favoriteSet.has(r.id)) {
+      if (isMemorizeMode && recommendedIds.has(r.id)) {
+        recommended.push(r);
+      } else if (favoriteSet.has(r.id)) {
         favs.push(r);
       } else {
         rest.push(r);
       }
     }
-    return { favs, rest, all: [...favs, ...rest] };
-  }, [reciters, favoriteSet, activeFilter, searchQuery]);
+    return { recommended, favs, rest, all: [...recommended, ...favs, ...rest] };
+  }, [reciters, favoriteSet, activeFilter, searchQuery, isMemorizeMode]);
 
   if (!isReciterSelectorOpen) return null;
 
@@ -249,6 +258,17 @@ export const ReciterSelectorModal: React.FC = () => {
                   }}
                 >
                   Aktif
+                </span>
+              )}
+              {(reciter.id === 'husary_muallim' || reciter.id === 'minshawy_teacher') && (
+                <span
+                  className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-extrabold shrink-0"
+                  style={{
+                    backgroundColor: 'var(--brand-accent-soft)',
+                    color: 'var(--brand-accent-text)',
+                  }}
+                >
+                  Ezber İçin Önerilen
                 </span>
               )}
             </div>
@@ -560,7 +580,30 @@ export const ReciterSelectorModal: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Favoriler Bölümü (üstte sabit) */}
+              {/* Ezber Modu: Önerilen Muallim Okuyucular (En üstte vurgulu) */}
+              {filteredReciters.recommended.length > 0 && (
+                <section className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3
+                      className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      <span>🎓 Ezber İçin Önerilen ({filteredReciters.recommended.length})</span>
+                    </h3>
+                    <span
+                      className="text-[10px] font-semibold hidden sm:inline"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Doğal tekrar boşluklu muallim kayıtları
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {filteredReciters.recommended.map(renderReciterRow)}
+                  </div>
+                </section>
+              )}
+
+              {/* Favoriler Bölümü */}
               {filteredReciters.favs.length > 0 && (
                 <section className="space-y-2">
                   <div className="flex items-center justify-between">

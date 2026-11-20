@@ -21,6 +21,10 @@ import {
 import { dataService, type DataSourceMode } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import type {
+  MemorizeLaunchTarget,
+  QuickMemorizeSeed,
+} from '../types/memorization';
+import type {
   AppSettings,
   AudioPrefs,
   ExamHistoryRecord,
@@ -723,6 +727,14 @@ interface AppContextValue {
   clearExamNavTarget: () => void;
   isExamActive: boolean;
   setIsExamActive: (active: boolean) => void;
+  isMemorizationZenActive: boolean;
+  setIsMemorizationZenActive: (active: boolean) => void;
+  quickMemorizeSeed: QuickMemorizeSeed | null;
+  openQuickMemorize: (surah: number, ayah: number, page?: number) => void;
+  closeQuickMemorize: () => void;
+  memorizeLaunchTarget: MemorizeLaunchTarget | null;
+  navigateToMemorizeUnit: (unitId: string, autoStart?: boolean) => void;
+  clearMemorizeLaunchTarget: () => void;
   isSidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
@@ -736,7 +748,8 @@ interface AppContextValue {
   openSettingsModal: () => void;
   closeSettingsModal: () => void;
   isReciterSelectorOpen: boolean;
-  openReciterSelector: () => void;
+  reciterSelectorContext: 'default' | 'memorize';
+  openReciterSelector: (context?: 'default' | 'memorize') => void;
   closeReciterSelector: () => void;
   isMealSelectorOpen: boolean;
   mealSelectorTarget: 'primary' | 'secondary';
@@ -803,6 +816,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [studyNavTarget, setStudyNavTarget] = useState<StudyNavigationTarget | null>(null);
   const [examNavTarget, setExamNavTarget] = useState<ExamNavigationTarget | null>(null);
   const [isExamActive, setIsExamActive] = useState(false);
+  const [isMemorizationZenActive, setIsMemorizationZenActive] = useState(false);
+  const [quickMemorizeSeed, setQuickMemorizeSeed] = useState<QuickMemorizeSeed | null>(null);
+  const [memorizeLaunchTarget, setMemorizeLaunchTarget] = useState<MemorizeLaunchTarget | null>(
+    null,
+  );
   const [isSidebarCollapsed, setIsSidebarCollapsedState] = useState<boolean>(() =>
     readSidebarCollapsed(),
   );
@@ -810,6 +828,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isReciterSelectorOpen, setIsReciterSelectorOpen] = useState(false);
+  const [reciterSelectorContext, setReciterSelectorContext] = useState<'default' | 'memorize'>(
+    'default',
+  );
   const [isMealSelectorOpen, setIsMealSelectorOpen] = useState(false);
   const [mealSelectorTarget, setMealSelectorTarget] = useState<'primary' | 'secondary'>('primary');
   const [compareTarget, setCompareTarget] = useState<{ surah: number; ayah: number } | null>(null);
@@ -1604,8 +1625,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSettingsModalOpen(false);
   }, []);
 
-  const openReciterSelector = useCallback(() => {
+  const openQuickMemorize = useCallback((surah: number, ayah: number, page?: number) => {
     sfxService.play('click');
+    setQuickMemorizeSeed({ surah, ayah, page, nonce: Date.now() });
+  }, []);
+
+  const closeQuickMemorize = useCallback(() => {
+    setQuickMemorizeSeed(null);
+  }, []);
+
+  const navigateToMemorizeUnit = useCallback((unitId: string, autoStart = true) => {
+    sfxService.play('click');
+    setIsExamActive(false);
+    setMemorizeLaunchTarget({ unitId, autoStart, nonce: Date.now() });
+    setActiveTabState('memorize');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const clearMemorizeLaunchTarget = useCallback(() => {
+    setMemorizeLaunchTarget(null);
+  }, []);
+
+  const openReciterSelector = useCallback((context: 'default' | 'memorize' = 'default') => {
+    sfxService.play('click');
+    setReciterSelectorContext(context);
     setIsReciterSelectorOpen(true);
   }, []);
 
@@ -1747,6 +1790,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearExamNavTarget,
       isExamActive,
       setIsExamActive,
+      isMemorizationZenActive,
+      setIsMemorizationZenActive,
+      quickMemorizeSeed,
+      openQuickMemorize,
+      closeQuickMemorize,
+      memorizeLaunchTarget,
+      navigateToMemorizeUnit,
+      clearMemorizeLaunchTarget,
       isSidebarCollapsed,
       toggleSidebarCollapsed,
       setSidebarCollapsed,
@@ -1760,6 +1811,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       openSettingsModal,
       closeSettingsModal,
       isReciterSelectorOpen,
+      reciterSelectorContext,
       openReciterSelector,
       closeReciterSelector,
       isMealSelectorOpen,
@@ -1836,6 +1888,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       navigateToExam,
       clearExamNavTarget,
       isExamActive,
+      isMemorizationZenActive,
+      quickMemorizeSeed,
+      openQuickMemorize,
+      closeQuickMemorize,
+      memorizeLaunchTarget,
+      navigateToMemorizeUnit,
+      clearMemorizeLaunchTarget,
       isSidebarCollapsed,
       toggleSidebarCollapsed,
       setSidebarCollapsed,
@@ -1849,6 +1908,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       openSettingsModal,
       closeSettingsModal,
       isReciterSelectorOpen,
+      reciterSelectorContext,
       openReciterSelector,
       closeReciterSelector,
       isMealSelectorOpen,

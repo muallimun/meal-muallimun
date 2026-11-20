@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  BookMarked,
   BookOpen,
   Bookmark,
   Check,
@@ -71,6 +72,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     toggleBookmarkAyah,
     moveHatimBookmark,
     openMealCompare,
+    openQuickMemorize,
   } = useAppStore();
 
   const bookSurahNos = useMemo(() => [bundle.surahMeta.no], [bundle.surahMeta.no]);
@@ -195,6 +197,19 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 
         {isMenuOpen && (
           <div className="absolute right-0 top-10 z-30 w-56 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-strong)] shadow-xl p-1.5 space-y-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setOpenMenuAyahId(null);
+                sfxService.play('click');
+                openQuickMemorize(verse.surah, verse.ayah, verse.page);
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
+            >
+              <BookMarked className="w-4 h-4 text-[var(--brand-primary-text)]" />
+              <span>Buradan Ezber Başlat</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -609,6 +624,22 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     >
                       <Share2 className="w-3.5 h-3.5 text-[var(--brand-accent-text)]" />
                       <span>Paylaş Kartı</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        openQuickMemorize(
+                          selectedArabicVerse.surah,
+                          selectedArabicVerse.ayah,
+                          selectedArabicVerse.page,
+                        );
+                      }}
+                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--brand-primary-soft)] border border-[var(--brand-primary)]/40 text-[var(--brand-primary-text)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <BookMarked className="w-3.5 h-3.5" />
+                      <span>Buradan Ezber Başlat</span>
                     </button>
 
                     <button

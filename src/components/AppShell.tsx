@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle,
+  BookMarked,
   BookOpen,
   Bookmark,
   Flame,
@@ -29,14 +30,16 @@ interface NavItemConfig {
   id: NavTab;
   label: string;
   shortLabel: string;
+  mobileLabel: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
-  { id: 'home', label: 'Ana Sayfa', shortLabel: 'Ana Sayfa', icon: Home },
-  { id: 'reader', label: 'Meal & Okuma', shortLabel: 'Meal/Okuma', icon: BookOpen },
-  { id: 'exam', label: 'Sınav Merkezi', shortLabel: 'Sınav', icon: Trophy },
-  { id: 'mistakes', label: 'Hata Kampı', shortLabel: 'Hata Kampı', icon: RotateCcw },
+  { id: 'home', label: 'Ana Sayfa', shortLabel: 'Ana Sayfa', mobileLabel: 'Ana Sayfa', icon: Home },
+  { id: 'reader', label: 'Meal & Okuma', shortLabel: 'Okuma', mobileLabel: 'Okuma', icon: BookOpen },
+  { id: 'memorize', label: 'Ezber Modu', shortLabel: 'Ezber', mobileLabel: 'Ezber', icon: BookMarked },
+  { id: 'exam', label: 'Sınav Merkezi', shortLabel: 'Sınav', mobileLabel: 'Sınav', icon: Trophy },
+  { id: 'mistakes', label: 'Hata Kampı', shortLabel: 'Hata', mobileLabel: 'Hata', icon: RotateCcw },
 ];
 
 interface AppShellProps {
@@ -58,6 +61,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     retryCoreLoad,
     isExamActive,
     setIsExamActive,
+    isMemorizationZenActive,
     isOnline,
     isSidebarCollapsed,
     toggleSidebarCollapsed,
@@ -73,7 +77,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     audioQueueService.getSnapshot,
   );
   const isAudioBarVisible =
-    !isExamActive && audioState.isVisible && audioState.status !== 'idle';
+    !isExamActive &&
+    !isMemorizationZenActive &&
+    audioState.isVisible &&
+    audioState.status !== 'idle';
 
   const currentYear = new Date().getFullYear();
   const bookmarkCount = studyProgress.pageBookmarks.length;
@@ -593,7 +600,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         {/* Alt Bilgi (Footer) — Mobilde alt sabit nav bar ve yüzen ses oynatıcı için güvenli boşluk */}
         <footer
           className={`mt-auto border-t ${
-            isExamActive
+            isExamActive || isMemorizationZenActive
               ? 'pb-5 lg:pb-5'
               : isAudioBarVisible
                 ? 'pb-40 lg:pb-28'
@@ -608,16 +615,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               © {currentYear} Muallimun.Net — Kur&apos;an &amp; Meal Eğitim Platformu
             </p>
             <p style={{ color: 'var(--text-muted)' }}>
-              TDV ve DİB mealleri · Editoryal soru bankası
+              24 Türkçe meal · 27 Kurrâ · Ezber &amp; Sınav Merkezi
             </p>
           </div>
         </footer>
       </div>
 
       {/* ====================================================================
-          Mobil Alt Sabit Navigasyon Çubuğu (4 Sekme — Aktif sınavda gizlenir)
+          Mobil Alt Sabit Navigasyon Çubuğu (5 Sekme — 360px taşmasız uyum)
           ==================================================================== */}
-      {!isExamActive && (
+      {!isExamActive && !isMemorizationZenActive && (
         <nav
           aria-label="Alt navigasyon"
           className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-md pb-safe"
@@ -626,7 +633,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="grid grid-cols-4 h-15 max-w-lg mx-auto">
+          <div className="grid grid-cols-5 h-15 max-w-lg mx-auto px-0.5">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -638,27 +645,27 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   key={item.id}
                   type="button"
                   onClick={() => handleRequestTab(item.id)}
-                  className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
+                  className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-0 px-0.5 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
                   style={{
                     color: isActive ? 'var(--brand-primary-text)' : 'var(--text-muted)',
                   }}
                 >
                   {isActive && (
                     <span
-                      className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-7 h-0.5 rounded-full"
                       style={{ backgroundColor: 'var(--brand-primary)' }}
                     />
                   )}
                   <span className="relative">
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-[19px] h-[19px]" />
                     {mistakeCount > 0 && (
-                      <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-extrabold tabular-nums flex items-center justify-center">
+                      <span className="absolute -top-1.5 -right-2.5 min-w-[15px] h-[15px] px-1 rounded-full bg-red-500 text-white text-[9px] font-extrabold tabular-nums flex items-center justify-center">
                         {mistakeCount > 99 ? '99+' : mistakeCount}
                       </span>
                     )}
                   </span>
-                  <span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
-                    {item.shortLabel}
+                  <span className="text-[10px] sm:text-[11px] font-semibold tracking-tight whitespace-nowrap truncate max-w-full">
+                    {item.mobileLabel}
                   </span>
                 </button>
               );

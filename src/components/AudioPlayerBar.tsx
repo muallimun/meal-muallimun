@@ -41,6 +41,7 @@ export const AudioPlayerBar: React.FC = () => {
     audioPrefs,
     updateAudioPrefs,
     isExamActive,
+    isMemorizationZenActive,
     isSidebarCollapsed,
     activeTab,
     setActiveTab,
@@ -77,7 +78,12 @@ export const AudioPlayerBar: React.FC = () => {
     audioQueueService.syncPrefs(audioPrefs);
   }, [audioPrefs]);
 
-  if (isExamActive || !audioState.isVisible || audioState.status === 'idle') {
+  if (
+    isExamActive ||
+    isMemorizationZenActive ||
+    !audioState.isVisible ||
+    audioState.status === 'idle'
+  ) {
     return null;
   }
 

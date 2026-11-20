@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  BookMarked,
   BookOpen,
   Check,
   ChevronDown,
@@ -67,7 +68,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   onPlayMealFromHere,
   onShareVerse,
 }) => {
-  const { openMealCompare, manifest } = useAppStore();
+  const { openMealCompare, openQuickMemorize, manifest } = useAppStore();
   const surahNameTr = surahMeta.nameTr;
   const [localWordOverride, setLocalWordOverride] = useState<boolean | null>(null);
   const [showFootnotes, setShowFootnotes] = useState(false);
@@ -406,6 +407,20 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                   borderColor: 'var(--border-strong)',
                 }}
               >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    sfxService.play('click');
+                    openQuickMemorize(verse.surah, verse.ayah, verse.page);
+                  }}
+                  className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <BookMarked className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
+                  <span>Buradan Ezber Başlat</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {

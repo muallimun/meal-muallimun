@@ -1207,7 +1207,7 @@ export const StudyPage: React.FC = () => {
                 {audioPrefs.mode !== 'meal' && (
                   <button
                     type="button"
-                    onClick={openReciterSelector}
+                    onClick={() => openReciterSelector('default')}
                     title={`Kur'an Okuyucu: ${activeReciter.label} (27 okuyucu arasından seç)`}
                     className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer max-w-[205px]"
                     style={{

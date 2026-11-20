@@ -10,6 +10,8 @@ import { MealSelectorModal } from './components/MealSelectorModal';
 import { ReciterSelectorModal } from './components/ReciterSelectorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ExamCenterPage } from './features/exam/ExamCenterPage';
+import { MemorizationHubPage } from './features/memorization/MemorizationHubPage';
+import { QuickMemorizeFromVerseModal } from './features/memorization/QuickMemorizeFromVerseModal';
 import { MistakeCampPage } from './features/mistakes/MistakeCampPage';
 import { StudyPage } from './features/study/StudyPage';
 import { HomePage } from './pages/HomePage';
@@ -24,6 +26,8 @@ const MainRouter: React.FC = () => {
         <HomePage />
       ) : activeTab === 'reader' ? (
         <StudyPage />
+      ) : activeTab === 'memorize' ? (
+        <MemorizationHubPage />
       ) : activeTab === 'exam' ? (
         <ExamCenterPage />
       ) : (
@@ -35,6 +39,7 @@ const MainRouter: React.FC = () => {
       <ReciterSelectorModal />
       <MealSelectorModal />
       <MealCompareModal />
+      <QuickMemorizeFromVerseModal />
       <PageBookmarksDrawer />
       <GlobalSearchModal />
       <IntroSplash />
