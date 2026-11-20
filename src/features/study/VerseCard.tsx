@@ -9,6 +9,7 @@ import {
   Languages,
   Link2,
   Star,
+  Volume2,
 } from 'lucide-react';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
@@ -29,6 +30,7 @@ interface VerseCardProps {
   isPlayingThisAyah: boolean;
   onToggleBookmark: (ayahId: number) => void;
   onPlayFromHere: (verse: CombinedVerse) => void;
+  onPlayMealFromHere: (verse: CombinedVerse) => void;
 }
 
 export const VerseCard: React.FC<VerseCardProps> = ({
@@ -40,6 +42,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   isPlayingThisAyah,
   onToggleBookmark,
   onPlayFromHere,
+  onPlayMealFromHere,
 }) => {
   const [localWordOverride, setLocalWordOverride] = useState<boolean | null>(null);
   const [showFootnotes, setShowFootnotes] = useState(false);
@@ -248,6 +251,21 @@ export const VerseCard: React.FC<VerseCardProps> = ({
           >
             <Headphones className="w-4 h-4 shrink-0" />
             <span className="hidden sm:inline">Dinle</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onPlayMealFromHere(verse)}
+            title="Bu ayetten itibaren Türkçe sesli mealini dinle"
+            className="min-h-[40px] px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+            style={{
+              backgroundColor: 'var(--brand-accent-soft)',
+              borderColor: 'var(--brand-accent)',
+              color: 'var(--brand-accent-text)',
+            }}
+          >
+            <Volume2 className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline whitespace-nowrap">Sesli Meal</span>
           </button>
 
           {verse.words.length > 0 && (

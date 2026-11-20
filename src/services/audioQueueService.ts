@@ -10,6 +10,7 @@ import type {
 export type AudioQueueStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 export type AudioPhase = 'besmele' | 'ar' | 'meal';
 export type AudioQueueContext = 'page' | 'surah' | 'single';
+export type AudioSourceKey = 'hatim' | MealAudioSourceId;
 
 export interface AudioQueueSnapshot {
   status: AudioQueueStatus;
@@ -22,6 +23,7 @@ export interface AudioQueueSnapshot {
   currentPage: number | null;
   currentAyahId: number | null;
   activePhase: AudioPhase | null;
+  activeSourceKey: AudioSourceKey | null;
   currentRepeat: number;
   totalRepeats: number;
   canGoPrev: boolean;
@@ -31,8 +33,8 @@ export interface AudioQueueSnapshot {
 
 interface PlaybackStep {
   phase: AudioPhase;
-  url: string;
-  fallbackUrl?: string;
+  sourceKey: AudioSourceKey;
+  urls: string[];
   verseIndex: number;
   repeatIndex: number;
 }
@@ -56,6 +58,23 @@ type NextPageProvider = (nextPage: number) => Promise<{
 
 type Listener = () => void;
 
+const PRIMARY_ARCHIVE_BASE: Record<AudioSourceKey, string> = {
+  hatim:
+    'https://dn721808.ca.archive.org/0/items/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
+  tdv: 'https://dn710902.ca.archive.org/0/items/seyfullah-kartal-ayet-ayet-meal-arsivi',
+  dib: 'https://dn711208.ca.archive.org/0/items/mehmet-emin-ay-ayet-ayet-meal-arsivi',
+};
+
+const FALLBACK_ARCHIVE_BASE: Record<AudioSourceKey, string> = {
+  hatim:
+    'https://archive.org/download/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
+  tdv: 'https://archive.org/download/seyfullah-kartal-ayet-ayet-meal-arsivi',
+  dib: 'https://archive.org/download/mehmet-emin-ay-ayet-ayet-meal-arsivi',
+};
+
+const MAX_CONSECUTIVE_FAILURES = 3;
+const LOAD_TIMEOUT_MS = 12000;
+
 const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   status: 'idle',
   isVisible: false,
@@ -67,6 +86,7 @@ const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   currentPage: null,
   currentAyahId: null,
   activePhase: null,
+  activeSourceKey: null,
   currentRepeat: 1,
   totalRepeats: 1,
   canGoPrev: false,
@@ -78,14 +98,29 @@ function pad3(n: number): string {
   return String(n).padStart(3, '0');
 }
 
+function dedupeUrls(urls: (string | null | undefined)[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const url of urls) {
+    if (url && !seen.has(url)) {
+      seen.add(url);
+      out.push(url);
+    }
+  }
+  return out;
+}
+
 class AudioQueueService {
   private snapshot: AudioQueueSnapshot = { ...INITIAL_SNAPSHOT };
   private listeners = new Set<Listener>();
 
   private audio: HTMLAudioElement | null = null;
+  private audioAbortController: AbortController | null = null;
   private preloader: HTMLAudioElement | null = null;
   private skipTimer: number | null = null;
+  private loadTimer: number | null = null;
   private playSessionId = 0;
+  private consecutiveFailures = 0;
 
   private verses: CombinedVerse[] = [];
   private currentVerseIndex = 0;
@@ -133,12 +168,24 @@ class AudioQueueService {
     return found ? found.nameTr : `${surahNo}. Sure`;
   }
 
-  private buildAudioUrl(sourceKey: 'hatim' | MealAudioSourceId, surahNo: number, ayahNo: number): string | null {
+  /**
+   * Archive.org dosya adı formatı: {SSS}_{AAA}.mp3 (örn: 049_005.mp3, Besmele: 001_001.mp3)
+   * Önce manifest baseUrl (dn*.ca.archive.org), ardından archive.org/download yedek URL'sini üretir.
+   */
+  private buildAudioUrls(
+    sourceKey: AudioSourceKey,
+    surahNo: number,
+    ayahNo: number,
+  ): string[] {
     const source = this.manifest?.audioSources[sourceKey];
-    if (!source || !source.baseUrl) return null;
-    const base = source.baseUrl.replace(/\/+$/, '');
-    const ext = source.ext || 'mp3';
-    return `${base}/${pad3(surahNo)}${pad3(ayahNo)}.${ext}`;
+    const ext = source?.ext || 'mp3';
+    const fileName = `${pad3(surahNo)}_${pad3(ayahNo)}.${ext}`;
+
+    const manifestBase = source?.baseUrl?.replace(/\/+$/, '');
+    const primaryBase = manifestBase || PRIMARY_ARCHIVE_BASE[sourceKey];
+    const fallbackBase = FALLBACK_ARCHIVE_BASE[sourceKey];
+
+    return dedupeUrls([`${primaryBase}/${fileName}`, `${fallbackBase}/${fileName}`]);
   }
 
   private getEffectiveMode(): AudioPlayMode {
@@ -148,7 +195,10 @@ class AudioQueueService {
   /**
    * Seçili ayet için Besmele, Arapça, Meal ve Tekrar kurallarına göre adımları oluşturur.
    */
-  private buildStepsForVerse(verseIndex: number, includeBesmeleIfApplicable: boolean): PlaybackStep[] {
+  private buildStepsForVerse(
+    verseIndex: number,
+    includeBesmeleIfApplicable: boolean,
+  ): PlaybackStep[] {
     const verse = this.verses[verseIndex];
     if (!verse || !this.manifest || !this.meta) return [];
 
@@ -157,20 +207,20 @@ class AudioQueueService {
     const repeatCount = this.prefs.repeatCount;
     const steps: PlaybackStep[] = [];
 
-    // 1. Besmele Kuralı: Sure 1 (Fâtiha) ve Sure 9 (Tevbe) hariç 1. ayette önce 001001.mp3 çal
+    // 1. Besmele Kuralı: Sure 1 (Fâtiha) ve Sure 9 (Tevbe) hariç 1. ayette önce 001_001.mp3 çal
     const excludeBesmele = this.meta.besmele.excludeSurahs ?? [1, 9];
     if (
       includeBesmeleIfApplicable &&
       verse.ayah === 1 &&
       !excludeBesmele.includes(verse.surah)
     ) {
-      const besmeleSource: 'hatim' | MealAudioSourceId =
-        mode === 'meal' ? mealSource : 'hatim';
-      const besmeleUrl = this.buildAudioUrl(besmeleSource, 1, 1);
-      if (besmeleUrl) {
+      const besmeleSource: AudioSourceKey = mode === 'meal' ? mealSource : 'hatim';
+      const besmeleUrls = this.buildAudioUrls(besmeleSource, 1, 1);
+      if (besmeleUrls.length > 0) {
         steps.push({
           phase: 'besmele',
-          url: besmeleUrl,
+          sourceKey: besmeleSource,
+          urls: besmeleUrls,
           verseIndex,
           repeatIndex: 1,
         });
@@ -183,19 +233,21 @@ class AudioQueueService {
     const mg = activeMealObj?.mg;
     const isMergedContinuation = Boolean(mg && verse.ayah > mg[0]);
 
-    const arUrl = this.buildAudioUrl('hatim', verse.surah, verse.ayah);
-    const primaryMealUrl = this.buildAudioUrl(mealSource, verse.surah, verse.ayah);
-    const mergedStartMealUrl =
+    const arUrls = this.buildAudioUrls('hatim', verse.surah, verse.ayah);
+    const primaryMealUrls = this.buildAudioUrls(mealSource, verse.surah, verse.ayah);
+    const mergedStartMealUrls =
       mg && mg[0] !== verse.ayah
-        ? this.buildAudioUrl(mealSource, verse.surah, mg[0]) ?? undefined
-        : undefined;
+        ? this.buildAudioUrls(mealSource, verse.surah, mg[0])
+        : [];
+    const combinedMealUrls = dedupeUrls([...primaryMealUrls, ...mergedStartMealUrls]);
 
     for (let rep = 1; rep <= repeatCount; rep += 1) {
       if (mode === 'ar' || mode === 'ar_then_meal') {
-        if (arUrl) {
+        if (arUrls.length > 0) {
           steps.push({
             phase: 'ar',
-            url: arUrl,
+            sourceKey: 'hatim',
+            urls: arUrls,
             verseIndex,
             repeatIndex: rep,
           });
@@ -207,11 +259,11 @@ class AudioQueueService {
           ? this.singleAyahOnly || !isMergedContinuation
           : false;
 
-      if (shouldPlayMeal && primaryMealUrl) {
+      if (shouldPlayMeal && combinedMealUrls.length > 0) {
         steps.push({
           phase: 'meal',
-          url: primaryMealUrl,
-          fallbackUrl: mergedStartMealUrl,
+          sourceKey: mealSource,
+          urls: combinedMealUrls,
           verseIndex,
           repeatIndex: rep,
         });
@@ -228,15 +280,29 @@ class AudioQueueService {
     }
   }
 
+  private clearLoadTimer(): void {
+    if (this.loadTimer !== null) {
+      window.clearTimeout(this.loadTimer);
+      this.loadTimer = null;
+    }
+  }
+
   private teardownAudioElement(): void {
     this.clearSkipTimer();
+    this.clearLoadTimer();
+
+    if (this.audioAbortController) {
+      this.audioAbortController.abort();
+      this.audioAbortController = null;
+    }
+
     if (this.audio) {
       try {
         this.audio.pause();
         this.audio.removeAttribute('src');
         this.audio.load();
       } catch {
-        // ignore
+        // ignore cleanup errors
       }
       this.audio = null;
     }
@@ -247,10 +313,10 @@ class AudioQueueService {
 
     let nextUrl: string | null = null;
     if (this.currentStepIndex + 1 < this.steps.length) {
-      nextUrl = this.steps[this.currentStepIndex + 1].url;
+      nextUrl = this.steps[this.currentStepIndex + 1].urls[0] ?? null;
     } else if (!this.singleAyahOnly && this.currentVerseIndex + 1 < this.verses.length) {
       const upcomingSteps = this.buildStepsForVerse(this.currentVerseIndex + 1, true);
-      nextUrl = upcomingSteps[0]?.url ?? null;
+      nextUrl = upcomingSteps[0]?.urls[0] ?? null;
     }
 
     if (!nextUrl) return;
@@ -279,7 +345,7 @@ class AudioQueueService {
     };
   }
 
-  private playCurrentStep(useFallbackUrl = false): void {
+  private playCurrentStep(urlIndex = 0): void {
     const session = this.playSessionId;
     const step = this.steps[this.currentStepIndex];
 
@@ -294,7 +360,12 @@ class AudioQueueService {
       return;
     }
 
-    const targetUrl = useFallbackUrl && step.fallbackUrl ? step.fallbackUrl : step.url;
+    const targetUrl = step.urls[urlIndex];
+    if (!targetUrl) {
+      this.handleStepExhausted(session);
+      return;
+    }
+
     this.teardownAudioElement();
 
     const nav = this.updateNavigationAvailability();
@@ -309,6 +380,7 @@ class AudioQueueService {
       currentPage: verse.page,
       currentAyahId: verse.id,
       activePhase: step.phase,
+      activeSourceKey: step.sourceKey,
       currentRepeat: step.repeatIndex,
       totalRepeats: this.prefs.repeatCount,
       canGoPrev: nav.canGoPrev,
@@ -317,74 +389,144 @@ class AudioQueueService {
     });
 
     if (typeof window === 'undefined' || typeof Audio === 'undefined') {
-      this.emit({ status: 'error', errorMessage: 'Bu tarayıcı ses oynatmayı desteklemiyor.' });
+      this.emit({
+        status: 'error',
+        errorMessage: 'Bu tarayıcı ses oynatmayı desteklemiyor.',
+      });
       return;
     }
 
-    const audio = new Audio(targetUrl);
+    // Archive.org yönlendirmelerinde CORS engeli olmaması için crossOrigin KULLANILMAZ
+    const audio = new Audio();
     audio.preload = 'auto';
     audio.playbackRate = this.prefs.playbackRate;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    this.audioAbortController = controller;
     this.audio = audio;
 
-    const scheduleSkip = () => {
-      if (session !== this.playSessionId) return;
-      // Birleşik mealde yedek URL varsa önce onu dene
-      if (!useFallbackUrl && step.fallbackUrl) {
-        this.playCurrentStep(true);
+    let handledFailure = false;
+
+    const handleFailure = () => {
+      if (handledFailure || session !== this.playSessionId) return;
+      handledFailure = true;
+      this.clearLoadTimer();
+
+      // Sıradaki yedek URL varsa (örn. archive.org/download veya birleşik meal başlangıç ayeti) önce onu dene
+      if (urlIndex + 1 < step.urls.length) {
+        this.playCurrentStep(urlIndex + 1);
         return;
       }
-      this.clearSkipTimer();
-      this.skipTimer = window.setTimeout(() => {
-        if (session !== this.playSessionId) return;
-        this.advanceToNextStep();
-      }, 300);
+
+      this.handleStepExhausted(session);
     };
 
-    audio.addEventListener('playing', () => {
+    // Sunucu yanıt vermezse (zaman aşımı) yedek sunucuya geç
+    this.loadTimer = window.setTimeout(() => {
       if (session !== this.playSessionId) return;
-      audio.playbackRate = this.prefs.playbackRate;
-      this.emit({ status: 'playing', errorMessage: null });
-      this.preloadNextUrl();
-    });
+      handleFailure();
+    }, LOAD_TIMEOUT_MS);
 
-    audio.addEventListener('waiting', () => {
-      if (session !== this.playSessionId) return;
-      if (this.snapshot.status === 'playing') {
-        this.emit({ status: 'loading' });
-      }
-    });
+    audio.addEventListener(
+      'canplay',
+      () => {
+        if (session !== this.playSessionId) return;
+        this.clearLoadTimer();
+      },
+      { signal },
+    );
 
-    audio.addEventListener('ended', () => {
-      if (session !== this.playSessionId) return;
-      this.advanceToNextStep();
-    });
+    audio.addEventListener(
+      'playing',
+      () => {
+        if (session !== this.playSessionId) return;
+        this.clearLoadTimer();
+        this.consecutiveFailures = 0;
+        audio.playbackRate = this.prefs.playbackRate;
+        this.emit({ status: 'playing', errorMessage: null });
+        this.preloadNextUrl();
+      },
+      { signal },
+    );
 
-    audio.addEventListener('error', () => {
-      scheduleSkip();
-    });
+    audio.addEventListener(
+      'waiting',
+      () => {
+        if (session !== this.playSessionId) return;
+        if (this.snapshot.status === 'playing') {
+          this.emit({ status: 'loading' });
+        }
+      },
+      { signal },
+    );
+
+    audio.addEventListener(
+      'ended',
+      () => {
+        if (session !== this.playSessionId) return;
+        this.clearLoadTimer();
+        this.advanceToNextStep();
+      },
+      { signal },
+    );
+
+    audio.addEventListener(
+      'error',
+      () => {
+        handleFailure();
+      },
+      { signal },
+    );
+
+    audio.src = targetUrl;
 
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch((err) => {
         if (session !== this.playSessionId) return;
-        const errName = err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
+        const errName =
+          err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
         if (errName === 'AbortError') return;
         if (errName === 'NotAllowedError') {
+          this.clearLoadTimer();
           this.emit({
             status: 'paused',
             errorMessage: 'Ses oynatmak için oynat butonuna dokunun.',
           });
           return;
         }
-        scheduleSkip();
+        handleFailure();
       });
     }
+  }
+
+  private handleStepExhausted(session: number): void {
+    if (session !== this.playSessionId) return;
+    this.consecutiveFailures += 1;
+
+    // Sonsuz Atlama Koruması: Üst üste 3 ses dosyası yüklenemezse duraklat ve kullanıcıyı bilgilendir
+    if (this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      this.teardownAudioElement();
+      this.emit({
+        status: 'paused',
+        errorMessage:
+          'Ses dosyalarına şu anda ulaşılamıyor. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+      });
+      return;
+    }
+
+    this.clearSkipTimer();
+    this.skipTimer = window.setTimeout(() => {
+      if (session !== this.playSessionId) return;
+      this.advanceToNextStep();
+    }, 350);
   }
 
   private advanceToNextStep(): void {
     if (this.currentStepIndex + 1 < this.steps.length) {
       this.currentStepIndex += 1;
-      this.playCurrentStep();
+      this.playCurrentStep(0);
       return;
     }
     void this.advanceToNextVerse();
@@ -407,7 +549,7 @@ class AudioQueueService {
         this.currentVerseIndex = nextIdx;
         this.steps = nextSteps;
         this.currentStepIndex = 0;
-        this.playCurrentStep();
+        this.playCurrentStep(0);
         return;
       }
       nextIdx += 1;
@@ -435,7 +577,7 @@ class AudioQueueService {
               this.currentVerseIndex = i;
               this.steps = nextSteps;
               this.currentStepIndex = 0;
-              this.playCurrentStep();
+              this.playCurrentStep(0);
               return;
             }
           }
@@ -452,6 +594,7 @@ class AudioQueueService {
 
   public startQueue(options: StartQueueOptions): void {
     this.playSessionId += 1;
+    this.consecutiveFailures = 0;
     this.teardownAudioElement();
 
     this.verses = options.verses;
@@ -495,20 +638,22 @@ class AudioQueueService {
     this.currentVerseIndex = targetIndex;
     this.steps = builtSteps;
     this.currentStepIndex = 0;
-    this.playCurrentStep();
+    this.playCurrentStep(0);
   }
 
   public togglePlayPause(): void {
     if (!this.audio) {
       if (this.verses.length > 0 && this.steps.length > 0) {
         this.playSessionId += 1;
-        this.playCurrentStep();
+        this.consecutiveFailures = 0;
+        this.playCurrentStep(0);
       }
       return;
     }
 
     if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
       this.clearSkipTimer();
+      this.clearLoadTimer();
       try {
         this.audio.pause();
       } catch {
@@ -517,12 +662,16 @@ class AudioQueueService {
       this.emit({ status: 'paused' });
     } else if (this.snapshot.status === 'paused' || this.snapshot.status === 'error') {
       const session = this.playSessionId;
+      this.consecutiveFailures = 0;
       this.audio.playbackRate = this.prefs.playbackRate;
       const playPromise = this.audio.play();
       if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
+        playPromise.catch((err) => {
           if (session !== this.playSessionId) return;
-          this.playCurrentStep();
+          const errName =
+            err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
+          if (errName === 'AbortError') return;
+          this.playCurrentStep(0);
         });
       }
       this.emit({ status: 'playing', errorMessage: null });
@@ -531,6 +680,8 @@ class AudioQueueService {
 
   public pause(): void {
     if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
+      this.clearSkipTimer();
+      this.clearLoadTimer();
       try {
         this.audio?.pause();
       } catch {
@@ -543,6 +694,7 @@ class AudioQueueService {
   public nextVerse(): void {
     if (this.verses.length === 0) return;
     this.playSessionId += 1;
+    this.consecutiveFailures = 0;
     this.singleAyahOnly = false;
     void this.advanceToNextVerse();
   }
@@ -550,6 +702,7 @@ class AudioQueueService {
   public prevVerse(): void {
     if (this.verses.length === 0 || this.currentVerseIndex <= 0) return;
     this.playSessionId += 1;
+    this.consecutiveFailures = 0;
     this.singleAyahOnly = false;
 
     for (let idx = this.currentVerseIndex - 1; idx >= 0; idx -= 1) {
@@ -558,7 +711,7 @@ class AudioQueueService {
         this.currentVerseIndex = idx;
         this.steps = prevSteps;
         this.currentStepIndex = 0;
-        this.playCurrentStep();
+        this.playCurrentStep(0);
         return;
       }
     }
@@ -567,7 +720,11 @@ class AudioQueueService {
   public syncPrefs(nextPrefs: AudioPrefs): void {
     const prevPrefs = this.prefs;
     this.prefs = { ...nextPrefs };
-    this.activeModeOverride = undefined;
+
+    // Kullanıcı açıkça oynatma modunu değiştirdiyse tek-tıklama geçersiz kılmasını kaldır
+    if (prevPrefs.mode !== nextPrefs.mode) {
+      this.activeModeOverride = undefined;
+    }
 
     if (this.audio) {
       this.audio.playbackRate = nextPrefs.playbackRate;
@@ -586,13 +743,15 @@ class AudioQueueService {
       this.emit({ totalRepeats: nextPrefs.repeatCount, currentRepeat: 1 });
       if (wasPlaying) {
         this.playSessionId += 1;
-        this.playCurrentStep();
+        this.consecutiveFailures = 0;
+        this.playCurrentStep(0);
       }
     }
   }
 
   public stopAndReset(hideBar = true): void {
     this.playSessionId += 1;
+    this.consecutiveFailures = 0;
     this.teardownAudioElement();
     this.verses = [];
     this.steps = [];

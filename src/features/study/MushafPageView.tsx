@@ -13,6 +13,7 @@ import {
   Link2,
   List,
   Star,
+  Volume2,
 } from 'lucide-react';
 import {
   SAJDAH_AYAH_IDS,
@@ -40,6 +41,7 @@ interface MushafPageViewProps {
   onSelectVerse: (verse: CombinedVerse) => void;
   onChangePage: (nextPage: number) => void;
   onPlayFromVerse: (verse: CombinedVerse, singleAyahOnly?: boolean) => void;
+  onPlayMealFromVerse: (verse: CombinedVerse) => void;
   onToggleBookmark: (ayahId: number) => void;
   onOpenSurahInfo: (surah: SurahMeta) => void;
 }
@@ -59,6 +61,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   onSelectVerse,
   onChangePage,
   onPlayFromVerse,
+  onPlayMealFromVerse,
   onToggleBookmark,
   onOpenSurahInfo,
 }) => {
@@ -511,16 +514,31 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   </button>
                 </div>
 
-                {/* Bu Ayetten Dinle · Yıldızla · Kopyala */}
+                {/* Bu Ayetten Dinle · Sesli Mealini Dinle · Yıldızla · Kopyala */}
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => onPlayFromVerse(selectedVerse, false)}
-                    className="flex-1 min-h-[42px] px-3.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 min-h-[42px] px-3 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer"
                     style={{ backgroundColor: 'var(--brand-primary)' }}
                   >
                     <Headphones className="w-4 h-4 shrink-0" />
                     <span className="whitespace-nowrap">Bu Ayetten Dinle</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onPlayMealFromVerse(selectedVerse)}
+                    title="Bu ayetten itibaren sadece Türkçe sesli mealini dinle"
+                    className="flex-1 min-h-[42px] px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      borderColor: 'var(--brand-accent)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                  >
+                    <Volume2 className="w-4 h-4 shrink-0" />
+                    <span className="whitespace-nowrap">Sesli Mealini Dinle</span>
                   </button>
 
                   <button

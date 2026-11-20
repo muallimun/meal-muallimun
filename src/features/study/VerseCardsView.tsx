@@ -29,6 +29,7 @@ interface VerseCardsViewProps {
   jumpNonce: number;
   onToggleBookmark: (ayahId: number) => void;
   onPlayFromVerse: (verse: CombinedVerse) => void;
+  onPlayMealFromVerse: (verse: CombinedVerse) => void;
   onOpenPageInMushaf: (pageNo: number, ayahId: number) => void;
 }
 
@@ -48,6 +49,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   jumpNonce,
   onToggleBookmark,
   onPlayFromVerse,
+  onPlayMealFromVerse,
   onOpenPageInMushaf,
 }) => {
   const { surahMeta, verses, hasBesmele } = surahBundle;
@@ -430,6 +432,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                   isPlayingThisAyah={playingAyahId === verse.id}
                   onToggleBookmark={onToggleBookmark}
                   onPlayFromHere={onPlayFromVerse}
+                  onPlayMealFromHere={onPlayMealFromVerse}
                 />
               </React.Fragment>
             );

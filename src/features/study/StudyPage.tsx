@@ -17,6 +17,7 @@ import {
   Pause,
   RefreshCw,
   Trophy,
+  Volume2,
 } from 'lucide-react';
 import { audioQueueService } from '../../services/audioQueueService';
 import {
@@ -28,7 +29,9 @@ import {
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
+  AudioPlayMode,
   CombinedVerse,
+  MealAudioSourceId,
   PageBundle,
   PreferredMeal,
   StudyViewMode,
@@ -52,6 +55,7 @@ export const StudyPage: React.FC = () => {
     setLastRead,
     toggleBookmarkAyah,
     audioPrefs,
+    updateAudioPrefs,
     poolStats,
     manifest,
     meta,
@@ -441,7 +445,7 @@ export const StudyPage: React.FC = () => {
   };
 
   const handlePlayFromVerse = useCallback(
-    (verse: CombinedVerse, singleAyahOnly = false) => {
+    (verse: CombinedVerse, singleAyahOnly = false, modeOverride?: AudioPlayMode) => {
       if (!manifest || !meta) return;
 
       if (viewMode === 'mushaf' && pageBundle) {
@@ -455,6 +459,7 @@ export const StudyPage: React.FC = () => {
           meta,
           prefs: audioPrefs,
           singleAyahOnly,
+          modeOverride,
         });
       } else if (surahBundle) {
         const idx = surahBundle.verses.findIndex((v) => v.id === verse.id);
@@ -467,10 +472,19 @@ export const StudyPage: React.FC = () => {
           meta,
           prefs: audioPrefs,
           singleAyahOnly,
+          modeOverride,
         });
       }
     },
     [manifest, meta, viewMode, pageBundle, surahBundle, audioPrefs],
+  );
+
+  const handlePlayMealFromVerse = useCallback(
+    (verse: CombinedVerse) => {
+      sfxService.play('click');
+      handlePlayFromVerse(verse, false, 'meal');
+    },
+    [handlePlayFromVerse],
   );
 
   const handleOpenPageInMushaf = useCallback(
@@ -493,7 +507,14 @@ export const StudyPage: React.FC = () => {
     }
   };
 
-  const extraBottomSpace = audioState.isVisible ? 'pb-36 lg:pb-28' : 'pb-6';
+  const listenButtonLabel =
+    audioPrefs.mode === 'meal'
+      ? 'Sesli Meal Dinle'
+      : audioPrefs.mode === 'ar_then_meal'
+        ? 'Arapça + Meal Dinle'
+        : 'Hatim Dinle';
+
+  const extraBottomSpace = audioState.isVisible ? 'pb-40 lg:pb-32' : 'pb-6';
 
   return (
     <div className={`space-y-4 sm:space-y-5 ${extraBottomSpace}`}>
@@ -669,7 +690,7 @@ export const StudyPage: React.FC = () => {
               ) : (
                 <>
                   <Headphones className="w-4 h-4 shrink-0" />
-                  <span>{viewMode === 'mushaf' ? 'Sayfayı Dinle' : 'Sureyi Dinle'}</span>
+                  <span>{listenButtonLabel}</span>
                 </>
               )}
             </button>
@@ -788,6 +809,103 @@ export const StudyPage: React.FC = () => {
             </button>
           )}
         </div>
+
+        {/* Satır 3: Sesli Dinleme Modu & Sesli Meal Okuyucu Seçicisi */}
+        <div
+          className="pt-2.5 border-t flex flex-wrap items-center justify-between gap-2.5"
+          style={{ borderColor: 'var(--border-subtle)' }}
+        >
+          {/* Dinleme Modu Seçicisi */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="text-xs font-semibold flex items-center gap-1"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <Volume2 className="w-3.5 h-3.5 shrink-0" />
+              <span>Dinleme Modu:</span>
+            </span>
+            <div
+              className="flex items-center p-0.5 rounded-xl flex-wrap"
+              style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+            >
+              {(
+                [
+                  { id: 'ar_then_meal', label: 'Arapça + Sesli Meal' },
+                  { id: 'ar', label: 'Sadece Arapça' },
+                  { id: 'meal', label: 'Sadece Sesli Meal' },
+                ] as { id: AudioPlayMode; label: string }[]
+              ).map((opt) => {
+                const active = audioPrefs.mode === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      updateAudioPrefs({ mode: opt.id });
+                    }}
+                    className="min-h-[36px] px-2.5 sm:px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                      color:
+                        active && opt.id === 'meal'
+                          ? 'var(--brand-accent-text)'
+                          : active
+                            ? 'var(--brand-primary-text)'
+                            : 'var(--text-secondary)',
+                      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sesli Meal Okuyucu Seçicisi (Mod "Sadece Arapça" değilken doğrudan görünür) */}
+          {audioPrefs.mode !== 'ar' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className="text-xs font-semibold hidden sm:inline"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Sesli Meal:
+              </span>
+              <div
+                className="flex items-center p-0.5 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+              >
+                {(
+                  [
+                    { id: 'tdv', label: 'TDV Ses (Seyfullah Kartal)' },
+                    { id: 'dib', label: 'DİB Ses (Mehmet Emin Ay)' },
+                  ] as { id: MealAudioSourceId; label: string }[]
+                ).map((src) => {
+                  const active = audioPrefs.mealAudioSource === src.id;
+                  return (
+                    <button
+                      key={src.id}
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateAudioPrefs({ mealAudioSource: src.id });
+                      }}
+                      className="min-h-[36px] px-2.5 sm:px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                      style={{
+                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                        color: active ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
+                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {src.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* ====================================================================
@@ -857,6 +975,7 @@ export const StudyPage: React.FC = () => {
           }}
           onChangePage={handleChangePage}
           onPlayFromVerse={handlePlayFromVerse}
+          onPlayMealFromVerse={handlePlayMealFromVerse}
           onToggleBookmark={toggleBookmarkAyah}
           onOpenSurahInfo={(surah) => setInfoModalSurah(surah)}
         />
@@ -876,6 +995,7 @@ export const StudyPage: React.FC = () => {
           jumpNonce={jumpNonce}
           onToggleBookmark={toggleBookmarkAyah}
           onPlayFromVerse={(v) => handlePlayFromVerse(v, false)}
+          onPlayMealFromVerse={handlePlayMealFromVerse}
           onOpenPageInMushaf={handleOpenPageInMushaf}
         />
       ) : null}

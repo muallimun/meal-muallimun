@@ -47,15 +47,24 @@ export const AudioPlayerBar: React.FC = () => {
   const isPlaying = audioState.status === 'playing';
   const isLoading = audioState.status === 'loading';
 
+  const activeMealSource: MealAudioSourceId =
+    audioState.activeSourceKey === 'dib' || audioState.activeSourceKey === 'tdv'
+      ? audioState.activeSourceKey
+      : audioPrefs.mealAudioSource;
+
   const phaseText =
     audioState.activePhase === 'besmele'
-      ? 'Besmele'
+      ? audioState.activeSourceKey === 'tdv'
+        ? '🇹🇷 Besmele · Seyfullah Kartal'
+        : audioState.activeSourceKey === 'dib'
+          ? '🇹🇷 Besmele · Mehmet Emin Ay'
+          : '🕋 Besmele · İshak Danış'
       : audioState.activePhase === 'ar'
-        ? 'Arapça Tilavet'
+        ? '🕋 Arapça Tilavet · İshak Danış'
         : audioState.activePhase === 'meal'
-          ? audioPrefs.mealAudioSource === 'tdv'
-            ? 'TDV Meali'
-            : 'DİB Meali'
+          ? activeMealSource === 'tdv'
+            ? '🇹🇷 TDV Sesli Meal · Seyfullah Kartal'
+            : '🇹🇷 DİB Sesli Meal · Mehmet Emin Ay'
           : isPlaying
             ? 'Oynatılıyor'
             : 'Duraklatıldı';
@@ -234,7 +243,7 @@ export const AudioPlayerBar: React.FC = () => {
 
             {/* Meal Sesi (TDV | DİB) + Hız + Tekrar */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {audioPrefs.mode !== 'ar' && (
+              {(audioPrefs.mode !== 'ar' || audioState.activePhase === 'meal') && (
                 <div
                   className="flex items-center p-0.5 rounded-lg"
                   style={{ backgroundColor: 'var(--bg-surface-soft)' }}
