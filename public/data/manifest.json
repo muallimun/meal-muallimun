@@ -1,0 +1,101 @@
+{
+  "app": "Muallimun Kur'an & Meal",
+  "domain": "[https://meal.muallimun.net](https://meal.muallimun.net)",
+  "schemaVersion": 2,
+  "dataVersion": "2026.11.20.1",
+  "generatedAt": "2026-11-20T09:37:40.513806+00:00",
+  "defaultPool": {
+    "mode": "CUSTOM",
+    "surahs": [
+      17,
+      24,
+      31,
+      49
+    ],
+    "juzs": [],
+    "preferredMeal": "m1",
+    "arabicAudio": "hatim",
+    "mealAudio": "tdv"
+  },
+  "examEngine": {
+    "supportedQuestionCounts": [
+      15,
+      25,
+      30,
+      50,
+      70,
+      80,
+      100
+    ],
+    "modes": [
+      "curated",
+      "dynamic",
+      "hybrid"
+    ],
+    "supportsPdfExport": true,
+    "supportsBookletAB": true
+  },
+  "meals": {
+    "m1": {
+      "id": "m1",
+      "label": "Diyanet Vakfı Meali (TDV)",
+      "audioSource": "tdv"
+    },
+    "m2": {
+      "id": "m2",
+      "label": "Diyanet İşleri Meali (Yeni)",
+      "audioSource": "dib"
+    }
+  },
+  "audioSources": {
+    "hatim": {
+      "id": "hatim",
+      "kind": "ar",
+      "label": "İshak Danış (Hatim)",
+      "baseUrl": "https://dn721808.ca.archive.org/0/items/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis",
+      "ext": "mp3"
+    },
+    "tdv": {
+      "id": "tdv",
+      "kind": "meal",
+      "mealId": "m1",
+      "label": "TDV Meali (Seyfullah Kartal)",
+      "baseUrl": "https://dn710902.ca.archive.org/0/items/seyfullah-kartal-ayet-ayet-meal-arsivi",
+      "ext": "mp3"
+    },
+    "dib": {
+      "id": "dib",
+      "kind": "meal",
+      "mealId": "m2",
+      "label": "DİB Yeni Meal (Mehmet Emin Ay)",
+      "baseUrl": "https://dn711208.ca.archive.org/0/items/mehmet-emin-ay-ayet-ayet-meal-arsivi",
+      "ext": "mp3"
+    }
+  },
+  "stats": {
+    "surahs": 114,
+    "juzs": 30,
+    "ayahs": 6236,
+    "words": 77429,
+    "questions": 275,
+    "questionSurahs": [
+      17,
+      24,
+      31,
+      49
+    ],
+    "tdvFootnotes": 1515,
+    "dibFootnotes": 587,
+    "tdvMergedGroups": 323,
+    "dibMergedGroups": 316,
+    "pedagogicalFlags": {
+      "pureMuqattaat": 20,
+      "arDupAny": 280,
+      "arDupCrossSurah": 174,
+      "tdvDupAny": 90,
+      "tdvDupCrossSurah": 18,
+      "dibDupAny": 118,
+      "dibDupCrossSurah": 31
+    }
+  }
+}

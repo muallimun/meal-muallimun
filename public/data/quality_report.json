@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 2,
+  "dataVersion": "2026.11.20.1",
+  "generatedAt": "2026-11-20T09:37:40.513806+00:00",
+  "totals": {
+    "surahs": 114,
+    "juzs": 30,
+    "ayahs": 6236,
+    "words": 77429,
+    "mekkiSurahs": 86,
+    "medeniSurahs": 28,
+    "audioMismatches": 0,
+    "tdvFootnotesExtracted": 1515,
+    "dibFootnotesExtracted": 587,
+    "tdvMergedGroups": 323,
+    "dibMergedGroups": 316,
+    "pedagogicalFlags": {
+      "pureMuqattaat": 20,
+      "arDupAny": 280,
+      "arDupCrossSurah": 174,
+      "tdvDupAny": 90,
+      "tdvDupCrossSurah": 18,
+      "dibDupAny": 118,
+      "dibDupCrossSurah": 31
+    },
+    "nullNuzulSurahs": [
+      44,
+      76
+    ],
+    "nullKonusuSurahs": [
+      97,
+      111
+    ],
+    "totalSizeRawMB": 7.95,
+    "totalSizeGzipMB": 2.46
+  },
+  "questions": {
+    "totalInput": 275,
+    "totalValid": 275,
+    "bySurah": {
+      "17": 100,
+      "24": 75,
+      "31": 50,
+      "49": 50
+    },
+    "lockedQuestionsTotal": 53,
+    "lockedAnswerDistribution": {
+      "0": 1,
+      "1": 45,
+      "3": 7
+    },
+    "answerDistributionBefore": {
+      "0": 65,
+      "1": 194,
+      "2": 7,
+      "3": 9
+    },
+    "answerDistributionAfter": {
+      "0": 69,
+      "1": 69,
+      "2": 68,
+      "3": 69
+    },
+    "perSurahBalance": {
+      "17": {
+        "locked": 20,
+        "pinnedLast": 0,
+        "maxRun": 2,
+        "distribution": {
+          "0": 25,
+          "1": 25,
+          "2": 25,
+          "3": 25
+        }
+      },
+      "24": {
+        "locked": 14,
+        "pinnedLast": 0,
+        "maxRun": 2,
+        "distribution": {
+          "0": 19,
+          "1": 19,
+          "2": 18,
+          "3": 19
+        }
+      },
+      "31": {
+        "locked": 8,
+        "pinnedLast": 0,
+        "maxRun": 2,
+        "distribution": {
+          "0": 13,
+          "1": 12,
+          "2": 13,
+          "3": 12
+        }
+      },
+      "49": {
+        "locked": 11,
+        "pinnedLast": 0,
+        "maxRun": 2,
+        "distribution": {
+          "0": 12,
+          "1": 13,
+          "2": 12,
+          "3": 13
+        }
+      }
+    },
+    "autoFixes": {
+      "boldNegativeStems": 2,
+      "lockOrderEnabled": 0
+    },
+    "errorCount": 0,
+    "warningCount": 0,
+    "errors": [],
+    "warnings": []
+  }
+}
