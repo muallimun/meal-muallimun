@@ -125,6 +125,7 @@ export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
   repeatCount: 1,
   queueLoop: 1,
   autoScroll: true,
+  showTextOnStart: true,
 };
 
 function createDefaultAudioPlaylists(): AudioPlaylist[] {
@@ -220,7 +221,11 @@ function createDefaultAudioPlaylists(): AudioPlaylist[] {
   ];
 }
 
-function isValidLoopCount(val: unknown): val is RepeatCountOption {
+function isValidRepeatCount(val: unknown): val is RepeatCountOption {
+  return val === 1 || val === 2 || val === 3 || val === 5 || val === 10;
+}
+
+function isValidQueueLoop(val: unknown): val is QueueLoopOption {
   return val === 1 || val === 2 || val === 3 || val === 5 || val === 10 || val === 'infinite';
 }
 
@@ -613,16 +618,20 @@ function hydrateState(): PersistedAppState {
         rawAudio?.playbackRate === 1.5
           ? rawAudio.playbackRate
           : DEFAULT_AUDIO_PREFS.playbackRate,
-      repeatCount: isValidLoopCount(rawAudio?.repeatCount)
+      repeatCount: isValidRepeatCount(rawAudio?.repeatCount)
         ? rawAudio.repeatCount
         : DEFAULT_AUDIO_PREFS.repeatCount,
-      queueLoop: isValidLoopCount(rawAudio?.queueLoop)
-        ? (rawAudio.queueLoop as QueueLoopOption)
+      queueLoop: isValidQueueLoop(rawAudio?.queueLoop)
+        ? rawAudio.queueLoop
         : DEFAULT_AUDIO_PREFS.queueLoop,
       autoScroll:
         typeof rawAudio?.autoScroll === 'boolean'
           ? rawAudio.autoScroll
           : DEFAULT_AUDIO_PREFS.autoScroll,
+      showTextOnStart:
+        typeof rawAudio?.showTextOnStart === 'boolean'
+          ? rawAudio.showTextOnStart
+          : DEFAULT_AUDIO_PREFS.showTextOnStart,
     };
 
     const validPlaylistItemTypes: PlaylistItemType[] = [

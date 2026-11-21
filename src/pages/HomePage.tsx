@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { PwaInstallControl } from '../components/PwaInstallControl';
 import { audioQueueService } from '../services/audioQueueService';
-import { dataService } from '../services/dataService';
+import { dataService, resolvePlaylistItemStartLocation } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { SurahMeta } from '../types/quran';
@@ -710,6 +710,11 @@ export const HomePage: React.FC = () => {
                     onClick={() => {
                       if (!playlist.items.length) return;
                       sfxService.play('click');
+                      if (audioPrefs.showTextOnStart) {
+                        navigateToStudy(
+                          resolvePlaylistItemStartLocation(playlist.items[0], meta),
+                        );
+                      }
                       void audioQueueService.startSegmentQueue({
                         items: playlist.items,
                         title: playlist.name,

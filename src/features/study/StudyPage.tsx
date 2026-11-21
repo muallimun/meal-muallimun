@@ -155,6 +155,7 @@ export const StudyPage: React.FC = () => {
   const [viewError, setViewError] = useState<string | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
   const lastSyncedAudioAyahRef = useRef<number | null>(null);
+  const lastScrolledAudioAyahRef = useRef<number | null>(null);
 
   // Yeni Sade Arayüz Popover & Çekmece Durumları
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
@@ -331,11 +332,16 @@ export const StudyPage: React.FC = () => {
 
   // Aktif çalan ayete otomatik senkronizasyon ve yumuşak kaydırma
   useEffect(() => {
-    if (!audioState.currentAyahId || audioState.status === 'idle') return;
+    if (!audioState.currentAyahId || audioState.status === 'idle') {
+      lastSyncedAudioAyahRef.current = null;
+      lastScrolledAudioAyahRef.current = null;
+      return;
+    }
 
     const isActivelyPlaying =
       audioState.status === 'playing' || audioState.status === 'loading';
     const isNewAudioAyah = audioState.currentAyahId !== lastSyncedAudioAyahRef.current;
+    const needsScroll = audioState.currentAyahId !== lastScrolledAudioAyahRef.current;
 
     if (viewMode === 'mushaf') {
       const combined = pageBundle
@@ -345,6 +351,7 @@ export const StudyPage: React.FC = () => {
         : [];
       const onThisPage = combined.find((v) => v.id === audioState.currentAyahId);
       if (onThisPage) {
+        if (!isActivelyPlaying && !isNewAudioAyah) return;
         lastSyncedAudioAyahRef.current = onThisPage.id;
         setSelectedAyahId(onThisPage.id);
         setCurrentSurahNo(onThisPage.surah);
@@ -354,25 +361,31 @@ export const StudyPage: React.FC = () => {
           page: onThisPage.page,
           viewMode: 'mushaf',
         });
-        if (audioPrefs.autoScroll) {
+        if (audioPrefs.autoScroll && needsScroll) {
+          lastScrolledAudioAyahRef.current = onThisPage.id;
           const isDesktopDualSpread =
             (studyPrefs.pageLayout === 'double_meal' ||
               studyPrefs.pageLayout === 'double_mushaf') &&
             typeof window !== 'undefined' &&
             window.innerWidth >= 1024;
           if (!isDesktopDualSpread) {
-            if (studyPrefs.pageLayout === 'meal_only') {
-              const mealEl = document.querySelector<HTMLElement>(
-                `[data-meal-ayahs~="${onThisPage.id}"]`,
-              );
-              mealEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            } else {
-              const el = document.getElementById(`mushaf-ayah-${onThisPage.id}`);
-              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            const targetId = onThisPage.id;
+            const layout = studyPrefs.pageLayout;
+            window.requestAnimationFrame(() => {
+              if (layout === 'meal_only') {
+                const mealEl = document.querySelector<HTMLElement>(
+                  `[data-meal-ayahs~="${targetId}"]`,
+                );
+                mealEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              } else {
+                const el = document.getElementById(`mushaf-ayah-${targetId}`);
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            });
           }
         }
       } else if (
+        audioPrefs.autoScroll &&
         isActivelyPlaying &&
         isNewAudioAyah &&
         audioState.currentPage &&
@@ -380,6 +393,7 @@ export const StudyPage: React.FC = () => {
         audioState.currentPage !== secondPageBundle?.pageNo
       ) {
         lastSyncedAudioAyahRef.current = audioState.currentAyahId;
+        lastScrolledAudioAyahRef.current = null;
         setCurrentPageNo(audioState.currentPage);
         if (audioState.currentSurah) {
           setCurrentSurahNo(audioState.currentSurah);
@@ -389,6 +403,7 @@ export const StudyPage: React.FC = () => {
     } else if (viewMode === 'cards' || viewMode === 'book') {
       const inThisSurah = surahBundle?.verses.find((v) => v.id === audioState.currentAyahId);
       if (inThisSurah) {
+        if (!isActivelyPlaying && !isNewAudioAyah) return;
         lastSyncedAudioAyahRef.current = inThisSurah.id;
         setSelectedAyahId(inThisSurah.id);
         setLastRead({
@@ -397,19 +412,24 @@ export const StudyPage: React.FC = () => {
           page: inThisSurah.page,
           viewMode,
         });
-        if (audioPrefs.autoScroll) {
+        if (audioPrefs.autoScroll && needsScroll) {
+          lastScrolledAudioAyahRef.current = inThisSurah.id;
           const elId =
             viewMode === 'book' ? `book-ayah-${inThisSurah.id}` : `verse-card-${inThisSurah.id}`;
-          const el = document.getElementById(elId);
-          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          window.requestAnimationFrame(() => {
+            const el = document.getElementById(elId);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
         }
       } else if (
+        audioPrefs.autoScroll &&
         isActivelyPlaying &&
         isNewAudioAyah &&
         audioState.currentSurah &&
         audioState.currentSurah !== currentSurahNo
       ) {
         lastSyncedAudioAyahRef.current = audioState.currentAyahId;
+        lastScrolledAudioAyahRef.current = null;
         setCurrentSurahNo(audioState.currentSurah);
         if (audioState.currentPage) {
           setCurrentPageNo(audioState.currentPage);

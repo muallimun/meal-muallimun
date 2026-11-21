@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   AlertCircle,
+  BookOpen,
   ChevronDown,
   ChevronUp,
   Headphones,
@@ -31,7 +32,7 @@ import type {
 } from '../types/quran';
 
 const PLAYBACK_RATES: readonly PlaybackRateOption[] = [0.75, 1, 1.25, 1.5];
-const REPEAT_COUNTS: readonly RepeatCountOption[] = [1, 2, 3, 5, 10, 'infinite'];
+const REPEAT_COUNTS: readonly RepeatCountOption[] = [1, 2, 3, 5, 10];
 const QUEUE_LOOPS: readonly QueueLoopOption[] = [1, 2, 3, 5, 10, 'infinite'];
 
 function formatLoopShort(val: RepeatCountOption | QueueLoopOption): string {
@@ -57,6 +58,8 @@ export const AudioPlayerBar: React.FC = () => {
     isSidebarCollapsed,
     activeTab,
     setActiveTab,
+    studyProgress,
+    navigateToStudy,
     openPresentationMode,
     openReciterSelector,
     openMealSelector,
@@ -200,15 +203,32 @@ export const AudioPlayerBar: React.FC = () => {
     });
   };
 
+  const handleJumpToPlayingText = () => {
+    if (!audioState.currentSurah || !audioState.currentAyah) return;
+    sfxService.play('click');
+    setIsExpanded(false);
+    navigateToStudy({
+      surah: audioState.currentSurah,
+      ayah: audioState.currentAyah,
+      page: audioState.currentPage ?? undefined,
+    });
+  };
+
+  const isAwayFromPlayingText =
+    Boolean(audioState.currentSurah && audioState.currentAyah) &&
+    (activeTab !== 'reader' ||
+      (studyProgress.lastRead !== null &&
+        (studyProgress.lastRead.surah !== audioState.currentSurah ||
+          (audioState.currentPage !== null &&
+            studyProgress.lastRead.page !== audioState.currentPage))));
+
   const activeLoopBadge =
     audioState.totalQueueRounds !== 1
       ? audioState.totalQueueRounds === 'infinite'
         ? '∞'
         : `${audioState.currentQueueRound}/${audioState.totalQueueRounds}`
       : audioState.totalRepeats !== 1
-        ? audioState.totalRepeats === 'infinite'
-          ? '∞'
-          : `${audioState.currentRepeat}/${audioState.totalRepeats}`
+        ? `${audioState.currentRepeat}/${audioState.totalRepeats}`
         : null;
 
   return (
@@ -400,7 +420,7 @@ export const AudioPlayerBar: React.FC = () => {
                 <button
                   type="button"
                   onClick={cycleRepeat}
-                  title="Ayet tekrarı (1x · 2x · 3x · 5x · 10x · ∞)"
+                  title="Ayet tekrarı (1x · 2x · 3x · 5x · 10x)"
                   className="min-h-[34px] px-2.5 rounded-xl border font-bold tabular-nums flex items-center gap-1 cursor-pointer whitespace-nowrap"
                   style={{
                     backgroundColor:
@@ -476,6 +496,58 @@ export const AudioPlayerBar: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Satır 3: Okunan Metni Ekranda Göster + Metne Git */}
+            <div
+              className="flex items-center justify-between gap-2 pt-2 border-t"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <button
+                type="button"
+                role="switch"
+                aria-checked={audioPrefs.showTextOnStart}
+                onClick={() => {
+                  sfxService.play('click');
+                  updateAudioPrefs({ showTextOnStart: !audioPrefs.showTextOnStart });
+                }}
+                className="flex items-center gap-2 text-left min-w-0 cursor-pointer"
+                title="Dinleme başlatınca Okuma ekranını otomatik aç"
+              >
+                <span
+                  className="w-8 h-4.5 rounded-full p-0.5 transition-colors shrink-0 flex items-center"
+                  style={{
+                    backgroundColor: audioPrefs.showTextOnStart
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-strong)',
+                  }}
+                >
+                  <span
+                    className={`w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                      audioPrefs.showTextOnStart ? 'translate-x-3.5' : 'translate-x-0'
+                    }`}
+                  />
+                </span>
+                <span className="text-[11px] font-bold truncate" style={{ color: 'var(--text-secondary)' }}>
+                  Okunan metni ekranda göster
+                </span>
+              </button>
+
+              {audioState.currentSurah && audioState.currentAyah && (
+                <button
+                  type="button"
+                  onClick={handleJumpToPlayingText}
+                  className="min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                  <span>Metne Git</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -549,14 +621,32 @@ export const AudioPlayerBar: React.FC = () => {
             </div>
           </button>
 
-          {/* Sağ: ⏮ ▶/⏸ ⏭ ▴ ✕ */}
+          {/* Sağ: (📖 Metne Git) ⏮ ▶/⏸ ⏭ ▴ ✕ */}
           <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+            {isAwayFromPlayingText && (
+              <button
+                type="button"
+                onClick={handleJumpToPlayingText}
+                aria-label="Okunan metne git"
+                title={`Okuma ekranında aç (${audioState.currentSurahName} ${audioState.currentAyah})`}
+                className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl border flex items-center justify-center gap-1 text-[11px] font-extrabold transition-colors cursor-pointer whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  borderColor: 'var(--brand-primary)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Metne Git</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => audioQueueService.prevVerse()}
               disabled={!audioState.canGoPrev}
               aria-label="Önceki ayet"
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
+              className="w-8 sm:w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
               style={{ color: 'var(--text-primary)' }}
             >
               <SkipBack className="w-4 h-4" />

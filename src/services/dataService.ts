@@ -16,6 +16,7 @@ import {
 } from '../data/demoFallback';
 import type {
   ArabicSurahFile,
+  AudioPlaylistItem,
   CombinedVerse,
   ExtraMealsSurahFile,
   ManifestData,
@@ -534,6 +535,47 @@ export function findFirstLocationForJuz(
 }
 
 /**
+ * Bir dinleme/çalma listesi bölümünün başlangıç konumunu (sure, ayet, sayfa) eşzamanlı çözümler.
+ */
+export function resolvePlaylistItemStartLocation(
+  item: Omit<AudioPlaylistItem, 'id'>,
+  meta: MetaData | null,
+): { surah?: number; ayah?: number; page?: number } {
+  if (!meta) {
+    return {
+      surah: item.surah,
+      ayah: item.startAyah ?? (item.surah ? 1 : undefined),
+      page: item.startPage,
+    };
+  }
+
+  if (item.type === 'juz') {
+    return findFirstLocationForJuz(meta, item.juz ?? 1);
+  }
+
+  if (item.type === 'page_range') {
+    const { minPage, maxPage } = getPageBounds(meta);
+    const targetPage = Math.max(minPage, Math.min(maxPage, item.startPage ?? minPage));
+    const firstRow = meta.verseIndex.find((row) => row[4] === targetPage);
+    if (firstRow) {
+      return { surah: firstRow[1], ayah: firstRow[2], page: firstRow[4] };
+    }
+    return { page: targetPage };
+  }
+
+  if (item.type === 'ayah_range') {
+    const surahNo = item.surah ?? 1;
+    const ayahNo = Math.max(1, item.startAyah ?? 1);
+    const pageNo = findPageForSurahAyah(meta, surahNo, ayahNo);
+    return { surah: surahNo, ayah: ayahNo, page: pageNo };
+  }
+
+  const surahNo = item.surah ?? 1;
+  const pageNo = findPageForSurahAyah(meta, surahNo, 1);
+  return { surah: surahNo, ayah: 1, page: pageNo };
+}
+
+/**
  * Bir surenin Arapça, TDV (m1), DİB (m2) ve kelime-kelime (w) verilerini tekilleştirip birleştirir.
  */
 export async function getSurahBundle(surahNo: number): Promise<SurahBundle> {
@@ -665,6 +707,7 @@ export const dataService = {
   getPageBounds,
   findPageForSurahAyah,
   findFirstLocationForJuz,
+  resolvePlaylistItemStartLocation,
   enableDemoMode,
   disableDemoMode,
   isDemoMode,

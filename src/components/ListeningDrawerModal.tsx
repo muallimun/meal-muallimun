@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { findReciterById } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
-import { getPageBounds } from '../services/dataService';
+import { getPageBounds, resolvePlaylistItemStartLocation } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type {
@@ -32,6 +32,14 @@ import { normalizeTurkish } from '../utils/poolUtils';
 
 type DrawerTab = 'quick' | 'playlists';
 type QuickScope = 'surah' | 'page' | 'juz' | 'ayah';
+
+const REPEAT_OPTIONS: { value: RepeatCountOption; label: string }[] = [
+  { value: 1, label: '1x' },
+  { value: 2, label: '2x' },
+  { value: 3, label: '3x' },
+  { value: 5, label: '5x' },
+  { value: 10, label: '10x' },
+];
 
 const LOOP_OPTIONS: { value: QueueLoopOption; label: string }[] = [
   { value: 1, label: '1x' },
@@ -68,6 +76,7 @@ export const ListeningDrawerModal: React.FC = () => {
     removeItemFromPlaylist,
     movePlaylistItem,
     studyProgress,
+    navigateToStudy,
     openReciterSelector,
     manifest,
     meta,
@@ -230,6 +239,9 @@ export const ListeningDrawerModal: React.FC = () => {
   const handlePlayQuick = () => {
     sfxService.play('click');
     const item = buildCurrentQuickItem();
+    if (audioPrefs.showTextOnStart) {
+      navigateToStudy(resolvePlaylistItemStartLocation(item, meta));
+    }
     void audioQueueService.startSegmentQueue({
       items: [{ ...item, id: `quick_${Date.now()}` }],
       title: item.label,
@@ -254,6 +266,9 @@ export const ListeningDrawerModal: React.FC = () => {
   const handlePlayPlaylist = (pl: AudioPlaylist) => {
     if (pl.items.length === 0) return;
     sfxService.play('click');
+    if (audioPrefs.showTextOnStart) {
+      navigateToStudy(resolvePlaylistItemStartLocation(pl.items[0], meta));
+    }
     void audioQueueService.startSegmentQueue({
       items: pl.items,
       title: pl.name,
@@ -1108,16 +1123,16 @@ export const ListeningDrawerModal: React.FC = () => {
                     />
                     <span>Ayet Tekrarı (Her ayeti kaç kez okusun?)</span>
                   </span>
-                  <div className="grid grid-cols-6 gap-1">
-                    {LOOP_OPTIONS.map((opt) => {
-                      const active = audioPrefs.repeatCount === (opt.value as RepeatCountOption);
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {REPEAT_OPTIONS.map((opt) => {
+                      const active = audioPrefs.repeatCount === opt.value;
                       return (
                         <button
-                          key={String(opt.value)}
+                          key={opt.value}
                           type="button"
                           onClick={() => {
                             sfxService.play('click');
-                            updateAudioPrefs({ repeatCount: opt.value as RepeatCountOption });
+                            updateAudioPrefs({ repeatCount: opt.value });
                           }}
                           className="h-8 rounded-lg border text-xs font-extrabold tabular-nums cursor-pointer"
                           style={{
@@ -1562,6 +1577,64 @@ export const ListeningDrawerModal: React.FC = () => {
               )}
             </div>
           )}
+        </div>
+
+        {/* Ortak Kompakt Seçenek: Okunan metni ekranda göster */}
+        <div
+          className="px-4 py-2.5 sm:px-5 border-t flex items-center justify-between gap-3 shrink-0"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <button
+            type="button"
+            role="switch"
+            aria-checked={audioPrefs.showTextOnStart}
+            onClick={() => {
+              sfxService.play('click');
+              updateAudioPrefs({ showTextOnStart: !audioPrefs.showTextOnStart });
+            }}
+            className="w-full flex items-center justify-between gap-3 text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <BookOpen
+                className="w-4 h-4 shrink-0"
+                style={{
+                  color: audioPrefs.showTextOnStart
+                    ? 'var(--brand-primary-text)'
+                    : 'var(--text-muted)',
+                }}
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-extrabold leading-tight truncate">
+                  Okunan metni ekranda göster
+                </p>
+                <p
+                  className="text-[10px] sm:text-[11px] leading-tight truncate mt-0.5"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {audioPrefs.showTextOnStart
+                    ? 'Başlatınca Okuma ekranını açar ve çalan ayeti canlı takip eder'
+                    : 'Mevcut sayfada kalır, ses alt çubuktan arka planda çalar'}
+                </p>
+              </div>
+            </div>
+            <span
+              className="w-10 h-6 rounded-full p-0.5 transition-colors shrink-0 flex items-center"
+              style={{
+                backgroundColor: audioPrefs.showTextOnStart
+                  ? 'var(--brand-primary)'
+                  : 'var(--border-strong)',
+              }}
+            >
+              <span
+                className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                  audioPrefs.showTextOnStart ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </span>
+          </button>
         </div>
 
         {/* Alt Sabit Aksiyon Çubuğu (Hızlı Dinle Sekmesi İçin) */}

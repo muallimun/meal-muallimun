@@ -171,7 +171,6 @@ class AudioQueueService {
   private currentVerseIndex = 0;
   private steps: PlaybackStep[] = [];
   private currentStepIndex = 0;
-  private infiniteRepeatCounter = 1;
 
   // Segment tabanlı tembel kuyruk (Çalma listesi, Cüz, Sayfa aralığı, Ayet aralığı)
   private atomicSegments: AtomicSegment[] = [];
@@ -194,6 +193,7 @@ class AudioQueueService {
     repeatCount: 1,
     queueLoop: 1,
     autoScroll: true,
+    showTextOnStart: true,
   };
   private singleAyahOnly = false;
   private activeModeOverride: AudioPlayMode | undefined;
@@ -509,8 +509,7 @@ class AudioQueueService {
     const mode = this.getEffectiveMode();
     const arabicSource = this.resolveArabicSource();
     const mealSource = this.resolveMealSource();
-    const effectiveRepeat = this.getEffectiveRepeatCount();
-    const numericRepeatCount = effectiveRepeat === 'infinite' ? 1 : effectiveRepeat;
+    const numericRepeatCount = this.getEffectiveRepeatCount();
     const steps: PlaybackStep[] = [];
 
     if (mode === 'meal' && !mealSource) {
@@ -564,8 +563,6 @@ class AudioQueueService {
     const combinedMealUrls = dedupeUrls([...primaryMealUrls, ...mergedStartMealUrls]);
 
     for (let rep = 1; rep <= numericRepeatCount; rep += 1) {
-      const displayRep = effectiveRepeat === 'infinite' ? repeatStartNumber : rep;
-
       if ((mode === 'ar' || mode === 'ar_then_meal') && arabicSource && arUrls.length > 0) {
         steps.push({
           phase: 'ar',
@@ -573,7 +570,7 @@ class AudioQueueService {
           reciterLabel: arabicSource.shortLabel,
           urls: arUrls,
           verseIndex,
-          repeatIndex: displayRep,
+          repeatIndex: rep,
         });
       }
 
@@ -589,7 +586,7 @@ class AudioQueueService {
           reciterLabel: mealSource.label,
           urls: combinedMealUrls,
           verseIndex,
-          repeatIndex: displayRep,
+          repeatIndex: rep,
         });
       }
     }
@@ -640,9 +637,6 @@ class AudioQueueService {
     let nextUrl: string | null = null;
     if (this.currentStepIndex + 1 < this.steps.length) {
       nextUrl = this.steps[this.currentStepIndex + 1].urls[0] ?? null;
-    } else if (this.getEffectiveRepeatCount() === 'infinite') {
-      const sameSteps = this.buildStepsForVerse(this.currentVerseIndex, false, this.infiniteRepeatCounter + 1);
-      nextUrl = sameSteps[0]?.urls[0] ?? null;
     } else if (!this.singleAyahOnly && this.currentVerseIndex + 1 < this.verses.length) {
       const upcomingSteps = this.buildStepsForVerse(this.currentVerseIndex + 1, true);
       nextUrl = upcomingSteps[0]?.urls[0] ?? null;
@@ -892,22 +886,6 @@ class AudioQueueService {
       return;
     }
 
-    // Sonsuz ayet tekrarı aktifse kullanıcı müdahale edene kadar aynı ayeti döndür
-    if (this.getEffectiveRepeatCount() === 'infinite') {
-      this.infiniteRepeatCounter += 1;
-      const loopedSteps = this.buildStepsForVerse(
-        this.currentVerseIndex,
-        false,
-        this.infiniteRepeatCounter,
-      );
-      if (loopedSteps.length > 0) {
-        this.steps = loopedSteps;
-        this.currentStepIndex = 0;
-        this.playCurrentStep(0);
-        return;
-      }
-    }
-
     void this.advanceToNextVerse();
   }
 
@@ -927,7 +905,6 @@ class AudioQueueService {
 
       this.currentAtomicIdx = segIdx;
       this.verses = verses;
-      this.infiniteRepeatCounter = 1;
 
       if (startFromLastVerse) {
         for (let i = verses.length - 1; i >= 0; i -= 1) {
@@ -967,7 +944,6 @@ class AudioQueueService {
     if (this.singleAyahOnly && !forceSkipInfiniteAyah) {
       if (canLoopAgain && this.verses.length > 0) {
         this.currentQueueRound += 1;
-        this.infiniteRepeatCounter = 1;
         const restartSteps = this.buildStepsForVerse(this.currentVerseIndex, false);
         if (restartSteps.length > 0) {
           this.steps = restartSteps;
@@ -985,7 +961,6 @@ class AudioQueueService {
     // 2. Mevcut verse listesinde sıradaki ayete geç
     let nextIdx = this.currentVerseIndex + 1;
     while (nextIdx < this.verses.length) {
-      this.infiniteRepeatCounter = 1;
       const nextSteps = this.buildStepsForVerse(nextIdx, true);
       if (nextSteps.length > 0) {
         this.currentVerseIndex = nextIdx;
@@ -1024,7 +999,6 @@ class AudioQueueService {
     // 4. Normal Okuma Kuyruğunda Bölüm Döngüsü aktifse (2x..10x, ∞) mevcut sayfa/sureyi baştan döndür
     if (canLoopAgain && this.verses.length > 0) {
       this.currentQueueRound += 1;
-      this.infiniteRepeatCounter = 1;
       for (let i = 0; i < this.verses.length; i += 1) {
         const restartSteps = this.buildStepsForVerse(i, true);
         if (restartSteps.length > 0) {
@@ -1067,7 +1041,6 @@ class AudioQueueService {
             this.contextKey = nextPageData.contextKey;
             this.queueBaseTitle = `Sayfa ${nextPageNo}`;
             this.currentVerseIndex = 0;
-            this.infiniteRepeatCounter = 1;
 
             for (let i = 0; i < this.verses.length; i += 1) {
               const nextSteps = this.buildStepsForVerse(i, true);
@@ -1100,7 +1073,6 @@ class AudioQueueService {
             this.contextKey = `surah:${nextSurahNo}`;
             this.queueBaseTitle = nextBundle.surahMeta.nameTr;
             this.currentVerseIndex = 0;
-            this.infiniteRepeatCounter = 1;
 
             for (let i = 0; i < this.verses.length; i += 1) {
               const nextSteps = this.buildStepsForVerse(i, true);
@@ -1172,7 +1144,6 @@ class AudioQueueService {
     this.currentAtomicIdx = 0;
     this.totalParentSegments = 1;
     this.currentQueueRound = 1;
-    this.infiniteRepeatCounter = 1;
     this.queueLoopOverride = options.queueLoopOverride;
     this.repeatCountOverride = options.repeatCountOverride;
 
@@ -1267,7 +1238,6 @@ class AudioQueueService {
     this.contextKey = options.contextKey ?? `playlist:${Date.now()}`;
     this.queueBaseTitle = options.title;
     this.currentQueueRound = 1;
-    this.infiniteRepeatCounter = 1;
     this.activeInfoNotice = null;
 
     const expanded = this.expandPlaylistItemsToAtomic(options.items, options.meta);
@@ -1423,7 +1393,6 @@ class AudioQueueService {
     this.stopPreview();
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
-    this.infiniteRepeatCounter = 1;
     void this.advanceToNextVerse(true);
   }
 
@@ -1434,7 +1403,6 @@ class AudioQueueService {
     this.playSessionId += 1;
     const session = this.playSessionId;
     this.consecutiveFailures = 0;
-    this.infiniteRepeatCounter = 1;
 
     for (let idx = this.currentVerseIndex - 1; idx >= 0; idx -= 1) {
       const prevSteps = this.buildStepsForVerse(idx, true);
@@ -1643,7 +1611,6 @@ class AudioQueueService {
         return;
       }
 
-      this.infiniteRepeatCounter = 1;
       const includeBesmele = this.snapshot.activePhase === 'besmele';
       this.steps = this.buildStepsForVerse(this.currentVerseIndex, includeBesmele);
       this.currentStepIndex = 0;
@@ -1689,7 +1656,6 @@ class AudioQueueService {
     this.totalParentSegments = 1;
     this.queueBaseTitle = '';
     this.currentQueueRound = 1;
-    this.infiniteRepeatCounter = 1;
     this.queueLoopOverride = undefined;
     this.repeatCountOverride = undefined;
     this.currentVerseIndex = 0;

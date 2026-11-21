@@ -17,7 +17,7 @@ export type WordMealMode = 'off' | 'visible' | 'quiz';
 export type AudioPlayMode = 'ar' | 'meal' | 'ar_then_meal';
 export type MealAudioSourceId = 'tdv' | 'dib' | (string & {});
 export type PlaybackRateOption = 0.75 | 1 | 1.25 | 1.5;
-export type RepeatCountOption = 1 | 2 | 3 | 5 | 10 | 'infinite';
+export type RepeatCountOption = 1 | 2 | 3 | 5 | 10;
 export type QueueLoopOption = 1 | 2 | 3 | 5 | 10 | 'infinite';
 
 export type PlaylistItemType = 'surah' | 'page_range' | 'juz' | 'ayah_range';
@@ -464,6 +464,7 @@ export interface AudioPrefs {
   repeatCount: RepeatCountOption;
   queueLoop: QueueLoopOption;
   autoScroll: boolean;
+  showTextOnStart: boolean;
 }
 
 export type ExamMode = 'practice' | 'arena' | 'mock';
