@@ -782,7 +782,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               © {currentYear} Muallimun.Net — Kur&apos;an &amp; Meal Eğitim Platformu
             </p>
             <p style={{ color: 'var(--text-muted)' }}>
-              {MEALS_CATALOG.length} Meal &amp; Tefsir · {RECITERS_CATALOG.length} Kurrâ · Ezber &amp; Sınav Merkezi
+              {MEALS_CATALOG.length} Meal &amp; Tefsir · {RECITERS_CATALOG.length} Kurrâ · Fihrist, Ezber &amp; Sınav
             </p>
           </div>
         </footer>

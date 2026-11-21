@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  AudioLines,
   BookOpen,
   ChevronRight,
   Headphones,
@@ -12,6 +13,7 @@ import {
   SkipBack,
   SkipForward,
   SlidersHorizontal,
+  Sparkles,
   Volume2,
   X,
 } from 'lucide-react';
@@ -22,9 +24,11 @@ import {
 } from '../config/mealsConfig';
 import { findReciterById } from '../config/recitersConfig';
 import { useActiveMeals } from '../hooks/useActiveMeals';
+import { useTajweedData } from '../hooks/useTajweedData';
 import { audioQueueService } from '../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
+import { wordAudioService } from '../services/wordAudioService';
 import { useAppStore } from '../store/useAppStore';
 import type {
   AudioPlayMode,
@@ -32,8 +36,13 @@ import type {
   CombinedVerse,
   PlaybackRateOption,
   SurahMeta,
+  ThemeMode,
 } from '../types/quran';
 import { formatSafeArabicTitle, formatSurahTitle } from '../utils/arabicUtils';
+import { splitTrailingWaqf, WaqfMarkSpan } from '../utils/waqfTextUtils';
+import { mapQulWordIndexToDisplay, tokenizeArabicWithWaqf } from '../utils/wordSyncUtils';
+import { useActiveWordSync } from '../features/study/SyncedArabicText';
+import { TajweedText } from '../features/study/TajweedText';
 
 type PresentationContentMode = 'both' | 'ar' | 'meal';
 type PresentationTheme = 'dark' | 'emerald' | 'cream';
@@ -123,6 +132,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 }) => {
   const {
     settings,
+    updateSettings,
     audioPrefs,
     updateAudioPrefs,
     manifest,
@@ -135,6 +145,12 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
   );
+  const wordSync = useActiveWordSync(
+    isOpen &&
+      settings.wordSyncEnabled &&
+      audioState.isWordSyncActive &&
+      (audioState.status === 'playing' || audioState.status === 'loading'),
+  );
 
   const visibleSurahNos = useMemo(
     () => (isOpen ? Array.from(new Set(verses.map((v) => v.surah))) : []),
@@ -142,6 +158,11 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   );
   const { primaryMeal, secondaryMeal, isDual, getPrimaryVerse, getSecondaryVerse } =
     useActiveMeals(visibleSurahNos);
+  const {
+    rules: tjRules,
+    besmele: tjBesmele,
+    getVerseWords: getTjVerseWords,
+  } = useTajweedData(visibleSurahNos, isOpen && settings.tajweedEnabled);
 
   const activeReciter = useMemo(
     () => findReciterById(audioPrefs.arabicReciterId, manifest),
@@ -302,6 +323,28 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       settings.highlightSajdah,
   );
 
+  const besmelePlainTokens = useMemo(
+    () => tokenizeArabicWithWaqf(besmele.ar),
+    [besmele.ar],
+  );
+  const versePlainTokens = useMemo(
+    () => tokenizeArabicWithWaqf(arabicText),
+    [arabicText],
+  );
+  const displayedTjWords =
+    settings.tajweedEnabled && displayedVerse
+      ? getTjVerseWords(displayedVerse.surah, displayedVerse.ayah)
+      : null;
+  const useBesmeleTajweed = Boolean(
+    settings.tajweedEnabled && tjBesmele && tjBesmele.length > 0 && Object.keys(tjRules).length > 0,
+  );
+  const useVerseTajweed = Boolean(
+    settings.tajweedEnabled &&
+      displayedTjWords &&
+      displayedTjWords.length > 0 &&
+      Object.keys(tjRules).length > 0,
+  );
+
   // Deterministik Tek Geçişli Otomatik Punto Hesabı (DOM ölçüm/reflow olmadan)
   const fontMetrics = useMemo(() => {
     const arLen = arabicText.length;
@@ -402,8 +445,37 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     displayedVerse !== null &&
     audioState.currentAyahId === displayedVerse.id;
   const isBesmelePhase = audioState.activePhase === 'besmele';
+  const isWordSyncActive = settings.wordSyncEnabled && audioState.isWordSyncActive;
   const isBesmeleHighlighted = isAudioActiveOnVerse && isBesmelePhase;
   const isArabicHighlighted = isAudioActiveOnVerse && audioState.activePhase === 'ar';
+  const suppressBesmeleFill = isBesmeleHighlighted && isWordSyncActive;
+  const suppressArabicFill = isArabicHighlighted && isWordSyncActive;
+  const presTajweedTheme: ThemeMode = presTheme === 'cream' ? 'cream' : 'dark';
+  const karaokeThemeClass =
+    presTheme === 'cream' ? 'presentation-karaoke-light' : 'presentation-karaoke-dark';
+  const softArabicPlayingBg =
+    presTheme === 'cream' ? 'rgba(13, 148, 136, 0.10)' : palette.accentSoft;
+
+  const rawBesmeleWordIdx =
+    isBesmeleHighlighted &&
+    isWordSyncActive &&
+    displayedVerse &&
+    wordSync.activeWordIndex !== null &&
+    wordSync.phase === 'besmele' &&
+    wordSync.surah === displayedVerse.surah
+      ? wordSync.activeWordIndex
+      : null;
+
+  const rawVerseWordIdx =
+    isArabicHighlighted &&
+    isWordSyncActive &&
+    displayedVerse &&
+    wordSync.activeWordIndex !== null &&
+    wordSync.phase === 'ar' &&
+    wordSync.surah === displayedVerse.surah &&
+    wordSync.ayah === displayedVerse.ayah
+      ? wordSync.activeWordIndex
+      : null;
   const isMealAudioFlowActive =
     isAudioActiveOnVerse &&
     (audioState.activePhase === 'meal' ||
@@ -534,8 +606,52 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           </div>
         </div>
 
-        {/* Sağ: ⚙ Görünüm & Ses Popover + Tam Ekran + Çıkış */}
+        {/* Sağ: Renkli Tecvit + Kelime Takibi + ⚙ Görünüm & Ses Popover + Tam Ekran + Çıkış */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Hızlı Kontrol 1: Renkli Tecvit */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings.tajweedEnabled}
+            aria-label="Renkli Tecvit"
+            title={settings.tajweedEnabled ? 'Renkli Tecvit: Açık' : 'Renkli Tecvit: Kapalı'}
+            onClick={() => {
+              sfxService.play('click');
+              updateSettings({ tajweedEnabled: !settings.tajweedEnabled });
+            }}
+            className="min-w-[36px] min-h-[36px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            style={{
+              borderColor: settings.tajweedEnabled ? palette.accent : palette.border,
+              backgroundColor: settings.tajweedEnabled ? palette.accentSoft : 'transparent',
+              color: settings.tajweedEnabled ? palette.accent : palette.muted,
+            }}
+          >
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden lg:inline whitespace-nowrap">Tecvit</span>
+          </button>
+
+          {/* Hızlı Kontrol 2: Kelime Takibi (Karaoke) */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings.wordSyncEnabled}
+            aria-label="Kelime Takibi"
+            title={settings.wordSyncEnabled ? 'Kelime Takibi: Açık' : 'Kelime Takibi: Kapalı'}
+            onClick={() => {
+              sfxService.play('click');
+              updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
+            }}
+            className="min-w-[36px] min-h-[36px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            style={{
+              borderColor: settings.wordSyncEnabled ? palette.accent : palette.border,
+              backgroundColor: settings.wordSyncEnabled ? palette.accentSoft : 'transparent',
+              color: settings.wordSyncEnabled ? palette.accent : palette.muted,
+            }}
+          >
+            <AudioLines className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden lg:inline whitespace-nowrap">Kelime Takibi</span>
+          </button>
+
           <div ref={settingsPopoverRef} className="relative">
             <button
               type="button"
@@ -845,25 +961,97 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             {/* Sure Başı Besmelesi (1. Ayette — Fâtiha ve Tevbe hariç) */}
             {showBesmele && (contentMode === 'both' || contentMode === 'ar') && (
               <div
-                className="w-full max-w-3xl mx-auto rounded-2xl px-5 py-2.5 sm:py-3 border transition-all duration-200"
+                className={`w-full max-w-3xl mx-auto rounded-2xl px-5 py-2.5 sm:py-3 border transition-all duration-200 ${karaokeThemeClass}`}
                 style={{
-                  backgroundColor: isBesmeleHighlighted ? palette.accentSoft : 'transparent',
-                  borderColor: isBesmeleHighlighted ? palette.accent : palette.border,
-                  boxShadow: isBesmeleHighlighted
-                    ? `0 0 0 2px ${palette.accentSoft}, 0 8px 24px -10px rgba(0,0,0,0.35)`
-                    : 'none',
+                  backgroundColor:
+                    isBesmeleHighlighted && !suppressBesmeleFill
+                      ? softArabicPlayingBg
+                      : 'transparent',
+                  borderColor:
+                    isBesmeleHighlighted && !suppressBesmeleFill
+                      ? palette.accent
+                      : palette.border,
+                  boxShadow:
+                    isBesmeleHighlighted && !suppressBesmeleFill
+                      ? `0 0 0 2px ${palette.accentSoft}, 0 8px 24px -10px rgba(0,0,0,0.35)`
+                      : 'none',
                 }}
               >
                 <p
                   dir="rtl"
                   lang="ar"
-                  className="arabic-text text-center leading-relaxed"
+                  className={`${useBesmeleTajweed ? 'arabic-tajweed' : 'arabic-text'} text-center leading-relaxed`}
                   style={{
                     fontSize: fontMetrics.besmeleArSize,
-                    color: isBesmeleHighlighted ? palette.accent : palette.arabicColor,
+                    color:
+                      isBesmeleHighlighted && !suppressBesmeleFill
+                        ? palette.accent
+                        : palette.arabicColor,
                   }}
                 >
-                  {besmele.ar}
+                  {useBesmeleTajweed && tjBesmele ? (
+                    <TajweedText
+                      words={tjBesmele}
+                      rules={tjRules}
+                      theme={presTajweedTheme}
+                      activeWordIndex={
+                        rawBesmeleWordIdx !== null
+                          ? mapQulWordIndexToDisplay(
+                              rawBesmeleWordIdx,
+                              wordSync.qulWordCount,
+                              tjBesmele.length,
+                            )
+                          : null
+                      }
+                      surahNo={1}
+                      ayahNo={1}
+                      onWordClick={(wIdx, total) => {
+                        sfxService.play('click');
+                        wordAudioService.playWordAudio(1, 1, wIdx, total);
+                      }}
+                    />
+                  ) : (
+                    (() => {
+                      const mappedBesmeleIdx =
+                        rawBesmeleWordIdx !== null
+                          ? mapQulWordIndexToDisplay(
+                              rawBesmeleWordIdx,
+                              wordSync.qulWordCount,
+                              besmelePlainTokens.length,
+                            )
+                          : null;
+                      return besmelePlainTokens.map((token, idx) => {
+                        const { body, waqf } = splitTrailingWaqf(token);
+                        const isActiveWord = mappedBesmeleIdx !== null && idx + 1 === mappedBesmeleIdx;
+                        return (
+                          <React.Fragment key={idx}>
+                            <span
+                              title="Kelimeyi dinlemek için dokunun"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                sfxService.play('click');
+                                wordAudioService.playWordAudio(
+                                  1,
+                                  1,
+                                  idx + 1,
+                                  besmelePlainTokens.length,
+                                );
+                              }}
+                              className={
+                                isActiveWord
+                                  ? 'karaoke-word-active cursor-pointer'
+                                  : 'cursor-pointer'
+                              }
+                            >
+                              {body}
+                            </span>
+                            {waqf && <WaqfMarkSpan waqf={waqf} />}
+                            {idx < besmelePlainTokens.length - 1 ? ' ' : null}
+                          </React.Fragment>
+                        );
+                      });
+                    })()
+                  )}
                 </p>
               </div>
             )}
@@ -872,7 +1060,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               <div
                 className="w-full max-w-3xl mx-auto rounded-2xl px-5 py-2 border transition-all duration-200"
                 style={{
-                  backgroundColor: isBesmeleHighlighted ? palette.accentSoft : 'transparent',
+                  backgroundColor: isBesmeleHighlighted ? softArabicPlayingBg : 'transparent',
                   borderColor: isBesmeleHighlighted ? palette.accent : palette.border,
                 }}
               >
@@ -888,23 +1076,94 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               </div>
             )}
 
-            {/* Arapça Metin */}
+            {/* Arapça Metin (Normal Mushaf Hattı veya Renkli Tecvit + Kelime Takibi + Dokun-Dinle) */}
             {(contentMode === 'both' || contentMode === 'ar') && (
               <div
                 dir="rtl"
                 lang="ar"
-                className={`arabic-text w-full text-center px-4 py-2 rounded-2xl border transition-all duration-200 ${
+                className={`${useVerseTajweed ? 'arabic-tajweed' : 'arabic-text'} ${karaokeThemeClass} w-full text-center px-4 py-2 rounded-2xl border transition-all duration-200 ${
                   isBesmeleHighlighted ? 'opacity-70' : 'opacity-100'
                 }`}
                 style={{
                   fontSize: fontMetrics.arSize,
                   lineHeight: fontMetrics.arLine,
                   color: palette.arabicColor,
-                  backgroundColor: isArabicHighlighted ? palette.accentSoft : 'transparent',
-                  borderColor: isArabicHighlighted ? palette.accent : 'transparent',
+                  backgroundColor:
+                    isArabicHighlighted && !suppressArabicFill
+                      ? softArabicPlayingBg
+                      : 'transparent',
+                  borderColor:
+                    isArabicHighlighted && !suppressArabicFill ? palette.accent : 'transparent',
                 }}
               >
-                {displayedVerse.ar.t}
+                {useVerseTajweed && displayedTjWords ? (
+                  <TajweedText
+                    words={displayedTjWords}
+                    rules={tjRules}
+                    theme={presTajweedTheme}
+                    activeWordIndex={
+                      rawVerseWordIdx !== null
+                        ? mapQulWordIndexToDisplay(
+                            rawVerseWordIdx,
+                            wordSync.qulWordCount,
+                            displayedTjWords.length,
+                          )
+                        : null
+                    }
+                    surahNo={displayedVerse.surah}
+                    ayahNo={displayedVerse.ayah}
+                    onWordClick={(wIdx, total) => {
+                      sfxService.play('click');
+                      wordAudioService.playWordAudio(
+                        displayedVerse.surah,
+                        displayedVerse.ayah,
+                        wIdx,
+                        total,
+                      );
+                    }}
+                  />
+                ) : (
+                  (() => {
+                    const mappedVerseIdx =
+                      rawVerseWordIdx !== null
+                        ? mapQulWordIndexToDisplay(
+                            rawVerseWordIdx,
+                            wordSync.qulWordCount,
+                            versePlainTokens.length,
+                          )
+                        : null;
+                    return versePlainTokens.map((token, idx) => {
+                      const { body, waqf } = splitTrailingWaqf(token);
+                      const isActiveWord = mappedVerseIdx !== null && idx + 1 === mappedVerseIdx;
+                      return (
+                        <React.Fragment key={idx}>
+                          <span
+                            title="Kelimeyi dinlemek için dokunun"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              sfxService.play('click');
+                              wordAudioService.playWordAudio(
+                                displayedVerse.surah,
+                                displayedVerse.ayah,
+                                idx + 1,
+                                versePlainTokens.length,
+                              );
+                            }}
+                            className={
+                              isActiveWord
+                                ? 'karaoke-word-active cursor-pointer'
+                                : 'cursor-pointer'
+                            }
+                          >
+                            {body}
+                          </span>
+                          {waqf && <WaqfMarkSpan waqf={waqf} />}
+                          {idx < versePlainTokens.length - 1 ? ' ' : null}
+                        </React.Fragment>
+                      );
+                    });
+                  })()
+                )}
                 {isSajdah && (
                   <span
                     title="Tilâvet Secdesi Ayeti"

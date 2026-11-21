@@ -13,6 +13,7 @@ interface TajweedTextProps {
   surahNo?: number;
   ayahNo?: number;
   onSelectRule?: (selection: TajweedActiveSelection) => void;
+  onWordClick?: (wordIndex1Based: number, totalWords: number) => void;
   className?: string;
   interactive?: boolean;
 }
@@ -34,6 +35,7 @@ export const TajweedText: React.FC<TajweedTextProps> = ({
   surahNo,
   ayahNo,
   onSelectRule,
+  onWordClick,
   className,
   interactive = true,
 }) => {
@@ -59,7 +61,23 @@ export const TajweedText: React.FC<TajweedTextProps> = ({
           <React.Fragment key={wordIdx}>
             <span
               data-word-index={wordIndex1Based}
-              className={isKaraokeActive ? 'karaoke-word-active' : undefined}
+              className={
+                isKaraokeActive
+                  ? onWordClick
+                    ? 'karaoke-word-active cursor-pointer'
+                    : 'karaoke-word-active'
+                  : onWordClick
+                    ? 'cursor-pointer'
+                    : undefined
+              }
+              onClick={
+                onWordClick
+                  ? (e) => {
+                      e.stopPropagation();
+                      onWordClick(wordIndex1Based, words.length);
+                    }
+                  : undefined
+              }
             >
               {word.map((seg, segIdx) => {
                 const isLast = segIdx === lastIdx && Boolean(trailingWaqf);

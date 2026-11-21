@@ -21,6 +21,7 @@ import {
   Type,
 } from 'lucide-react';
 import { PwaInstallControl } from '../components/PwaInstallControl';
+import { MEALS_CATALOG } from '../config/mealsConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { dataService, resolvePlaylistItemStartLocation } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
@@ -343,7 +344,7 @@ export const HomePage: React.FC = () => {
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             <p className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
-              Okuma, dinleme ve meal yarışması tek çalışma havuzunda.
+              Okuma, tefsir karşılaştırma, fihrist, ezber ve sınav tek çalışma alanında.
             </p>
             <button
               type="button"
@@ -351,7 +352,7 @@ export const HomePage: React.FC = () => {
               className="text-xs font-bold underline underline-offset-4 cursor-pointer whitespace-nowrap"
               style={{ color: 'var(--brand-primary-text)' }}
             >
-              İntroyu Göster
+              Platform Tanıtımı
             </button>
           </div>
         </div>
@@ -748,48 +749,150 @@ export const HomePage: React.FC = () => {
       )}
 
       {/* ====================================================================
-          1.9. Fihrist & Araştırma Merkezi Hızlı Erişim Kartı
+          1.9. Platform Modülleri Hızlı Erişim Izgarası (4 Dengeli Kart)
           ==================================================================== */}
-      <section aria-label="Fihrist ve Araştırma Merkezi">
-        <div
-          className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-          style={{ borderColor: 'var(--border-subtle)' }}
-        >
-          <div className="flex items-start sm:items-center gap-3 min-w-0">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{
-                backgroundColor: 'var(--brand-primary-soft)',
-                color: 'var(--brand-primary-text)',
-              }}
-            >
-              <Compass className="w-5 h-5" />
+      <section aria-label="Platform modülleri">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+          {/* 1. Meal & Okuma */}
+          <button
+            type="button"
+            onClick={handleOpenPoolReader}
+            className="surface-card rounded-2xl p-3 sm:p-4 text-left flex flex-col justify-between gap-2.5 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <BookOpen className="w-4.5 h-4.5" />
+              </span>
+              <ArrowRight
+                className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm sm:text-base font-extrabold tracking-tight">
-                Fihrist &amp; Araştırma
+              <h3 className="text-xs sm:text-sm font-extrabold tracking-tight leading-snug">
+                Meal &amp; Okuma
               </h3>
-              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                601 Konu · 114 Sure Künyesi · Nüzul Kronolojisi
+              <p
+                className="text-[11px] sm:text-xs mt-1 leading-relaxed line-clamp-2"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Mushaf · Renkli Tecvit · {MEALS_CATALOG.length} Meal &amp; Tefsir · Kelime Takibi
               </p>
             </div>
-          </div>
+          </button>
 
+          {/* 2. Fihrist & Araştırma */}
           <button
             type="button"
             onClick={() => {
               sfxService.play('click');
               setActiveTab('fihrist');
             }}
-            className="min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer whitespace-nowrap"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              borderColor: 'var(--border-strong)',
-              color: 'var(--brand-primary-text)',
-            }}
+            className="surface-card rounded-2xl p-3 sm:p-4 text-left flex flex-col justify-between gap-2.5 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
           >
-            <span>Fihristi Aç</span>
-            <ArrowRight className="w-4 h-4 shrink-0" />
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <Compass className="w-4.5 h-4.5" />
+              </span>
+              <ArrowRight
+                className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-extrabold tracking-tight leading-snug">
+                Fihrist &amp; Araştırma
+              </h3>
+              <p
+                className="text-[11px] sm:text-xs mt-1 leading-relaxed line-clamp-2"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                601 Konu · Sure &amp; Nüzul Rehberi · Bazergan Kronolojisi · Defterim
+              </p>
+            </div>
+          </button>
+
+          {/* 3. Ezber Modu */}
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setActiveTab('memorize');
+            }}
+            className="surface-card rounded-2xl p-3 sm:p-4 text-left flex flex-col justify-between gap-2.5 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                <BookMarked className="w-4.5 h-4.5" />
+              </span>
+              <ArrowRight
+                className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-extrabold tracking-tight leading-snug">
+                Ezber Modu
+              </h3>
+              <p
+                className="text-[11px] sm:text-xs mt-1 leading-relaxed line-clamp-2"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                556 Rükû &amp; Ayet Havuzları · Müteşâbihât Uyarısı · Öğretici Kurrâlar
+              </p>
+            </div>
+          </button>
+
+          {/* 4. Sınav Merkezi */}
+          <button
+            type="button"
+            onClick={handleStartExam}
+            className="surface-card rounded-2xl p-3 sm:p-4 text-left flex flex-col justify-between gap-2.5 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                <Trophy className="w-4.5 h-4.5" />
+              </span>
+              <ArrowRight
+                className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-extrabold tracking-tight leading-snug">
+                Sınav Merkezi
+              </h3>
+              <p
+                className="text-[11px] sm:text-xs mt-1 leading-relaxed line-clamp-2"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Doğrulanmış Soru Bankası · Hata Kampı · A4 PDF Sınav Çıktısı
+              </p>
+            </div>
           </button>
         </div>
       </section>

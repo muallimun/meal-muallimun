@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import {
   ArrowRight,
+  BookMarked,
   BookOpen,
-  Headphones,
+  Compass,
+  Library,
   Sparkles,
-  Trophy,
   X,
 } from 'lucide-react';
-import { BrandMark } from './BrandMark';
-import { useAppStore } from '../store/useAppStore';
+import { MEALS_CATALOG } from '../config/mealsConfig';
+import { RECITERS_CATALOG } from '../config/recitersConfig';
 import { sfxService } from '../services/sfxService';
+import { useAppStore } from '../store/useAppStore';
+import { BrandMark } from './BrandMark';
 
 export const IntroSplash: React.FC = () => {
   const { isIntroOpen, introDismissed, closeIntroSplash } = useAppStore();
@@ -73,7 +76,7 @@ export const IntroSplash: React.FC = () => {
       />
 
       <div
-        className={`relative w-full max-w-xl rounded-3xl border border-white/15 bg-[#0d3734]/88 backdrop-blur-xl text-white shadow-2xl overflow-hidden transition-transform duration-250 my-auto ${
+        className={`relative w-full max-w-2xl rounded-3xl border border-white/15 bg-[#0d3734]/90 backdrop-blur-xl text-white shadow-2xl overflow-hidden transition-transform duration-250 my-auto ${
           isLeaving ? 'scale-95' : 'scale-100'
         }`}
       >
@@ -90,10 +93,10 @@ export const IntroSplash: React.FC = () => {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="px-5 py-7 sm:px-8 sm:py-9 flex flex-col items-center text-center">
-          {/* Logo ve Besmele Zarif Giriş */}
-          <div className="inline-flex items-center justify-center p-2.5 rounded-2xl bg-white/10 ring-1 ring-amber-300/35 shadow-lg mb-4">
-            <BrandMark className="w-13 h-13 sm:w-14 sm:h-14" />
+        <div className="px-5 py-6 sm:px-8 sm:py-8 flex flex-col items-center text-center">
+          {/* Logo ve Besmele */}
+          <div className="inline-flex items-center justify-center p-2.5 rounded-2xl bg-white/10 ring-1 ring-amber-300/35 shadow-lg mb-3.5">
+            <BrandMark className="w-12 h-12 sm:w-14 sm:h-14" />
           </div>
 
           <p className="arabic-title text-lg sm:text-xl text-amber-300/95 tracking-normal mb-1.5">
@@ -107,57 +110,89 @@ export const IntroSplash: React.FC = () => {
 
           <h1
             id="intro-splash-title"
-            className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight"
+            className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight text-balance"
           >
-            Muallimun Kur’an &amp; Meal
+            Muallimun Kur’an, Meal &amp; Araştırma
           </h1>
 
-          <p className="mt-2.5 text-sm sm:text-base text-teal-100/90 max-w-md leading-relaxed">
-            Kur’an-ı Kerim’i hatim ve sesli meal eşliğinde anlayarak oku, kelime mealiyle
-            derinleş ve editoryal meal yarışmalarıyla bilgini pekiştir.
+          <p className="mt-2.5 text-sm sm:text-[15px] text-teal-100/90 max-w-xl leading-relaxed">
+            Okuyucular, öğrenciler, eğitmenler ve araştırmacılar için Mushaf okuma, karşılaştırmalı
+            meal-tefsir, konulu fihrist, ezber ve sınav çalışmalarını bir araya getiren sakin çalışma
+            alanı.
           </p>
 
-          {/* 3 Temel Vizyon Kartı */}
-          <div className="mt-6 w-full grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
-            <div className="rounded-2xl bg-white/8 border border-white/12 p-3.5">
-              <div className="w-9 h-9 rounded-xl bg-teal-400/20 text-teal-200 flex items-center justify-center mb-2">
-                <BookOpen className="w-4.5 h-4.5" />
+          {/* 4 Ana Modül Kartı */}
+          <div className="mt-6 w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-left">
+            <div className="rounded-2xl bg-white/8 border border-white/12 p-3.5 sm:p-4">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-teal-400/20 text-teal-200 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <h2 className="text-sm font-bold text-white leading-snug">
+                  Mushaf, Renkli Tecvit &amp; Kelime Takibi
+                </h2>
               </div>
-              <h2 className="text-sm font-bold text-white">Mushaf &amp; Kitap</h2>
-              <p className="mt-1 text-xs text-teal-100/80 leading-relaxed">
-                9 klasik hat, çift meal karşılaştırması ve kesintisiz kitap akışı.
+              <p className="text-xs text-teal-100/80 leading-relaxed">
+                Mushaf, Kart ve Kitap görünümleri; etkileşimli Renkli Tecvit ve Secâvend durak
+                rehberi; {RECITERS_CATALOG.length} kurrâ ile kelime takipli (karaoke) tilavet ve
+                kelimeye dokun-dinle desteği.
               </p>
             </div>
 
-            <div className="rounded-2xl bg-white/8 border border-white/12 p-3.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-200 flex items-center justify-center mb-2">
-                <Headphones className="w-4.5 h-4.5" />
+            <div className="rounded-2xl bg-white/8 border border-white/12 p-3.5 sm:p-4">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-200 flex items-center justify-center shrink-0">
+                  <Library className="w-4 h-4" />
+                </div>
+                <h2 className="text-sm font-bold text-white leading-snug">
+                  {MEALS_CATALOG.length} Meal, Arapça Tefsir &amp; Karşılaştırma
+                </h2>
               </div>
-              <h2 className="text-sm font-bold text-white">Tilavet &amp; Sesli Meal</h2>
-              <p className="mt-1 text-xs text-teal-100/80 leading-relaxed">
-                Ayet ayet hatim, TDV &amp; DİB sesli meal takibi ve otomatik kaydırma.
+              <p className="text-xs text-teal-100/80 leading-relaxed">
+                TDV, DİB, klasik ve çağdaş Türkçe meallerin yanında et-Tefsîru’l-Müyesser, Celâleyn
+                ve Saheeh International ile yan yana karşılaştırmalı okuma.
               </p>
             </div>
 
-            <div className="rounded-2xl bg-white/8 border border-white/12 p-3.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-400/20 text-emerald-200 flex items-center justify-center mb-2">
-                <Trophy className="w-4.5 h-4.5" />
+            <div className="rounded-2xl bg-white/8 border border-white/12 p-3.5 sm:p-4">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-teal-400/20 text-teal-200 flex items-center justify-center shrink-0">
+                  <Compass className="w-4 h-4" />
+                </div>
+                <h2 className="text-sm font-bold text-white leading-snug">
+                  Fihrist, Nüzul &amp; Araştırma Defteri
+                </h2>
               </div>
-              <h2 className="text-sm font-bold text-white">Yarışma &amp; Hata Kampı</h2>
-              <p className="mt-1 text-xs text-teal-100/80 leading-relaxed">
-                Pratik, Arena ve Deneme modları ile A4 yazdırılabilir sınav kâğıdı.
+              <p className="text-xs text-teal-100/80 leading-relaxed">
+                601 konulu alfabetik fihrist, 114 sure künyesi ve karşılaştırmalı nüzul tertipleri,
+                Mehdi Bazergan kronolojisi, 2.139 müteşâbih ayet ve kişisel Araştırma Defteri.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white/8 border border-white/12 p-3.5 sm:p-4">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-200 flex items-center justify-center shrink-0">
+                  <BookMarked className="w-4 h-4" />
+                </div>
+                <h2 className="text-sm font-bold text-white leading-snug">
+                  Ezber Modu &amp; Sınav Merkezi
+                </h2>
+              </div>
+              <p className="text-xs text-teal-100/80 leading-relaxed">
+                556 Rükû veya özel aralıklı ezber havuzları, öğretici (Muallim / Talim) tilavetler,
+                doğrulanmış meal soru bankası, Hata Kampı ve A4 PDF sınav çıktısı.
               </p>
             </div>
           </div>
 
           {/* CTA ve Bir Daha Gösterme */}
-          <div className="mt-7 w-full flex flex-col items-center gap-3.5">
+          <div className="mt-6 w-full flex flex-col items-center gap-3">
             <button
               type="button"
               onClick={handleEnter}
-              className="w-full sm:w-auto sm:min-w-[260px] min-h-[50px] px-7 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-extrabold text-base shadow-lg shadow-amber-950/30 inline-flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+              className="w-full sm:w-auto sm:min-w-[260px] min-h-[48px] px-7 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-extrabold text-base shadow-lg shadow-amber-950/30 inline-flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
             >
-              <span>Hemen Başla</span>
+              <span>Çalışmaya Başla</span>
               <ArrowRight className="w-5 h-5" />
             </button>
 

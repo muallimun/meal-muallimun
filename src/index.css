@@ -257,6 +257,25 @@
     0 0 0 1px rgba(251, 191, 36, 0.35) !important;
 }
 
+/* Sunum Modu: Büyük Punto için Yüksek Kontrastlı Kehribar / Altın İmleç (Sıfır Satır Kayması) */
+.presentation-karaoke-light .karaoke-word-active {
+  background-color: rgba(245, 158, 11, 0.24);
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 4px rgba(245, 158, 11, 0.22),
+    inset 0 -3px 0 rgba(217, 119, 6, 0.9);
+  transition: background-color 110ms ease-out, box-shadow 110ms ease-out;
+}
+
+.presentation-karaoke-dark .karaoke-word-active {
+  background-color: rgba(251, 191, 36, 0.22);
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 4px rgba(251, 191, 36, 0.20),
+    inset 0 -3px 0 rgba(251, 191, 36, 0.9);
+  transition: background-color 110ms ease-out, box-shadow 110ms ease-out;
+}
+
 /* Sure adları için tam Unicode glif destekli güvenli Arapça başlık sınıfı (□ / ◌ hatasını önler) */
 .arabic-title {
   font-family:

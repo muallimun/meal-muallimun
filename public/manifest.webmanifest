@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Muallimun Kur'an & Meal",
+  "name": "Muallimun Kur'an, Meal & Araştırma Platformu",
   "short_name": "Muallimun",
-  "description": "Gençler ve çocuklar için Kur'an-ı Kerim okuma, çift meal dinleme ve etkileşimli meal yarışması platformu.",
+  "description": "Kur'an-ı Kerim okuma, 27 meal ve tefsir karşılaştırma, renkli tecvit, kelime takipli sesli tilavet, 601 konulu fihrist, nüzul kronolojisi, ezber ve sınav platformu.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, BookMarked, BookOpen, Layers, Library, RotateCcw, Settings, Trophy } from 'lucide-react';
 import { MEALS_CATALOG } from '../config/mealsConfig';
+import { RECITERS_CATALOG } from '../config/recitersConfig';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
 import { formatNumberTr } from '../utils/poolUtils';
@@ -19,9 +20,9 @@ const PLACEHOLDER_META: Record<
   }
 > = {
   reader: {
-    title: 'Mushaf & Çift Meal Okuma',
+    title: 'Mushaf, Meal & Tefsir Okuma',
     subtitle:
-      'Ayet ayet Mushaf metni, TDV ve DİB çift meal karşılaştırması, kelime-kelime anlam inceleme ve kesintisiz ses kuyruğu bu modülde yer alacak.',
+      `Ayet ayet Mushaf metni, ${MEALS_CATALOG.length} meal ve tefsir karşılaştırması, renkli tecvit, kelime meali ve kesintisiz ses kuyruğu bu modülde yer alır.`,
     highlights: [
       'Seçtiğiniz Arapça hat ve punto ayarlarına anında uyumlu Mushaf görünümü',
       'İshak Danış hatim ve ayet ayet Türkçe meal ses kuyruğu',
@@ -43,7 +44,7 @@ const PLACEHOLDER_META: Record<
   memorize: {
     title: 'Ezber Modu',
     subtitle:
-      'Kümeli Kar Topu yöntemi, 3 kademeli geri çağırma maskesi ve 27 kurrâ desteğiyle sakin ezber çalışma alanı.',
+      `Kümeli Kar Topu yöntemi, 3 kademeli geri çağırma maskesi ve ${RECITERS_CATALOG.length} kurrâ desteğiyle sakin ezber çalışma alanı.`,
     highlights: [
       'Hazır aşırlar, Mushaf sayfası, sure ve özel aralıklarla esnek ezber havuzu',
       'Akıllı sekte (Dinle & Tekrar Et) ve Muallim kurrâ uyumu',

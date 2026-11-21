@@ -155,7 +155,7 @@ export const TURKISH_FONTS: readonly TurkishFontOption[] = [
     id: 'nunito',
     label: 'Nunito',
     fontStack: '"Nunito", system-ui, -apple-system, sans-serif',
-    description: 'Gençler ve çocuklar için sıcak yuvarlak hatlar',
+    description: 'Okunaklı, dengeli ve yumuşak yuvarlak hatlar',
   },
   {
     id: 'inter',

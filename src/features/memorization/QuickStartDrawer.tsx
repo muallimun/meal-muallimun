@@ -12,7 +12,7 @@ import {
   Timer,
   X,
 } from 'lucide-react';
-import { findReciterById } from '../../config/recitersConfig';
+import { findReciterById, RECITERS_CATALOG } from '../../config/recitersConfig';
 import {
   generateSessionSteps,
   INTENSITY_PROFILES,
@@ -504,7 +504,7 @@ export const QuickStartDrawer: React.FC<QuickStartDrawerProps> = ({
               </span>
               <div className="min-w-0">
                 <p className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
-                  Kurrâ (27 Okuyucu)
+                  Kurrâ ({RECITERS_CATALOG.length} Okuyucu)
                 </p>
                 <p className="text-xs sm:text-sm font-extrabold truncate">{activeReciter.label}</p>
               </div>
