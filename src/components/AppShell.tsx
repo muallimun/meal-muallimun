@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle,
   BookMarked,
   BookOpen,
   Bookmark,
+  ChevronDown,
   Compass,
   Flame,
   Home,
@@ -76,13 +77,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     toggleSidebarCollapsed,
   } = useAppStore();
 
+  const isReaderTab = activeTab === 'reader';
   const isMobilePureReader =
-    activeTab === 'reader' && (studyPrefs.viewMode === 'mushaf' || studyPrefs.viewMode === 'book');
+    isReaderTab && (studyPrefs.viewMode === 'mushaf' || studyPrefs.viewMode === 'book');
 
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   );
   const [pendingNavTab, setPendingNavTab] = useState<NavTab | null>(null);
+  const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
+  const moduleMenuRef = useRef<HTMLDivElement | null>(null);
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
@@ -101,9 +105,31 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
   const contentWidthClass = isSidebarCollapsed
     ? 'max-w-[1600px]'
-    : activeTab === 'reader'
+    : isReaderTab
       ? 'max-w-7xl'
       : 'max-w-6xl';
+
+  useEffect(() => {
+    if (!isModuleMenuOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (moduleMenuRef.current && !moduleMenuRef.current.contains(e.target as Node)) {
+        setIsModuleMenuOpen(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsModuleMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [isModuleMenuOpen]);
+
+  useEffect(() => {
+    setIsModuleMenuOpen(false);
+  }, [activeTab, isSidebarCollapsed]);
 
   // Genel Tam Ekran Durumu Senkronizasyonu
   useEffect(() => {
@@ -329,27 +355,29 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           Sağ Ana İçerik Kabuğu (İnce h-14 Üst Çubuk + İçerik + Alt Bilgi)
           ==================================================================== */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Tüm cihazlarda ince, zarif, yüksek işlevli h-14 Üst Çubuk (Mobilde Saf Mushaf/Kitap modunda gizlenir) */}
+        {/* Tüm cihazlarda birleşik h-14 (56px) Üst Çubuk — Mobilde Okuma modunun tamamında (Mushaf/Kart/Kitap) gizlenir */}
         <header
-          className={`${isMobilePureReader ? 'hidden lg:block' : ''} sticky top-0 z-30 h-14 border-b backdrop-blur-md shrink-0`}
+          className={`${isReaderTab ? 'hidden lg:block' : ''} sticky top-0 z-30 h-14 border-b backdrop-blur-md shrink-0`}
           style={{
             backgroundColor: 'var(--bg-nav)',
             borderColor: 'var(--border-subtle)',
           }}
         >
           <div
-            className={`h-full ${contentWidthClass} mx-auto px-3 sm:px-4 lg:px-5 flex items-center justify-between gap-2`}
+            className={`h-full ${contentWidthClass} mx-auto px-3 sm:px-4 lg:px-4 xl:px-5 flex items-center justify-between gap-2`}
           >
-            {/* Sol: Menü (Masaüstü) + Marka Logosu/Başlığı + Daraltılmış Hızlı Sekmeler */}
-            <div className="flex items-center gap-2 min-w-0">
-              {/* Masaüstü Sidebar Aç — Yalnızca sol menü kapalıyken görünür (mükerrer ikon yok) */}
+            {/* Sol: Menü (Masaüstü) + Marka + Kompakt Navigasyon */}
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0">
+              {/* Masaüstü Sidebar Aç — Yalnızca sol menü kapalıyken görünür */}
               {isSidebarCollapsed && (
                 <button
                   type="button"
                   onClick={toggleSidebarCollapsed}
                   title="Sol menüyü aç"
                   aria-label="Sol menüyü aç"
-                  className="hidden lg:inline-flex min-h-[36px] px-2.5 rounded-xl border items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
+                  className={`hidden lg:inline-flex h-9 ${
+                    isReaderTab ? 'w-9 justify-center' : 'px-2.5 gap-1.5'
+                  } rounded-xl border items-center text-xs font-bold transition-colors cursor-pointer shrink-0 hover:opacity-90`}
                   style={{
                     backgroundColor: 'var(--brand-primary-soft)',
                     borderColor: 'var(--brand-primary)',
@@ -357,27 +385,118 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   }}
                 >
                   <PanelLeftOpen className="w-4 h-4 shrink-0" />
-                  <span>Menü</span>
+                  {!isReaderTab && <span>Menü</span>}
                 </button>
               )}
 
-              {/* Marka Kimliği — Mobilde her zaman, masaüstünde sidebar kapalıyken görünür */}
+              {/* Marka Kimliği — Mobilde her zaman, masaüstünde sidebar kapalıyken (Okuma'da yalnızca amblem) */}
               <button
                 type="button"
                 onClick={() => handleRequestTab('home')}
+                title="Muallimun Ana Sayfa"
                 className={`${
                   isSidebarCollapsed ? 'flex' : 'flex lg:hidden'
-                } items-center gap-2 min-h-[38px] cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600 rounded-lg shrink-0`}
+                } items-center gap-2 min-h-[36px] cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600 rounded-lg shrink-0`}
                 aria-label="Muallimun Ana Sayfa"
               >
                 <BrandMark className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
-                <span className="text-sm sm:text-base font-extrabold tracking-tight whitespace-nowrap">
+                <span
+                  className={`${
+                    isReaderTab ? 'hidden' : 'inline'
+                  } text-sm sm:text-base font-extrabold tracking-tight whitespace-nowrap`}
+                >
                   Muallimun
                 </span>
               </button>
 
-              {/* Sidebar Kapalıyken Masaüstü Hızlı Sekme Şeridi */}
-              {isSidebarCollapsed && (
+              {/* Sidebar Kapalıyken Masaüstü Navigasyon: Okuma'da kompakt dropdown, diğerlerinde 5-sekme şerit */}
+              {isSidebarCollapsed && isReaderTab && (
+                <div ref={moduleMenuRef} className="hidden lg:block relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsModuleMenuOpen((v) => !v);
+                    }}
+                    aria-expanded={isModuleMenuOpen}
+                    aria-label="Modül değiştir"
+                    title="Diğer bölümlere geç"
+                    className="h-9 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: isModuleMenuOpen
+                        ? 'var(--brand-primary-soft)'
+                        : 'var(--bg-surface)',
+                      borderColor: isModuleMenuOpen
+                        ? 'var(--brand-primary)'
+                        : 'var(--border-subtle)',
+                      color: isModuleMenuOpen
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-primary)',
+                    }}
+                  >
+                    <BookOpen
+                      className="w-3.5 h-3.5 shrink-0"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <span>Okuma</span>
+                    <ChevronDown className="w-3.5 h-3.5 opacity-65 shrink-0" />
+                  </button>
+
+                  {isModuleMenuOpen && (
+                    <div
+                      className="absolute left-0 top-11 z-50 w-52 rounded-2xl border shadow-2xl p-1.5 space-y-0.5"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-strong)',
+                      }}
+                    >
+                      {NAV_ITEMS.map((item) => {
+                        const Icon = item.icon;
+                        const active = item.id === 'reader';
+                        const mistakeBadge =
+                          item.id === 'exam' && gamification.wrongQuestionIds.length > 0
+                            ? gamification.wrongQuestionIds.length
+                            : null;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setIsModuleMenuOpen(false);
+                              handleRequestTab(item.id);
+                            }}
+                            className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2 text-xs font-bold transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)]"
+                            style={{
+                              backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
+                              color: active
+                                ? 'var(--brand-primary-text)'
+                                : 'var(--text-primary)',
+                            }}
+                          >
+                            <span className="flex items-center gap-2 whitespace-nowrap">
+                              <Icon className="w-4 h-4 shrink-0" />
+                              <span>{item.label}</span>
+                            </span>
+                            {mistakeBadge !== null && (
+                              <span
+                                className="text-[10px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md leading-none"
+                                style={{
+                                  backgroundColor: 'rgba(239, 68, 68, 0.14)',
+                                  color: '#EF4444',
+                                }}
+                              >
+                                {mistakeBadge > 99 ? '99+' : mistakeBadge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isSidebarCollapsed && !isReaderTab && (
                 <nav
                   aria-label="Hızlı masaüstü menü"
                   className="hidden lg:flex items-center gap-0.5 pl-1.5 border-l min-w-0 overflow-x-auto no-scrollbar"
@@ -421,8 +540,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 </nav>
               )}
 
-              {/* Demo uyarısı (masaüstü) */}
-              {dataSourceMode === 'demo' && (
+              {/* Demo uyarısı (yalnızca okuma dışındaki sekmelerde geniş masaüstü) */}
+              {dataSourceMode === 'demo' && !isReaderTab && (
                 <button
                   type="button"
                   onClick={retryCoreLoad}
@@ -438,42 +557,45 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               )}
             </div>
 
-            {/* Orta / Sağ Hızlı Araçlar: Mobilde marka adının kesilmemesi için sade, masaüstünde tam */}
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              {/* 1. Hızlı Arama Tetikleyicisi (Ctrl+K) */}
+            {/* Orta Bağlam Yuvası (Masaüstü Okuma Araç Çubuğu Portal Alanı) */}
+            <div
+              id="app-topbar-context-slot"
+              className={
+                isReaderTab
+                  ? 'hidden lg:flex flex-1 min-w-0 items-center justify-center'
+                  : 'hidden'
+              }
+            />
+
+            {/* Sağ Global Araçlar: Tüm sekmelerde kompakt w-9 h-9 ikon butonları */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* 1. Hızlı Arama Tetikleyicisi (Ctrl+K) — Yalnızca İkon */}
               <button
                 type="button"
                 onClick={openSearchModal}
                 title="Hızlı Ara (Ctrl+K)"
-                aria-label="Sure, ayet veya sayfa ara"
-                className="min-w-[36px] min-h-[36px] sm:min-w-[38px] sm:min-h-[38px] px-2 sm:px-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition-colors cursor-pointer hover:border-teal-600/50"
+                aria-label="Hızlı Ara (Ctrl+K)"
+                className="w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-secondary)',
+                  color: 'var(--brand-primary-text)',
                 }}
               >
-                <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                <span className="hidden md:inline whitespace-nowrap">Ara</span>
-                <kbd
-                  className="hidden xl:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  Ctrl K
-                </kbd>
+                <Search className="w-4 h-4 shrink-0" />
               </button>
 
-              {/* 2. Sayfa Ayraçlarım Hızlı Çekmece Butonu */}
+              {/* 2. Sayfa Ayraçlarım — İkon + Mini Köşe Sayaç */}
               <button
                 type="button"
                 onClick={openBookmarksDrawer}
-                title="Sayfa Ayraçlarım"
+                title={
+                  bookmarkCount > 0
+                    ? `Sayfa Ayraçlarım (${bookmarkCount})`
+                    : 'Sayfa Ayraçlarım'
+                }
                 aria-label="Sayfa Ayraçlarım"
-                className="relative min-w-[36px] min-h-[36px] sm:min-w-[38px] sm:min-h-[38px] px-2 sm:px-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+                className="relative w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer"
                 style={{
                   backgroundColor:
                     bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
@@ -485,53 +607,59 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <Bookmark
                   className={`w-4 h-4 shrink-0 ${bookmarkCount > 0 ? 'fill-current' : ''}`}
                 />
-                <span className="hidden md:inline whitespace-nowrap">Ayraçlar</span>
                 {bookmarkCount > 0 && (
                   <span
-                    className="min-w-[16px] h-[16px] px-1 rounded-md text-[10px] font-extrabold tabular-nums flex items-center justify-center text-white"
-                    style={{ backgroundColor: 'var(--brand-accent)' }}
+                    className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-extrabold tabular-nums flex items-center justify-center text-white leading-none pointer-events-none"
+                    style={{
+                      backgroundColor: 'var(--brand-accent)',
+                      boxShadow: '0 0 0 1.5px var(--bg-nav)',
+                    }}
                   >
-                    {bookmarkCount}
+                    {bookmarkCount > 99 ? '99+' : bookmarkCount}
                   </span>
                 )}
               </button>
 
-              {/* 3. Kompakt Günlük Seri Rozeti (sm+ ekranlarda) */}
-              <div
-                className="hidden sm:flex h-[38px] px-2.5 rounded-xl items-center gap-1 text-xs font-bold tabular-nums"
-                style={{
-                  backgroundColor: 'var(--brand-accent-soft)',
-                  color: 'var(--brand-accent-text)',
-                }}
-                title="Günlük çalışma seriniz"
-              >
-                <Flame className="w-3.5 h-3.5 shrink-0" />
-                <span className="whitespace-nowrap">
-                  {formatNumberTr(gamification.streakDays)}
-                  <span className="font-semibold"> g</span>
-                </span>
-              </div>
+              {/* 3. Günlük Seri & Puan — Okuma ekranında odak için gizli; diğer sekmelerde kompakt */}
+              {!isReaderTab && (
+                <>
+                  <div
+                    className="hidden sm:flex h-9 px-2 rounded-xl items-center gap-1 text-xs font-bold tabular-nums"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                    title="Günlük çalışma seriniz"
+                  >
+                    <Flame className="w-3.5 h-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">
+                      {formatNumberTr(gamification.streakDays)}
+                    </span>
+                  </div>
 
-              {/* 3b. Kompakt Toplam Puan Rozeti */}
-              <div
-                className="h-[36px] sm:h-[38px] px-2 sm:px-2.5 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
-                style={{
-                  backgroundColor: 'var(--brand-primary-soft)',
-                  color: 'var(--brand-primary-text)',
-                }}
-                title="Toplam puanınız"
-              >
-                <Star className="w-3.5 h-3.5 shrink-0" />
-                <span className="whitespace-nowrap">{formatNumberTr(gamification.totalXp)}</span>
-              </div>
+                  <div
+                    className="h-9 px-2 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                    title="Toplam puanınız"
+                  >
+                    <Star className="w-3.5 h-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">
+                      {formatNumberTr(gamification.totalXp)}
+                    </span>
+                  </div>
+                </>
+              )}
 
-              {/* 4. Genel Tam Ekran İkonu (sm+ ekranlarda — dar mobilde taşmayı önler) */}
+              {/* 4. Genel Tam Ekran İkonu */}
               <button
                 type="button"
                 onClick={handleToggleFullscreen}
                 title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
                 aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
-                className="hidden sm:flex min-w-[38px] min-h-[38px] rounded-xl items-center justify-center border transition-colors cursor-pointer"
+                className="hidden sm:flex w-9 h-9 rounded-xl items-center justify-center border transition-colors cursor-pointer"
                 style={{
                   backgroundColor: isFullscreen
                     ? 'var(--brand-primary-soft)'
@@ -551,9 +679,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               <button
                 type="button"
                 onClick={openSettingsModal}
-                title="Ayarlar"
+                title="Görünüm ve Ayarlar"
                 aria-label="Ayarları aç"
-                className="min-w-[36px] min-h-[36px] sm:min-w-[38px] sm:min-h-[38px] rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                className="w-9 h-9 rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -615,8 +743,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             isMobilePureReader
               ? isMobileReaderImmersive
                 ? 'px-1.5 pt-12 sm:px-3 lg:px-6 lg:pt-3.5'
-                : 'px-1.5 pt-1 sm:px-3 lg:px-6 lg:pt-3.5'
-              : 'px-3.5 pt-3.5 sm:px-5 lg:px-6 lg:pt-4'
+                : 'px-1.5 pt-0 sm:px-3 lg:px-6 lg:pt-3.5'
+              : isReaderTab
+                ? 'px-2.5 pt-0 sm:px-4 lg:px-6 lg:pt-3.5'
+                : 'px-3.5 pt-3.5 sm:px-5 lg:px-6 lg:pt-4'
           } ${
             isMobileReaderImmersive
               ? isAudioBarDetailsOpen

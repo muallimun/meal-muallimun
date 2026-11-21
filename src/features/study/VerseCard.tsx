@@ -417,13 +417,14 @@ export const VerseCard: React.FC<VerseCardProps> = ({
           )}
         </div>
 
-        {/* Hızlı Aksiyonlar (40-44px dokunma alanları) */}
-        <div className="flex items-center gap-1">
+        {/* Hızlı Aksiyonlar: Mobilde yalnızca 3 temiz ikon (Dinle · Yıldız · ⋯), masaüstünde tam aksiyonlar */}
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={() => onPlayFromHere(verse)}
             title="Bu ayetten itibaren dinle"
-            className="min-h-[40px] px-2.5 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+            aria-label="Bu ayetten itibaren dinle"
+            className="w-9 h-9 sm:w-auto sm:min-h-[38px] sm:px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
             style={{
               backgroundColor: isPlayingThisAyah
                 ? 'var(--brand-primary)'
@@ -439,7 +440,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             type="button"
             onClick={() => onPlayMealFromHere(verse)}
             title="Bu ayetten itibaren Türkçe sesli mealini dinle"
-            className="min-h-[40px] px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+            className="hidden sm:flex min-h-[38px] px-2.5 rounded-xl border items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
             style={{
               backgroundColor: 'var(--brand-accent-soft)',
               borderColor: 'var(--brand-accent)',
@@ -447,7 +448,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             }}
           >
             <Volume2 className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline whitespace-nowrap">Sesli Meal</span>
+            <span className="whitespace-nowrap">Sesli Meal</span>
           </button>
 
           {settings.wordByWordEnabled && verse.words.length > 0 && (
@@ -461,7 +462,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
               }}
               title="Kelime-kelime meali göster veya gizle"
               aria-label="Kelime meali"
-              className="min-w-[40px] min-h-[40px] px-2 rounded-xl flex items-center justify-center gap-1 text-xs font-semibold transition-colors cursor-pointer"
+              className="hidden sm:flex min-w-[38px] min-h-[38px] px-2 rounded-xl items-center justify-center gap-1 text-xs font-semibold transition-colors cursor-pointer"
               style={{
                 backgroundColor: showWordGrid ? 'var(--brand-primary-soft)' : 'transparent',
                 color: showWordGrid ? 'var(--brand-primary-text)' : 'var(--text-muted)',
@@ -480,7 +481,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             }}
             title="Bu ayeti 24 farklı Türkçe mealde karşılaştır"
             aria-label="24 mealde karşılaştır"
-            className="min-w-[40px] min-h-[40px] px-2 rounded-xl flex items-center justify-center gap-1 text-xs font-bold transition-colors cursor-pointer hover:bg-[var(--brand-primary-soft)]"
+            className="hidden sm:flex min-w-[38px] min-h-[38px] px-2 rounded-xl items-center justify-center gap-1 text-xs font-bold transition-colors cursor-pointer hover:bg-[var(--brand-primary-soft)]"
             style={{ color: 'var(--brand-primary-text)' }}
           >
             <Scale className="w-4 h-4 shrink-0" />
@@ -492,7 +493,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             onClick={() => onToggleBookmark(verse.id)}
             title={isBookmarked ? 'Yıldızlılardan çıkar' : 'Ayeti yıldızla'}
             aria-label={isBookmarked ? 'Yıldızlılardan çıkar' : 'Ayeti yıldızla'}
-            className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
+            className="w-9 h-9 sm:min-w-[38px] sm:min-h-[38px] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
             style={{
               color: isBookmarked ? 'var(--brand-accent)' : 'var(--text-muted)',
               backgroundColor: isBookmarked ? 'var(--brand-accent-soft)' : 'transparent',
@@ -508,10 +509,10 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                 sfxService.play('click');
                 setMenuOpen((v) => !v);
               }}
-              title="Diğer işlemler (Karşılaştır / Paylaş / Kopyala)"
+              title="Diğer işlemler (Sesli Meal / Kelime / Karşılaştır / Paylaş / Kopyala)"
               aria-label="Ayet işlem menüsü"
               aria-expanded={menuOpen}
-              className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
+              className="w-9 h-9 sm:min-w-[38px] sm:min-h-[38px] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
               style={{
                 backgroundColor: menuOpen ? 'var(--bg-surface-soft)' : 'transparent',
                 color: 'var(--text-muted)',
@@ -522,12 +523,57 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 
             {menuOpen && (
               <div
-                className="absolute right-0 top-11 z-30 w-56 rounded-2xl border shadow-xl p-1.5 space-y-0.5"
+                className="absolute right-0 top-10 z-30 w-56 rounded-2xl border shadow-xl p-1.5 space-y-0.5"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-strong)',
                 }}
               >
+                {/* Mobilde sadeleştirmek için menüye alınan hızlı okuma aksiyonları */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onPlayMealFromHere(verse);
+                  }}
+                  className="sm:hidden w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <Volume2 className="w-4 h-4" style={{ color: 'var(--brand-accent-text)' }} />
+                  <span>Sesli Meal Dinle</span>
+                </button>
+
+                {settings.wordByWordEnabled && verse.words.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      sfxService.play('click');
+                      setLocalWordOverride((prev) =>
+                        prev === null ? globalWordMode === 'off' : !prev,
+                      );
+                    }}
+                    className="sm:hidden w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center justify-between gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Languages className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
+                      <span>Kelime Meali</span>
+                    </span>
+                    <span
+                      className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md"
+                      style={{
+                        backgroundColor: showWordGrid
+                          ? 'var(--brand-primary-soft)'
+                          : 'var(--bg-surface-soft)',
+                        color: showWordGrid ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                      }}
+                    >
+                      {showWordGrid ? 'Açık' : 'Kapalı'}
+                    </span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {

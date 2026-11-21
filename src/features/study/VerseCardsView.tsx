@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
-  ChevronDown,
-  ChevronUp,
   Info,
   Languages,
   Search,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
@@ -42,10 +41,10 @@ interface VerseCardsViewProps {
   onPlayMealFromVerse: (verse: CombinedVerse) => void;
   onShareVerse: (verse: CombinedVerse, surahMeta: SurahMeta) => void;
   onOpenPageInMushaf: (pageNo: number, ayahId: number) => void;
+  onOpenSurahInfo?: (surahMeta: SurahMeta) => void;
 }
 
 type CardFilterMode = 'all' | 'bookmarked' | 'footnotes' | 'merged';
-type IntroTabKey = 'hakkinda' | 'nuzul' | 'konusu';
 
 const BATCH_SIZE = 30;
 
@@ -66,6 +65,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   onPlayMealFromVerse,
   onShareVerse,
   onOpenPageInMushaf,
+  onOpenSurahInfo,
 }) => {
   const { surahMeta, verses, hasBesmele } = surahBundle;
   const surahNos = useMemo(() => [surahMeta.no], [surahMeta.no]);
@@ -78,12 +78,14 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
     getSecondaryVerse,
   } = useActiveMeals(surahNos);
 
-  const [introOpen, setIntroOpen] = useState(false);
-  const [introTab, setIntroTab] = useState<IntroTabKey>('hakkinda');
+  const [isFilterBarOpen, setIsFilterBarOpen] = useState(false);
+  const [isWordMenuOpen, setIsWordMenuOpen] = useState(false);
   const [filterMode, setFilterMode] = useState<CardFilterMode>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [surahExtraInfo, setSurahExtraInfo] = useState<SurahExtraInfo | null>(null);
+  const wordMenuRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,26 +106,33 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const introSections = useMemo(
-    () =>
-      [
-        { key: 'hakkinda' as const, label: 'Hakkında', text: surahMeta.hakkinda?.trim() ?? '' },
-        { key: 'nuzul' as const, label: 'Nüzul', text: surahMeta.nuzul?.trim() ?? '' },
-        { key: 'konusu' as const, label: 'Konusu', text: surahMeta.konusu?.trim() ?? '' },
-      ].filter((s) => s.text.length > 0),
-    [surahMeta],
-  );
-
   // Sure değişince filtre ve batch sıfırla
   useEffect(() => {
     setFilterMode('all');
     setSearchQuery('');
     setVisibleCount(BATCH_SIZE);
-    setIntroOpen(false);
-    if (introSections.length > 0) {
-      setIntroTab(introSections[0].key);
-    }
-  }, [surahMeta.no, introSections]);
+    setIsFilterBarOpen(false);
+    setIsWordMenuOpen(false);
+  }, [surahMeta.no]);
+
+  // Kelime meali hızlı menüsü dış tıklama / Escape kapatma
+  useEffect(() => {
+    if (!isWordMenuOpen) return;
+    const onOutside = (e: MouseEvent) => {
+      if (wordMenuRef.current && !wordMenuRef.current.contains(e.target as Node)) {
+        setIsWordMenuOpen(false);
+      }
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsWordMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onOutside);
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onOutside);
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, [isWordMenuOpen]);
 
   // Filtre sayıları
   const counts = useMemo(() => {
@@ -223,18 +232,22 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
     [filteredVerses, visibleCount],
   );
 
-  const activeIntroSection =
-    introSections.find((s) => s.key === introTab) ?? introSections[0];
+  const hasActiveFilter = searchQuery.trim().length > 0 || filterMode !== 'all';
+  const showFilterBar = isFilterBarOpen || hasActiveFilter;
+  const pageSpanLabel =
+    surahMeta.pageStart === surahMeta.pageEnd
+      ? `Sayfa ${surahMeta.pageStart}`
+      : `Sayfa ${surahMeta.pageStart}–${surahMeta.pageEnd}`;
 
   return (
-    <div className="space-y-3.5">
-      {/* Birleşik Kompakt Üst Kart: Sure Başlığı + Besmele + Arama & Filtreler */}
-      <div className="surface-card rounded-2xl overflow-hidden">
-        {/* Satır 1: Sure Bilgisi + Besmele (Masaüstünde yan yana) + Sure Tanıtımı */}
-        <div className="px-4 py-3 sm:px-5 sm:py-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+    <div className="space-y-3">
+      {/* Tek Satır Zarif Sure Başlığı + Açılır Arama/Filtre */}
+      <div className="surface-card rounded-2xl">
+        {/* Ana Satır: Sure Bilgisi (Sol) + Kompakt Aksiyon Grubu (Sağ) */}
+        <div className="px-3.5 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <span
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-xs tabular-nums shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-extrabold text-xs tabular-nums shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
@@ -243,251 +256,325 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
               {surahMeta.no}
             </span>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-extrabold tracking-tight">{surahMeta.nameTr}</h2>
+              <div className="flex items-center gap-2 min-w-0">
+                <h2 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
+                  {surahMeta.nameTr}
+                </h2>
                 <span
-                  className="arabic-title text-lg leading-none"
+                  className="arabic-title text-base sm:text-lg leading-none shrink-0"
                   style={{ color: 'var(--text-secondary)' }}
                 >
                   {formatSafeArabicTitle(surahMeta.nameAr)}
                 </span>
               </div>
-              <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+              <p
+                className="text-[11px] tabular-nums truncate"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 {surahMeta.type} · {formatNumberTr(surahMeta.ayahCount)} Ayet · İniş:{' '}
-                {surahMeta.nuzulSirasi} · Sayfa {surahMeta.pageStart}–{surahMeta.pageEnd}
+                {surahMeta.nuzulSirasi} · {pageSpanLabel}
               </p>
             </div>
           </div>
 
-          {hasBesmele && (
-            <div className="lg:text-center px-2 py-0.5">
-              <p
-                className="arabic-text leading-tight"
-                style={{
-                  fontSize: `${Math.max(19, Math.min(26, settings.arabicFontSize - 4))}px`,
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                {besmele.ar}
-              </p>
-            </div>
-          )}
-
-          {introSections.length > 0 && (
+          {/* Sağ Kompakt Aksiyon Grubu: Arama/Filtre · Kelime Meali · Sure Tanıtımı */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* 1. Sure İçi Arama & Filtre Aç/Kapa */}
             <button
               type="button"
               onClick={() => {
                 sfxService.play('click');
-                setIntroOpen((v) => !v);
+                setIsFilterBarOpen((prev) => {
+                  const next = !prev;
+                  if (next) {
+                    window.setTimeout(() => searchInputRef.current?.focus(), 40);
+                  }
+                  return next;
+                });
               }}
-              className="self-start lg:self-auto min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+              aria-expanded={showFilterBar}
+              aria-label="Sure içi arama ve filtreler"
+              title="Sure içi arama ve filtreler (Yıldızlı, Dipnotlu, Birleşik)"
+              className="relative h-9 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
               style={{
-                backgroundColor: introOpen ? 'var(--brand-primary-soft)' : 'var(--bg-surface-soft)',
-                borderColor: introOpen ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                color: 'var(--brand-primary-text)',
+                backgroundColor:
+                  showFilterBar || hasActiveFilter
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface-soft)',
+                borderColor:
+                  showFilterBar || hasActiveFilter
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
+                color:
+                  showFilterBar || hasActiveFilter
+                    ? 'var(--brand-primary-text)'
+                    : 'var(--text-secondary)',
               }}
             >
-              <Info className="w-3.5 h-3.5" />
-              <span>Sure Tanıtımı</span>
-              {introOpen ? (
-                <ChevronUp className="w-3.5 h-3.5" />
+              {hasActiveFilter ? (
+                <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
               ) : (
-                <ChevronDown className="w-3.5 h-3.5" />
+                <Search className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span className="hidden md:inline whitespace-nowrap">Ara / Filtre</span>
+              {hasActiveFilter && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                />
               )}
             </button>
-          )}
-        </div>
 
-        {/* Açılır Sure Tanıtımı */}
-        {introOpen && introSections.length > 0 && activeIntroSection && (
-          <div
-            className="px-4 sm:px-5 pb-4 pt-3 border-t space-y-2.5"
-            style={{ borderColor: 'var(--border-subtle)' }}
-          >
-            {introSections.length > 1 && (
-              <div
-                className="inline-flex items-center gap-1 p-1 rounded-xl"
-                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-              >
-                {introSections.map((sec) => {
-                  const active = sec.key === activeIntroSection.key;
-                  return (
-                    <button
-                      key={sec.key}
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        setIntroTab(sec.key);
-                      }}
-                      className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold cursor-pointer transition-colors"
-                      style={{
-                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                      }}
-                    >
-                      {sec.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            <p
-              className="turkish-reading text-xs sm:text-sm whitespace-pre-line"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {activeIntroSection.text}
-            </p>
-          </div>
-        )}
-
-        {/* Satır 2: Arama ve Filtre Çipleri Tek Kompakt Şeritte */}
-        <div
-          className="px-4 py-2.5 sm:px-5 border-t flex flex-col md:flex-row md:items-center gap-2"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <div className="relative flex-1 min-w-[200px]">
-            <Search
-              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: 'var(--text-muted)' }}
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setVisibleCount(BATCH_SIZE);
-              }}
-              placeholder={`${surahMeta.shortNameTr} mealinde kelime veya ayet no ara...`}
-              className="w-full min-h-[36px] pl-9 pr-8 rounded-xl border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/40"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-              }}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Aramayı temizle"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-1.5">
-            {(
-              [
-                { id: 'all', label: `Tümü (${counts.all})` },
-                { id: 'bookmarked', label: `Yıldızlı (${counts.bookmarked})` },
-                { id: 'footnotes', label: `Dipnotlu (${counts.footnotes})` },
-                { id: 'merged', label: `Birleşik (${counts.merged})` },
-              ] as const
-            ).map((chip) => {
-              const active = filterMode === chip.id;
-              return (
+            {/* 2. Kelime Meali Hızlı Anahtarı (Kapalı / Açık / Kendini Dene) */}
+            {settings.wordByWordEnabled && (
+              <div ref={wordMenuRef} className="relative">
                 <button
-                  key={chip.id}
                   type="button"
                   onClick={() => {
                     sfxService.play('click');
-                    setFilterMode(chip.id);
-                    setVisibleCount(BATCH_SIZE);
+                    setIsWordMenuOpen((v) => !v);
                   }}
-                  className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap shrink-0 tabular-nums"
+                  aria-expanded={isWordMenuOpen}
+                  aria-label="Kelime meali görünümü"
+                  title="Kelime Meali: Kapalı / Açık / Kendini Dene"
+                  className="h-9 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                   style={{
-                    backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface)',
-                    borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                    color: active ? '#FFFFFF' : 'var(--text-secondary)',
+                    backgroundColor:
+                      wordMode === 'quiz'
+                        ? 'var(--brand-accent-soft)'
+                        : wordMode === 'visible'
+                          ? 'var(--brand-primary-soft)'
+                          : 'var(--bg-surface-soft)',
+                    borderColor:
+                      wordMode === 'quiz'
+                        ? 'rgba(217, 119, 6, 0.45)'
+                        : wordMode === 'visible'
+                          ? 'var(--brand-primary)'
+                          : 'var(--border-subtle)',
+                    color:
+                      wordMode === 'quiz'
+                        ? 'var(--brand-accent-text)'
+                        : wordMode === 'visible'
+                          ? 'var(--brand-primary-text)'
+                          : 'var(--text-secondary)',
                   }}
                 >
-                  {chip.label}
+                  <Languages className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">
+                    {wordMode === 'off'
+                      ? 'Kelime'
+                      : wordMode === 'visible'
+                        ? 'Kelime: Açık'
+                        : 'Kendini Dene'}
+                  </span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Satır 3: Kelime Meali & Kendini Dene (Yalnızca Kartlar Modunda) */}
-        {settings.wordByWordEnabled && (
-          <div
-            className="px-4 py-2 sm:px-5 border-t flex flex-wrap items-center justify-between gap-2"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-subtle)',
-            }}
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className="text-xs font-bold flex items-center gap-1.5 whitespace-nowrap"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                <Languages className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                <span>Kelime Meali:</span>
-              </span>
-              <div
-                role="group"
-                aria-label="Kelime meali görünümü"
-                className="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl border"
+                {isWordMenuOpen && (
+                  <div
+                    className="absolute right-0 top-11 z-40 w-48 rounded-2xl border shadow-2xl p-1.5 space-y-0.5"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-strong)',
+                    }}
+                  >
+                    <p
+                      className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Kelime Meali
+                    </p>
+                    {(
+                      [
+                        { id: 'off', label: 'Kapalı', desc: 'Yalnızca ayet metni' },
+                        { id: 'visible', label: 'Açık', desc: 'Tüm kelime anlamları' },
+                        { id: 'quiz', label: 'Kendini Dene', desc: 'Dokunarak kontrol et' },
+                      ] as { id: WordMealMode; label: string; desc: string }[]
+                    ).map((opt) => {
+                      const active = wordMode === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            onChangeWordMode(opt.id);
+                            setIsWordMenuOpen(false);
+                          }}
+                          className="w-full px-2.5 py-2 rounded-xl text-left transition-colors cursor-pointer"
+                          style={{
+                            backgroundColor: active
+                              ? opt.id === 'quiz'
+                                ? 'var(--brand-accent-soft)'
+                                : 'var(--brand-primary-soft)'
+                              : 'transparent',
+                          }}
+                        >
+                          <span
+                            className="block text-xs font-extrabold"
+                            style={{
+                              color: active
+                                ? opt.id === 'quiz'
+                                  ? 'var(--brand-accent-text)'
+                                  : 'var(--brand-primary-text)'
+                                : 'var(--text-primary)',
+                            }}
+                          >
+                            {opt.label}
+                          </span>
+                          <span
+                            className="block text-[10px]"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            {opt.desc}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. Sure Tanıtımı (SurahInfoModal'ı açar) */}
+            {onOpenSurahInfo && (
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  onOpenSurahInfo(surahMeta);
+                }}
+                aria-label="Sure tanıtımını aç"
+                title="Sure hakkında, nüzul bilgisi ve konusu"
+                className="h-9 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors hover:border-teal-600/50 whitespace-nowrap"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
+                  color: 'var(--brand-primary-text)',
                 }}
               >
-                {(
-                  [
-                    { id: 'off', label: 'Kapalı' },
-                    { id: 'visible', label: 'Açık' },
-                    { id: 'quiz', label: 'Kendini Dene' },
-                  ] as { id: WordMealMode; label: string }[]
-                ).map((opt) => {
-                  const active = wordMode === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        onChangeWordMode(opt.id);
-                      }}
-                      className="min-h-[30px] px-2.5 sm:px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
-                      style={{
-                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                        color:
-                          active && opt.id === 'quiz'
-                            ? 'var(--brand-accent-text)'
-                            : active
-                              ? 'var(--brand-primary-text)'
-                              : 'var(--text-secondary)',
-                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
+                <Info className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Tanıtım</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Açılır / Kapanır Sure İçi Arama & Filtre Paneli */}
+        {showFilterBar && (
+          <div
+            className="px-3.5 py-2.5 sm:px-5 border-t flex flex-col md:flex-row md:items-center gap-2 rounded-b-2xl"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <div className="relative flex-1 min-w-[200px]">
+              <Search
+                className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: 'var(--text-muted)' }}
+              />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setVisibleCount(BATCH_SIZE);
+                }}
+                placeholder={`${surahMeta.shortNameTr} mealinde kelime veya ayet no ara...`}
+                className="w-full min-h-[36px] pl-9 pr-8 rounded-xl border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/40"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Aramayı temizle"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
-            {wordMode === 'quiz' && (
-              <span
-                className="text-[11px] sm:text-xs font-semibold px-2.5 py-1 rounded-lg border"
-                style={{
-                  backgroundColor: 'var(--brand-accent-soft)',
-                  borderColor: 'rgba(217, 119, 6, 0.35)',
-                  color: 'var(--brand-accent-text)',
-                }}
-              >
-                Türkçe anlamı görmek için kelimelere dokunun
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(
+                [
+                  { id: 'all', label: `Tümü (${counts.all})` },
+                  { id: 'bookmarked', label: `Yıldızlı (${counts.bookmarked})` },
+                  { id: 'footnotes', label: `Dipnotlu (${counts.footnotes})` },
+                  { id: 'merged', label: `Birleşik (${counts.merged})` },
+                ] as const
+              ).map((chip) => {
+                const active = filterMode === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setFilterMode(chip.id);
+                      setVisibleCount(BATCH_SIZE);
+                    }}
+                    className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap shrink-0 tabular-nums"
+                    style={{
+                      backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface)',
+                      borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                      color: active ? '#FFFFFF' : 'var(--text-secondary)',
+                    }}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* İnce Quiz İpucu (Yalnızca Kendini Dene aktifken) */}
+        {settings.wordByWordEnabled && wordMode === 'quiz' && (
+          <div
+            className="px-3.5 py-1.5 sm:px-5 border-t flex items-center justify-between gap-2 text-[11px] font-semibold"
+            style={{
+              backgroundColor: 'var(--brand-accent-soft)',
+              borderColor: 'rgba(217, 119, 6, 0.25)',
+              color: 'var(--brand-accent-text)',
+            }}
+          >
+            <span>Kendini Dene aktif — Türkçe anlamı görmek için kelimelere dokunun.</span>
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                onChangeWordMode('off');
+              }}
+              className="underline font-bold cursor-pointer shrink-0"
+            >
+              Kapat
+            </button>
+          </div>
+        )}
+
+        {/* Zarif Besmele Şeridi */}
+        {hasBesmele && contentMode !== 'meal_only' && (
+          <div
+            className="px-4 py-2 border-t text-center"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
+            <p
+              className="arabic-text leading-tight"
+              style={{
+                fontSize: `${Math.max(20, Math.min(28, settings.arabicFontSize - 2))}px`,
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              {besmele.ar}
+            </p>
           </div>
         )}
       </div>
