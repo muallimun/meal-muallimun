@@ -9,6 +9,7 @@ import {
   Loader2,
   MonitorPlay,
   Pause,
+  Pin,
   Play,
   Repeat,
   Repeat1,
@@ -64,6 +65,7 @@ export const AudioPlayerBar: React.FC = () => {
     openReciterSelector,
     openMealSelector,
     openListeningDrawer,
+    openQuickResearch,
     manifest,
   } = useAppStore();
 
@@ -533,19 +535,45 @@ export const AudioPlayerBar: React.FC = () => {
               </button>
 
               {audioState.currentSurah && audioState.currentAyah && (
-                <button
-                  type="button"
-                  onClick={handleJumpToPlayingText}
-                  className="min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--brand-primary-text)',
-                  }}
-                >
-                  <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                  <span>Metne Git</span>
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!audioState.currentSurah || !audioState.currentAyah) return;
+                      sfxService.play('click');
+                      openQuickResearch(
+                        audioState.currentSurah,
+                        audioState.currentAyah,
+                        audioState.currentAyah,
+                        audioState.currentPage ?? undefined,
+                      );
+                    }}
+                    title="Çalan ayeti araştırma defterime ekle"
+                    className="min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      borderColor: 'rgba(217, 119, 6, 0.35)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                  >
+                    <Pin className="w-3.5 h-3.5 shrink-0" />
+                    <span>Araştırmaya Ekle</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleJumpToPlayingText}
+                    className="min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                    <span>Metne Git</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>

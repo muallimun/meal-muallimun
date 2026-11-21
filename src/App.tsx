@@ -11,6 +11,8 @@ import { MealSelectorModal } from './components/MealSelectorModal';
 import { ReciterSelectorModal } from './components/ReciterSelectorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ExamCenterPage } from './features/exam/ExamCenterPage';
+import { FihristHubPage } from './features/fihrist/FihristHubPage';
+import { QuickAddToResearchModal } from './features/fihrist/QuickAddToResearchModal';
 import { MemorizationHubPage } from './features/memorization/MemorizationHubPage';
 import { QuickMemorizeFromVerseModal } from './features/memorization/QuickMemorizeFromVerseModal';
 import { MistakeCampPage } from './features/mistakes/MistakeCampPage';
@@ -27,6 +29,8 @@ const MainRouter: React.FC = () => {
         <HomePage />
       ) : activeTab === 'reader' ? (
         <StudyPage />
+      ) : activeTab === 'fihrist' ? (
+        <FihristHubPage />
       ) : activeTab === 'memorize' ? (
         <MemorizationHubPage />
       ) : activeTab === 'exam' ? (
@@ -42,6 +46,7 @@ const MainRouter: React.FC = () => {
       <MealSelectorModal />
       <MealCompareModal />
       <QuickMemorizeFromVerseModal />
+      <QuickAddToResearchModal />
       <PageBookmarksDrawer />
       <GlobalSearchModal />
       <IntroSplash />

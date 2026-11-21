@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   BookMarked,
   BookOpen,
+  BookText,
   Bookmark,
   Flame,
   Home,
@@ -37,10 +38,20 @@ interface NavItemConfig {
 const NAV_ITEMS: NavItemConfig[] = [
   { id: 'home', label: 'Ana Sayfa', shortLabel: 'Ana Sayfa', mobileLabel: 'Ana Sayfa', icon: Home },
   { id: 'reader', label: 'Meal & Okuma', shortLabel: 'Okuma', mobileLabel: 'Okuma', icon: BookOpen },
+  {
+    id: 'fihrist',
+    label: 'Fihrist & Araştırma',
+    shortLabel: 'Fihrist',
+    mobileLabel: 'Fihrist',
+    icon: BookText,
+  },
   { id: 'memorize', label: 'Ezber Modu', shortLabel: 'Ezber', mobileLabel: 'Ezber', icon: BookMarked },
   { id: 'exam', label: 'Sınav Merkezi', shortLabel: 'Sınav', mobileLabel: 'Sınav', icon: Trophy },
   { id: 'mistakes', label: 'Hata Kampı', shortLabel: 'Hata', mobileLabel: 'Hata', icon: RotateCcw },
 ];
+
+// Mobilde alt bar 5 ferah sekme dengesinde kalır (Hata Kampı'na Sınav Merkezi üst çubuğundan ve Ana Sayfa kartından ulaşılır)
+const MOBILE_NAV_ITEMS: NavItemConfig[] = NAV_ITEMS.filter((item) => item.id !== 'mistakes');
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -646,11 +657,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           }}
         >
           <div className="grid grid-cols-5 h-15 max-w-lg mx-auto px-0.5">
-            {NAV_ITEMS.map((item) => {
+            {MOBILE_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive =
+                activeTab === item.id || (item.id === 'exam' && activeTab === 'mistakes');
               const mistakeCount =
-                item.id === 'mistakes' ? gamification.wrongQuestionIds.length : 0;
+                item.id === 'exam' ? gamification.wrongQuestionIds.length : 0;
 
               return (
                 <button

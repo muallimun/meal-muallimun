@@ -21,6 +21,7 @@ import {
 import { dataService, type DataSourceMode } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { wakeLockService } from '../services/wakeLockService';
+import type { QuickResearchSeed } from '../types/fihrist';
 import type {
   MemorizeLaunchTarget,
   QuickMemorizeSeed,
@@ -933,6 +934,9 @@ interface AppContextValue {
   quickMemorizeSeed: QuickMemorizeSeed | null;
   openQuickMemorize: (surah: number, ayah: number, page?: number) => void;
   closeQuickMemorize: () => void;
+  quickResearchSeed: QuickResearchSeed | null;
+  openQuickResearch: (surah: number, startAyah: number, endAyah?: number, page?: number) => void;
+  closeQuickResearch: () => void;
   memorizeLaunchTarget: MemorizeLaunchTarget | null;
   navigateToMemorizeUnit: (unitId: string, autoStart?: boolean) => void;
   clearMemorizeLaunchTarget: () => void;
@@ -1025,6 +1029,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isMobileReaderImmersive, setIsMobileReaderImmersive] = useState(false);
   const [isAudioBarExpanded, setIsAudioBarExpanded] = useState(false);
   const [quickMemorizeSeed, setQuickMemorizeSeed] = useState<QuickMemorizeSeed | null>(null);
+  const [quickResearchSeed, setQuickResearchSeed] = useState<QuickResearchSeed | null>(null);
 
   useEffect(() => {
     if (activeTab !== 'reader' || persisted.studyPrefs.viewMode === 'cards') {
@@ -1904,6 +1909,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMemorizeLaunchTarget(null);
   }, []);
 
+  const openQuickResearch = useCallback(
+    (surah: number, startAyah: number, endAyah?: number, page?: number) => {
+      sfxService.play('click');
+      setQuickResearchSeed({
+        surah,
+        startAyah,
+        endAyah: endAyah ?? startAyah,
+        page,
+        nonce: Date.now(),
+      });
+    },
+    [],
+  );
+
+  const closeQuickResearch = useCallback(() => {
+    setQuickResearchSeed(null);
+  }, []);
+
   const openReciterSelector = useCallback((context: 'default' | 'memorize' = 'default') => {
     sfxService.play('click');
     setReciterSelectorContext(context);
@@ -2180,6 +2203,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       quickMemorizeSeed,
       openQuickMemorize,
       closeQuickMemorize,
+      quickResearchSeed,
+      openQuickResearch,
+      closeQuickResearch,
       memorizeLaunchTarget,
       navigateToMemorizeUnit,
       clearMemorizeLaunchTarget,
@@ -2290,6 +2316,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       quickMemorizeSeed,
       openQuickMemorize,
       closeQuickMemorize,
+      quickResearchSeed,
+      openQuickResearch,
+      closeQuickResearch,
       memorizeLaunchTarget,
       navigateToMemorizeUnit,
       clearMemorizeLaunchTarget,

@@ -13,6 +13,7 @@ import {
   Link2,
   ListPlus,
   MoreHorizontal,
+  Pin,
   Play,
   Repeat,
   Scale,
@@ -78,6 +79,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     moveHatimBookmark,
     openMealCompare,
     openQuickMemorize,
+    openQuickResearch,
     openListeningDrawer,
     manifest,
     meta,
@@ -250,6 +252,19 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             >
               <Scale className="w-4 h-4 text-[var(--brand-primary-text)]" />
               <span>Mealleri Karşılaştır (24)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpenMenuAyahId(null);
+                sfxService.play('click');
+                openQuickResearch(verse.surah, verse.ayah, verse.ayah, verse.page);
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
+            >
+              <Pin className="w-4 h-4 text-[var(--brand-accent-text)]" />
+              <span>Araştırmaya Ekle</span>
             </button>
 
             <button

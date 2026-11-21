@@ -8,7 +8,7 @@ export type MealStorageType = 'm1' | 'm2' | 'mx';
 export type MealDisplayMode = 'single' | 'dual';
 export type PreferredMeal = 'm1' | 'm2' | 'both';
 export type ThemeMode = 'light' | 'cream' | 'dark';
-export type NavTab = 'home' | 'reader' | 'memorize' | 'exam' | 'mistakes';
+export type NavTab = 'home' | 'reader' | 'fihrist' | 'memorize' | 'exam' | 'mistakes';
 
 export type StudyViewMode = 'mushaf' | 'cards' | 'book';
 export type BookContentMode = 'ar_only' | 'meal_only' | 'interleaved';

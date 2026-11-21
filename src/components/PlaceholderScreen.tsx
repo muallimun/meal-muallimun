@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, BookMarked, BookOpen, Layers, RotateCcw, Settings, Trophy } from 'lucide-react';
+import { ArrowLeft, BookMarked, BookOpen, Layers, Library, RotateCcw, Settings, Trophy } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
 import { formatNumberTr } from '../utils/poolUtils';
@@ -27,6 +27,17 @@ const PLACEHOLDER_META: Record<
       'Dipnotlar ve kelime-kelime Arapça ↔ Türkçe anlam kartları',
     ],
     icon: BookOpen,
+  },
+  fihrist: {
+    title: 'Alfabetik Konu Fihristi & Araştırma Defteri',
+    subtitle:
+      "A'dan Z'ye Kur'an konu başlıklarını inceleyin, ayetleri kişisel araştırma başlıklarınızda toplayıp notlayın ve A4 PDF olarak yazdırın.",
+    highlights: [
+      'A–Z harf çubuğu ve anlık Türkçe konu arama',
+      '4 görünüm modu, kesintisiz sesli dinleme ve 24 meal karşılaştırma',
+      'Kişisel Araştırma Defteri, toplu referans ekleme ve JSON yedekleme',
+    ],
+    icon: Library,
   },
   memorize: {
     title: 'Ezber Modu',

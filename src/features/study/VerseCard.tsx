@@ -11,6 +11,7 @@ import {
   Link2,
   ListPlus,
   MoreHorizontal,
+  Pin,
   Repeat,
   Scale,
   Share2,
@@ -77,6 +78,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   const {
     openMealCompare,
     openQuickMemorize,
+    openQuickResearch,
     openListeningDrawer,
     manifest,
     meta,
@@ -493,6 +495,20 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                 >
                   <BookMarked className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
                   <span>Buradan Ezber Başlat</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    sfxService.play('click');
+                    openQuickResearch(verse.surah, verse.ayah, verse.ayah, verse.page);
+                  }}
+                  className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <Pin className="w-4 h-4" style={{ color: 'var(--brand-accent-text)' }} />
+                  <span>Araştırmaya Ekle</span>
                 </button>
 
                 <button

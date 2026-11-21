@@ -20,6 +20,7 @@ import {
   Languages,
   Link2,
   ListPlus,
+  Pin,
   Repeat,
   Scale,
   Share2,
@@ -93,6 +94,7 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   const {
     openMealCompare,
     openQuickMemorize,
+    openQuickResearch,
     openListeningDrawer,
     manifest,
     meta,
@@ -775,6 +777,23 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
             >
               <ListPlus className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
               <span>Çalma Listesine Ekle</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openQuickResearch(verse.surah, verse.ayah, verse.ayah, verse.page);
+              }}
+              className="sm:col-span-2 w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                borderColor: 'rgba(217, 119, 6, 0.35)',
+                color: 'var(--brand-accent-text)',
+              }}
+            >
+              <Pin className="w-3.5 h-3.5 shrink-0" />
+              <span>Araştırmaya Ekle</span>
             </button>
           </div>
         </div>
