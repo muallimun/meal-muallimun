@@ -87,6 +87,7 @@ export const StudyPage: React.FC = () => {
     openSettingsModal,
     isMobileReaderImmersive,
     setIsMobileReaderImmersive,
+    isAudioBarExpanded,
   } = useAppStore();
 
   const audioState = useSyncExternalStore(
@@ -343,8 +344,22 @@ export const StudyPage: React.FC = () => {
           viewMode: 'mushaf',
         });
         if (audioPrefs.autoScroll) {
-          const el = document.getElementById(`mushaf-ayah-${onThisPage.id}`);
-          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const isDesktopDualSpread =
+            (studyPrefs.pageLayout === 'double_meal' ||
+              studyPrefs.pageLayout === 'double_mushaf') &&
+            typeof window !== 'undefined' &&
+            window.innerWidth >= 1024;
+          if (!isDesktopDualSpread) {
+            if (studyPrefs.pageLayout === 'meal_only') {
+              const mealEl = document.querySelector<HTMLElement>(
+                `[data-meal-ayahs~="${onThisPage.id}"]`,
+              );
+              mealEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+              const el = document.getElementById(`mushaf-ayah-${onThisPage.id}`);
+              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
         }
       }
     } else if ((viewMode === 'cards' || viewMode === 'book') && surahBundle) {
@@ -369,6 +384,7 @@ export const StudyPage: React.FC = () => {
     audioState.currentAyahId,
     audioState.status,
     viewMode,
+    studyPrefs.pageLayout,
     pageBundle,
     secondPageBundle,
     surahBundle,
@@ -1226,6 +1242,13 @@ export const StudyPage: React.FC = () => {
             audioState.status === 'playing' || audioState.status === 'loading'
               ? audioState.currentAyahId
               : null
+          }
+          autoScroll={audioPrefs.autoScroll}
+          isAudioBarVisible={audioState.isVisible && audioState.status !== 'idle'}
+          isAudioBarExpanded={
+            audioState.isVisible &&
+            audioState.status !== 'idle' &&
+            (isAudioBarExpanded || audioState.missingMealAudio)
           }
           bookmarkedSet={bookmarkedSet}
           isRefreshing={isLoadingView}

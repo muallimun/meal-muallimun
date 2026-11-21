@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
   Bookmark,
@@ -6,6 +6,7 @@ import {
   ChevronRight,
   FileText,
   Info,
+  LocateFixed,
   PanelRightClose,
   Play,
   Scale,
@@ -26,6 +27,7 @@ import type {
   BesmeleInfo,
   BookContentMode,
   CombinedVerse,
+  MealVerse,
   PageBundle,
   PageLayoutMode,
   SurahMeta,
@@ -46,6 +48,9 @@ interface MushafPageViewProps {
   wordMode: WordMealMode;
   selectedVerseId: number | null;
   playingAyahId: number | null;
+  autoScroll?: boolean;
+  isAudioBarVisible?: boolean;
+  isAudioBarExpanded?: boolean;
   bookmarkedSet: Set<number>;
   isRefreshing?: boolean;
   onSelectVerse: (verse: CombinedVerse) => void;
@@ -60,6 +65,185 @@ interface MushafPageViewProps {
 }
 
 const ENDS_WITH_ARABIC_NUMERAL = /[\u0660-\u0669]\s*$/;
+
+interface ScrollPaneOptions {
+  bottomReservePx?: number;
+  focusRatio?: number;
+  behavior?: ScrollBehavior;
+}
+
+/**
+ * Bağımsız kaydırılabilir panel içinde hedef öğeyi üstten ~%35 odaklı konuma
+ * dış pencereyi sıçratmadan ve diğer panelin animasyonunu iptal etmeden kaydırır.
+ */
+function scrollTargetIntoPane(
+  paneEl: HTMLElement | null,
+  targetEl: HTMLElement | null,
+  options?: ScrollPaneOptions,
+): boolean {
+  if (!paneEl || !targetEl) return false;
+  const maxScroll = paneEl.scrollHeight - paneEl.clientHeight;
+  if (maxScroll <= 2) return false;
+
+  const bottomReserve = options?.bottomReservePx ?? 24;
+  const focusRatio = options?.focusRatio ?? 0.35;
+  const paneRect = paneEl.getBoundingClientRect();
+  const targetRect = targetEl.getBoundingClientRect();
+
+  const targetTopInPane = targetRect.top - paneRect.top + paneEl.scrollTop;
+  const effectiveHeight = Math.max(120, paneEl.clientHeight - bottomReserve);
+  const desiredTop = Math.max(
+    16,
+    effectiveHeight * focusRatio - Math.min(targetRect.height, effectiveHeight * 0.5) * 0.25,
+  );
+  const nextScrollTop = Math.max(0, Math.min(maxScroll, targetTopInPane - desiredTop));
+
+  if (Math.abs(paneEl.scrollTop - nextScrollTop) < 6) {
+    return true;
+  }
+
+  paneEl.scrollTo({
+    top: nextScrollTop,
+    behavior: options?.behavior ?? 'smooth',
+  });
+  return true;
+}
+
+function normalizeMealText(text?: string | null): string {
+  return (text ?? '').replace(/\s+/g, ' ').trim();
+}
+
+interface SecondaryMealEntry {
+  ayahLabel: string;
+  text: string;
+}
+
+interface MealVerseGroup {
+  key: string;
+  verses: CombinedVerse[];
+  startAyah: number;
+  endAyah: number;
+  mgRange: [number, number] | null;
+  primaryText: string;
+  secondaryEntries: SecondaryMealEntry[];
+  primaryFootnotes: string[];
+  secondaryFootnotes: string[];
+  hasSajdah: boolean;
+}
+
+function groupSegmentMealVerses(
+  verses: CombinedVerse[],
+  getPrimaryVerse: (v: CombinedVerse) => MealVerse | null,
+  getSecondaryVerse: (v: CombinedVerse) => MealVerse | null,
+  isDual: boolean,
+  showFootnotes: boolean,
+  highlightSajdah: boolean,
+): MealVerseGroup[] {
+  const rawGroups: CombinedVerse[][] = [];
+
+  for (const verse of verses) {
+    const pVerse = getPrimaryVerse(verse);
+    const pNorm = normalizeMealText(pVerse?.t);
+    const prevGroup = rawGroups[rawGroups.length - 1];
+
+    if (prevGroup) {
+      const anchor = prevGroup[0];
+      const anchorP = getPrimaryVerse(anchor);
+      const anchorNorm = normalizeMealText(anchorP?.t);
+
+      const sameMg = Boolean(
+        anchorP?.mg &&
+          pVerse?.mg &&
+          anchorP.mg[0] === pVerse.mg[0] &&
+          anchorP.mg[1] === pVerse.mg[1],
+      );
+      const sameText = anchorNorm.length > 0 && anchorNorm === pNorm;
+
+      if (sameMg || sameText) {
+        prevGroup.push(verse);
+        continue;
+      }
+    }
+
+    rawGroups.push([verse]);
+  }
+
+  return rawGroups.map((groupVerses) => {
+    const first = groupVerses[0];
+    const last = groupVerses[groupVerses.length - 1];
+    const firstP = getPrimaryVerse(first);
+    const primaryText = firstP?.t ?? '';
+
+    const primaryFnSet = new Set<string>();
+    const secondaryFnSet = new Set<string>();
+    let hasSajdah = false;
+
+    for (const v of groupVerses) {
+      if (highlightSajdah && SAJDAH_AYAH_IDS.has(v.id)) {
+        hasSajdah = true;
+      }
+      if (showFootnotes) {
+        const pv = getPrimaryVerse(v);
+        if (pv?.fn) {
+          for (const fn of pv.fn) {
+            const clean = fn.trim();
+            if (clean) primaryFnSet.add(clean);
+          }
+        }
+        if (isDual) {
+          const sv = getSecondaryVerse(v);
+          if (sv?.fn) {
+            for (const fn of sv.fn) {
+              const clean = fn.trim();
+              if (clean) secondaryFnSet.add(clean);
+            }
+          }
+        }
+      }
+    }
+
+    const secondaryEntries: SecondaryMealEntry[] = [];
+    if (isDual) {
+      // İkinci mealde ardışık aynı metinleri birleştir; tüm grup tek metinse etiketsiz göster
+      const secRuns: Array<{ start: number; end: number; text: string; norm: string }> = [];
+      for (const v of groupVerses) {
+        const sv = getSecondaryVerse(v);
+        const text = sv?.t ?? '';
+        const norm = normalizeMealText(text);
+        if (!norm) continue;
+        const lastRun = secRuns[secRuns.length - 1];
+        if (lastRun && lastRun.norm === norm) {
+          lastRun.end = v.ayah;
+        } else {
+          secRuns.push({ start: v.ayah, end: v.ayah, text, norm });
+        }
+      }
+
+      if (secRuns.length === 1) {
+        secondaryEntries.push({ ayahLabel: '', text: secRuns[0].text });
+      } else {
+        for (const run of secRuns) {
+          const label =
+            run.start === run.end ? `(${run.start})` : `(${run.start}–${run.end})`;
+          secondaryEntries.push({ ayahLabel: label, text: run.text });
+        }
+      }
+    }
+
+    return {
+      key: `${first.surah}-${first.ayah}-${last.ayah}`,
+      verses: groupVerses,
+      startAyah: first.ayah,
+      endAyah: last.ayah,
+      mgRange: firstP?.mg ?? null,
+      primaryText,
+      secondaryEntries,
+      primaryFootnotes: Array.from(primaryFnSet),
+      secondaryFootnotes: Array.from(secondaryFnSet),
+      hasSajdah,
+    };
+  });
+}
 
 /** Özgün, telifsiz geometrik köşe süslemesi (SVG) */
 const CornerOrnament: React.FC<{ position: 'tl' | 'tr' | 'bl' | 'br' }> = ({ position }) => {
@@ -121,6 +305,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   wordMode,
   selectedVerseId,
   playingAyahId,
+  autoScroll = true,
+  isAudioBarVisible = false,
+  isAudioBarExpanded = false,
   bookmarkedSet,
   isRefreshing = false,
   onSelectVerse,
@@ -145,8 +332,24 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
   const [openRibbonPage, setOpenRibbonPage] = useState<number | null>(null);
   const [isVerseDrawerOpen, setIsVerseDrawerOpen] = useState<boolean>(false);
-  const [openFootnoteVerseId, setOpenFootnoteVerseId] = useState<number | null>(null);
+  const [openFootnoteKey, setOpenFootnoteKey] = useState<string | null>(null);
+  const [detachedPanes, setDetachedPanes] = useState<{ left: boolean; right: boolean }>({
+    left: false,
+    right: false,
+  });
+
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const leftPaneRef = useRef<HTMLDivElement | null>(null);
+  const rightPaneRef = useRef<HTMLDivElement | null>(null);
+  const programmaticScrollUntilRef = useRef<{ left: number; right: number }>({
+    left: 0,
+    right: 0,
+  });
+  const manualOverrideVerseRef = useRef<{ left: number | null; right: number | null }>({
+    left: null,
+    right: null,
+  });
+  const prevPlayingAyahIdRef = useRef<number | null>(null);
 
   const isArOnly = contentMode === 'ar_only' || pageLayout === 'single';
   const isDoubleMushaf = pageLayout === 'double_mushaf' && Boolean(secondPageBundle);
@@ -194,18 +397,154 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     ? surahMetaByNo.get(selectedVerse.surah) ?? pageBundle.segments[0]?.surahMeta ?? null
     : pageBundle.segments[0]?.surahMeta ?? null;
 
-  // Sayfa değişince açık kurdele menüsünü kapat
+  const bottomReservePx = isAudioBarExpanded ? 112 : isAudioBarVisible ? 32 : 20;
+
+  const findTargetInPane = useCallback(
+    (side: 'left' | 'right', ayahId: number): HTMLElement | null => {
+      const paneEl = side === 'left' ? leftPaneRef.current : rightPaneRef.current;
+      if (!paneEl) return null;
+      if (isDoubleMeal && side === 'left') {
+        return paneEl.querySelector<HTMLElement>(`[data-meal-ayahs~="${ayahId}"]`);
+      }
+      return paneEl.querySelector<HTMLElement>(`[data-ayah-id="${ayahId}"]`);
+    },
+    [isDoubleMeal],
+  );
+
+  const scrollPaneProgrammatically = useCallback(
+    (side: 'left' | 'right', targetEl: HTMLElement | null, behavior: ScrollBehavior = 'smooth') => {
+      const paneEl = side === 'left' ? leftPaneRef.current : rightPaneRef.current;
+      if (!paneEl || !targetEl) return false;
+      programmaticScrollUntilRef.current[side] = Date.now() + 850;
+      return scrollTargetIntoPane(paneEl, targetEl, {
+        bottomReservePx,
+        focusRatio: 0.35,
+        behavior,
+      });
+    },
+    [bottomReservePx],
+  );
+
+  const handlePaneUserScrollGesture = useCallback(
+    (side: 'left' | 'right') => {
+      if (!playingAyahId || !isBookSpread) return;
+      const paneEl = side === 'left' ? leftPaneRef.current : rightPaneRef.current;
+      if (!paneEl || paneEl.scrollHeight - paneEl.clientHeight <= 2) return;
+      manualOverrideVerseRef.current[side] = playingAyahId;
+      setDetachedPanes((prev) => (prev[side] ? prev : { ...prev, [side]: true }));
+    },
+    [playingAyahId, isBookSpread],
+  );
+
+  const handlePaneScroll = useCallback(
+    (side: 'left' | 'right') => {
+      if (!playingAyahId || !isBookSpread) return;
+      if (Date.now() <= programmaticScrollUntilRef.current[side]) return;
+      const paneEl = side === 'left' ? leftPaneRef.current : rightPaneRef.current;
+      if (!paneEl || paneEl.scrollHeight - paneEl.clientHeight <= 2) return;
+      manualOverrideVerseRef.current[side] = playingAyahId;
+      setDetachedPanes((prev) => (prev[side] ? prev : { ...prev, [side]: true }));
+    },
+    [playingAyahId, isBookSpread],
+  );
+
+  const handleJumpToActiveVerse = useCallback(() => {
+    if (!playingAyahId || !isBookSpread) return;
+    manualOverrideVerseRef.current = { left: null, right: null };
+    setDetachedPanes({ left: false, right: false });
+    scrollPaneProgrammatically('right', findTargetInPane('right', playingAyahId));
+    scrollPaneProgrammatically('left', findTargetInPane('left', playingAyahId));
+  }, [playingAyahId, isBookSpread, scrollPaneProgrammatically, findTargetInPane]);
+
+  const syncLeftMealToVerse = useCallback(
+    (ayahId: number) => {
+      if (!isDoubleMeal) return;
+      manualOverrideVerseRef.current.left = null;
+      setDetachedPanes((prev) => (prev.left ? { ...prev, left: false } : prev));
+      scrollPaneProgrammatically('left', findTargetInPane('left', ayahId));
+    },
+    [isDoubleMeal, scrollPaneProgrammatically, findTargetInPane],
+  );
+
+  const syncRightMushafToVerse = useCallback(
+    (ayahId: number) => {
+      if (!isDoubleMeal) return;
+      manualOverrideVerseRef.current.right = null;
+      setDetachedPanes((prev) => (prev.right ? { ...prev, right: false } : prev));
+      scrollPaneProgrammatically('right', findTargetInPane('right', ayahId));
+    },
+    [isDoubleMeal, scrollPaneProgrammatically, findTargetInPane],
+  );
+
+  // Sayfa veya düzen değişince açık kurdele menüsünü kapat ve bağımsız panelleri başa al
   useEffect(() => {
     setOpenRibbonPage(null);
-  }, [pageBundle.pageNo]);
+    manualOverrideVerseRef.current = { left: null, right: null };
+    setDetachedPanes({ left: false, right: false });
 
-  // Çalan/seçilen ayet değişince karşılıklı meal sayfasını ilgili ayete kaydır
+    const hasPlayingOnThisSpread = Boolean(
+      playingAyahId && allVisibleVerses.some((v) => v.id === playingAyahId),
+    );
+    if (!hasPlayingOnThisSpread) {
+      programmaticScrollUntilRef.current = {
+        left: Date.now() + 250,
+        right: Date.now() + 250,
+      };
+      leftPaneRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+      rightPaneRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageBundle.pageNo, secondPageBundle?.pageNo, pageLayout]);
+
+  // Sesli okuma sırasında her iki bağımsız paneli çakışmasız (pane.scrollTo) olarak aktif ayete ortala
   useEffect(() => {
-    const targetId = playingAyahId ?? selectedVerseId;
-    if (!targetId || !isDoubleMeal) return;
-    const el = document.getElementById(`facing-meal-ayah-${targetId}`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [playingAyahId, selectedVerseId, isDoubleMeal]);
+    if (!playingAyahId) {
+      prevPlayingAyahIdRef.current = null;
+      manualOverrideVerseRef.current = { left: null, right: null };
+      setDetachedPanes((prev) =>
+        prev.left || prev.right ? { left: false, right: false } : prev,
+      );
+      return;
+    }
+
+    const isNewVerse = prevPlayingAyahIdRef.current !== playingAyahId;
+    prevPlayingAyahIdRef.current = playingAyahId;
+
+    if (isNewVerse) {
+      // Bir sonraki ayete geçildiğinde manuel kaydırma engelini sıfırla
+      manualOverrideVerseRef.current = { left: null, right: null };
+      setDetachedPanes((prev) =>
+        prev.left || prev.right ? { left: false, right: false } : prev,
+      );
+    }
+
+    if (!isBookSpread || !autoScroll) return;
+
+    const rafId = window.requestAnimationFrame(() => {
+      if (manualOverrideVerseRef.current.right !== playingAyahId) {
+        const rightTarget = findTargetInPane('right', playingAyahId);
+        if (rightTarget) {
+          scrollPaneProgrammatically('right', rightTarget);
+        }
+      }
+      if (manualOverrideVerseRef.current.left !== playingAyahId) {
+        const leftTarget = findTargetInPane('left', playingAyahId);
+        if (leftTarget) {
+          scrollPaneProgrammatically('left', leftTarget);
+        }
+      }
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
+  }, [
+    playingAyahId,
+    isBookSpread,
+    autoScroll,
+    pageBundle.pageNo,
+    secondPageBundle?.pageNo,
+    findTargetInPane,
+    scrollPaneProgrammatically,
+  ]);
 
   // Klavye sol/sağ ok tuşları (Mushaf yönü: Sol = Sonraki, Sağ = Önceki)
   const pageStep = isDoubleMushaf ? 2 : 1;
@@ -427,6 +766,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           : 'mushaf-paper-single rounded-2xl';
 
     const compactPadding = leafPosition !== 'single';
+    const isDualPane = leafPosition !== 'single';
+    const paneSide: 'left' | 'right' | null =
+      leafPosition === 'left' ? 'left' : leafPosition === 'right' ? 'right' : null;
+    const paneScrollPadding = isAudioBarExpanded
+      ? 'lg:pb-44'
+      : isAudioBarVisible
+        ? 'lg:pb-24'
+        : 'lg:pb-3';
+    const showJumpChip = Boolean(
+      paneSide && playingAyahId && detachedPanes[paneSide] && bundle.verses.some((v) => v.id === playingAyahId),
+    );
     const pageHasSajdah =
       settings.highlightSajdah && bundle.verses.some((v) => SAJDAH_AYAH_IDS.has(v.id));
 
@@ -434,12 +784,18 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       <div
         key={`mushaf-leaf-${bundle.pageNo}`}
         className={`${paperClass} p-1.5 sm:p-2.5 transition-opacity duration-200 flex flex-col h-full ${
-          isRefreshing ? 'opacity-80' : 'opacity-100'
-        }`}
+          isDualPane ? 'lg:h-full lg:min-h-0' : ''
+        } ${isRefreshing ? 'opacity-80' : 'opacity-100'}`}
       >
-        <div className="mushaf-cetvel-outer rounded-xl p-1 flex-1 flex flex-col">
+        <div
+          className={`mushaf-cetvel-outer rounded-xl p-1 flex-1 flex flex-col ${
+            isDualPane ? 'lg:h-full lg:min-h-0' : ''
+          }`}
+        >
           <div
-            className={`mushaf-cetvel-inner rounded-[10px] relative flex-1 flex flex-col justify-between ${
+            className={`mushaf-cetvel-inner rounded-[10px] relative flex-1 flex flex-col ${
+              isDualPane ? 'lg:h-full lg:min-h-0' : 'justify-between'
+            } ${
               compactPadding ? 'px-3.5 py-3 sm:px-5 sm:py-4' : 'px-3.5 py-3.5 sm:px-6 sm:py-5'
             }`}
             style={{ backgroundColor: 'var(--bg-surface)' }}
@@ -450,12 +806,11 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             <CornerOrnament position="bl" />
             <CornerOrnament position="br" />
 
-            <div>
-              {/* Klasik Mushaf Üst Şeridi: Kurdele Ayraç · Tıklanabilir Sayfa / Cüz / Sure Konum Seçici */}
-              <div
-                className="pb-2.5 mb-3.5 border-b flex items-center justify-between gap-2 text-xs"
-                style={{ borderColor: 'var(--border-subtle)' }}
-              >
+            {/* Klasik Mushaf Üst Şeridi: Sabit Başlık + Kurdele Ayraç + Aktif Ayete Git */}
+            <div
+              className="pb-2.5 mb-3 border-b flex items-center justify-between gap-2 text-xs shrink-0"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
                 <div className="flex items-center gap-2 shrink-0">
                   {renderRibbonBookmark(bundle)}
                   <button
@@ -504,32 +859,65 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    onOpenLocationPicker?.('surah');
-                  }}
-                  title="Sure seç"
-                  className="text-right min-w-0 flex items-center gap-1.5 justify-end hover:opacity-80 cursor-pointer"
-                >
-                  <span
-                    className="text-xs font-bold truncate hidden sm:inline"
-                    style={{ color: 'var(--text-secondary)' }}
+                <div className="flex items-center gap-1.5 min-w-0 justify-end">
+                  {showJumpChip && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sfxService.play('click');
+                        handleJumpToActiveVerse();
+                      }}
+                      title="Aktif okunan ayete geri dön"
+                      className="h-6 px-2 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap shrink-0"
+                      style={{
+                        backgroundColor: 'var(--brand-primary)',
+                        color: '#FFFFFF',
+                      }}
+                    >
+                      <LocateFixed className="w-3 h-3 shrink-0" />
+                      <span>Aktif Ayete Git</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      onOpenLocationPicker?.('surah');
+                    }}
+                    title="Sure seç"
+                    className="text-right min-w-0 flex items-center gap-1.5 justify-end hover:opacity-80 cursor-pointer"
                   >
-                    {surahTitlesTr}
-                  </span>
-                  <span
-                    className="arabic-title text-base sm:text-lg leading-none truncate"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {surahTitlesAr}
-                  </span>
-                </button>
+                    <span
+                      className="text-xs font-bold truncate hidden sm:inline"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      {surahTitlesTr}
+                    </span>
+                    <span
+                      className="arabic-title text-base sm:text-lg leading-none truncate"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {surahTitlesAr}
+                    </span>
+                  </button>
+                </div>
               </div>
 
-              {/* Sayfa Bölümleri (Sure Başlıkları + Besmele + Kesintisiz Ayet Akışı) */}
-              <div className="space-y-4">
+              {/* Bağımsız Kaydırılabilir Mushaf Gövdesi (lg+ ikili görünümde) */}
+              <div
+                ref={paneSide === 'left' ? leftPaneRef : paneSide === 'right' ? rightPaneRef : undefined}
+                onWheel={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
+                onTouchMove={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
+                onScroll={paneSide ? () => handlePaneScroll(paneSide) : undefined}
+                className={`flex-1 flex flex-col justify-between ${
+                  isDualPane
+                    ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain scrollbar-thin lg:pr-1.5 ${paneScrollPadding}`
+                    : ''
+                }`}
+              >
+                {/* Sayfa Bölümleri (Sure Başlıkları + Besmele + Kesintisiz Ayet Akışı) */}
+                <div className="space-y-4">
                 {bundle.segments.map((segment) => (
                   <div key={`seg-${bundle.pageNo}-${segment.surahMeta.no}`} className="space-y-3">
                     {segment.startsAtAyah1 && (
@@ -626,6 +1014,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                             onClick={() => {
                               sfxService.play('click');
                               onSelectVerse(verse);
+                              if (isDoubleMeal) {
+                                syncLeftMealToVerse(verse.id);
+                              }
                               setIsVerseDrawerOpen(true);
                             }}
                             role="button"
@@ -640,6 +1031,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 e.preventDefault();
                                 sfxService.play('click');
                                 onSelectVerse(verse);
+                                if (isDoubleMeal) {
+                                  syncLeftMealToVerse(verse.id);
+                                }
                                 setIsVerseDrawerOpen(true);
                               }
                             }}
@@ -691,20 +1085,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Alt Klasik Sayfa Numarası */}
-            <div
-              className="mt-4 pt-2 border-t flex items-center justify-center text-xs font-bold tabular-nums"
-              style={{
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <span>
-                — {bundle.pageNo} / {bundle.maxPage} —
-              </span>
-            </div>
+                {/* Alt Klasik Sayfa Numarası */}
+                <div
+                  className="mt-4 pt-2 border-t flex items-center justify-center text-xs font-bold tabular-nums shrink-0"
+                  style={{
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  <span>
+                    — {bundle.pageNo} / {bundle.maxPage} —
+                  </span>
+                </div>
+              </div>
           </div>
         </div>
       </div>
@@ -727,15 +1120,33 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           ? 'mushaf-paper-left rounded-2xl lg:rounded-r-none lg:rounded-l-2xl'
           : 'mushaf-paper-single rounded-2xl';
 
+    const isDualPane = side !== 'single' && isBookSpread;
+    const paneSide: 'left' | 'right' | null =
+      isDualPane ? (side === 'left' ? 'left' : 'right') : null;
+    const paneScrollPadding = isAudioBarExpanded
+      ? 'lg:pb-44'
+      : isAudioBarVisible
+        ? 'lg:pb-24'
+        : 'lg:pb-3';
+    const showJumpChip = Boolean(
+      paneSide && playingAyahId && detachedPanes[paneSide] && bundle.verses.some((v) => v.id === playingAyahId),
+    );
+
     return (
       <div
         className={`${paperClass} p-1.5 sm:p-2.5 transition-opacity duration-200 flex flex-col h-full ${
-          isRefreshing ? 'opacity-80' : 'opacity-100'
-        }`}
+          isDualPane ? 'lg:h-full lg:min-h-0' : ''
+        } ${isRefreshing ? 'opacity-80' : 'opacity-100'}`}
       >
-        <div className="mushaf-cetvel-outer rounded-xl p-1 flex-1 flex flex-col">
+        <div
+          className={`mushaf-cetvel-outer rounded-xl p-1 flex-1 flex flex-col ${
+            isDualPane ? 'lg:h-full lg:min-h-0' : ''
+          }`}
+        >
           <div
-            className="mushaf-cetvel-inner rounded-[10px] relative flex-1 flex flex-col justify-between px-4 py-3.5 sm:px-5 sm:py-4"
+            className={`mushaf-cetvel-inner rounded-[10px] relative flex-1 flex flex-col px-4 py-3.5 sm:px-5 sm:py-4 ${
+              isDualPane ? 'lg:h-full lg:min-h-0' : 'justify-between'
+            }`}
             style={{ backgroundColor: 'var(--bg-surface)' }}
           >
             <CornerOrnament position="tl" />
@@ -743,383 +1154,523 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             <CornerOrnament position="bl" />
             <CornerOrnament position="br" />
 
-            <div>
-              {/* Sol Meal Sayfası Üst Şeridi (+ ◫ Kapat veya Mushaf'a Dön ikonu) */}
-              <div
-                className="pb-2.5 mb-3.5 border-b flex items-center justify-between gap-2 text-xs"
-                style={{ borderColor: 'var(--border-subtle)' }}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {isMealOnly && side === 'single' && renderRibbonBookmark(bundle)}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      openMealSelector('primary');
-                    }}
-                    title="24 Türkçe meal arasından değiştir"
-                    className="font-extrabold truncate hover:underline text-left cursor-pointer"
-                    style={{ color: 'var(--brand-primary-text)' }}
-                  >
-                    {mealTitle}
-                  </button>
-                </div>
+            {/* Sol Meal Sayfası Sabit Üst Şeridi (+ Aktif Ayete Git + ◫ Kapat veya Mushaf'a Dön ikonu) */}
+            <div
+              className="pb-2.5 mb-3 border-b flex items-center justify-between gap-2 text-xs shrink-0"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                {isMealOnly && side === 'single' && renderRibbonBookmark(bundle)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    openMealSelector('primary');
+                  }}
+                  title="24 Türkçe meal arasından değiştir"
+                  className="font-extrabold truncate hover:underline text-left cursor-pointer"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  {mealTitle}
+                </button>
+              </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
+                {showJumpChip && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sfxService.play('click');
+                      handleJumpToActiveVerse();
+                    }}
+                    title="Aktif okunan ayete geri dön"
+                    className="h-6 px-2 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap"
+                    style={{
+                      backgroundColor: 'var(--brand-primary)',
+                      color: '#FFFFFF',
+                    }}
+                  >
+                    <LocateFixed className="w-3 h-3 shrink-0" />
+                    <span>Aktif Ayete Git</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    onOpenLocationPicker?.('page');
+                  }}
+                  title="Sayfa değiştir"
+                  className="font-bold tabular-nums px-2 py-0.5 rounded-lg text-[11px] hover:opacity-80 cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  Sayfa {bundle.pageNo} Meali
+                </button>
+                {isMealOnly && onChangePageLayout && (
                   <button
                     type="button"
                     onClick={() => {
                       sfxService.play('click');
-                      onOpenLocationPicker?.('page');
+                      onChangePageLayout('single');
                     }}
-                    title="Sayfa değiştir"
-                    className="font-bold tabular-nums px-2 py-0.5 rounded-lg text-[11px] hover:opacity-80 cursor-pointer whitespace-nowrap"
+                    title="Arapça Mushaf sayfasına dön"
+                    className="h-7 px-2 rounded-lg border text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors hover:opacity-85 whitespace-nowrap"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      borderColor: 'var(--brand-primary)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <BookOpen className="w-3 h-3 shrink-0" />
+                    <span className="hidden sm:inline">Mushaf</span>
+                  </button>
+                )}
+                {isDoubleMeal && side === 'left' && onChangePageLayout && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      onChangePageLayout('single');
+                    }}
+                    title="Meal sayfasını kapat (Tek Sayfa Mushaf)"
+                    aria-label="Meal sayfasını kapat"
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer transition-colors hover:opacity-85"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
                       color: 'var(--text-secondary)',
                     }}
                   >
-                    Sayfa {bundle.pageNo} Meali
+                    <PanelRightClose className="w-3.5 h-3.5" />
                   </button>
-                  {isMealOnly && onChangePageLayout && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        onChangePageLayout('single');
-                      }}
-                      title="Arapça Mushaf sayfasına dön"
-                      className="h-7 px-2 rounded-lg border text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors hover:opacity-85 whitespace-nowrap"
-                      style={{
-                        backgroundColor: 'var(--brand-primary-soft)',
-                        borderColor: 'var(--brand-primary)',
-                        color: 'var(--brand-primary-text)',
-                      }}
-                    >
-                      <BookOpen className="w-3 h-3 shrink-0" />
-                      <span className="hidden sm:inline">Mushaf</span>
-                    </button>
-                  )}
-                  {isDoubleMeal && side === 'left' && onChangePageLayout && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        onChangePageLayout('single');
-                      }}
-                      title="Meal sayfasını kapat (Tek Sayfa Mushaf)"
-                      aria-label="Meal sayfasını kapat"
-                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer transition-colors hover:opacity-85"
-                      style={{
-                        backgroundColor: 'var(--bg-surface-soft)',
-                        borderColor: 'var(--border-subtle)',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      <PanelRightClose className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
+            </div>
 
-              {/* Kitap Düzeninde Süslü Numaralı Meal Akışı (Dikey Kart Düzeni — Tam Genişlik Metin) */}
+            {/* Bağımsız Kaydırılabilir Meal Gövdesi (lg+ ikili görünümde) */}
+            <div
+              ref={paneSide === 'left' ? leftPaneRef : paneSide === 'right' ? rightPaneRef : undefined}
+              onWheel={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
+              onTouchMove={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
+              onScroll={paneSide ? () => handlePaneScroll(paneSide) : undefined}
+              className={`flex-1 flex flex-col justify-between ${
+                isDualPane
+                  ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain scrollbar-thin lg:pr-1.5 ${paneScrollPadding}`
+                  : ''
+              }`}
+            >
+              {/* Kitap Düzeninde Süslü Numaralı Meal Akışı (Birleşik Ayet Gruplaması + Tam Genişlik Metin) */}
               <div className="space-y-3.5">
-                {bundle.segments.map((segment) => (
-                  <div key={`meal-seg-${bundle.pageNo}-${segment.surahMeta.no}`} className="space-y-2">
-                    {segment.startsAtAyah1 && (
-                      <div
-                        className="rounded-xl border px-3 py-1.5 flex items-center justify-between gap-2"
-                        style={{
-                          backgroundColor: 'var(--bg-surface-soft)',
-                          borderColor: 'var(--border-subtle)',
-                        }}
-                      >
-                        <span className="text-xs font-extrabold truncate">
-                          {segment.surahMeta.no}. {formatSurahTitle(segment.surahMeta.nameTr, segment.surahMeta.no)}
-                        </span>
-                        <span className="text-[11px] font-semibold shrink-0" style={{ color: 'var(--text-muted)' }}>
-                          {segment.surahMeta.ayahCount} Ayet
-                        </span>
-                      </div>
-                    )}
+                {bundle.segments.map((segment) => {
+                  const mealGroups = groupSegmentMealVerses(
+                    segment.verses,
+                    getPrimaryVerse,
+                    getSecondaryVerse,
+                    isDual,
+                    settings.showFootnotes,
+                    settings.highlightSajdah,
+                  );
 
-                    {segment.showBesmele && (
-                      <p
-                        className="turkish-reading text-xs sm:text-sm italic text-center font-semibold py-0.5"
-                        style={{ color: 'var(--brand-primary-text)' }}
-                      >
-                        {primaryMeal.id === 'm2' ? besmele.dib : besmele.tdv}
-                      </p>
-                    )}
+                  return (
+                    <div key={`meal-seg-${bundle.pageNo}-${segment.surahMeta.no}`} className="space-y-2">
+                      {segment.startsAtAyah1 && (
+                        <div
+                          className="rounded-xl border px-3 py-1.5 flex items-center justify-between gap-2"
+                          style={{
+                            backgroundColor: 'var(--bg-surface-soft)',
+                            borderColor: 'var(--border-subtle)',
+                          }}
+                        >
+                          <span className="text-xs font-extrabold truncate">
+                            {segment.surahMeta.no}. {formatSurahTitle(segment.surahMeta.nameTr, segment.surahMeta.no)}
+                          </span>
+                          <span className="text-[11px] font-semibold shrink-0" style={{ color: 'var(--text-muted)' }}>
+                            {segment.surahMeta.ayahCount} Ayet
+                          </span>
+                        </div>
+                      )}
 
-                    <div className="space-y-2">
-                      {segment.verses.map((v) => {
-                        const isSelected = selectedVerse?.id === v.id;
-                        const isPlaying = playingAyahId === v.id;
-                        const isFav = bookmarkedSet.has(v.id);
-                        const isSajdah = SAJDAH_AYAH_IDS.has(v.id) && settings.highlightSajdah;
-                        const pVerse = getPrimaryVerse(v);
-                        const sVerse = isDual ? getSecondaryVerse(v) : null;
-                        const primaryFootnotes =
-                          settings.showFootnotes && pVerse?.fn ? pVerse.fn : [];
-                        const secondaryFootnotes =
-                          settings.showFootnotes && isDual && sVerse?.fn ? sVerse.fn : [];
-                        const totalFootnotes = primaryFootnotes.length + secondaryFootnotes.length;
-                        const isFootnoteOpen = openFootnoteVerseId === v.id;
+                      {segment.showBesmele && (
+                        <p
+                          className="turkish-reading text-xs sm:text-sm italic text-center font-semibold py-0.5"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        >
+                          {primaryMeal.id === 'm2' ? besmele.dib : besmele.tdv}
+                        </p>
+                      )}
 
-                        return (
-                          <div
-                            key={`facing-meal-${v.id}`}
-                            id={`facing-meal-ayah-${v.id}`}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              sfxService.play('click');
-                              onSelectVerse(v);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                onSelectVerse(v);
-                              }
-                            }}
-                            className="group rounded-xl px-3 py-2.5 transition-colors cursor-pointer border"
-                            style={{
-                              backgroundColor: isPlaying
-                                ? 'var(--brand-primary-soft)'
-                                : isSelected
-                                  ? 'rgba(217, 119, 6, 0.12)'
-                                  : isSajdah
-                                    ? 'rgba(217, 119, 6, 0.07)'
-                                    : 'transparent',
-                              borderColor: isPlaying
-                                ? 'var(--brand-primary)'
-                                : isSelected
-                                  ? 'rgba(217, 119, 6, 0.4)'
-                                  : isSajdah
-                                    ? 'rgba(217, 119, 6, 0.38)'
-                                    : 'var(--border-subtle)',
-                            }}
-                          >
-                            <div className="flex flex-col gap-2 w-full">
-                              {/* Üst Başlık Satırı: Sol (12) ayet rozeti, Sağ kompakt aksiyon butonları */}
-                              <div className="flex items-center justify-between w-full gap-2">
-                                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                                  <span
-                                    className="inline-flex items-center justify-center min-w-[30px] h-6 px-1.5 rounded-lg text-[11px] font-extrabold tabular-nums shrink-0"
-                                    style={{
-                                      backgroundColor: isPlaying
-                                        ? 'var(--brand-primary)'
-                                        : isSelected || isSajdah
-                                          ? 'var(--brand-accent)'
-                                          : 'var(--bg-surface-soft)',
-                                      color:
-                                        isPlaying || isSelected || isSajdah
-                                          ? '#FFFFFF'
-                                          : 'var(--brand-primary-text)',
-                                    }}
-                                  >
-                                    ({v.ayah})
-                                  </span>
-                                  {isSajdah && (
+                      <div className="space-y-2">
+                        {mealGroups.map((group) => {
+                          const isMerged = group.verses.length > 1;
+                          const playingVerseInGroup =
+                            group.verses.find((v) => v.id === playingAyahId) ?? null;
+                          const selectedVerseInGroup =
+                            group.verses.find((v) => v.id === selectedVerse?.id) ?? null;
+                          const targetVerse =
+                            playingVerseInGroup ?? selectedVerseInGroup ?? group.verses[0];
+                          const isGroupPlaying = Boolean(playingVerseInGroup);
+                          const isGroupSelected = Boolean(selectedVerseInGroup);
+                          const isFav = bookmarkedSet.has(targetVerse.id);
+                          const isSajdah = group.hasSajdah;
+                          const totalFootnotes =
+                            group.primaryFootnotes.length + group.secondaryFootnotes.length;
+                          const isFootnoteOpen = openFootnoteKey === group.key;
+                          const rangeLabel = isMerged
+                            ? `(${group.startAyah}–${group.endAyah})`
+                            : `(${group.startAyah})`;
+                          const ayahIdsAttr = group.verses.map((v) => v.id).join(' ');
+
+                          const handleSelectGroupCard = () => {
+                            sfxService.play('click');
+                            onSelectVerse(targetVerse);
+                            if (isDoubleMeal) {
+                              syncRightMushafToVerse(targetVerse.id);
+                            }
+                          };
+
+                          return (
+                            <div
+                              key={`facing-meal-${group.key}`}
+                              id={`facing-meal-ayah-${group.verses[0].id}`}
+                              data-meal-ayahs={ayahIdsAttr}
+                              role="button"
+                              tabIndex={0}
+                              onClick={handleSelectGroupCard}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  handleSelectGroupCard();
+                                }
+                              }}
+                              className="group rounded-xl px-3 py-2.5 transition-colors cursor-pointer border"
+                              style={{
+                                backgroundColor: isGroupPlaying
+                                  ? 'var(--brand-primary-soft)'
+                                  : isGroupSelected
+                                    ? 'rgba(217, 119, 6, 0.12)'
+                                    : isSajdah
+                                      ? 'rgba(217, 119, 6, 0.07)'
+                                      : 'transparent',
+                                borderColor: isGroupPlaying
+                                  ? 'var(--brand-primary)'
+                                  : isGroupSelected
+                                    ? 'rgba(217, 119, 6, 0.4)'
+                                    : isSajdah
+                                      ? 'rgba(217, 119, 6, 0.38)'
+                                      : 'var(--border-subtle)',
+                              }}
+                            >
+                              <div className="flex flex-col gap-2 w-full">
+                                {/* Üst Başlık Satırı: Sol (1–5) / (12) ayet rozeti + alt ayet seçiciler, Sağ aksiyon butonları */}
+                                <div className="flex items-start justify-between w-full gap-2">
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                                     <span
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-extrabold whitespace-nowrap"
+                                      title={
+                                        group.mgRange &&
+                                        (group.mgRange[0] !== group.startAyah ||
+                                          group.mgRange[1] !== group.endAyah)
+                                          ? `Birleşik meal: ${group.mgRange[0]}–${group.mgRange[1]}. ayetler`
+                                          : isMerged
+                                            ? `${group.startAyah}–${group.endAyah}. ayetler (birleşik meal)`
+                                            : `${group.startAyah}. ayet`
+                                      }
+                                      className="inline-flex items-center justify-center min-w-[30px] h-6 px-1.5 rounded-lg text-[11px] font-extrabold tabular-nums shrink-0"
                                       style={{
-                                        backgroundColor: 'var(--brand-accent-soft)',
-                                        borderColor: 'rgba(217, 119, 6, 0.45)',
-                                        color: 'var(--brand-accent-text)',
+                                        backgroundColor: isGroupPlaying
+                                          ? 'var(--brand-primary)'
+                                          : isGroupSelected || isSajdah
+                                            ? 'var(--brand-accent)'
+                                            : 'var(--bg-surface-soft)',
+                                        color:
+                                          isGroupPlaying || isGroupSelected || isSajdah
+                                            ? '#FFFFFF'
+                                            : 'var(--brand-primary-text)',
                                       }}
                                     >
-                                      <span>۩</span>
-                                      <span>Tilâvet Secdesi</span>
+                                      {rangeLabel}
                                     </span>
-                                  )}
-                                </div>
 
-                                <div
-                                  className="flex items-center gap-0.5 shrink-0 opacity-85 group-hover:opacity-100"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => onPlayFromVerse(v, false)}
-                                    title="Bu ayetten dinle"
-                                    aria-label={`${v.ayah}. ayetten dinle`}
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
-                                    style={{ color: 'var(--brand-primary-text)' }}
-                                  >
-                                    <Play className="w-3.5 h-3.5 fill-current" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      sfxService.play('click');
-                                      openMealCompare(v.surah, v.ayah);
-                                    }}
-                                    title="24 Mealde Karşılaştır"
-                                    aria-label={`${v.ayah}. ayeti 24 mealde karşılaştır`}
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
-                                    style={{ color: 'var(--brand-primary-text)' }}
-                                  >
-                                    <Scale className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => onToggleBookmark(v.id)}
-                                    title={isFav ? 'Favorilerden çıkar' : 'Favorile'}
-                                    aria-label={isFav ? 'Favorilerden çıkar' : 'Favorile'}
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-amber-500/15 cursor-pointer"
-                                    style={{
-                                      color: isFav ? 'var(--brand-accent-text)' : 'var(--text-muted)',
-                                    }}
-                                  >
-                                    <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      sfxService.play('click');
-                                      onSelectVerse(v);
-                                      setIsVerseDrawerOpen(true);
-                                    }}
-                                    title="Dipnot, kelime meali ve ayet detayı"
-                                    aria-label={`${v.ayah}. ayet detayını aç`}
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
-                                    style={{ color: 'var(--text-muted)' }}
-                                  >
-                                    <Info className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Alt Metin Alanı: Kartın %100 Tam Genişliği (w-full) */}
-                              <div className="w-full space-y-1.5">
-                                {pVerse?.t ? (
-                                  <p
-                                    className="turkish-reading w-full leading-relaxed"
-                                    style={{
-                                      fontSize: `${settings.turkishFontSize}px`,
-                                      color: 'var(--text-primary)',
-                                    }}
-                                  >
-                                    {isDual && (
-                                      <span
-                                        className="font-extrabold mr-1.5 text-xs"
-                                        style={{ color: 'var(--brand-primary-text)' }}
+                                    {isMerged && (
+                                      <div
+                                        className="flex items-center gap-1 flex-wrap"
+                                        onClick={(e) => e.stopPropagation()}
                                       >
-                                        {primaryMeal.shortLabel}:
+                                        {group.verses.map((v) => {
+                                          const chipPlaying = playingAyahId === v.id;
+                                          const chipSelected = selectedVerse?.id === v.id;
+                                          return (
+                                            <button
+                                              key={`chip-${v.id}`}
+                                              type="button"
+                                              onClick={() => {
+                                                sfxService.play('click');
+                                                onSelectVerse(v);
+                                                if (isDoubleMeal) {
+                                                  syncRightMushafToVerse(v.id);
+                                                }
+                                              }}
+                                              title={`${v.ayah}. ayeti Mushaf'ta göster`}
+                                              className="min-w-[22px] h-5 px-1 rounded-md text-[10px] font-extrabold tabular-nums transition-colors cursor-pointer border"
+                                              style={{
+                                                backgroundColor: chipPlaying
+                                                  ? 'var(--brand-primary)'
+                                                  : chipSelected
+                                                    ? 'var(--brand-accent)'
+                                                    : 'var(--bg-surface-soft)',
+                                                borderColor: chipPlaying
+                                                  ? 'var(--brand-primary)'
+                                                  : chipSelected
+                                                    ? 'var(--brand-accent)'
+                                                    : 'var(--border-subtle)',
+                                                color:
+                                                  chipPlaying || chipSelected
+                                                    ? '#FFFFFF'
+                                                    : 'var(--text-secondary)',
+                                              }}
+                                            >
+                                              {v.ayah}
+                                            </button>
+                                          );
+                                        })}
+                                        {playingVerseInGroup && (
+                                          <span
+                                            className="inline-flex items-center px-1.5 h-5 rounded-md text-[10px] font-bold whitespace-nowrap"
+                                            style={{
+                                              backgroundColor: 'var(--bg-surface)',
+                                              color: 'var(--brand-primary-text)',
+                                            }}
+                                          >
+                                            Okunan: {playingVerseInGroup.ayah}. Ayet
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {isSajdah && (
+                                      <span
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-extrabold whitespace-nowrap"
+                                        style={{
+                                          backgroundColor: 'var(--brand-accent-soft)',
+                                          borderColor: 'rgba(217, 119, 6, 0.45)',
+                                          color: 'var(--brand-accent-text)',
+                                        }}
+                                      >
+                                        <span>۩</span>
+                                        <span>Tilâvet Secdesi</span>
                                       </span>
                                     )}
-                                    {pVerse.t}
-                                  </p>
-                                ) : isLoadingExtra ? (
-                                  <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
-                                ) : null}
+                                  </div>
 
-                                {isDual &&
-                                  (sVerse?.t ? (
-                                    <p
-                                      className="turkish-reading w-full leading-relaxed"
-                                      style={{
-                                        fontSize: `${settings.turkishFontSize}px`,
-                                        color: 'var(--text-secondary)',
-                                      }}
+                                  <div
+                                    className="flex items-center gap-0.5 shrink-0 opacity-85 group-hover:opacity-100"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() => onPlayFromVerse(targetVerse, false)}
+                                      title={`${targetVerse.ayah}. ayetten dinle`}
+                                      aria-label={`${targetVerse.ayah}. ayetten dinle`}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      style={{ color: 'var(--brand-primary-text)' }}
                                     >
-                                      <span
-                                        className="font-extrabold mr-1.5 text-xs"
-                                        style={{ color: 'var(--brand-accent-text)' }}
-                                      >
-                                        {secondaryMeal.shortLabel}:
-                                      </span>
-                                      {sVerse.t}
-                                    </p>
-                                  ) : isLoadingExtra ? (
-                                    <div className="h-4 w-3/4 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
-                                  ) : null)}
-
-                                {totalFootnotes > 0 && (
-                                  <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                                      <Play className="w-3.5 h-3.5 fill-current" />
+                                    </button>
                                     <button
                                       type="button"
                                       onClick={() => {
                                         sfxService.play('click');
-                                        setOpenFootnoteVerseId((prev) =>
-                                          prev === v.id ? null : v.id,
-                                        );
+                                        openMealCompare(targetVerse.surah, targetVerse.ayah);
                                       }}
-                                      aria-expanded={isFootnoteOpen}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold cursor-pointer transition-colors"
+                                      title={`${targetVerse.ayah}. ayeti 24 mealde karşılaştır`}
+                                      aria-label={`${targetVerse.ayah}. ayeti 24 mealde karşılaştır`}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      style={{ color: 'var(--brand-primary-text)' }}
+                                    >
+                                      <Scale className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onToggleBookmark(targetVerse.id)}
+                                      title={
+                                        isFav
+                                          ? `${targetVerse.ayah}. ayeti favorilerden çıkar`
+                                          : `${targetVerse.ayah}. ayeti favorile`
+                                      }
+                                      aria-label={isFav ? 'Favorilerden çıkar' : 'Favorile'}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-amber-500/15 cursor-pointer"
                                       style={{
-                                        backgroundColor: isFootnoteOpen
-                                          ? 'var(--brand-primary-soft)'
-                                          : 'var(--bg-surface-soft)',
-                                        borderColor: isFootnoteOpen
-                                          ? 'var(--brand-primary)'
-                                          : 'var(--border-subtle)',
-                                        color: 'var(--brand-primary-text)',
+                                        color: isFav
+                                          ? 'var(--brand-accent-text)'
+                                          : 'var(--text-muted)',
                                       }}
                                     >
-                                      <FileText className="w-3 h-3 shrink-0" />
-                                      <span>
-                                        {isFootnoteOpen
-                                          ? 'Dipnotu Gizle'
-                                          : `Dipnot (${totalFootnotes})`}
-                                      </span>
+                                      <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
                                     </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        sfxService.play('click');
+                                        onSelectVerse(targetVerse);
+                                        setIsVerseDrawerOpen(true);
+                                      }}
+                                      title={`${targetVerse.ayah}. ayet detayı, dipnot ve kelime meali`}
+                                      aria-label={`${targetVerse.ayah}. ayet detayını aç`}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      style={{ color: 'var(--text-muted)' }}
+                                    >
+                                      <Info className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
 
-                                    {isFootnoteOpen && (
-                                      <div
-                                        className="mt-1.5 w-full rounded-xl border p-2.5 space-y-1.5 text-xs leading-relaxed"
-                                        style={{
-                                          backgroundColor: 'var(--bg-surface-soft)',
-                                          borderColor: 'var(--border-subtle)',
-                                          color: 'var(--text-secondary)',
-                                        }}
-                                      >
-                                        {primaryFootnotes.map((fn, idx) => (
-                                          <p key={`pfn-${v.id}-${idx}`}>
-                                            <span
-                                              className="font-extrabold mr-1"
-                                              style={{ color: 'var(--brand-primary-text)' }}
-                                            >
-                                              [{primaryMeal.shortLabel} {idx + 1}]
-                                            </span>
-                                            {fn}
-                                          </p>
-                                        ))}
-                                        {secondaryFootnotes.map((fn, idx) => (
-                                          <p key={`sfn-${v.id}-${idx}`}>
-                                            <span
-                                              className="font-extrabold mr-1"
-                                              style={{ color: 'var(--brand-accent-text)' }}
-                                            >
-                                              [{secondaryMeal.shortLabel} {idx + 1}]
-                                            </span>
-                                            {fn}
+                                {/* Alt Metin Alanı: Birleşik ayetler tekrar etmeden tek kartta tam genişlikte */}
+                                <div className="w-full space-y-1.5">
+                                  {group.primaryText ? (
+                                    <p
+                                      className="turkish-reading w-full leading-relaxed"
+                                      style={{
+                                        fontSize: `${settings.turkishFontSize}px`,
+                                        color: 'var(--text-primary)',
+                                      }}
+                                    >
+                                      {isDual && (
+                                        <span
+                                          className="font-extrabold mr-1.5 text-xs"
+                                          style={{ color: 'var(--brand-primary-text)' }}
+                                        >
+                                          {primaryMeal.shortLabel}:
+                                        </span>
+                                      )}
+                                      {group.primaryText}
+                                    </p>
+                                  ) : isLoadingExtra ? (
+                                    <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                                  ) : null}
+
+                                  {isDual &&
+                                    (group.secondaryEntries.length > 0 ? (
+                                      <div className="space-y-1">
+                                        {group.secondaryEntries.map((entry, idx) => (
+                                          <p
+                                            key={`sec-${group.key}-${idx}`}
+                                            className="turkish-reading w-full leading-relaxed"
+                                            style={{
+                                              fontSize: `${settings.turkishFontSize}px`,
+                                              color: 'var(--text-secondary)',
+                                            }}
+                                          >
+                                            {idx === 0 && (
+                                              <span
+                                                className="font-extrabold mr-1.5 text-xs"
+                                                style={{ color: 'var(--brand-accent-text)' }}
+                                              >
+                                                {secondaryMeal.shortLabel}:
+                                              </span>
+                                            )}
+                                            {entry.ayahLabel && (
+                                              <span
+                                                className="font-bold mr-1 text-xs tabular-nums"
+                                                style={{ color: 'var(--brand-accent-text)' }}
+                                              >
+                                                {entry.ayahLabel}
+                                              </span>
+                                            )}
+                                            {entry.text}
                                           </p>
                                         ))}
                                       </div>
-                                    )}
-                                  </div>
-                                )}
+                                    ) : isLoadingExtra ? (
+                                      <div className="h-4 w-3/4 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                                    ) : null)}
+
+                                  {totalFootnotes > 0 && (
+                                    <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          sfxService.play('click');
+                                          setOpenFootnoteKey((prev) =>
+                                            prev === group.key ? null : group.key,
+                                          );
+                                        }}
+                                        aria-expanded={isFootnoteOpen}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold cursor-pointer transition-colors"
+                                        style={{
+                                          backgroundColor: isFootnoteOpen
+                                            ? 'var(--brand-primary-soft)'
+                                            : 'var(--bg-surface-soft)',
+                                          borderColor: isFootnoteOpen
+                                            ? 'var(--brand-primary)'
+                                            : 'var(--border-subtle)',
+                                          color: 'var(--brand-primary-text)',
+                                        }}
+                                      >
+                                        <FileText className="w-3 h-3 shrink-0" />
+                                        <span>
+                                          {isFootnoteOpen
+                                            ? 'Dipnotu Gizle'
+                                            : `Dipnot (${totalFootnotes})`}
+                                        </span>
+                                      </button>
+
+                                      {isFootnoteOpen && (
+                                        <div
+                                          className="mt-1.5 w-full rounded-xl border p-2.5 space-y-1.5 text-xs leading-relaxed"
+                                          style={{
+                                            backgroundColor: 'var(--bg-surface-soft)',
+                                            borderColor: 'var(--border-subtle)',
+                                            color: 'var(--text-secondary)',
+                                          }}
+                                        >
+                                          {group.primaryFootnotes.map((fn, idx) => (
+                                            <p key={`pfn-${group.key}-${idx}`}>
+                                              <span
+                                                className="font-extrabold mr-1"
+                                                style={{ color: 'var(--brand-primary-text)' }}
+                                              >
+                                                [{primaryMeal.shortLabel} {idx + 1}]
+                                              </span>
+                                              {fn}
+                                            </p>
+                                          ))}
+                                          {group.secondaryFootnotes.map((fn, idx) => (
+                                            <p key={`sfn-${group.key}-${idx}`}>
+                                              <span
+                                                className="font-extrabold mr-1"
+                                                style={{ color: 'var(--brand-accent-text)' }}
+                                              >
+                                                [{secondaryMeal.shortLabel} {idx + 1}]
+                                              </span>
+                                              {fn}
+                                            </p>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            </div>
 
-            {/* Alt Bilgi */}
-            <div
-              className="mt-4 pt-2 border-t flex items-center justify-between gap-2 text-[11px] font-semibold"
-              style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
-            >
-              <span>Senkronize Meal Sayfası</span>
-              <span className="tabular-nums">Sayfa {bundle.pageNo}</span>
+              {/* Alt Bilgi */}
+              <div
+                className="mt-4 pt-2 border-t flex items-center justify-between gap-2 text-[11px] font-semibold shrink-0"
+                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
+              >
+                <span>Senkronize Meal Sayfası</span>
+                <span className="tabular-nums">Sayfa {bundle.pageNo}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1132,24 +1683,34 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       {/* ====================================================================
           ANA ALAN: Gerçekçi Mushaf Kitap Çerçevesi
           - Tek Sayfa: Odaklı ortalanmış Mushaf yaprağı (tıklanan ayet DraggableVerseInspector açar)
-          - 2 Sayfa: Yan yana 2 Arapça Mushaf yaprağı (lg+)
-          - Mushaf + Meal: Sağ Mushaf · Sol Senkronize Meal yaprağı (lg+, ◫ ile tek tıkla Tek Sayfa'ya döner)
+          - 2 Sayfa: Yan yana 2 bağımsız kaydırılabilir Arapça Mushaf yaprağı (lg+)
+          - Mushaf + Meal: Sağ Mushaf · Sol Bağımsız Kaydırılabilir Senkronize Meal yaprağı (lg+)
           ==================================================================== */}
       <div
-        className={isBookSpread ? 'space-y-3' : 'max-w-3xl mx-auto w-full space-y-3'}
+        className={
+          isBookSpread
+            ? `space-y-3 lg:flex lg:flex-col lg:gap-2.5 lg:space-y-0 lg:overflow-hidden ${
+                isAudioBarVisible
+                  ? 'lg:h-[calc(100dvh-13.25rem)] lg:min-h-[420px]'
+                  : 'lg:h-[calc(100dvh-8.75rem)] lg:min-h-[480px]'
+              }`
+            : 'max-w-3xl mx-auto w-full space-y-3'
+        }
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         {isMealOnly ? (
           isDoubleMushaf && secondPageBundle ? (
-            <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5">
-              <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch">
+            <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
+              <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch lg:flex-1 lg:min-h-0">
                 <div
                   aria-hidden="true"
                   className="hidden lg:block pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-8 z-10 mushaf-spine-seam"
                 />
-                <div>{renderFacingMealLeaf(pageBundle, 'left')}</div>
-                <div>{renderFacingMealLeaf(secondPageBundle, 'right')}</div>
+                <div className="lg:h-full lg:min-h-0">{renderFacingMealLeaf(pageBundle, 'left')}</div>
+                <div className="lg:h-full lg:min-h-0">
+                  {renderFacingMealLeaf(secondPageBundle, 'right')}
+                </div>
               </div>
             </div>
           ) : (
@@ -1159,30 +1720,34 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           )
         ) : isDoubleMushaf && secondPageBundle ? (
           /* AÇIK MUSHAF YAYILIMI (2 Sayfa Arapça): Gerçek RTL kitap açılımı — SAĞDA pageNo, SOLDA pageNo+1 */
-          <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5">
-            <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch">
+          <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
+            <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch lg:flex-1 lg:min-h-0">
               <div
                 aria-hidden="true"
                 className="hidden lg:block pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-8 z-10 mushaf-spine-seam"
               />
-              <div className="order-2 lg:order-1">
+              <div className="order-2 lg:order-1 lg:h-full lg:min-h-0">
                 {renderMushafLeaf(secondPageBundle, 'left')}
               </div>
-              <div className="order-1 lg:order-2">
+              <div className="order-1 lg:order-2 lg:h-full lg:min-h-0">
                 {renderMushafLeaf(pageBundle, 'right')}
               </div>
             </div>
           </div>
         ) : isDoubleMeal ? (
-          /* SAĞ MUSHAF · SOL MEAL AÇIK KİTAP YAYILIMI */
-          <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5">
-            <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch">
+          /* SAĞ MUSHAF · SOL MEAL AÇIK KİTAP YAYILIMI (Bağımsız Kaydırılabilir Paneller) */
+          <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
+            <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch lg:flex-1 lg:min-h-0">
               <div
                 aria-hidden="true"
                 className="hidden lg:block pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-8 z-10 mushaf-spine-seam"
               />
-              <div className="order-2 lg:order-1">{renderFacingMealLeaf(pageBundle, 'left')}</div>
-              <div className="order-1 lg:order-2">{renderMushafLeaf(pageBundle, 'right')}</div>
+              <div className="order-2 lg:order-1 lg:h-full lg:min-h-0">
+                {renderFacingMealLeaf(pageBundle, 'left')}
+              </div>
+              <div className="order-1 lg:order-2 lg:h-full lg:min-h-0">
+                {renderMushafLeaf(pageBundle, 'right')}
+              </div>
             </div>
           </div>
         ) : (
@@ -1193,7 +1758,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
         )}
 
         {/* Sade Sayfa Geçiş Kontrolleri + Ayet İncele Tetikleyicisi */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 shrink-0">
           <button
             type="button"
             disabled={!canGoNext}
