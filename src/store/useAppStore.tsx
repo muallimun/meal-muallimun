@@ -190,7 +190,7 @@ function createDefaultAudioPlaylists(): AudioPlaylist[] {
     },
     {
       id: 'preset_sifa_korunma',
-      name: 'Şifa & Korunma Aşırları',
+      name: 'Seçme Aşırlar',
       isPreset: true,
       createdAt: now,
       updatedAt: now,
@@ -676,8 +676,10 @@ function hydrateState(): PersistedAppState {
             : `pl_${cleaned.length}_${Date.now()}`;
         if (seenPlaylistIds.has(plId)) continue;
         seenPlaylistIds.add(plId);
-        const name =
+        const rawName =
           typeof pl.name === 'string' && pl.name.trim() ? pl.name.trim() : 'Çalma Listesi';
+        const name =
+          plId === 'preset_sifa_korunma' && /Korunma/i.test(rawName) ? 'Seçme Aşırlar' : rawName;
         const rawItems = Array.isArray(pl.items) ? pl.items : [];
         const items: AudioPlaylistItem[] = [];
         for (let idx = 0; idx < rawItems.length; idx += 1) {
