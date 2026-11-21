@@ -9,7 +9,9 @@ import {
   X,
 } from 'lucide-react';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
+import type { SurahExtraInfo } from '../../types/fihrist';
 import type {
   AppSettings,
   BesmeleInfo,
@@ -81,6 +83,24 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   const [filterMode, setFilterMode] = useState<CardFilterMode>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const [surahExtraInfo, setSurahExtraInfo] = useState<SurahExtraInfo | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    dataService
+      .getSurahInfoExtrasMap()
+      .then((map) => {
+        if (!cancelled) {
+          setSurahExtraInfo(map.get(surahMeta.no) ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSurahExtraInfo(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [surahMeta.no]);
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -523,6 +543,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                 <VerseCard
                   verse={verse}
                   surahMeta={surahMeta}
+                  surahExtraInfo={surahExtraInfo}
                   settings={settings}
                   globalWordMode={wordMode}
                   contentMode={contentMode}

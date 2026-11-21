@@ -7,6 +7,7 @@ import {
   BookOpen,
   Check,
   CheckCircle2,
+  Compass,
   Flame,
   Layers,
   ListMusic,
@@ -740,6 +741,53 @@ export const HomePage: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* ====================================================================
+          1.9. Fihrist & Araştırma Merkezi Hızlı Erişim Kartı
+          ==================================================================== */}
+      <section aria-label="Fihrist ve Araştırma Merkezi">
+        <div
+          className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          style={{ borderColor: 'var(--border-subtle)' }}
+        >
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <Compass className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-extrabold tracking-tight">
+                Fihrist &amp; Araştırma
+              </h3>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                601 Konu · 114 Sure Künyesi · Nüzul Kronolojisi
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setActiveTab('fihrist');
+            }}
+            className="min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer whitespace-nowrap"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-strong)',
+              color: 'var(--brand-primary-text)',
+            }}
+          >
+            <span>Fihristi Aç</span>
+            <ArrowRight className="w-4 h-4 shrink-0" />
+          </button>
+        </div>
+      </section>
 
       {/* ====================================================================
           2. Ana 2-Sütunlu Alan: Aktif Çalışma Havuzu + Rastgele Ayet Önizleme

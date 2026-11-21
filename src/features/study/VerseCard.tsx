@@ -7,6 +7,7 @@ import {
   ChevronUp,
   Copy,
   Headphones,
+  Info,
   Languages,
   Link2,
   ListPlus,
@@ -32,11 +33,13 @@ import type {
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
+import type { SurahExtraInfo } from '../../types/fihrist';
 import { WordMealGrid } from './WordMealGrid';
 
 interface VerseCardProps {
   verse: CombinedVerse;
   surahMeta: SurahMeta;
+  surahExtraInfo?: SurahExtraInfo | null;
   settings: AppSettings;
   globalWordMode: WordMealMode;
   contentMode?: BookContentMode;
@@ -58,6 +61,7 @@ interface VerseCardProps {
 export const VerseCard: React.FC<VerseCardProps> = ({
   verse,
   surahMeta,
+  surahExtraInfo = null,
   settings,
   globalWordMode,
   contentMode = 'interleaved',
@@ -109,6 +113,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   const [expandedMergedSecondary, setExpandedMergedSecondary] = useState(false);
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showNuzulNote, setShowNuzulNote] = useState(false);
 
   const resolvedPrimaryMeal = primaryMeal ?? findMealById(settings.primaryMealId, manifest);
   const resolvedSecondaryMeal = secondaryMeal ?? findMealById(settings.secondaryMealId, manifest);
@@ -130,6 +135,14 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 
   const isMuqattaat = Boolean(verse.ar.mq);
   const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
+  const isMedeniExceptionAyah = Boolean(
+    surahExtraInfo?.medeniAyahs?.some(([s, e]) => verse.ayah >= s && verse.ayah <= e),
+  );
+  const matchingNuzulNote =
+    surahExtraInfo?.nuzulNote &&
+    surahExtraInfo.nuzulNoteRanges?.some(([s, e]) => verse.ayah >= s && verse.ayah <= e)
+      ? surahExtraInfo.nuzulNote
+      : null;
 
   const showWordGrid =
     settings.wordByWordEnabled &&
@@ -369,6 +382,38 @@ export const VerseCard: React.FC<VerseCardProps> = ({
               <span className="text-sm leading-none">۩</span>
               <span>Tilâvet Secdesi</span>
             </span>
+          )}
+          {isMedeniExceptionAyah && (
+            <span
+              title="1381 Mısır baskısı / İbn Abdi'l-Kâfî rivayetine göre Mekkî suredeki Medenî ayet"
+              className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                borderColor: 'rgba(217, 119, 6, 0.35)',
+                color: 'var(--brand-accent-text)',
+              }}
+            >
+              Medenî Ayet
+            </span>
+          )}
+          {matchingNuzulNote && (
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setShowNuzulNote((prev) => !prev);
+              }}
+              title={matchingNuzulNote}
+              className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border whitespace-nowrap cursor-pointer transition-opacity hover:opacity-85"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                borderColor: 'rgba(15, 118, 110, 0.3)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <Info className="w-3 h-3 shrink-0" />
+              <span>Nüzul Notu</span>
+            </button>
           )}
         </div>
 
@@ -613,6 +658,26 @@ export const VerseCard: React.FC<VerseCardProps> = ({
           </div>
         </div>
       </div>
+
+      {matchingNuzulNote && showNuzulNote && (
+        <div
+          className="mb-3.5 px-3 py-2 rounded-xl border text-xs flex items-start gap-2 leading-relaxed"
+          style={{
+            backgroundColor: 'var(--brand-primary-soft)',
+            borderColor: 'rgba(15, 118, 110, 0.25)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          <Info
+            className="w-3.5 h-3.5 shrink-0 mt-0.5"
+            style={{ color: 'var(--brand-primary-text)' }}
+          />
+          <span>
+            <strong style={{ color: 'var(--brand-primary-text)' }}>Nüzul Notu: </strong>
+            {matchingNuzulNote}
+          </span>
+        </div>
+      )}
 
       {/* Arapça Metin (Sadece Meal veya Odaklı Sesli Meal modunda gizlenir) */}
       {!mealAudioFocusOnly && contentMode !== 'meal_only' && (

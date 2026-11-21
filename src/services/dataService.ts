@@ -32,6 +32,12 @@ import type {
   SurahBundle,
   WordSurahFile,
 } from '../types/quran';
+import type {
+  BazerganTimelineFile,
+  FihristTopicsFile,
+  SurahExtraInfo,
+  SurahInfoExtrasFile,
+} from '../types/fihrist';
 
 export type DataSourceMode = 'local' | 'remote' | 'demo';
 
@@ -93,12 +99,15 @@ export function getActiveDataSource(): DataSourceMode {
   return demoMode ? 'demo' : activeSourceMode;
 }
 
+let surahInfoExtrasMapCache: Map<number, SurahExtraInfo> | null = null;
+
 export function enableDemoMode(): void {
   demoMode = true;
   activeSourceMode = 'demo';
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
+  surahInfoExtrasMapCache = null;
   extraMealsSurahMap.clear();
   extraMealsRawCache.clear();
   extraMealsInflight.clear();
@@ -111,6 +120,7 @@ export function disableDemoMode(): void {
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
+  surahInfoExtrasMapCache = null;
   extraMealsSurahMap.clear();
   extraMealsRawCache.clear();
   extraMealsInflight.clear();
@@ -121,6 +131,7 @@ export function clearDataCache(): void {
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
+  surahInfoExtrasMapCache = null;
   extraMealsSurahMap.clear();
   extraMealsRawCache.clear();
   extraMealsInflight.clear();
@@ -129,7 +140,9 @@ export function clearDataCache(): void {
 
 function getCandidateBaseUrls(): string[] {
   if (resolvedBaseUrl) {
-    return [resolvedBaseUrl];
+    return resolvedBaseUrl === LOCAL_DATA_BASE_URL
+      ? [LOCAL_DATA_BASE_URL, LIVE_DATA_BASE_URL]
+      : [resolvedBaseUrl, LOCAL_DATA_BASE_URL];
   }
   if (HAS_CUSTOM_DATA_BASE_URL) {
     return [DATA_BASE_URL, LOCAL_DATA_BASE_URL];
@@ -688,6 +701,77 @@ export async function getPageBundle(pageNo: number): Promise<PageBundle> {
   };
 }
 
+const EMPTY_FIHRIST_TOPICS_FILE: FihristTopicsFile = {
+  version: '1.0',
+  source: 'Alfabetik Konu Fihristi',
+  totalTopics: 0,
+  topics: [],
+};
+
+const EMPTY_SURAH_INFO_EXTRAS_FILE: SurahInfoExtrasFile = {
+  version: '1.0',
+  sources: {
+    nuzul: '',
+    medeniExceptions: '',
+    historicalNotes: '',
+    noldeke: '',
+    meanings: '',
+  },
+  totalSurahs: 0,
+  surahs: [],
+};
+
+const EMPTY_BAZERGAN_TIMELINE_FILE: BazerganTimelineFile = {
+  version: '1.0',
+  source: 'Mehdi Bazergan — Seyr-i Tahavvül-i Kur’ân',
+  methodologyNote:
+    'Bu kronoloji klasik nüzul rivayetlerinden farklı olarak ayet uzunluğu ve üslup istatistiğine dayanan modern bir tahmindir; akademik karşılaştırma amacıyla sunulmuştur.',
+  totalYears: 0,
+  totalEntries: 0,
+  years: [],
+};
+
+export async function getFihristTopics(): Promise<FihristTopicsFile> {
+  try {
+    return await fetchJsonWithFallback<FihristTopicsFile>('fihrist/topics.json');
+  } catch {
+    return EMPTY_FIHRIST_TOPICS_FILE;
+  }
+}
+
+export async function getSurahInfoExtras(): Promise<SurahInfoExtrasFile> {
+  try {
+    return await fetchJsonWithFallback<SurahInfoExtrasFile>('fihrist/surah_info.json');
+  } catch {
+    return EMPTY_SURAH_INFO_EXTRAS_FILE;
+  }
+}
+
+export async function getSurahInfoExtrasMap(): Promise<Map<number, SurahExtraInfo>> {
+  if (surahInfoExtrasMapCache && surahInfoExtrasMapCache.size > 0) {
+    return surahInfoExtrasMapCache;
+  }
+  const file = await getSurahInfoExtras();
+  const map = new Map<number, SurahExtraInfo>();
+  for (const s of file.surahs ?? []) {
+    if (Number.isInteger(s.no)) {
+      map.set(s.no, s);
+    }
+  }
+  if (map.size > 0) {
+    surahInfoExtrasMapCache = map;
+  }
+  return map;
+}
+
+export async function getBazerganTimeline(): Promise<BazerganTimelineFile> {
+  try {
+    return await fetchJsonWithFallback<BazerganTimelineFile>('fihrist/bazergan_timeline.json');
+  } catch {
+    return EMPTY_BAZERGAN_TIMELINE_FILE;
+  }
+}
+
 export const dataService = {
   getManifest,
   getMeta,
@@ -708,6 +792,10 @@ export const dataService = {
   findPageForSurahAyah,
   findFirstLocationForJuz,
   resolvePlaylistItemStartLocation,
+  getFihristTopics,
+  getSurahInfoExtras,
+  getSurahInfoExtrasMap,
+  getBazerganTimeline,
   enableDemoMode,
   disableDemoMode,
   isDemoMode,

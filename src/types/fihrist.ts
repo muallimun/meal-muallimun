@@ -1,5 +1,6 @@
 // ============================================================================
-// Alfabetik Konu Fihristi & Kişisel Araştırma Defteri Veri Şemaları
+// Alfabetik Konu Fihristi, Sure & Nüzul Rehberi, Bazergan Kronolojisi ve
+// Kişisel Araştırma Defteri Veri Şemaları
 // ============================================================================
 
 export const TURKISH_FIHRIST_LETTERS = [
@@ -41,16 +42,97 @@ export interface FihristTopic {
   id: string;
   letter: string;
   title: string;
+  refs: FihristRefTuple[];
   tags?: string[];
   seeAlso?: string;
-  refs: FihristRefTuple[];
+}
+
+export interface FihristTopicsFile {
+  version: string;
+  source: string;
+  totalTopics: number;
+  topics: FihristTopic[];
 }
 
 export interface FihristTopicsPayload {
   version?: string;
+  source?: string;
   updatedAt?: string;
+  totalTopics?: number;
   topics: FihristTopic[];
 }
+
+// ============================================================================
+// 114 Sure — Türkçe Anlamlar, Nüzul Sıraları ve Medenî İstisna Ayetler
+// ============================================================================
+
+export interface SurahNuzulInfo {
+  osman: number;
+  ibnAbbas: number;
+  noldekeRank: number;
+  noldekePeriod: string;
+}
+
+export interface SurahExtraInfo {
+  no: number;
+  nameTr: string;
+  meaningTr: string;
+  type: 'Mekkî' | 'Medenî' | string;
+  ayahCount: number;
+  nuzul: SurahNuzulInfo;
+  /** Sadece 35 Mekkî surede bulunan Medenî ayet aralıkları [startAyah, endAyah] */
+  medeniAyahs?: [number, number][];
+  /** Bilinen nüzul tarihi notu */
+  nuzulNote?: string;
+  /** Nota ait özel ayet aralıkları [startAyah, endAyah] */
+  nuzulNoteRanges?: [number, number][];
+}
+
+export interface SurahInfoExtrasSources {
+  nuzul: string;
+  medeniExceptions: string;
+  historicalNotes: string;
+  noldeke: string;
+  meanings: string;
+}
+
+export interface SurahInfoExtrasFile {
+  version: string;
+  sources: SurahInfoExtrasSources;
+  totalSurahs: number;
+  surahs: SurahExtraInfo[];
+}
+
+// ============================================================================
+// Mehdi Bazergan — 24 Yıl / 213 Kayıt Vahiy Kronolojisi
+// ============================================================================
+
+export interface BazerganEntry {
+  order: number;
+  surah: number;
+  surahName: string;
+  label: string;
+  ranges: [number, number][];
+}
+
+export interface BazerganYearGroup {
+  year: string;
+  phase: 'Mekke' | 'Medine';
+  entries: BazerganEntry[];
+}
+
+export interface BazerganTimelineFile {
+  version: string;
+  source: string;
+  methodologyNote: string;
+  totalYears: number;
+  totalEntries: number;
+  years: BazerganYearGroup[];
+}
+
+// ============================================================================
+// Fihrist Görünüm / Yazdırma ve Kişisel Araştırma Defteri Tipleri
+// ============================================================================
 
 export type FihristViewMode = 'index' | 'ar' | 'meal' | 'ar_meal';
 

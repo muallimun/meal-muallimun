@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { BookOpen, Info, X } from 'lucide-react';
+import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
+import type { SurahExtraInfo } from '../../types/fihrist';
 import type { SurahMeta } from '../../types/quran';
 import { formatNumberTr } from '../../utils/poolUtils';
 import { formatSafeArabicTitle } from '../../utils/arabicUtils';
@@ -22,6 +24,7 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({ surah, onClose }
     : [];
 
   const [activeKey, setActiveKey] = useState<InfoSectionKey>('hakkinda');
+  const [extraInfo, setExtraInfo] = useState<SurahExtraInfo | null>(null);
 
   useEffect(() => {
     if (sections.length > 0 && !sections.some((s) => s.key === activeKey)) {
@@ -29,6 +32,27 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({ surah, onClose }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [surah?.no]);
+
+  useEffect(() => {
+    if (!surah) {
+      setExtraInfo(null);
+      return;
+    }
+    let cancelled = false;
+    dataService
+      .getSurahInfoExtrasMap()
+      .then((map) => {
+        if (!cancelled) {
+          setExtraInfo(map.get(surah.no) ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setExtraInfo(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [surah]);
 
   useEffect(() => {
     if (!surah) return;
@@ -122,6 +146,70 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({ surah, onClose }
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Sure Künyesi Özeti (surah_info.json) */}
+        {extraInfo && (
+          <div
+            className="px-5 py-3 border-b space-y-1.5 text-xs shrink-0"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                Sure Künyesi:
+              </span>
+              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {extraInfo.meaningTr}
+              </span>
+            </div>
+
+            <div
+              className="flex flex-wrap items-center gap-x-2 gap-y-0.5 tabular-nums"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <span className="font-bold" style={{ color: 'var(--text-muted)' }}>
+                Nüzul Sıraları:
+              </span>
+              <span>Hz. Osman #{extraInfo.nuzul.osman}</span>
+              <span style={{ color: 'var(--text-muted)' }}>·</span>
+              <span>İbn Abbas #{extraInfo.nuzul.ibnAbbas}</span>
+              <span style={{ color: 'var(--text-muted)' }}>·</span>
+              <span>
+                Nöldeke #{extraInfo.nuzul.noldekeRank} ({extraInfo.nuzul.noldekePeriod})
+              </span>
+            </div>
+
+            {extraInfo.medeniAyahs && extraInfo.medeniAyahs.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span
+                  className="font-bold"
+                  style={{ color: 'var(--brand-accent-text)' }}
+                >
+                  Medenî İstisna Ayetler:
+                </span>
+                <span
+                  className="tabular-nums font-semibold"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {extraInfo.medeniAyahs
+                    .map(([s, e]) => (s === e ? `${s}` : `${s}–${e}`))
+                    .join(', ')}
+                </span>
+              </div>
+            )}
+
+            {extraInfo.nuzulNote && (
+              <p className="leading-relaxed pt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                <span className="font-bold" style={{ color: 'var(--text-muted)' }}>
+                  Nüzul Notu:{' '}
+                </span>
+                {extraInfo.nuzulNote}
+              </p>
+            )}
+          </div>
+        )}
 
         {sections.length > 1 && (
           <div

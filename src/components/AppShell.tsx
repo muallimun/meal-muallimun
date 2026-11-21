@@ -3,8 +3,8 @@ import {
   AlertTriangle,
   BookMarked,
   BookOpen,
-  BookText,
   Bookmark,
+  Compass,
   Flame,
   Home,
   Layers,
@@ -43,15 +43,12 @@ const NAV_ITEMS: NavItemConfig[] = [
     label: 'Fihrist & Araştırma',
     shortLabel: 'Fihrist',
     mobileLabel: 'Fihrist',
-    icon: BookText,
+    icon: Compass,
   },
   { id: 'memorize', label: 'Ezber Modu', shortLabel: 'Ezber', mobileLabel: 'Ezber', icon: BookMarked },
   { id: 'exam', label: 'Sınav Merkezi', shortLabel: 'Sınav', mobileLabel: 'Sınav', icon: Trophy },
   { id: 'mistakes', label: 'Hata Kampı', shortLabel: 'Hata', mobileLabel: 'Hata', icon: RotateCcw },
 ];
-
-// Mobilde alt bar 5 ferah sekme dengesinde kalır (Hata Kampı'na Sınav Merkezi üst çubuğundan ve Ana Sayfa kartından ulaşılır)
-const MOBILE_NAV_ITEMS: NavItemConfig[] = NAV_ITEMS.filter((item) => item.id !== 'mistakes');
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -384,7 +381,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               {isSidebarCollapsed && (
                 <nav
                   aria-label="Hızlı masaüstü menü"
-                  className="hidden lg:flex items-center gap-0.5 pl-1 border-l"
+                  className="hidden lg:flex items-center gap-0.5 pl-1.5 border-l min-w-0 overflow-x-auto no-scrollbar"
                   style={{ borderColor: 'var(--border-subtle)' }}
                 >
                   {NAV_ITEMS.map((item) => {
@@ -395,7 +392,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                         key={item.id}
                         type="button"
                         onClick={() => handleRequestTab(item.id)}
-                        className="min-h-[34px] px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                        className="min-h-[34px] px-2 xl:px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
                         style={{
                           backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
                           color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -645,7 +642,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       </div>
 
       {/* ====================================================================
-          Mobil Alt Sabit Navigasyon Çubuğu (5 Sekme — 360px taşmasız uyum)
+          Mobil Alt Sabit Navigasyon Çubuğu (6 Sekme — 360px taşmasız uyum)
           ==================================================================== */}
       {!isExamActive && !isMemorizationZenActive && !isMobileReaderImmersive && (
         <nav
@@ -656,40 +653,39 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="grid grid-cols-5 h-15 max-w-lg mx-auto px-0.5">
-            {MOBILE_NAV_ITEMS.map((item) => {
+          <div className="grid grid-cols-6 h-15 max-w-lg mx-auto px-0.5">
+            {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const isActive =
-                activeTab === item.id || (item.id === 'exam' && activeTab === 'mistakes');
+              const isActive = activeTab === item.id;
               const mistakeCount =
-                item.id === 'exam' ? gamification.wrongQuestionIds.length : 0;
+                item.id === 'mistakes' ? gamification.wrongQuestionIds.length : 0;
 
               return (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => handleRequestTab(item.id)}
-                  className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-0 px-0.5 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
+                  className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-0 px-0 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
                   style={{
                     color: isActive ? 'var(--brand-primary-text)' : 'var(--text-muted)',
                   }}
                 >
                   {isActive && (
                     <span
-                      className="absolute top-0 left-1/2 -translate-x-1/2 w-7 h-0.5 rounded-full"
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
                       style={{ backgroundColor: 'var(--brand-primary)' }}
                     />
                   )}
-                  <Icon className="w-[19px] h-[19px] shrink-0" />
+                  <Icon className="w-[18px] h-[18px] shrink-0" />
                   {mistakeCount > 0 && (
                     <span
-                      className="absolute top-1 right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-extrabold tabular-nums flex items-center justify-center leading-none pointer-events-none"
-                      style={{ boxShadow: '0 0 0 2px var(--bg-nav)' }}
+                      className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-red-500 text-white text-[9px] font-extrabold tabular-nums flex items-center justify-center leading-none pointer-events-none"
+                      style={{ boxShadow: '0 0 0 1.5px var(--bg-nav)' }}
                     >
                       {mistakeCount > 99 ? '99+' : mistakeCount}
                     </span>
                   )}
-                  <span className="text-[10px] sm:text-[11px] font-semibold tracking-tight whitespace-nowrap truncate max-w-full">
+                  <span className="text-[9.5px] sm:text-[11px] font-semibold leading-tight tracking-tight truncate max-w-full">
                     {item.mobileLabel}
                   </span>
                 </button>
