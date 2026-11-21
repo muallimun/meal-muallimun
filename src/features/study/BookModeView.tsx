@@ -528,34 +528,56 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             </p>
           </button>
 
-          {bundle.hasBesmele && !onlyFavorites && (
-            <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]/70">
-              {bookMode !== 'meal_only' && (
-                <p
-                  className={`${settings.tajweedEnabled && tjBesmele ? 'arabic-tajweed' : 'arabic-text'} text-center text-[var(--text-primary)]`}
-                  style={{ fontSize: `${Math.max(22, settings.arabicFontSize - 2)}px` }}
-                >
-                  <SyncedVerseArabic
-                    text={besmeleAr}
-                    surahNo={bundle.surahMeta.no}
-                    ayahNo={1}
-                    isPlaying={Boolean(playingAyahId && bundle.verses[0]?.id === playingAyahId)}
-                    wordSyncEnabled={settings.wordSyncEnabled}
-                    useTajweed={Boolean(settings.tajweedEnabled && tjBesmele)}
-                    tajweedWords={tjBesmele}
-                    tajweedRules={tjRules}
-                    theme={settings.theme}
-                    isBesmele
-                  />
-                </p>
-              )}
-              {bookMode === 'meal_only' && (
-                <p className="turkish-reading text-sm font-semibold italic text-[var(--text-secondary)]">
-                  Rahmân ve Rahîm olan Allah’ın adıyla.
-                </p>
-              )}
-            </div>
-          )}
+          {bundle.hasBesmele && !onlyFavorites && (() => {
+            const isBesmelePlaying = Boolean(
+              playingAyahId &&
+                bundle.verses[0]?.id === playingAyahId &&
+                audioState.activePhase === 'besmele',
+            );
+            const softPlayingBg =
+              settings.theme === 'dark'
+                ? 'rgba(45, 212, 191, 0.13)'
+                : 'rgba(13, 148, 136, 0.10)';
+            return (
+              <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]/70">
+                {bookMode !== 'meal_only' && (
+                  <p
+                    className={`${settings.tajweedEnabled && tjBesmele ? 'arabic-tajweed' : 'arabic-text'} text-center text-[var(--text-primary)] rounded-xl px-2 py-0.5 transition-colors`}
+                    style={{
+                      fontSize: `${Math.max(22, settings.arabicFontSize - 2)}px`,
+                      backgroundColor:
+                        isBesmelePlaying && !audioState.isWordSyncActive
+                          ? softPlayingBg
+                          : 'transparent',
+                    }}
+                  >
+                    <SyncedVerseArabic
+                      text={besmeleAr}
+                      surahNo={bundle.surahMeta.no}
+                      ayahNo={1}
+                      isPlaying={isBesmelePlaying}
+                      wordSyncEnabled={settings.wordSyncEnabled}
+                      useTajweed={Boolean(settings.tajweedEnabled && tjBesmele)}
+                      tajweedWords={tjBesmele}
+                      tajweedRules={tjRules}
+                      theme={settings.theme}
+                      isBesmele
+                    />
+                  </p>
+                )}
+                {bookMode === 'meal_only' && (
+                  <p
+                    className="turkish-reading text-sm font-semibold italic text-[var(--text-secondary)] rounded-lg px-2 py-1 transition-colors"
+                    style={{
+                      backgroundColor: isBesmelePlaying ? softPlayingBg : 'transparent',
+                    }}
+                  >
+                    Rahmân ve Rahîm olan Allah’ın adıyla.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </header>
 
         {/* Kitap İçeriği */}
@@ -590,7 +612,8 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     style={{ fontSize: `${settings.arabicFontSize}px` }}
                   >
                     {visibleVerses.map((verse) => {
-                      const isPlaying = playingAyahId === verse.id;
+                      const isPlaying =
+                        playingAyahId === verse.id && audioState.activePhase !== 'besmele';
                       const isSelected = selectedArabicAyahId === verse.id;
                       const isBookmarked = bookmarkedSet.has(verse.id);
                       const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
@@ -601,6 +624,10 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                         ? getTjVerseWords(verse.surah, verse.ayah)
                         : null;
                       const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
+                      const softPlayingBg =
+                        settings.theme === 'dark'
+                          ? 'rgba(45, 212, 191, 0.13)'
+                          : 'rgba(13, 148, 136, 0.10)';
                       return (
                         <span
                           key={verse.id}
@@ -628,13 +655,22 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           }}
                           className={`inline rounded-xl px-1.5 py-0.5 transition-colors cursor-pointer ${
                             isPlaying
-                              ? 'bg-[var(--brand-primary)]/18 ring-2 ring-[var(--brand-primary)]/60 text-[var(--text-primary)]'
+                              ? 'text-[var(--text-primary)]'
                               : isSelected
                                 ? 'bg-[var(--brand-accent-soft)] ring-1 ring-[var(--brand-accent)]/50'
                                 : isSajdah
                                   ? 'bg-amber-500/12 underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
                                   : 'hover:bg-[var(--bg-surface-soft)]'
                           }`}
+                          style={
+                            isPlaying
+                              ? {
+                                  backgroundColor: audioState.isWordSyncActive
+                                    ? 'transparent'
+                                    : softPlayingBg,
+                                }
+                              : undefined
+                          }
                         >
                           <SyncedVerseArabic
                             text={verse.ar.t}
@@ -882,7 +918,8 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               }
             >
               {visibleVerses.map((verse) => {
-                const isPlaying = playingAyahId === verse.id;
+                const isPlaying =
+                  playingAyahId === verse.id && audioState.activePhase !== 'besmele';
                 const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
                 const rukuEnd = settings.showRukuMarkers
                   ? getRukuEndingAt(verse.surah, verse.ayah)
@@ -904,6 +941,12 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     ]
                   : [];
                 const isFnOpen = openFootnoteAyahId === verse.id;
+                const softPlayingBg =
+                  settings.theme === 'dark'
+                    ? 'rgba(45, 212, 191, 0.13)'
+                    : 'rgba(13, 148, 136, 0.10)';
+                const suppressSectionFill =
+                  isPlaying && audioState.isWordSyncActive && bookMode === 'interleaved';
 
                 return (
                   <section
@@ -916,11 +959,18 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                         : 'first:pt-1 last:pb-1 -mx-2.5 sm:-mx-3.5'
                     } ${
                       isPlaying
-                        ? 'bg-[var(--brand-primary-soft)]/85 ring-2 ring-[var(--brand-primary)]/50 shadow-xs'
+                        ? suppressSectionFill
+                          ? 'ring-1 ring-[var(--brand-primary)]/40'
+                          : 'ring-1 ring-[var(--brand-primary)]/45 shadow-xs'
                         : isSajdah
                           ? 'bg-amber-500/[0.07] ring-1 ring-amber-500/45 my-1.5'
                           : 'hover:bg-[var(--bg-surface-soft)]/45'
                     }`}
+                    style={
+                      isPlaying && !suppressSectionFill
+                        ? { backgroundColor: softPlayingBg }
+                        : undefined
+                    }
                   >
                     {/* Ayet Üst Satır */}
                     <div className="flex items-center justify-between gap-2 mb-2.5">

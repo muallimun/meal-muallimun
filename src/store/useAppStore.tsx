@@ -1896,14 +1896,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const navigateToStudy = useCallback((target: Omit<StudyNavigationTarget, 'nonce'>) => {
     sfxService.play('click');
-    if (target.viewMode) {
-      setPersisted((prev) => ({
-        ...prev,
-        studyPrefs: {
-          ...prev.studyPrefs,
-          viewMode: target.viewMode!,
-        },
-      }));
+    if (target.viewMode || target.contentMode || target.ensureMealVisible) {
+      setPersisted((prev) => {
+        const currentPrefs = prev.studyPrefs;
+        const nextViewMode =
+          target.viewMode ??
+          (target.ensureMealVisible && currentPrefs.viewMode === 'mushaf'
+            ? 'cards'
+            : currentPrefs.viewMode);
+        const nextBookContentMode =
+          target.contentMode ??
+          (target.ensureMealVisible && currentPrefs.bookContentMode === 'ar_only'
+            ? 'interleaved'
+            : currentPrefs.bookContentMode);
+        const nextMealAudioFocusOnly = target.ensureMealVisible
+          ? false
+          : currentPrefs.mealAudioFocusOnly;
+
+        if (
+          nextViewMode === currentPrefs.viewMode &&
+          nextBookContentMode === currentPrefs.bookContentMode &&
+          nextMealAudioFocusOnly === currentPrefs.mealAudioFocusOnly
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          studyPrefs: {
+            ...currentPrefs,
+            viewMode: nextViewMode,
+            bookContentMode: nextBookContentMode,
+            mealAudioFocusOnly: nextMealAudioFocusOnly,
+          },
+        };
+      });
     }
     setIsExamActive(false);
     setStudyNavTarget({ ...target, nonce: Date.now() });

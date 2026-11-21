@@ -164,6 +164,7 @@ export const StudyPage: React.FC = () => {
   );
   const [jumpToAyahNo, setJumpToAyahNo] = useState<number | null>(null);
   const [jumpNonce, setJumpNonce] = useState(0);
+  const [navResetNonce, setNavResetNonce] = useState(0);
 
   const [pageBundle, setPageBundle] = useState<PageBundle | null>(null);
   const [secondPageBundle, setSecondPageBundle] = useState<PageBundle | null>(null);
@@ -297,6 +298,7 @@ export const StudyPage: React.FC = () => {
     setSelectedAyahId(targetSurah * 1000 + targetAyah);
     setJumpToAyahNo(targetAyah);
     setJumpNonce((n) => n + 1);
+    setNavResetNonce((n) => n + 1);
     clearStudyNavTarget();
   }, [studyNavTarget, meta, currentSurahNo, clearStudyNavTarget]);
 
@@ -1935,6 +1937,7 @@ export const StudyPage: React.FC = () => {
           }
           jumpToAyahNo={jumpToAyahNo}
           jumpNonce={jumpNonce}
+          navResetNonce={navResetNonce}
           onToggleBookmark={toggleBookmarkAyah}
           onChangeWordMode={(mode) => updateStudyPrefs({ wordMode: mode })}
           onPlayFromVerse={(v) => handlePlayFromVerse(v, false)}

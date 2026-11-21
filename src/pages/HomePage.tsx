@@ -198,7 +198,12 @@ export const HomePage: React.FC = () => {
       navigateToExam({ surahNo });
     } else {
       sfxService.play('click');
-      navigateToStudy({ surah: surahNo, ayah: 1 });
+      navigateToStudy({
+        surah: surahNo,
+        ayah: 1,
+        viewMode: 'cards',
+        ensureMealVisible: true,
+      });
     }
   };
 
@@ -1088,6 +1093,7 @@ export const HomePage: React.FC = () => {
                     surah: previewAyah.surahNo,
                     ayah: previewAyah.ayahNo,
                     page: previewAyah.pageNo,
+                    ensureMealVisible: true,
                   });
                 }}
                 className="min-h-[40px] px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-teal-600"

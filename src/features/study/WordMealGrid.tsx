@@ -173,22 +173,32 @@ export const WordMealGrid: React.FC<WordMealGridProps> = ({
                     : undefined
               }
               className={`relative min-h-[60px] min-w-[74px] max-w-[160px] px-3 py-2 rounded-xl border flex flex-col items-center justify-center text-center transition-colors select-none ${
+                isKaraokeHighlighted ? 'karaoke-word-card-active' : ''
+              } ${
                 isQuiz || canPlayWordAudio
                   ? 'cursor-pointer hover:border-[var(--brand-primary)]/60 active:scale-[0.98]'
                   : 'cursor-default'
               }`}
               style={{
-                backgroundColor: isAudioActive
-                  ? 'var(--brand-primary-soft)'
-                  : isQuiz && isRevealed
+                backgroundColor: isKaraokeHighlighted
+                  ? undefined
+                  : isAudioActive
                     ? 'var(--brand-primary-soft)'
-                    : 'var(--bg-surface)',
-                borderColor: isAudioActive
-                  ? 'var(--brand-primary)'
-                  : isQuiz && isRevealed
+                    : isQuiz && isRevealed
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface)',
+                borderColor: isKaraokeHighlighted
+                  ? undefined
+                  : isAudioActive
                     ? 'var(--brand-primary)'
-                    : 'var(--border-subtle)',
-                boxShadow: isAudioActive ? '0 0 0 1px var(--brand-primary)' : 'none',
+                    : isQuiz && isRevealed
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-subtle)',
+                boxShadow: isKaraokeHighlighted
+                  ? undefined
+                  : isAudioActive
+                    ? '0 0 0 1px var(--brand-primary)'
+                    : 'none',
               }}
             >
               {/* Kendini Dene modunda sol üst mini hoparlör butonu (kart gövdesinden bağımsız) */}

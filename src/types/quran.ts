@@ -385,6 +385,8 @@ export interface PageBundle {
 
 export interface StudyNavigationTarget {
   viewMode?: StudyViewMode;
+  contentMode?: BookContentMode;
+  ensureMealVisible?: boolean;
   surah?: number;
   ayah?: number;
   page?: number;

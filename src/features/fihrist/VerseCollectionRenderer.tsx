@@ -988,7 +988,9 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
     <div className="space-y-3">
       {hydratedVerses.map((hv) => {
         const isPlayingThis =
-          audioState.status === 'playing' && audioState.currentAyahId === hv.verse.id;
+          audioState.status === 'playing' &&
+          audioState.currentAyahId === hv.verse.id &&
+          audioState.activePhase !== 'besmele';
         const primaryFn = hv.primaryMealVerse?.fn ?? [];
         const secondaryFn = isDual ? (hv.secondaryMealVerse?.fn ?? []) : [];
         const totalFn = settings.showFootnotes ? primaryFn.length + secondaryFn.length : 0;

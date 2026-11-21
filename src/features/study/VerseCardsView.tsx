@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   BookOpen,
   Info,
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useTajweedData } from '../../hooks/useTajweedData';
+import { audioQueueService } from '../../services/audioQueueService';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import type { SurahExtraInfo } from '../../types/fihrist';
@@ -37,6 +38,7 @@ interface VerseCardsViewProps {
   playingAyahId: number | null;
   jumpToAyahNo: number | null;
   jumpNonce: number;
+  navResetNonce?: number;
   onToggleBookmark: (ayahId: number) => void;
   onChangeWordMode: (mode: WordMealMode) => void;
   onPlayFromVerse: (verse: CombinedVerse) => void;
@@ -61,6 +63,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   playingAyahId,
   jumpToAyahNo,
   jumpNonce,
+  navResetNonce = 0,
   onToggleBookmark,
   onChangeWordMode,
   onPlayFromVerse,
@@ -70,6 +73,16 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   onOpenSurahInfo,
 }) => {
   const { surahMeta, verses, hasBesmele } = surahBundle;
+  const audioState = useSyncExternalStore(
+    audioQueueService.subscribe,
+    audioQueueService.getSnapshot,
+  );
+  const isBesmelePhase = audioState.activePhase === 'besmele';
+  const isBesmelePlaying = Boolean(
+    playingAyahId && verses[0]?.id === playingAyahId && isBesmelePhase,
+  );
+  const softPlayingBg =
+    settings.theme === 'dark' ? 'rgba(45, 212, 191, 0.13)' : 'rgba(13, 148, 136, 0.10)';
   const surahNos = useMemo(() => [surahMeta.no], [surahMeta.no]);
   const {
     primaryMeal,
@@ -114,14 +127,14 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  // Sure değişince filtre ve batch sıfırla
+  // Sure değişince veya dışarıdan yeni yönlendirme (Meal Oku vb.) gelince filtre ve batch sıfırla
   useEffect(() => {
     setFilterMode('all');
     setSearchQuery('');
     setVisibleCount(BATCH_SIZE);
     setIsFilterBarOpen(false);
     setIsWordMenuOpen(false);
-  }, [surahMeta.no]);
+  }, [surahMeta.no, navResetNonce]);
 
   // Kelime meali hızlı menüsü dış tıklama / Escape kapatma
   useEffect(() => {
@@ -209,14 +222,24 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   // "Ayet'e Git" veya çalan ayete anında genişletip kaydırma
   useEffect(() => {
     if (!jumpToAyahNo) return;
-    const idx = filteredVerses.findIndex((v) => v.ayah === jumpToAyahNo);
+    if (jumpToAyahNo === 1) {
+      const timer = window.setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 40);
+      return () => window.clearTimeout(timer);
+    }
+
+    const sourceList = filteredVerses.some((v) => v.ayah === jumpToAyahNo)
+      ? filteredVerses
+      : verses;
+    const idx = sourceList.findIndex((v) => v.ayah === jumpToAyahNo);
     if (idx === -1) return;
 
     if (idx >= visibleCount) {
-      setVisibleCount(Math.min(filteredVerses.length, idx + 10));
+      setVisibleCount(Math.min(sourceList.length, idx + 10));
     }
 
-    const targetVerse = filteredVerses[idx];
+    const targetVerse = sourceList[idx];
     const timer = window.setTimeout(() => {
       const el = document.getElementById(`verse-card-${targetVerse.id}`);
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -571,8 +594,12 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
         {/* Zarif Besmele Şeridi */}
         {hasBesmele && contentMode !== 'meal_only' && (
           <div
-            className="px-4 py-2 border-t text-center"
-            style={{ borderColor: 'var(--border-subtle)' }}
+            className="px-4 py-2 border-t text-center transition-colors"
+            style={{
+              borderColor: 'var(--border-subtle)',
+              backgroundColor:
+                isBesmelePlaying && !audioState.isWordSyncActive ? softPlayingBg : undefined,
+            }}
           >
             <p
               className={`${settings.tajweedEnabled && tjBesmele ? 'arabic-tajweed' : 'arabic-text'} leading-tight`}
@@ -585,7 +612,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                 text={besmele.ar}
                 surahNo={surahMeta.no}
                 ayahNo={1}
-                isPlaying={Boolean(playingAyahId && verses[0]?.id === playingAyahId)}
+                isPlaying={isBesmelePlaying}
                 wordSyncEnabled={settings.wordSyncEnabled}
                 useTajweed={Boolean(settings.tajweedEnabled && tjBesmele)}
                 tajweedWords={tjBesmele}
@@ -655,7 +682,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                   contentMode={contentMode}
                   mealAudioFocusOnly={mealAudioFocusOnly}
                   isBookmarked={bookmarkedSet.has(verse.id)}
-                  isPlayingThisAyah={playingAyahId === verse.id}
+                  isPlayingThisAyah={playingAyahId === verse.id && !isBesmelePhase}
                   primaryMeal={primaryMeal}
                   secondaryMeal={secondaryMeal}
                   isDual={isDual}

@@ -1022,30 +1022,43 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                       </div>
                     )}
 
-                    {segment.showBesmele && (
-                      <p
-                        className={`${settings.tajweedEnabled && tjBesmele ? 'arabic-tajweed' : 'arabic-text'} text-center py-0.5`}
-                        style={{
-                          fontSize: `${Math.max(20, settings.arabicFontSize - 2)}px`,
-                          color: 'var(--brand-primary-text)',
-                        }}
-                      >
-                        <SyncedVerseArabic
-                          text={besmele.ar}
-                          surahNo={segment.surahMeta.no}
-                          ayahNo={1}
-                          isPlaying={Boolean(
-                            playingAyahId && segment.verses[0]?.id === playingAyahId,
-                          )}
-                          wordSyncEnabled={settings.wordSyncEnabled}
-                          useTajweed={Boolean(settings.tajweedEnabled && tjBesmele)}
-                          tajweedWords={tjBesmele}
-                          tajweedRules={tjRules}
-                          theme={settings.theme}
-                          isBesmele
-                        />
-                      </p>
-                    )}
+                    {segment.showBesmele && (() => {
+                      const isBesmelePlaying = Boolean(
+                        playingAyahId &&
+                          segment.verses[0]?.id === playingAyahId &&
+                          audioState.activePhase === 'besmele',
+                      );
+                      const softPlayingBg =
+                        settings.theme === 'dark'
+                          ? 'rgba(45, 212, 191, 0.13)'
+                          : 'rgba(13, 148, 136, 0.10)';
+                      return (
+                        <p
+                          className={`${settings.tajweedEnabled && tjBesmele ? 'arabic-tajweed' : 'arabic-text'} text-center py-0.5 px-2 rounded-lg transition-colors`}
+                          style={{
+                            fontSize: `${Math.max(20, settings.arabicFontSize - 2)}px`,
+                            color: 'var(--brand-primary-text)',
+                            backgroundColor:
+                              isBesmelePlaying && !audioState.isWordSyncActive
+                                ? softPlayingBg
+                                : 'transparent',
+                          }}
+                        >
+                          <SyncedVerseArabic
+                            text={besmele.ar}
+                            surahNo={segment.surahMeta.no}
+                            ayahNo={1}
+                            isPlaying={isBesmelePlaying}
+                            wordSyncEnabled={settings.wordSyncEnabled}
+                            useTajweed={Boolean(settings.tajweedEnabled && tjBesmele)}
+                            tajweedWords={tjBesmele}
+                            tajweedRules={tjRules}
+                            theme={settings.theme}
+                            isBesmele
+                          />
+                        </p>
+                      );
+                    })()}
 
                     {/* Kesintisiz Mushaf Ayet Akışı */}
                     {(() => {
@@ -1067,7 +1080,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         >
                           {segment.verses.map((verse) => {
                             const isSelected = selectedVerse?.id === verse.id;
-                            const isPlaying = playingAyahId === verse.id;
+                            const isPlaying =
+                              playingAyahId === verse.id && audioState.activePhase !== 'besmele';
                             const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
                             const highlightSajdah = isSajdah && settings.highlightSajdah;
                             const hasDigitsAtEnd = ENDS_WITH_ARABIC_NUMERAL.test(verse.ar.t);
@@ -1075,9 +1089,15 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                               ? getTjVerseWords(verse.surah, verse.ayah)
                               : null;
                             const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
+                            const softPlayingBg =
+                              settings.theme === 'dark'
+                                ? 'rgba(45, 212, 191, 0.13)'
+                                : 'rgba(13, 148, 136, 0.10)';
 
                             const highlightBg = isPlaying
-                              ? 'rgba(13, 148, 136, 0.24)'
+                              ? audioState.isWordSyncActive
+                                ? 'transparent'
+                                : softPlayingBg
                               : isSelected
                                 ? 'rgba(217, 119, 6, 0.18)'
                                 : highlightSajdah
@@ -1149,13 +1169,28 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 )}
                                 {(useVerseTajweed || !hasDigitsAtEnd) && (
                                   <span
-                                    className="inline-block mx-1.5 text-[0.76em] select-none align-middle"
+                                    className="inline-block mx-1.5 text-[0.76em] select-none align-middle rounded-md transition-colors"
                                     style={{
-                                      color: isPlaying
-                                        ? 'var(--brand-primary-text)'
-                                        : isSelected || highlightSajdah
+                                      color:
+                                        isPlaying && audioState.isWordSyncActive
                                           ? 'var(--brand-accent-text)'
-                                          : 'var(--brand-primary-text)',
+                                          : isPlaying
+                                            ? 'var(--brand-primary-text)'
+                                            : isSelected || highlightSajdah
+                                              ? 'var(--brand-accent-text)'
+                                              : 'var(--brand-primary-text)',
+                                      backgroundColor:
+                                        isPlaying && audioState.isWordSyncActive
+                                          ? settings.theme === 'dark'
+                                            ? 'rgba(251, 191, 36, 0.16)'
+                                            : 'rgba(245, 158, 11, 0.16)'
+                                          : 'transparent',
+                                      boxShadow:
+                                        isPlaying && audioState.isWordSyncActive
+                                          ? settings.theme === 'dark'
+                                            ? '0 0 0 2px rgba(251, 191, 36, 0.16)'
+                                            : '0 0 0 2px rgba(245, 158, 11, 0.16)'
+                                          : 'none',
                                     }}
                                     title={
                                       highlightSajdah
@@ -1396,20 +1431,36 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         </div>
                       )}
 
-                      {segment.showBesmele && (
-                        <p
-                          className="turkish-reading text-xs sm:text-sm italic text-center font-semibold py-0.5"
-                          style={{ color: 'var(--brand-primary-text)' }}
-                        >
-                          {primaryMeal.id === 'm2' ? besmele.dib : besmele.tdv}
-                        </p>
-                      )}
+                      {segment.showBesmele && (() => {
+                        const isBesmeleMealPlaying = Boolean(
+                          playingAyahId &&
+                            segment.verses[0]?.id === playingAyahId &&
+                            audioState.activePhase === 'besmele',
+                        );
+                        const softPlayingBg =
+                          settings.theme === 'dark'
+                            ? 'rgba(45, 212, 191, 0.13)'
+                            : 'rgba(13, 148, 136, 0.10)';
+                        return (
+                          <p
+                            className="turkish-reading text-xs sm:text-sm italic text-center font-semibold py-1 px-2 rounded-lg transition-colors"
+                            style={{
+                              color: 'var(--brand-primary-text)',
+                              backgroundColor: isBesmeleMealPlaying ? softPlayingBg : 'transparent',
+                            }}
+                          >
+                            {primaryMeal.id === 'm2' ? besmele.dib : besmele.tdv}
+                          </p>
+                        );
+                      })()}
 
                       <div className="space-y-2">
                         {mealGroups.map((group) => {
                           const isMerged = group.verses.length > 1;
                           const playingVerseInGroup =
-                            group.verses.find((v) => v.id === playingAyahId) ?? null;
+                            audioState.activePhase !== 'besmele'
+                              ? (group.verses.find((v) => v.id === playingAyahId) ?? null)
+                              : null;
                           const selectedVerseInGroup =
                             group.verses.find((v) => v.id === selectedVerse?.id) ?? null;
                           const targetVerse =
@@ -1502,7 +1553,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         {group.verses.map((v) => {
-                                          const chipPlaying = playingAyahId === v.id;
+                                          const chipPlaying =
+                                            playingAyahId === v.id &&
+                                            audioState.activePhase !== 'besmele';
                                           const chipSelected = selectedVerse?.id === v.id;
                                           return (
                                             <button

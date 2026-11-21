@@ -52,6 +52,7 @@ export interface AudioQueueSnapshot {
   errorMessage: string | null;
   infoMessage: string | null;
   missingMealAudio: boolean;
+  isWordSyncActive: boolean;
   previewReciterId: string | null;
   previewStatus: PreviewAudioStatus;
 }
@@ -149,6 +150,7 @@ const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   errorMessage: null,
   infoMessage: null,
   missingMealAudio: false,
+  isWordSyncActive: false,
   previewReciterId: null,
   previewStatus: 'idle',
 };
@@ -337,12 +339,21 @@ class AudioQueueService {
     }
   }
 
-  private clearWordSyncState(): void {
+  private setWordSyncActiveFlag(active: boolean): void {
+    if (this.snapshot.isWordSyncActive !== active) {
+      this.emit({ isWordSyncActive: active });
+    }
+  }
+
+  private clearWordSyncState(preserveActiveFlag = false): void {
     this.stopWordSyncLoop();
     this.activeStepSegments = null;
     this.activeStepSegContext = null;
     this.lastMatchedSegmentIdx = 0;
     this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+    if (!preserveActiveFlag) {
+      this.setWordSyncActiveFlag(false);
+    }
   }
 
   private stopWordSyncLoop(): void {
@@ -356,7 +367,12 @@ class AudioQueueService {
     const len = segments.length;
     if (len === 0) return null;
 
-    // Hızlı O(1) komşuluk kontrolü (son eşleşen veya bir sonraki kelime)
+    // İlk kelimenin başlangıcından önceki sessizlikte kelime vurgusu henüz başlamamıştır
+    if (timeMs < segments[0][1]) {
+      return null;
+    }
+
+    // Hızlı O(1) komşuluk kontrolü + kelimeler arası nefes boşluğunda (breath gap) son okunan kelimeyi koruma
     const hint = this.lastMatchedSegmentIdx;
     if (hint >= 0 && hint < len) {
       const cur = segments[hint];
@@ -369,16 +385,31 @@ class AudioQueueService {
           this.lastMatchedSegmentIdx = hint + 1;
           return next[0];
         }
+        // İki kelime arasındaki milisaniyelik nefes/duraklama boşluğu: imleci söndürmeden son kelimede tut
+        if (timeMs >= cur[2] && timeMs < next[1]) {
+          return cur[0];
+        }
+      } else if (timeMs >= cur[2]) {
+        // Ayetin son kelimesinden sonraki kapanış sessizliğinde son kelimeyi ayet bitene dek tut
+        return cur[0];
       }
     }
 
-    // Tam tarama (geri sarma veya atlama durumları için)
+    // Tam tarama (geri sarma, atlama veya bitişik olmayan aralıklar için)
+    let lastStartedIdx = -1;
     for (let i = 0; i < len; i += 1) {
       const seg = segments[i];
       if (timeMs >= seg[1] && timeMs < seg[2]) {
         this.lastMatchedSegmentIdx = i;
         return seg[0];
       }
+      if (timeMs >= seg[1]) {
+        lastStartedIdx = i;
+      }
+    }
+    if (lastStartedIdx !== -1) {
+      this.lastMatchedSegmentIdx = lastStartedIdx;
+      return segments[lastStartedIdx][0];
     }
     return null;
   }
@@ -436,6 +467,7 @@ class AudioQueueService {
 
     if (!this.wordSyncEnabled || (step.phase !== 'ar' && step.phase !== 'besmele')) {
       this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+      this.setWordSyncActiveFlag(false);
       return;
     }
 
@@ -444,6 +476,7 @@ class AudioQueueService {
       if (session !== this.playSessionId || !this.wordSyncEnabled) return;
       if (!segMeta) {
         this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+        this.setWordSyncActiveFlag(false);
         return;
       }
 
@@ -451,12 +484,14 @@ class AudioQueueService {
         step.syncedReciterKey ?? resolveSyncedReciterKey(arabicSource, segMeta);
       if (!reciterKey) {
         this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+        this.setWordSyncActiveFlag(false);
         return;
       }
 
       const reciterMeta = segMeta.reciters[reciterKey];
       if (!reciterMeta) {
         this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+        this.setWordSyncActiveFlag(false);
         return;
       }
 
@@ -464,6 +499,7 @@ class AudioQueueService {
         const besmeleSegs = Array.isArray(reciterMeta.besmele) ? reciterMeta.besmele : [];
         if (besmeleSegs.length === 0) {
           this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+          this.setWordSyncActiveFlag(false);
           return;
         }
         this.activeStepSegments = besmeleSegs;
@@ -475,6 +511,7 @@ class AudioQueueService {
           qulWordCount: this.getQulWordCount(1, 1) ?? besmeleSegs.length,
         };
         this.lastMatchedSegmentIdx = 0;
+        this.setWordSyncActiveFlag(true);
         if (this.snapshot.status === 'playing') {
           this.startWordSyncLoop();
         }
@@ -488,6 +525,7 @@ class AudioQueueService {
         const ayahSegs = surahFile?.v?.[String(verse.ayah)];
         if (!Array.isArray(ayahSegs) || ayahSegs.length === 0) {
           this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+          this.setWordSyncActiveFlag(false);
           return;
         }
         this.activeStepSegments = ayahSegs;
@@ -499,6 +537,7 @@ class AudioQueueService {
           qulWordCount: this.getQulWordCount(verse.surah, verse.ayah),
         };
         this.lastMatchedSegmentIdx = 0;
+        this.setWordSyncActiveFlag(true);
         if (this.snapshot.status === 'playing') {
           this.startWordSyncLoop();
         }
@@ -508,6 +547,7 @@ class AudioQueueService {
         applySurahFile(this.segSurahCache.get(cacheKey) ?? null);
       } else {
         this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+        this.setWordSyncActiveFlag(false);
         void this.ensureSegSurahLoaded(reciterKey, verse.surah).then(applySurahFile);
       }
     };
@@ -516,6 +556,7 @@ class AudioQueueService {
       bindSegments(this.segMeta);
     } else {
       this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+      this.setWordSyncActiveFlag(false);
       void this.ensureSegMetaLoaded().then(bindSegments);
     }
   }
@@ -954,10 +995,10 @@ class AudioQueueService {
     }
   }
 
-  private teardownAudioElement(): void {
+  private teardownAudioElement(preserveWordSyncFlag = false): void {
     this.clearSkipTimer();
     this.clearLoadTimer();
-    this.clearWordSyncState();
+    this.clearWordSyncState(preserveWordSyncFlag);
 
     if (this.audioAbortController) {
       this.audioAbortController.abort();
@@ -1054,7 +1095,7 @@ class AudioQueueService {
       return;
     }
 
-    this.teardownAudioElement();
+    this.teardownAudioElement(true);
 
     const nav = this.updateNavigationAvailability();
     const segParentIdx =
@@ -1087,6 +1128,7 @@ class AudioQueueService {
       errorMessage: null,
       infoMessage: this.activeInfoNotice,
       missingMealAudio: false,
+      ...(step.phase === 'meal' || !this.wordSyncEnabled ? { isWordSyncActive: false } : {}),
     });
 
     this.updateMediaSession(verse, step);
@@ -1171,7 +1213,7 @@ class AudioQueueService {
       () => {
         if (session !== this.playSessionId) return;
         this.clearLoadTimer();
-        this.clearWordSyncState();
+        this.clearWordSyncState(true);
         this.advanceToNextStep();
       },
       { signal },
