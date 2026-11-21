@@ -1,21 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
-  ArrowLeft,
   ArrowUpDown,
   BookOpen,
   Check,
   ChevronRight,
+  ClipboardCopy,
   Download,
   Edit3,
   FolderPlus,
   Headphones,
   ListPlus,
   ListTree,
+  MoreHorizontal,
   NotebookPen,
   Plus,
   Printer,
   Scale,
   Sparkles,
+  StickyNote,
   Trash2,
   Upload,
   X,
@@ -62,9 +64,63 @@ const VIEW_MODE_OPTIONS: readonly {
 
 const SORT_MODE_OPTIONS: readonly { id: ResearchSortMode; label: string }[] = [
   { id: 'custom', label: 'Kendi Sıram' },
-  { id: 'mushaf', label: 'Mushaf Sırası' },
-  { id: 'nuzul', label: 'Nüzul Sırası' },
+  { id: 'mushaf', label: 'Mushaf' },
+  { id: 'nuzul', label: 'Nüzul' },
 ];
+
+/**
+ * Kayıt listesini akademik referans biçiminde biçimlendirir:
+ * Örn: "2/153-157, 253, 270; 3/13, 123"
+ */
+function formatAcademicReferences(entries: readonly ResearchVerseEntry[]): string {
+  if (entries.length === 0) return '';
+  const groups = new Map<number, string[]>();
+  const surahOrder: number[] = [];
+
+  for (const entry of entries) {
+    let list = groups.get(entry.surah);
+    if (!list) {
+      list = [];
+      groups.set(entry.surah, list);
+      surahOrder.push(entry.surah);
+    }
+    const token =
+      entry.startAyah === entry.endAyah
+        ? `${entry.startAyah}`
+        : `${entry.startAyah}-${entry.endAyah}`;
+    if (!list.includes(token)) {
+      list.push(token);
+    }
+  }
+
+  return surahOrder.map((sNo) => `${sNo}/${groups.get(sNo)!.join(', ')}`).join('; ');
+}
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (!text) return false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fallback below
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   selectedTopicIdOverride,
@@ -82,7 +138,6 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(
     () => topics[0]?.id ?? null,
   );
-  const [mobileShowDetail, setMobileShowDetail] = useState(false);
   const [viewMode, setViewMode] = useState<FihristViewMode>('ar_meal');
   const [sortMode, setSortMode] = useState<ResearchSortMode>('custom');
 
@@ -91,18 +146,22 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   const [newTopicTitle, setNewTopicTitle] = useState('');
   const [newTopicDesc, setNewTopicDesc] = useState('');
 
-  // Konu başlığı düzenleme & silme onayı
+  // Konu başlığı düzenleme & silme onayı & '⋯' menü
   const [isEditingMeta, setIsEditingMeta] = useState(false);
   const [editTitleDraft, setEditTitleDraft] = useState('');
   const [editDescDraft, setEditDescDraft] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Hızlı Ayet & Pasaj Ekleme (Seçici vs Toplu Referans Yapıştırıcı)
-  const [addMode, setAddMode] = useState<'picker' | 'bulk'>('picker');
+  // Hızlı Ayet Ekleme — Serbest klavye girişi için STRING state (onChange içinde zorla sınırlama YOK!)
   const [pickerSurah, setPickerSurah] = useState<number>(2);
-  const [pickerStart, setPickerStart] = useState<number>(153);
-  const [pickerEnd, setPickerEnd] = useState<number>(157);
+  const [pickerStartText, setPickerStartText] = useState<string>('');
+  const [pickerEndText, setPickerEndText] = useState<string>('');
+  const [pickerError, setPickerError] = useState<string | null>(null);
+  const [showNoteDrawer, setShowNoteDrawer] = useState(false);
   const [pickerNote, setPickerNote] = useState('');
+  const [showBulkDrawer, setShowBulkDrawer] = useState(false);
   const [bulkInput, setBulkInput] = useState('');
   const [addToast, setAddToast] = useState<string | null>(null);
 
@@ -116,13 +175,24 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Dışarıdan kopyalanan yeni bir konuya doğrudan geçiş
+  // Dışarıdan kopyalanan veya yönlendirilen bir konuya doğrudan geçiş
   useEffect(() => {
     if (!selectedTopicIdOverride) return;
     setSelectedTopicId(selectedTopicIdOverride);
-    setMobileShowDetail(true);
     onClearTopicOverride?.();
   }, [selectedTopicIdOverride, onClearTopicOverride]);
+
+  // '⋯' menüsünü dış tıklamayla kapat
+  useEffect(() => {
+    if (!isActionsMenuOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target as Node)) {
+        setIsActionsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [isActionsMenuOpen]);
 
   // Seçili konu silindiyse ilk konuya dön
   const activeTopic = useMemo<ResearchTopic | null>(() => {
@@ -135,11 +205,12 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
 
   useEffect(() => {
     if (!addToast) return;
-    const t = window.setTimeout(() => setAddToast(null), 2800);
+    const t = window.setTimeout(() => setAddToast(null), 3000);
     return () => window.clearTimeout(t);
   }, [addToast]);
 
-  const pickerSurahMax = surahMap.get(pickerSurah)?.ayahCount ?? 286;
+  const pickerSurahMeta = surahMap.get(pickerSurah);
+  const pickerSurahMax = pickerSurahMeta?.ayahCount ?? 286;
 
   // Sıralanmış kayıtlar (Kendi Sıram / Mushaf / Nüzul)
   const sortedEntries = useMemo<ResearchVerseEntry[]>(() => {
@@ -182,10 +253,11 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     sfxService.play('click');
     const created = researchStorage.createTopic(clean, newTopicDesc);
     setSelectedTopicId(created.id);
-    setMobileShowDetail(true);
     setNewTopicTitle('');
     setNewTopicDesc('');
     setIsNewTopicFormOpen(false);
+    setIsEditingMeta(false);
+    setConfirmDeleteId(null);
   };
 
   const handleStartEditMeta = () => {
@@ -194,6 +266,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     setEditTitleDraft(activeTopic.title);
     setEditDescDraft(activeTopic.description ?? '');
     setIsEditingMeta(true);
+    setIsActionsMenuOpen(false);
   };
 
   const handleSaveEditMeta = (e: React.FormEvent) => {
@@ -211,29 +284,69 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     sfxService.play('click');
     researchStorage.deleteTopic(topicId);
     setConfirmDeleteId(null);
+    setIsActionsMenuOpen(false);
     if (selectedTopicId === topicId) {
       setSelectedTopicId(null);
-      setMobileShowDetail(false);
     }
   };
 
   const handleAddFromPicker = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTopic) return;
+
+    const rawStart = pickerStartText.trim();
+    const rawEnd = pickerEndText.trim();
+
+    if (!rawStart || !/^\d+$/.test(rawStart)) {
+      setPickerError('Lütfen geçerli bir başlangıç ayet numarası girin.');
+      return;
+    }
+
+    const startNum = Number(rawStart);
+    if (startNum < 1 || startNum > pickerSurahMax) {
+      setPickerError(
+        `${pickerSurahMeta?.nameTr ?? `${pickerSurah}. Sure`} için ayet numarası 1 ile ${pickerSurahMax} arasında olmalıdır.`,
+      );
+      return;
+    }
+
+    let endNum = startNum;
+    if (rawEnd !== '') {
+      if (!/^\d+$/.test(rawEnd)) {
+        setPickerError('Bitiş ayeti sayısal olmalı veya tek ayet için boş bırakılmalıdır.');
+        return;
+      }
+      endNum = Number(rawEnd);
+      if (endNum < startNum || endNum > pickerSurahMax) {
+        setPickerError(
+          `Bitiş ayeti ${startNum} ile ${pickerSurahMax} arasında olmalıdır (tek ayet için boş bırakın).`,
+        );
+        return;
+      }
+    }
+
+    setPickerError(null);
     sfxService.play('click');
-    const safeStart = Math.max(1, Math.min(pickerSurahMax, pickerStart));
-    const safeEnd = Math.max(safeStart, Math.min(pickerSurahMax, pickerEnd));
+
     const res = researchStorage.addVerses(activeTopic.id, [
       {
         surah: pickerSurah,
-        startAyah: safeStart,
-        endAyah: safeEnd,
+        startAyah: startNum,
+        endAyah: endNum,
         note: pickerNote.trim() || undefined,
       },
     ]);
+
     if (res.addedCount > 0) {
+      setPickerStartText('');
+      setPickerEndText('');
       setPickerNote('');
-      setAddToast('Ayet aralığı araştırma listenize eklendi.');
+      setShowNoteDrawer(false);
+      const label =
+        startNum === endNum
+          ? `${pickerSurah}/${startNum}`
+          : `${pickerSurah}/${startNum}-${endNum}`;
+      setAddToast(`${label} araştırma listenize eklendi.`);
     } else {
       setAddToast('Bu ayet aralığı listede zaten kayıtlı.');
     }
@@ -245,11 +358,25 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     sfxService.play('click');
     const res = researchStorage.addVerses(activeTopic.id, parsedBulk.valid);
     setBulkInput('');
+    setShowBulkDrawer(false);
     setAddToast(
       res.skippedDuplicates > 0
         ? `${res.addedCount} pasaj eklendi (${res.skippedDuplicates} mükerrer atlandı).`
         : `${res.addedCount} pasaj tek seferde eklendi.`,
     );
+  };
+
+  const handleCopyReferences = async () => {
+    if (!activeTopic || sortedEntries.length === 0) return;
+    sfxService.play('click');
+    setIsActionsMenuOpen(false);
+    const formatted = formatAcademicReferences(sortedEntries);
+    const copied = await copyTextToClipboard(formatted);
+    if (copied) {
+      setAddToast(`Referanslar kopyalandı: ${formatted.slice(0, 68)}${formatted.length > 68 ? '…' : ''}`);
+    } else {
+      setAddToast(`Referanslar: ${formatted}`);
+    }
   };
 
   const handleListenTopic = () => {
@@ -314,16 +441,163 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   const defaultPrintMode: FihristPrintMode =
     viewMode === 'index' ? 'index' : viewMode === 'meal' ? 'meal' : 'ar_meal';
 
+  const renderNewTopicForm = () => (
+    <form
+      onSubmit={handleCreateTopic}
+      className="p-3.5 rounded-2xl border space-y-2.5"
+      style={{
+        backgroundColor: 'var(--brand-primary-soft)',
+        borderColor: 'var(--brand-primary)',
+      }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className="text-xs font-extrabold inline-flex items-center gap-1.5"
+          style={{ color: 'var(--brand-primary-text)' }}
+        >
+          <FolderPlus className="w-3.5 h-3.5" />
+          <span>Yeni Araştırma Başlığı</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setIsNewTopicFormOpen(false)}
+          aria-label="Formu kapat"
+          className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <input
+        type="text"
+        value={newTopicTitle}
+        onChange={(e) => setNewTopicTitle(e.target.value)}
+        placeholder="Konu başlığı (örn: Kur'an'da Aile Ahlakı)"
+        className="w-full min-h-[38px] px-3 rounded-xl border text-xs sm:text-sm font-bold outline-none focus:border-[var(--brand-primary)]"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-strong)',
+          color: 'var(--text-primary)',
+        }}
+      />
+      <input
+        type="text"
+        value={newTopicDesc}
+        onChange={(e) => setNewTopicDesc(e.target.value)}
+        placeholder="Kısa açıklama / hedef (isteğe bağlı)"
+        className="w-full min-h-[36px] px-3 rounded-xl border text-xs outline-none focus:border-[var(--brand-primary)]"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-subtle)',
+          color: 'var(--text-primary)',
+        }}
+      />
+      <div className="flex justify-end gap-1.5">
+        <button
+          type="button"
+          onClick={() => setIsNewTopicFormOpen(false)}
+          className="px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderColor: 'var(--border-subtle)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          Vazgeç
+        </button>
+        <button
+          type="submit"
+          disabled={!newTopicTitle.trim()}
+          className="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-white cursor-pointer disabled:opacity-45"
+          style={{ backgroundColor: 'var(--brand-primary)' }}
+        >
+          Oluştur
+        </button>
+      </div>
+    </form>
+  );
+
   return (
     <div className="space-y-3.5">
       {/* ====================================================================
-          ANA 2 SÜTUN: SOL KONU DEFTERLERİM + SAĞ ÇALIŞMA MASASI
+          MOBİL (< lg) KOMPAKT ÜST KONU SEÇİCİ ŞERİDİ (Ekranı kaplamaz!)
+          ==================================================================== */}
+      <div className="lg:hidden space-y-2.5">
+        <div className="surface-card rounded-2xl p-2.5 flex items-center gap-1.5">
+          {topics.length > 0 ? (
+            <select
+              aria-label="Araştırma konusu seçin"
+              value={activeTopic?.id ?? ''}
+              onChange={(e) => {
+                sfxService.play('click');
+                setSelectedTopicId(e.target.value);
+                setIsEditingMeta(false);
+                setConfirmDeleteId(null);
+              }}
+              className="flex-1 min-w-0 min-h-[38px] px-2.5 rounded-xl border text-xs font-extrabold outline-none focus:border-[var(--brand-primary)]"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              {topics.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title} ({t.items.length} pasaj)
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span
+              className="flex-1 min-w-0 px-2 text-xs font-bold truncate"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Henüz araştırma başlığı yok
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setIsNewTopicFormOpen((v) => !v);
+            }}
+            className="min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+            style={{ backgroundColor: 'var(--brand-primary)' }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Yeni</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setBackupFeedback(null);
+              setIsBackupModalOpen(true);
+            }}
+            title="JSON Yedekle / İçe Aktar"
+            aria-label="JSON Yedekle veya İçe Aktar"
+            className="w-9 h-[38px] rounded-xl border flex items-center justify-center shrink-0 cursor-pointer"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <ArrowUpDown className="w-4 h-4" />
+          </button>
+        </div>
+
+        {isNewTopicFormOpen && renderNewTopicForm()}
+      </div>
+
+      {/* ====================================================================
+          ANA 2 SÜTUN: MASAÜSTÜ SOL KONU LİSTESİ + SAĞ ÇALIŞMA MASASI
           ==================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* SOL SÜTUN: KİŞİSEL KONULARIM */}
-        <aside
-          className={`${mobileShowDetail ? 'hidden lg:block' : 'block'} lg:col-span-4 surface-card rounded-2xl overflow-hidden`}
-        >
+        {/* MASAÜSTÜ (lg+) SOL SÜTUN: KİŞİSEL KONULARIM */}
+        <aside className="hidden lg:block lg:col-span-4 surface-card rounded-2xl overflow-hidden lg:sticky lg:top-16">
           <div
             className="px-3.5 py-3 border-b flex items-center justify-between gap-2"
             style={{
@@ -371,63 +645,10 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
             </div>
           </div>
 
-          {/* Yeni Konu Oluşturma Formu */}
           {isNewTopicFormOpen && (
-            <form
-              onSubmit={handleCreateTopic}
-              className="p-3.5 border-b space-y-2.5"
-              style={{
-                backgroundColor: 'var(--brand-primary-soft)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              <input
-                type="text"
-                value={newTopicTitle}
-                onChange={(e) => setNewTopicTitle(e.target.value)}
-                placeholder="Konu başlığı (örn: Kur'an'da Aile Ahlakı)"
-                className="w-full min-h-[38px] px-3 rounded-xl border text-xs sm:text-sm font-bold outline-none focus:border-[var(--brand-primary)]"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-strong)',
-                  color: 'var(--text-primary)',
-                }}
-              />
-              <input
-                type="text"
-                value={newTopicDesc}
-                onChange={(e) => setNewTopicDesc(e.target.value)}
-                placeholder="Kısa açıklama / hedef (isteğe bağlı)"
-                className="w-full min-h-[36px] px-3 rounded-xl border text-xs outline-none focus:border-[var(--brand-primary)]"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                }}
-              />
-              <div className="flex justify-end gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsNewTopicFormOpen(false)}
-                  className="px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="submit"
-                  disabled={!newTopicTitle.trim()}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-extrabold text-white cursor-pointer disabled:opacity-45"
-                  style={{ backgroundColor: 'var(--brand-primary)' }}
-                >
-                  Oluştur
-                </button>
-              </div>
-            </form>
+            <div className="p-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+              {renderNewTopicForm()}
+            </div>
           )}
 
           {topics.length === 0 ? (
@@ -472,7 +693,6 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                     onClick={() => {
                       sfxService.play('click');
                       setSelectedTopicId(topic.id);
-                      setMobileShowDetail(true);
                       setIsEditingMeta(false);
                       setConfirmDeleteId(null);
                     }}
@@ -513,29 +733,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
         </aside>
 
         {/* SAĞ SÜTUN: SEÇİLİ ARAŞTIRMA KONUSU */}
-        <section
-          className={`${mobileShowDetail ? 'block' : 'hidden lg:block'} lg:col-span-8 space-y-3.5 min-w-0`}
-        >
-          {/* Mobil Geri Dön */}
-          <div className="lg:hidden flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                setMobileShowDetail(false);
-              }}
-              className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Konularıma Dön</span>
-            </button>
-          </div>
-
+        <section className="lg:col-span-8 space-y-3.5 min-w-0">
           {activeTopic ? (
             <>
               {/* Konu Üst Kartı */}
@@ -589,27 +787,11 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                     </div>
                   </form>
                 ) : (
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-2.5">
                     <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg sm:text-xl font-extrabold tracking-tight break-words">
-                          {activeTopic.title}
-                        </h3>
-                        <button
-                          type="button"
-                          onClick={handleStartEditMeta}
-                          title="Başlık ve açıklamayı düzenle"
-                          aria-label="Başlık ve açıklamayı düzenle"
-                          className="w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 cursor-pointer"
-                          style={{
-                            backgroundColor: 'var(--bg-surface-soft)',
-                            borderColor: 'var(--border-subtle)',
-                            color: 'var(--text-muted)',
-                          }}
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <h3 className="text-base sm:text-xl font-extrabold tracking-tight break-words">
+                        {activeTopic.title}
+                      </h3>
                       {activeTopic.description && (
                         <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                           {activeTopic.description}
@@ -620,16 +802,33 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                    {/* Ana Aksiyonlar: Dinle + Masaüstünde A4 PDF & Referansları Kopyala + Her boyutta '⋯' Menü */}
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={handleListenTopic}
                         disabled={!manifest || !meta || displayItems.length === 0}
-                        className="min-h-[38px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
+                        className="min-h-[38px] px-3 sm:px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
                         style={{ backgroundColor: 'var(--brand-primary)' }}
                       >
                         <Headphones className="w-3.5 h-3.5 shrink-0" />
-                        <span>Listeyi Dinle</span>
+                        <span>Dinle</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyReferences()}
+                        disabled={displayItems.length === 0}
+                        title="Referansları akademik biçimde panoya kopyala (örn. 2/253, 270; 3/13)"
+                        className="hidden sm:inline-flex min-h-[38px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <ClipboardCopy className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                        <span>Referansları Kopyala</span>
                       </button>
 
                       <button
@@ -639,7 +838,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                           setIsPrintOpen(true);
                         }}
                         disabled={displayItems.length === 0}
-                        className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
+                        className="hidden sm:inline-flex min-h-[38px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
                         style={{
                           backgroundColor: 'var(--bg-surface-soft)',
                           borderColor: 'var(--border-strong)',
@@ -650,33 +849,114 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                         <span>A4 PDF</span>
                       </button>
 
-                      {confirmDeleteId === activeTopic.id ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTopic(activeTopic.id)}
-                          className="min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white bg-red-600 cursor-pointer whitespace-nowrap"
-                        >
-                          Silmeyi Onayla
-                        </button>
-                      ) : (
+                      {/* '⋯' Diğer İşlemler Açılır Menüsü */}
+                      <div ref={actionsMenuRef} className="relative">
                         <button
                           type="button"
                           onClick={() => {
                             sfxService.play('click');
-                            setConfirmDeleteId(activeTopic.id);
+                            setIsActionsMenuOpen((v) => !v);
+                            setConfirmDeleteId(null);
                           }}
-                          title="Konuyu sil"
-                          aria-label="Konuyu sil"
+                          aria-label="Diğer işlemler"
+                          aria-expanded={isActionsMenuOpen}
                           className="w-9 h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
                           style={{
                             backgroundColor: 'var(--bg-surface-soft)',
                             borderColor: 'var(--border-subtle)',
-                            color: '#DC2626',
+                            color: 'var(--text-primary)',
                           }}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <MoreHorizontal className="w-4 h-4" />
                         </button>
-                      )}
+
+                        {isActionsMenuOpen && (
+                          <div
+                            className="absolute right-0 mt-1.5 w-56 rounded-2xl border shadow-xl p-1.5 z-30 space-y-1"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-strong)',
+                            }}
+                          >
+                            <button
+                              type="button"
+                              disabled={displayItems.length === 0}
+                              onClick={() => void handleCopyReferences()}
+                              className="w-full min-h-[36px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer disabled:opacity-45 hover:bg-[var(--bg-surface-soft)] sm:hidden"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              <ClipboardCopy className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                              <span>Referansları Kopyala</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={displayItems.length === 0}
+                              onClick={() => {
+                                sfxService.play('click');
+                                setIsActionsMenuOpen(false);
+                                setIsPrintOpen(true);
+                              }}
+                              className="w-full min-h-[36px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer disabled:opacity-45 hover:bg-[var(--bg-surface-soft)] sm:hidden"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              <Printer className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                              <span>A4 PDF / Yazdır</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleStartEditMeta}
+                              className="w-full min-h-[36px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer hover:bg-[var(--bg-surface-soft)]"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              <Edit3 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                              <span>Başlığı &amp; Açıklamayı Düzenle</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sfxService.play('click');
+                                setIsActionsMenuOpen(false);
+                                setBackupFeedback(null);
+                                setIsBackupModalOpen(true);
+                              }}
+                              className="w-full min-h-[36px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer hover:bg-[var(--bg-surface-soft)]"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              <ArrowUpDown className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                              <span>JSON Yedekle / Yükle</span>
+                            </button>
+
+                            <div className="my-1 border-t" style={{ borderColor: 'var(--border-subtle)' }} />
+
+                            {confirmDeleteId === activeTopic.id ? (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTopic(activeTopic.id)}
+                                className="w-full min-h-[36px] px-3 rounded-xl text-xs font-extrabold text-white bg-red-600 flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                <span>Silmeyi Onayla</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sfxService.play('click');
+                                  setConfirmDeleteId(activeTopic.id);
+                                }}
+                                className="w-full min-h-[36px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer hover:bg-red-500/10"
+                                style={{ color: '#DC2626' }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                <span>Başlığı Sil</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -722,7 +1002,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                     })}
                   </div>
 
-                  {/* Sıralama Seçici (Kendi Sıram / Mushaf / Nüzul) */}
+                  {/* Sıralama Seçici (Kendi Sıram / Mushaf / Nüzul) + Meal Seçici */}
                   <div className="flex flex-wrap items-center gap-1.5">
                     <div
                       className="inline-flex p-0.5 rounded-xl border"
@@ -777,146 +1057,149 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                 </div>
               </div>
 
-              {/* Hızlı Ayet & Pasaj Ekleme Kutusu (Seçici + Toplu Referans Yapıştırıcı) */}
-              <div className="surface-card rounded-2xl p-3.5 sm:p-4 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-extrabold inline-flex items-center gap-1.5">
-                    <ListPlus className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
-                    <span>Hızlı Ayet &amp; Pasaj Ekle</span>
-                  </span>
+              {/* ==================================================================
+                  KOMPAKT TEK SATIR HIZLI AYET EKLEME BAR (+ İsteğe Bağlı Not & Toplu Yapıştır)
+                  ================================================================== */}
+              <div className="surface-card rounded-2xl p-3.5 sm:p-4 space-y-2.5">
+                <form onSubmit={handleAddFromPicker} className="space-y-2">
+                  <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
+                    <select
+                      aria-label="Sure seçin"
+                      value={pickerSurah}
+                      onChange={(e) => {
+                        setPickerSurah(Number(e.target.value));
+                        setPickerError(null);
+                      }}
+                      className="col-span-12 sm:col-span-5 min-h-[38px] px-2.5 rounded-xl border text-xs font-bold outline-none focus:border-[var(--brand-primary)]"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {surahsList.map((s) => (
+                        <option key={s.no} value={s.no}>
+                          {s.no}. {s.nameTr} ({s.ayahCount})
+                        </option>
+                      ))}
+                    </select>
 
-                  <div
-                    className="inline-flex p-0.5 rounded-xl border"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        setAddMode('picker');
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      aria-label="Başlangıç ayeti"
+                      placeholder={`Başlangıç (1-${pickerSurahMax})`}
+                      value={pickerStartText}
+                      onChange={(e) => {
+                        setPickerStartText(e.target.value.replace(/[^\d]/g, ''));
+                        if (pickerError) setPickerError(null);
                       }}
-                      className="min-h-[28px] px-2.5 rounded-lg text-[11px] font-bold cursor-pointer"
+                      className="col-span-4 sm:col-span-2 min-h-[38px] px-2.5 rounded-xl border text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
                       style={{
-                        backgroundColor:
-                          addMode === 'picker' ? 'var(--bg-surface)' : 'transparent',
-                        color:
-                          addMode === 'picker'
-                            ? 'var(--brand-primary-text)'
-                            : 'var(--text-muted)',
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-primary)',
                       }}
-                    >
-                      Sure &amp; Ayet Seçici
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        setAddMode('bulk');
+                    />
+
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      aria-label="Bitiş ayeti (isteğe bağlı)"
+                      placeholder="Bitiş (boş=tek)"
+                      value={pickerEndText}
+                      onChange={(e) => {
+                        setPickerEndText(e.target.value.replace(/[^\d]/g, ''));
+                        if (pickerError) setPickerError(null);
                       }}
-                      className="min-h-[28px] px-2.5 rounded-lg text-[11px] font-bold cursor-pointer"
+                      className="col-span-4 sm:col-span-2 min-h-[38px] px-2.5 rounded-xl border text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
                       style={{
-                        backgroundColor:
-                          addMode === 'bulk' ? 'var(--bg-surface)' : 'transparent',
-                        color:
-                          addMode === 'bulk'
-                            ? 'var(--brand-primary-text)'
-                            : 'var(--text-muted)',
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-primary)',
                       }}
+                    />
+
+                    <button
+                      type="submit"
+                      className="col-span-4 sm:col-span-3 min-h-[38px] px-2.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
+                      style={{ backgroundColor: 'var(--brand-primary)' }}
                     >
-                      Toplu Referans Yapıştır
+                      <Plus className="w-3.5 h-3.5 shrink-0" />
+                      <span>Ekle</span>
                     </button>
                   </div>
-                </div>
 
-                {addMode === 'picker' ? (
-                  <form onSubmit={handleAddFromPicker} className="space-y-2.5">
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                      <select
-                        aria-label="Sure seçin"
-                        value={pickerSurah}
-                        onChange={(e) => {
-                          const sNo = Number(e.target.value);
-                          const maxA = surahMap.get(sNo)?.ayahCount ?? 286;
-                          setPickerSurah(sNo);
-                          setPickerStart(1);
-                          setPickerEnd(Math.min(5, maxA));
+                  {pickerError && (
+                    <p className="text-xs font-bold text-red-600 px-1">{pickerError}</p>
+                  )}
+
+                  {/* İsteğe Bağlı Çekmeceler (Not Ekle + Toplu Referans Yapıştır) */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setShowNoteDrawer((v) => !v);
                         }}
-                        className="sm:col-span-5 min-h-[38px] px-3 rounded-xl border text-xs font-bold outline-none focus:border-[var(--brand-primary)]"
+                        className="min-h-[28px] px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
                         style={{
-                          backgroundColor: 'var(--bg-surface-soft)',
-                          borderColor: 'var(--border-subtle)',
-                          color: 'var(--text-primary)',
+                          backgroundColor: showNoteDrawer
+                            ? 'var(--brand-accent-soft)'
+                            : 'var(--bg-surface-soft)',
+                          borderColor: showNoteDrawer
+                            ? 'rgba(217, 119, 6, 0.35)'
+                            : 'var(--border-subtle)',
+                          color: showNoteDrawer
+                            ? 'var(--brand-accent-text)'
+                            : 'var(--text-secondary)',
                         }}
                       >
-                        {surahsList.map((s) => (
-                          <option key={s.no} value={s.no}>
-                            {s.no}. {s.nameTr} ({s.ayahCount} ayet)
-                          </option>
-                        ))}
-                      </select>
-
-                      <div className="sm:col-span-4 grid grid-cols-2 gap-1.5">
-                        <input
-                          type="number"
-                          aria-label="Başlangıç ayeti"
-                          min={1}
-                          max={pickerSurahMax}
-                          value={pickerStart}
-                          onChange={(e) => {
-                            const v = Math.max(
-                              1,
-                              Math.min(pickerSurahMax, Number(e.target.value) || 1),
-                            );
-                            setPickerStart(v);
-                            if (v > pickerEnd) setPickerEnd(v);
-                          }}
-                          className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
-                          style={{
-                            backgroundColor: 'var(--bg-surface-soft)',
-                            borderColor: 'var(--border-subtle)',
-                            color: 'var(--text-primary)',
-                          }}
-                        />
-                        <input
-                          type="number"
-                          aria-label="Bitiş ayeti"
-                          min={pickerStart}
-                          max={pickerSurahMax}
-                          value={pickerEnd}
-                          onChange={(e) => {
-                            const v = Math.max(
-                              pickerStart,
-                              Math.min(pickerSurahMax, Number(e.target.value) || pickerStart),
-                            );
-                            setPickerEnd(v);
-                          }}
-                          className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
-                          style={{
-                            backgroundColor: 'var(--bg-surface-soft)',
-                            borderColor: 'var(--border-subtle)',
-                            color: 'var(--text-primary)',
-                          }}
-                        />
-                      </div>
+                        <StickyNote className="w-3 h-3" />
+                        <span>{showNoteDrawer ? 'Notu Gizle' : '+ Not Ekle'}</span>
+                      </button>
 
                       <button
-                        type="submit"
-                        className="sm:col-span-3 min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1 cursor-pointer"
-                        style={{ backgroundColor: 'var(--brand-primary)' }}
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setShowBulkDrawer((v) => !v);
+                        }}
+                        className="min-h-[28px] px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                        style={{
+                          backgroundColor: showBulkDrawer
+                            ? 'var(--brand-primary-soft)'
+                            : 'var(--bg-surface-soft)',
+                          borderColor: showBulkDrawer
+                            ? 'var(--brand-primary)'
+                            : 'var(--border-subtle)',
+                          color: showBulkDrawer
+                            ? 'var(--brand-primary-text)'
+                            : 'var(--text-secondary)',
+                        }}
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Listeye Ekle</span>
+                        <ListPlus className="w-3 h-3" />
+                        <span>Toplu Referans Yapıştır</span>
                       </button>
                     </div>
 
+                    <span
+                      className="text-[10.5px] hidden sm:inline"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Tek ayet için Bitiş alanını boş bırakabilirsiniz
+                    </span>
+                  </div>
+
+                  {showNoteDrawer && (
                     <input
                       type="text"
                       value={pickerNote}
                       onChange={(e) => setPickerNote(e.target.value)}
-                      placeholder="İsteğe bağlı araştırma notu (eklenen pasajın altına kaydedilir)..."
+                      placeholder="İsteğe bağlı kişisel araştırma notu (eklenen pasaja kaydedilir)..."
                       className="w-full min-h-[36px] px-3 rounded-xl border text-xs outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
@@ -924,15 +1207,22 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                         color: 'var(--text-primary)',
                       }}
                     />
-                  </form>
-                ) : (
-                  <form onSubmit={handleAddFromBulk} className="space-y-2.5">
+                  )}
+                </form>
+
+                {/* İsteğe Bağlı Toplu Referans Yapıştır Çekmecesi */}
+                {showBulkDrawer && (
+                  <form
+                    onSubmit={handleAddFromBulk}
+                    className="pt-2.5 border-t space-y-2"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
                     <textarea
                       rows={2}
                       value={bulkInput}
                       onChange={(e) => setBulkInput(e.target.value)}
-                      placeholder="Örnek: 2/153-157; 3/189-194; 31/12-19; 49:11-12"
-                      className="w-full p-3 rounded-xl border text-xs sm:text-sm font-medium outline-none focus:border-[var(--brand-primary)]"
+                      placeholder="Örnek: 2/153-157, 253; 3/13, 123; 31/12-19; 49:11-12"
+                      className="w-full p-2.5 rounded-xl border text-xs sm:text-sm font-medium outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -959,7 +1249,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                       <button
                         type="submit"
                         disabled={parsedBulk.valid.length === 0}
-                        className="min-h-[36px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1 cursor-pointer disabled:opacity-45"
+                        className="min-h-[34px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1 cursor-pointer disabled:opacity-45"
                         style={{ backgroundColor: 'var(--brand-primary)' }}
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -977,13 +1267,13 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                       color: '#047857',
                     }}
                   >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>{addToast}</span>
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                    <span className="break-all">{addToast}</span>
                   </p>
                 )}
               </div>
 
-              {/* Ayet Koleksiyonu */}
+              {/* Ayet Koleksiyonu (Satır içi Düzenle + Not + Sırala + Sil) */}
               <VerseCollectionRenderer
                 items={displayItems}
                 viewMode={viewMode}
@@ -992,6 +1282,9 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                 canReorder={sortMode === 'custom'}
                 onUpdateNote={(entryId, note) =>
                   researchStorage.updateNote(activeTopic.id, entryId, note)
+                }
+                onUpdateEntry={(entryId, patch) =>
+                  researchStorage.updateVerse(activeTopic.id, entryId, patch)
                 }
                 onRemoveEntry={(entryId) =>
                   researchStorage.removeVerse(activeTopic.id, entryId)
@@ -1013,11 +1306,30 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
               />
             </>
           ) : (
-            <div className="surface-card rounded-2xl p-8 text-center space-y-2">
-              <p className="text-sm font-bold">Çalışmak için bir araştırma başlığı seçin veya oluşturun.</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Okuma ekranındaki ayetlerin işlem menüsünden de tek dokunuşla buraya ayet ekleyebilirsiniz.
-              </p>
+            <div className="surface-card rounded-2xl p-8 text-center space-y-3">
+              <NotebookPen
+                className="w-10 h-10 mx-auto opacity-55"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+              <div className="space-y-1">
+                <p className="text-sm font-extrabold">Kişisel Araştırma Defteriniz Boş</p>
+                <p className="text-xs max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
+                  İlk konu başlığınızı oluşturarak ayet ve pasajları toplayabilir, notlar alabilir
+                  veya Konu Fihristi&apos;nden istediğiniz başlığı tek tıkla kopyalayabilirsiniz.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setIsNewTopicFormOpen(true);
+                }}
+                className="min-h-[40px] px-4 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer"
+                style={{ backgroundColor: 'var(--brand-primary)' }}
+              >
+                <FolderPlus className="w-4 h-4" />
+                <span>İlk Araştırma Başlığımı Oluştur</span>
+              </button>
             </div>
           )}
         </section>

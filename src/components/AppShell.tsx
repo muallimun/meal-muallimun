@@ -12,7 +12,6 @@ import {
   Minimize2,
   PanelLeftClose,
   PanelLeftOpen,
-  RotateCcw,
   Search,
   Settings,
   Star,
@@ -47,7 +46,6 @@ const NAV_ITEMS: NavItemConfig[] = [
   },
   { id: 'memorize', label: 'Ezber Modu', shortLabel: 'Ezber', mobileLabel: 'Ezber', icon: BookMarked },
   { id: 'exam', label: 'Sınav Merkezi', shortLabel: 'Sınav', mobileLabel: 'Sınav', icon: Trophy },
-  { id: 'mistakes', label: 'Hata Kampı', shortLabel: 'Hata', mobileLabel: 'Hata', icon: RotateCcw },
 ];
 
 interface AppShellProps {
@@ -219,9 +217,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           <nav aria-label="Ana menü" className="p-3 space-y-1 flex-1 overflow-y-auto">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive =
+                activeTab === item.id || (item.id === 'exam' && activeTab === 'mistakes');
               const mistakeBadge =
-                item.id === 'mistakes' && gamification.wrongQuestionIds.length > 0
+                item.id === 'exam' && gamification.wrongQuestionIds.length > 0
                   ? gamification.wrongQuestionIds.length
                   : null;
 
@@ -386,7 +385,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 >
                   {NAV_ITEMS.map((item) => {
                     const Icon = item.icon;
-                    const active = activeTab === item.id;
+                    const active =
+                      activeTab === item.id || (item.id === 'exam' && activeTab === 'mistakes');
+                    const mistakeBadge =
+                      item.id === 'exam' && gamification.wrongQuestionIds.length > 0
+                        ? gamification.wrongQuestionIds.length
+                        : null;
                     return (
                       <button
                         key={item.id}
@@ -400,6 +404,17 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                       >
                         <Icon className="w-3.5 h-3.5 shrink-0" />
                         <span>{item.shortLabel}</span>
+                        {mistakeBadge !== null && (
+                          <span
+                            className="text-[10px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md leading-none"
+                            style={{
+                              backgroundColor: 'rgba(239, 68, 68, 0.14)',
+                              color: '#EF4444',
+                            }}
+                          >
+                            {mistakeBadge > 99 ? '99+' : mistakeBadge}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -642,7 +657,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       </div>
 
       {/* ====================================================================
-          Mobil Alt Sabit Navigasyon Çubuğu (6 Sekme — 360px taşmasız uyum)
+          Mobil Alt Sabit Navigasyon Çubuğu (5 Ferah Sekme — 360px taşmasız uyum)
           ==================================================================== */}
       {!isExamActive && !isMemorizationZenActive && !isMobileReaderImmersive && (
         <nav
@@ -653,39 +668,40 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="grid grid-cols-6 h-15 max-w-lg mx-auto px-0.5">
+          <div className="grid grid-cols-5 h-15 max-w-lg mx-auto px-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive =
+                activeTab === item.id || (item.id === 'exam' && activeTab === 'mistakes');
               const mistakeCount =
-                item.id === 'mistakes' ? gamification.wrongQuestionIds.length : 0;
+                item.id === 'exam' ? gamification.wrongQuestionIds.length : 0;
 
               return (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => handleRequestTab(item.id)}
-                  className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-0 px-0 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
+                  className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-0 px-0.5 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
                   style={{
                     color: isActive ? 'var(--brand-primary-text)' : 'var(--text-muted)',
                   }}
                 >
                   {isActive && (
                     <span
-                      className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full"
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-7 h-0.5 rounded-full"
                       style={{ backgroundColor: 'var(--brand-primary)' }}
                     />
                   )}
-                  <Icon className="w-[18px] h-[18px] shrink-0" />
+                  <Icon className="w-[19px] h-[19px] shrink-0" />
                   {mistakeCount > 0 && (
                     <span
-                      className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 rounded-full bg-red-500 text-white text-[9px] font-extrabold tabular-nums flex items-center justify-center leading-none pointer-events-none"
+                      className="absolute top-1 right-2.5 min-w-[15px] h-[15px] px-1 rounded-full bg-red-500 text-white text-[9px] font-extrabold tabular-nums flex items-center justify-center leading-none pointer-events-none"
                       style={{ boxShadow: '0 0 0 1.5px var(--bg-nav)' }}
                     >
                       {mistakeCount > 99 ? '99+' : mistakeCount}
                     </span>
                   )}
-                  <span className="text-[9.5px] sm:text-[11px] font-semibold leading-tight tracking-tight truncate max-w-full">
+                  <span className="text-[10.5px] sm:text-[11px] font-semibold leading-tight tracking-tight truncate max-w-full">
                     {item.mobileLabel}
                   </span>
                 </button>

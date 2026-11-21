@@ -22,6 +22,7 @@ import { audioQueueService } from '../services/audioQueueService';
 import { dataService } from '../services/dataService';
 import {
   type DirectJumpItem,
+  type FihristTopicSearchHit,
   type ProgressiveSearchSnapshot,
   type SearchResultTab,
   type SearchScopeMode,
@@ -121,6 +122,7 @@ export const GlobalSearchModal: React.FC = () => {
     poolStats,
     studyProgress,
     navigateToStudy,
+    navigateToFihrist,
   } = useAppStore();
 
   const [query, setQuery] = useState('');
@@ -331,6 +333,16 @@ export const GlobalSearchModal: React.FC = () => {
     [closeSearchModal, navigateToStudy],
   );
 
+  // Konu Fihristi başlığına git
+  const handleJumpToFihristTopic = useCallback(
+    (topicId: string) => {
+      sfxService.play('click');
+      closeSearchModal();
+      navigateToFihrist({ subTab: 'topics', topicId });
+    },
+    [closeSearchModal, navigateToFihrist],
+  );
+
   // Doğrudan Git kartı aksiyonu
   const handleDirectJump = useCallback(
     (item: DirectJumpItem) => {
@@ -397,6 +409,8 @@ export const GlobalSearchModal: React.FC = () => {
         return filteredWordHits.length;
       case 'surahs':
         return snapshot.surahHits.length;
+      case 'topics':
+        return snapshot.fihristTopicHits.length;
     }
   }, [snapshot, activeTab, filteredWordHits.length]);
 
@@ -422,15 +436,19 @@ export const GlobalSearchModal: React.FC = () => {
       : 0;
 
   const totalFoundAcrossTabs = snapshot
-    ? snapshot.allHits.length + snapshot.wordHits.length + snapshot.surahHits.length
+    ? snapshot.allHits.length +
+      snapshot.wordHits.length +
+      snapshot.surahHits.length +
+      snapshot.fihristTopicHits.length
     : 0;
 
   const tabs: { id: SearchResultTab; label: string; count: number }[] = [
     { id: 'all', label: 'Ayet & Meal', count: snapshot?.allHits.length ?? 0 },
-    { id: 'arabic', label: 'Arapça Metin', count: snapshot?.arabicHits.length ?? 0 },
-    { id: 'meal', label: 'Meal & Dipnot', count: snapshot?.mealHits.length ?? 0 },
-    { id: 'words', label: 'Kelime Meali', count: snapshot?.wordHits.length ?? 0 },
+    { id: 'topics', label: 'Konu Fihristi', count: snapshot?.fihristTopicHits.length ?? 0 },
     { id: 'surahs', label: 'Sureler', count: snapshot?.surahHits.length ?? 0 },
+    { id: 'words', label: 'Kelime Meali', count: snapshot?.wordHits.length ?? 0 },
+    { id: 'meal', label: 'Meal & Dipnot', count: snapshot?.mealHits.length ?? 0 },
+    { id: 'arabic', label: 'Arapça Metin', count: snapshot?.arabicHits.length ?? 0 },
   ];
 
   const keyboardRows =
@@ -1324,12 +1342,175 @@ export const GlobalSearchModal: React.FC = () => {
           {/* C. AKTİF SEKME SONUÇLARI (DOM Korumalı: İlk 30 + Kademeli Artış) */}
           {trimmedQuery && snapshot && (
             <>
-              {/* Sekme 1: Ayet & Meal */}
+              {/* Sekme 1: Ayet & Meal (+ Anlık Sure Anlamı & Konu Fihristi Önerileri) */}
               {activeTab === 'all' && (
-                <div className="space-y-2.5">
-                  {snapshot.allHits.slice(0, visibleCount).map((hit) =>
-                    renderVerseCard(hit, 'all'),
+                <div className="space-y-3">
+                  {/* Anlık Eşleşen Sureler (Ad veya Türkçe Anlam: örn. "örümcek", "bal arısı") */}
+                  {snapshot.surahHits.length > 0 && (
+                    <div
+                      className="rounded-2xl border p-3 space-y-2"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className="text-[11px] font-extrabold uppercase tracking-wide flex items-center gap-1.5"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                          <span>Sure Eşleşmeleri ({snapshot.surahHits.length})</span>
+                        </span>
+                        {snapshot.surahHits.length > 4 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              setActiveTab('surahs');
+                            }}
+                            className="text-[11px] font-bold hover:underline cursor-pointer"
+                            style={{ color: 'var(--brand-primary-text)' }}
+                          >
+                            Tümünü gör
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        {snapshot.surahHits.slice(0, 4).map((hit) => (
+                          <button
+                            key={`quick-surah-${hit.surah.no}`}
+                            type="button"
+                            onClick={() =>
+                              handleJumpToVerse(hit.surah.no, 1, hit.surah.pageStart, 'mushaf')
+                            }
+                            className="rounded-xl border px-3 py-2 flex items-center justify-between gap-2 text-left cursor-pointer transition-colors hover:border-teal-600/45"
+                            style={{
+                              backgroundColor: 'var(--bg-surface-soft)',
+                              borderColor: 'var(--border-subtle)',
+                            }}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className="text-[11px] font-extrabold tabular-nums shrink-0"
+                                  style={{ color: 'var(--brand-primary-text)' }}
+                                >
+                                  {hit.surah.no}.
+                                </span>
+                                <span className="text-xs font-extrabold truncate">
+                                  <HighlightedText
+                                    text={hit.surah.nameTr}
+                                    query={trimmedQuery}
+                                    arabicMode={false}
+                                    includeSubstring={includeSubstring}
+                                  />
+                                </span>
+                                {hit.meaningTr && (
+                                  <span
+                                    className="text-[11px] font-semibold truncate"
+                                    style={{ color: 'var(--text-muted)' }}
+                                  >
+                                    (
+                                    <HighlightedText
+                                      text={hit.meaningTr}
+                                      query={trimmedQuery}
+                                      arabicMode={false}
+                                      includeSubstring={true}
+                                    />
+                                    )
+                                  </span>
+                                )}
+                              </div>
+                              <p
+                                className="text-[10px] tabular-nums mt-0.5"
+                                style={{ color: 'var(--text-muted)' }}
+                              >
+                                {hit.surah.type} · {hit.surah.ayahCount} ayet · S.{hit.surah.pageStart}
+                              </p>
+                            </div>
+                            <ArrowRight
+                              className="w-3.5 h-3.5 shrink-0"
+                              style={{ color: 'var(--brand-primary-text)' }}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
+
+                  {/* Konu Fihristi Eşleşmeleri (İlk 8 Konu -> Doğrudan Fihrist Sekmesine Açılır) */}
+                  {snapshot.fihristTopicHits.length > 0 && (
+                    <div
+                      className="rounded-2xl border p-3 space-y-2"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className="text-[11px] font-extrabold uppercase tracking-wide flex items-center gap-1.5"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        >
+                          <Compass className="w-3.5 h-3.5" />
+                          <span>Konu Fihristi ({snapshot.fihristTopicHits.length})</span>
+                        </span>
+                        {snapshot.fihristTopicHits.length > 8 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              setActiveTab('topics');
+                            }}
+                            className="text-[11px] font-bold hover:underline cursor-pointer"
+                            style={{ color: 'var(--brand-primary-text)' }}
+                          >
+                            Tümünü gör
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {snapshot.fihristTopicHits.slice(0, 8).map((hit) => (
+                          <button
+                            key={`quick-topic-${hit.topic.id}`}
+                            type="button"
+                            onClick={() => handleJumpToFihristTopic(hit.topic.id)}
+                            className="min-h-[34px] px-2.5 py-1 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors hover:border-teal-600/50"
+                            style={{
+                              backgroundColor: 'var(--bg-surface-soft)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            <span className="truncate max-w-[200px] sm:max-w-[260px]">
+                              <HighlightedText
+                                text={hit.topic.title}
+                                query={trimmedQuery}
+                                arabicMode={false}
+                                includeSubstring={true}
+                              />
+                            </span>
+                            <span
+                              className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums shrink-0"
+                              style={{
+                                backgroundColor: 'var(--brand-primary-soft)',
+                                color: 'var(--brand-primary-text)',
+                              }}
+                            >
+                              {hit.ayahCount} ayet
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2.5">
+                    {snapshot.allHits.slice(0, visibleCount).map((hit) =>
+                      renderVerseCard(hit, 'all'),
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1604,6 +1785,28 @@ export const GlobalSearchModal: React.FC = () => {
                               includeSubstring={includeSubstring}
                             />
                           </h4>
+                          {hit.meaningTr && (
+                            <span
+                              className="text-xs font-bold px-2 py-0.5 rounded-lg"
+                              style={{
+                                backgroundColor:
+                                  hit.matchedField === 'meaning'
+                                    ? 'var(--brand-accent-soft)'
+                                    : 'var(--bg-surface-soft)',
+                                color:
+                                  hit.matchedField === 'meaning'
+                                    ? 'var(--brand-accent-text)'
+                                    : 'var(--text-secondary)',
+                              }}
+                            >
+                              <HighlightedText
+                                text={hit.meaningTr}
+                                query={trimmedQuery}
+                                arabicMode={false}
+                                includeSubstring={true}
+                              />
+                            </span>
+                          )}
                           <span className="arabic-title text-lg leading-none">
                             <HighlightedText
                               text={formatSafeArabicTitle(hit.surah.nameAr)}
@@ -1628,7 +1831,7 @@ export const GlobalSearchModal: React.FC = () => {
                               text={hit.snippet}
                               query={trimmedQuery}
                               arabicMode={false}
-                              includeSubstring={includeSubstring}
+                              includeSubstring={hit.matchedField === 'meaning' || includeSubstring}
                             />
                           </p>
                         )}
@@ -1666,8 +1869,95 @@ export const GlobalSearchModal: React.FC = () => {
                 </div>
               )}
 
+              {/* Sekme 6: Konu Fihristi */}
+              {activeTab === 'topics' && (
+                <div className="space-y-2">
+                  {snapshot.fihristTopicHits
+                    .slice(0, visibleCount)
+                    .map((hit: FihristTopicSearchHit) => (
+                      <article
+                        key={hit.topic.id}
+                        className="rounded-2xl border p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className="w-7 h-7 rounded-lg text-xs font-extrabold inline-flex items-center justify-center shrink-0"
+                              style={{
+                                backgroundColor: 'var(--brand-primary-soft)',
+                                color: 'var(--brand-primary-text)',
+                              }}
+                            >
+                              {hit.topic.letter}
+                            </span>
+                            <h4 className="text-sm sm:text-base font-extrabold">
+                              <HighlightedText
+                                text={hit.topic.title}
+                                query={trimmedQuery}
+                                arabicMode={false}
+                                includeSubstring={true}
+                              />
+                            </h4>
+                            <span
+                              className="text-[11px] font-bold px-2 py-0.5 rounded-lg tabular-nums"
+                              style={{
+                                backgroundColor: 'var(--bg-surface-soft)',
+                                color: 'var(--text-secondary)',
+                              }}
+                            >
+                              {hit.topic.refs.length} referans · {hit.ayahCount} ayet
+                            </span>
+                          </div>
+                          {hit.topic.tags && hit.topic.tags.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1">
+                              {hit.topic.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="px-2 py-0.5 rounded-md text-[11px] font-semibold"
+                                  style={{
+                                    backgroundColor:
+                                      hit.matchedTag === tag
+                                        ? 'var(--brand-accent-soft)'
+                                        : 'var(--bg-surface-soft)',
+                                    color:
+                                      hit.matchedTag === tag
+                                        ? 'var(--brand-accent-text)'
+                                        : 'var(--text-muted)',
+                                  }}
+                                >
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleJumpToFihristTopic(hit.topic.id)}
+                          className="min-h-[36px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                          style={{ backgroundColor: 'var(--brand-primary)' }}
+                        >
+                          <Compass className="w-3.5 h-3.5" />
+                          <span>Konuyu Aç</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </article>
+                    ))}
+                </div>
+              )}
+
               {/* Boş Sonuç Durumu (+ Diğer sekmelerde eşleşme varsa tek tıkla geçiş) */}
-              {activeListCount === 0 && !snapshot.isScanning && (
+              {activeListCount === 0 &&
+                !(
+                  activeTab === 'all' &&
+                  (snapshot.surahHits.length > 0 || snapshot.fihristTopicHits.length > 0)
+                ) &&
+                !snapshot.isScanning && (
                 <div
                   className="rounded-2xl border p-8 text-center space-y-3"
                   style={{

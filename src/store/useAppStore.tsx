@@ -35,6 +35,7 @@ import type {
   ExamHistoryRecord,
   ExamMode,
   ExamNavigationTarget,
+  FihristNavigationTarget,
   GamificationState,
   LastReadPosition,
   ListeningDrawerSeed,
@@ -923,6 +924,9 @@ interface AppContextValue {
   examNavTarget: ExamNavigationTarget | null;
   navigateToExam: (target?: Omit<ExamNavigationTarget, 'nonce'>) => void;
   clearExamNavTarget: () => void;
+  fihristNavTarget: FihristNavigationTarget | null;
+  navigateToFihrist: (target?: Omit<FihristNavigationTarget, 'nonce'>) => void;
+  clearFihristNavTarget: () => void;
   isExamActive: boolean;
   setIsExamActive: (active: boolean) => void;
   isMemorizationZenActive: boolean;
@@ -1024,6 +1028,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeTab, setActiveTabState] = useState<NavTab>('home');
   const [studyNavTarget, setStudyNavTarget] = useState<StudyNavigationTarget | null>(null);
   const [examNavTarget, setExamNavTarget] = useState<ExamNavigationTarget | null>(null);
+  const [fihristNavTarget, setFihristNavTarget] = useState<FihristNavigationTarget | null>(null);
   const [isExamActive, setIsExamActive] = useState(false);
   const [isMemorizationZenActive, setIsMemorizationZenActive] = useState(false);
   const [isMobileReaderImmersive, setIsMobileReaderImmersive] = useState(false);
@@ -1834,7 +1839,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setActiveTab = useCallback((tab: NavTab) => {
     sfxService.play('click');
-    setActiveTabState(tab);
+    if (tab === 'mistakes') {
+      setExamNavTarget({ openMistakeCamp: true, nonce: Date.now() });
+      setActiveTabState('exam');
+    } else {
+      setActiveTabState(tab);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
@@ -1868,6 +1878,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const clearExamNavTarget = useCallback(() => {
     setExamNavTarget(null);
+  }, []);
+
+  const navigateToFihrist = useCallback((target?: Omit<FihristNavigationTarget, 'nonce'>) => {
+    sfxService.play('click');
+    setIsExamActive(false);
+    setFihristNavTarget({ ...(target ?? {}), nonce: Date.now() });
+    setActiveTabState('fihrist');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const clearFihristNavTarget = useCallback(() => {
+    setFihristNavTarget(null);
   }, []);
 
   const openPoolModal = useCallback(() => {
@@ -2192,6 +2214,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       examNavTarget,
       navigateToExam,
       clearExamNavTarget,
+      fihristNavTarget,
+      navigateToFihrist,
+      clearFihristNavTarget,
       isExamActive,
       setIsExamActive,
       isMemorizationZenActive,
@@ -2309,6 +2334,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       examNavTarget,
       navigateToExam,
       clearExamNavTarget,
+      fihristNavTarget,
+      navigateToFihrist,
+      clearFihristNavTarget,
       isExamActive,
       isMemorizationZenActive,
       isMobileReaderImmersive,

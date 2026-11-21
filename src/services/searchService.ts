@@ -1,4 +1,5 @@
 import { dataService } from './dataService';
+import type { FihristTopic, SurahExtraInfo } from '../types/fihrist';
 import type { MetaData, SurahMeta, WordSurahFile } from '../types/quran';
 import {
   isArabicText,
@@ -13,7 +14,7 @@ import {
 
 export type SearchScopeMode = 'all' | 'pool' | 'juz' | 'surah';
 
-export type SearchResultTab = 'all' | 'arabic' | 'meal' | 'words' | 'surahs';
+export type SearchResultTab = 'all' | 'arabic' | 'meal' | 'words' | 'surahs' | 'topics';
 
 export interface DirectJumpItem {
   id: string;
@@ -28,8 +29,15 @@ export interface DirectJumpItem {
 
 export interface SurahSearchHit {
   surah: SurahMeta;
-  matchedField: 'name' | 'topic';
+  meaningTr?: string;
+  matchedField: 'name' | 'meaning' | 'topic';
   snippet: string;
+}
+
+export interface FihristTopicSearchHit {
+  topic: FihristTopic;
+  ayahCount: number;
+  matchedTag?: string;
 }
 
 export interface VerseSearchHit {
@@ -81,6 +89,7 @@ export interface ProgressiveSearchSnapshot {
   totalSurahs: number;
   directJumps: DirectJumpItem[];
   surahHits: SurahSearchHit[];
+  fihristTopicHits: FihristTopicSearchHit[];
   allHits: VerseSearchHit[];
   arabicHits: VerseSearchHit[];
   mealHits: VerseSearchHit[];
@@ -265,12 +274,14 @@ export function parseDirectReferences(rawQuery: string, meta: MetaData): DirectJ
 }
 
 /**
- * meta.json üzerinden 0ms içinde sure isimleri, Arapça adları ve konuları içinde arama yapar.
+ * meta.json + surah_info.json üzerinden anlık olarak sure isimleri, Türkçe anlamları,
+ * Arapça adları ve konuları içinde arama yapar.
  */
 export function searchSurahsInstant(
   rawQuery: string,
   meta: MetaData,
   includeSubstring = false,
+  surahExtrasMap?: Map<number, SurahExtraInfo>,
 ): SurahSearchHit[] {
   const q = rawQuery.trim();
   if (!q) return [];
@@ -281,10 +292,13 @@ export function searchSurahsInstant(
   const hits: SurahSearchHit[] = [];
 
   for (const s of meta.surahs) {
+    const meaningTr = surahExtrasMap?.get(s.no)?.meaningTr;
+
     if (arabicQ) {
       if (matchesNormalizedText(normalizeArabic(s.nameAr), normQ, true, includeSubstring)) {
         hits.push({
           surah: s,
+          meaningTr,
           matchedField: 'name',
           snippet: s.konusu || s.hakkinda || `${s.type} · ${s.ayahCount} ayet`,
         });
@@ -300,6 +314,7 @@ export function searchSurahsInstant(
     if (numMatch || nameMatch) {
       hits.push({
         surah: s,
+        meaningTr,
         matchedField: 'name',
         snippet: s.konusu || s.hakkinda || `${s.type} · ${s.ayahCount} ayet`,
       });
@@ -307,11 +322,25 @@ export function searchSurahsInstant(
     }
 
     if (normQ.length >= 2) {
+      if (
+        meaningTr &&
+        matchesNormalizedText(normalizeTurkish(meaningTr), normQ, false, true)
+      ) {
+        hits.push({
+          surah: s,
+          meaningTr,
+          matchedField: 'meaning',
+          snippet: `Anlamı: ${meaningTr}${s.konusu ? ` · ${s.konusu}` : ''}`,
+        });
+        continue;
+      }
+
       const topicText = s.konusu || '';
       const aboutText = s.hakkinda || '';
       if (matchesNormalizedText(normalizeTurkish(topicText), normQ, false, includeSubstring)) {
         hits.push({
           surah: s,
+          meaningTr,
           matchedField: 'topic',
           snippet: topicText,
         });
@@ -320,6 +349,7 @@ export function searchSurahsInstant(
       ) {
         hits.push({
           surah: s,
+          meaningTr,
           matchedField: 'topic',
           snippet: aboutText,
         });
@@ -328,6 +358,68 @@ export function searchSurahsInstant(
   }
 
   return hits;
+}
+
+/**
+ * 601 başlık içeren Konu Fihristi (topics.json) üzerinde başlık ve etiket eşleşmesi yapar.
+ */
+export function searchFihristTopicsInstant(
+  rawQuery: string,
+  topics: readonly FihristTopic[],
+): FihristTopicSearchHit[] {
+  const q = rawQuery.trim();
+  if (!q || isArabicText(q)) return [];
+  const normQ = normalizeTurkish(q);
+  if (normQ.length < 2) return [];
+
+  const scored: { hit: FihristTopicSearchHit; score: number }[] = [];
+
+  for (const topic of topics) {
+    const normTitle = normalizeTurkish(topic.title);
+    const titleExact = normTitle === normQ;
+    const titleStarts = !titleExact && normTitle.startsWith(normQ);
+    const titleWordStarts =
+      !titleExact && !titleStarts && matchesNormalizedText(normTitle, normQ, false, false);
+    const titleIncludes = !titleExact && !titleStarts && !titleWordStarts && normTitle.includes(normQ);
+
+    let matchedTag: string | undefined;
+    if (topic.tags && topic.tags.length > 0) {
+      matchedTag = topic.tags.find((tag) => normalizeTurkish(tag).includes(normQ));
+    }
+
+    if (!titleExact && !titleStarts && !titleWordStarts && !titleIncludes && !matchedTag) {
+      continue;
+    }
+
+    let ayahCount = 0;
+    for (const [, start, end] of topic.refs) {
+      ayahCount += Math.max(1, Math.abs(end - start) + 1);
+    }
+
+    const score = titleExact
+      ? 100
+      : titleStarts
+        ? 85
+        : titleWordStarts
+          ? 70
+          : titleIncludes
+            ? 55
+            : 40;
+
+    scored.push({
+      hit: { topic, ayahCount, matchedTag },
+      score,
+    });
+  }
+
+  scored.sort(
+    (a, b) =>
+      b.score - a.score ||
+      b.hit.ayahCount - a.hit.ayahCount ||
+      a.hit.topic.title.localeCompare(b.hit.topic.title, 'tr-TR'),
+  );
+
+  return scored.map((item) => item.hit);
 }
 
 async function getOrIndexSurah(surahNo: number): Promise<IndexedSurahEntry> {
@@ -465,8 +557,16 @@ export async function runProgressiveSearch(
   } = options;
   const trimmed = query.trim();
 
+  const [surahExtrasMap, fihristTopicsFile] = await Promise.all([
+    dataService.getSurahInfoExtrasMap().catch(() => new Map<number, SurahExtraInfo>()),
+    dataService.getFihristTopics().catch(() => ({ topics: [] as FihristTopic[] })),
+  ]);
+
+  if (signal.aborted) return;
+
   const directJumps = parseDirectReferences(trimmed, meta);
-  const surahHits = searchSurahsInstant(trimmed, meta, includeSubstring);
+  const surahHits = searchSurahsInstant(trimmed, meta, includeSubstring, surahExtrasMap);
+  const fihristTopicHits = searchFihristTopicsInstant(trimmed, fihristTopicsFile.topics ?? []);
   const arabicMode = isArabicText(trimmed);
   const normQuery = arabicMode ? normalizeArabic(trimmed) : normalizeTurkish(trimmed);
 
@@ -481,6 +581,7 @@ export async function runProgressiveSearch(
         totalSurahs: targetSurahs.length,
         directJumps,
         surahHits,
+        fihristTopicHits,
         allHits: [],
         arabicHits: [],
         mealHits: [],
@@ -497,7 +598,7 @@ export async function runProgressiveSearch(
   const mealHits: VerseSearchHit[] = [];
   const wordHits: WordSearchHit[] = [];
 
-  // 0ms anlık başlangıç bildirimi (Sureler ve Doğrudan Git hemen görünür)
+  // 0ms anlık başlangıç bildirimi (Sureler, Konu Fihristi ve Doğrudan Git hemen görünür)
   if (!signal.aborted) {
     onProgress({
       query: trimmed,
@@ -507,6 +608,7 @@ export async function runProgressiveSearch(
       totalSurahs: targetSurahs.length,
       directJumps,
       surahHits,
+      fihristTopicHits,
       allHits: [],
       arabicHits: [],
       mealHits: [],
@@ -623,6 +725,7 @@ export async function runProgressiveSearch(
       totalSurahs: targetSurahs.length,
       directJumps,
       surahHits,
+      fihristTopicHits,
       allHits: [...allHits],
       arabicHits: [...arabicHits],
       mealHits: [...mealHits],

@@ -6,8 +6,21 @@ import { useAppStore } from '../../store/useAppStore';
 import type { SurahExtraInfo, SurahInfoExtrasFile } from '../../types/fihrist';
 import { normalizeTurkish } from '../../utils/textNormalize';
 
-type SurahSortKey = 'mushaf' | 'osman' | 'ibnAbbas' | 'noldeke';
+type SurahSortKey = 'mushaf' | 'alphabetical' | 'osman' | 'ibnAbbas' | 'noldeke';
 type SurahFilterKey = 'all' | 'mekki' | 'medeni' | 'medeni_exceptions';
+
+function normalizeForTurkishAlphaSort(value: string): string {
+  return value
+    .replace(/Â/g, 'A')
+    .replace(/â/g, 'a')
+    .replace(/Î/g, 'İ')
+    .replace(/î/g, 'i')
+    .replace(/Û/g, 'U')
+    .replace(/û/g, 'u')
+    .replace(/['’`-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 function formatRangeChip(range: [number, number]): string {
   return range[0] === range[1] ? `${range[0]}` : `${range[0]}–${range[1]}`;
@@ -72,6 +85,14 @@ export const SurahNuzulTab: React.FC = () => {
 
     return [...list].sort((a, b) => {
       switch (sortBy) {
+        case 'alphabetical':
+          return (
+            normalizeForTurkishAlphaSort(a.nameTr).localeCompare(
+              normalizeForTurkishAlphaSort(b.nameTr),
+              'tr',
+              { sensitivity: 'base' },
+            ) || a.no - b.no
+          );
         case 'osman':
           return a.nuzul.osman - b.nuzul.osman || a.no - b.no;
         case 'ibnAbbas':
@@ -215,6 +236,7 @@ export const SurahNuzulTab: React.FC = () => {
               }}
             >
               <option value="mushaf">Mushaf Sırası (1–114)</option>
+              <option value="alphabetical">Alfabetik Sıra (A–Z)</option>
               <option value="osman">Hz. Osman Nüzul Sırası</option>
               <option value="ibnAbbas">İbn Abbas Nüzul Sırası</option>
               <option value="noldeke">Nöldeke Kronolojisi</option>

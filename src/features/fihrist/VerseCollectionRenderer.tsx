@@ -10,6 +10,7 @@ import {
   Headphones,
   Loader2,
   NotebookPen,
+  Pencil,
   Pin,
   Scale,
   StickyNote,
@@ -39,11 +40,15 @@ interface VerseCollectionRendererProps {
   items: CollectionDisplayItem[];
   viewMode: FihristViewMode;
   collectionTitle: string;
-  /** Araştırma Defteri modu (not ekleme, sıralama, silme aktif) */
+  /** Araştırma Defteri modu (not ekleme, kayıt düzenleme, sıralama, silme aktif) */
   editable?: boolean;
   /** Yalnızca 'custom' sıralamada yukarı/aşağı taşıma butonları gösterilir */
   canReorder?: boolean;
   onUpdateNote?: (entryId: string, note: string) => void;
+  onUpdateEntry?: (
+    entryId: string,
+    patch: { surah: number; startAyah: number; endAyah: number; note?: string },
+  ) => void;
   onRemoveEntry?: (entryId: string) => void;
   onMoveEntry?: (entryId: string, direction: 'up' | 'down') => void;
 }
@@ -61,6 +66,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
   editable = false,
   canReorder = false,
   onUpdateNote,
+  onUpdateEntry,
   onRemoveEntry,
   onMoveEntry,
 }) => {
@@ -104,10 +110,25 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
   const [hydratedVerses, setHydratedVerses] = useState<HydratedFihristVerse[]>([]);
   const [isHydratingAll, setIsHydratingAll] = useState(false);
 
-  // Dipnot ve not düzenleme durumları
+  // Dipnot, not ve kayıt (sure / ayet aralığı / not) satır içi düzenleme durumları
   const [openFootnotes, setOpenFootnotes] = useState<Record<string, boolean>>({});
   const [editingNoteEntryId, setEditingNoteEntryId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState('');
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editSurah, setEditSurah] = useState<number>(1);
+  const [editStartText, setEditStartText] = useState<string>('');
+  const [editEndText, setEditEndText] = useState<string>('');
+  const [editNoteDraft, setEditNoteDraft] = useState<string>('');
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const surahsList = useMemo(() => meta?.surahs ?? [], [meta]);
+  const itemByEntryId = useMemo(() => {
+    const map = new Map<string, CollectionDisplayItem>();
+    for (const it of items) {
+      if (it.entryId) map.set(it.entryId, it);
+    }
+    return map;
+  }, [items]);
 
   // Öğeler değiştiğinde geçersiz çip seçimini sıfırla
   useEffect(() => {
@@ -260,6 +281,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
 
   const startEditingNote = (entryId: string, existingNote?: string) => {
     sfxService.play('click');
+    setEditingEntryId(null);
     setEditingNoteEntryId(entryId);
     setNoteDraft(existingNote ?? '');
   };
@@ -268,6 +290,197 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
     sfxService.play('click');
     onUpdateNote?.(entryId, noteDraft);
     setEditingNoteEntryId(null);
+  };
+
+  const startEditingEntry = (entry: CollectionDisplayItem) => {
+    if (!entry.entryId) return;
+    sfxService.play('click');
+    setEditingNoteEntryId(null);
+    setEditingEntryId(entry.entryId);
+    setEditSurah(entry.surah);
+    setEditStartText(String(entry.startAyah));
+    setEditEndText(entry.endAyah === entry.startAyah ? '' : String(entry.endAyah));
+    setEditNoteDraft(entry.note ?? '');
+    setEditError(null);
+  };
+
+  const cancelEditingEntry = () => {
+    setEditingEntryId(null);
+    setEditError(null);
+  };
+
+  const saveEditingEntry = (e: React.FormEvent, entryId: string) => {
+    e.preventDefault();
+    const surahMeta = surahMap.get(editSurah);
+    const maxAyah = surahMeta?.ayahCount ?? 286;
+    const rawStart = editStartText.trim();
+    const rawEnd = editEndText.trim();
+
+    if (!/^\d+$/.test(rawStart)) {
+      setEditError('Geçerli bir başlangıç ayet numarası girin.');
+      return;
+    }
+    const startNum = Number(rawStart);
+    if (startNum < 1 || startNum > maxAyah) {
+      setEditError(
+        `${surahMeta?.nameTr ?? `${editSurah}. Sure`} için ayet numarası 1 ile ${maxAyah} arasında olmalıdır.`,
+      );
+      return;
+    }
+
+    let endNum = startNum;
+    if (rawEnd !== '') {
+      if (!/^\d+$/.test(rawEnd)) {
+        setEditError('Bitiş ayeti sayısal olmalı veya tek ayet için boş bırakılmalıdır.');
+        return;
+      }
+      endNum = Number(rawEnd);
+      if (endNum < startNum || endNum > maxAyah) {
+        setEditError(
+          `Bitiş ayeti ${startNum} ile ${maxAyah} arasında olmalıdır (tek ayet için boş bırakabilirsiniz).`,
+        );
+        return;
+      }
+    }
+
+    sfxService.play('click');
+    onUpdateEntry?.(entryId, {
+      surah: editSurah,
+      startAyah: startNum,
+      endAyah: endNum,
+      note: editNoteDraft,
+    });
+    setEditingEntryId(null);
+    setEditError(null);
+  };
+
+  const renderInlineEntryEditForm = (entryId: string) => {
+    const selectedMax = surahMap.get(editSurah)?.ayahCount ?? 286;
+    return (
+      <form
+        onSubmit={(e) => saveEditingEntry(e, entryId)}
+        className="p-3 rounded-xl border space-y-2.5"
+        style={{
+          backgroundColor: 'var(--bg-surface-soft)',
+          borderColor: 'var(--brand-primary)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="text-xs font-extrabold inline-flex items-center gap-1.5"
+            style={{ color: 'var(--brand-primary-text)' }}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            <span>Kaydı Düzenle</span>
+          </span>
+          <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+            1–{selectedMax} ayet
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+          <select
+            aria-label="Sure seçin"
+            value={editSurah}
+            onChange={(e) => {
+              setEditSurah(Number(e.target.value));
+              setEditError(null);
+            }}
+            className="sm:col-span-6 min-h-[38px] px-2.5 rounded-xl border text-xs font-bold outline-none focus:border-[var(--brand-primary)]"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            {surahsList.map((s) => (
+              <option key={s.no} value={s.no}>
+                {s.no}. {s.nameTr} ({s.ayahCount} ayet)
+              </option>
+            ))}
+          </select>
+
+          <div className="sm:col-span-6 grid grid-cols-2 gap-1.5">
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              aria-label="Başlangıç ayeti"
+              placeholder="Başlangıç"
+              value={editStartText}
+              onChange={(e) => {
+                setEditStartText(e.target.value.replace(/[^\d]/g, ''));
+                if (editError) setEditError(null);
+              }}
+              className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            />
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              aria-label="Bitiş ayeti (isteğe bağlı)"
+              placeholder="Bitiş (tek ayet: boş)"
+              value={editEndText}
+              onChange={(e) => {
+                setEditEndText(e.target.value.replace(/[^\d]/g, ''));
+                if (editError) setEditError(null);
+              }}
+              className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            />
+          </div>
+        </div>
+
+        <textarea
+          rows={2}
+          value={editNoteDraft}
+          onChange={(e) => setEditNoteDraft(e.target.value)}
+          placeholder="Kişisel araştırma notu (isteğe bağlı)..."
+          className="w-full p-2.5 rounded-xl border text-xs outline-none focus:border-[var(--brand-primary)]"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderColor: 'var(--border-subtle)',
+            color: 'var(--text-primary)',
+          }}
+        />
+
+        {editError && (
+          <p className="text-xs font-bold text-red-600">{editError}</p>
+        )}
+
+        <div className="flex justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={cancelEditingEntry}
+            className="min-h-[34px] px-3 rounded-lg border text-xs font-bold cursor-pointer"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            İptal
+          </button>
+          <button
+            type="submit"
+            className="min-h-[34px] px-3.5 rounded-lg text-xs font-extrabold text-white inline-flex items-center gap-1 cursor-pointer"
+            style={{ backgroundColor: 'var(--brand-primary)' }}
+          >
+            <Check className="w-3.5 h-3.5" />
+            <span>Kaydet</span>
+          </button>
+        </div>
+      </form>
+    );
   };
 
   if (items.length === 0) {
@@ -583,7 +796,23 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                         <span>Kişisel Araştırma Notum</span>
                       </span>
                       <div className="flex items-center gap-1">
-                        {editingNoteEntryId !== selectedChipItem.entryId && (
+                        {onUpdateEntry && editingEntryId !== selectedChipItem.entryId && (
+                          <button
+                            type="button"
+                            onClick={() => startEditingEntry(selectedChipItem)}
+                            className="px-2 py-1 rounded-lg text-[11px] font-bold border inline-flex items-center gap-1 cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--brand-primary-text)',
+                            }}
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Kaydı Düzenle</span>
+                          </button>
+                        )}
+                        {editingNoteEntryId !== selectedChipItem.entryId &&
+                          editingEntryId !== selectedChipItem.entryId && (
                           <button
                             type="button"
                             onClick={() =>
@@ -596,7 +825,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                               color: 'var(--text-primary)',
                             }}
                           >
-                            {selectedChipItem.note ? 'Düzenle' : 'Not Ekle'}
+                            {selectedChipItem.note ? 'Notu Düzenle' : 'Not Ekle'}
                           </button>
                         )}
                         {onRemoveEntry && (
@@ -620,7 +849,9 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                       </div>
                     </div>
 
-                    {editingNoteEntryId === selectedChipItem.entryId ? (
+                    {editingEntryId === selectedChipItem.entryId ? (
+                      renderInlineEntryEditForm(selectedChipItem.entryId)
+                    ) : editingNoteEntryId === selectedChipItem.entryId ? (
                       <div className="space-y-2">
                         <textarea
                           rows={2}
@@ -812,10 +1043,41 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
 
                 {showEntryControls && hv.entryId && (
                   <>
+                    {onUpdateEntry && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const entry = itemByEntryId.get(hv.entryId!);
+                          if (entry) startEditingEntry(entry);
+                        }}
+                        title="Sure, ayet aralığı veya notu düzenle"
+                        aria-label="Kaydı düzenle"
+                        className="min-h-[34px] px-2 rounded-lg border text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                        style={{
+                          backgroundColor:
+                            editingEntryId === hv.entryId
+                              ? 'var(--brand-primary-soft)'
+                              : 'var(--bg-surface-soft)',
+                          borderColor:
+                            editingEntryId === hv.entryId
+                              ? 'var(--brand-primary)'
+                              : 'var(--border-subtle)',
+                          color:
+                            editingEntryId === hv.entryId
+                              ? 'var(--brand-primary-text)'
+                              : 'var(--text-secondary)',
+                        }}
+                      >
+                        <Pencil className="w-3.5 h-3.5 shrink-0" />
+                        <span className="hidden md:inline">Düzenle</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => startEditingNote(hv.entryId!, hv.note)}
                       title={hv.note ? 'Kişisel notu düzenle' : 'Kişisel not ekle'}
+                      aria-label={hv.note ? 'Kişisel notu düzenle' : 'Kişisel not ekle'}
                       className="min-h-[34px] px-2 rounded-lg border text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                       style={{
                         backgroundColor: hv.note
@@ -895,6 +1157,11 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                 )}
               </div>
             </div>
+
+            {/* Satır İçi Kayıt Düzenleme Paneli (Sure / Başlangıç / Bitiş / Not) */}
+            {showEntryControls && hv.entryId && editingEntryId === hv.entryId && (
+              <div>{renderInlineEntryEditForm(hv.entryId)}</div>
+            )}
 
             {/* Arapça Metin (Sadece AR veya AR + Meal) */}
             {(viewMode === 'ar' || viewMode === 'ar_meal') && (

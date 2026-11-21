@@ -11,7 +11,6 @@ import {
   Loader2,
   Play,
   Printer,
-  RotateCcw,
   SlidersHorizontal,
   Sparkles,
   Trash2,
@@ -300,30 +299,6 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
             <span>
               Hata Bildirimleri{reportedCount > 0 ? ` (${formatNumberTr(reportedCount)})` : ''}
             </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setActiveTab('mistakes');
-            }}
-            className="min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
-            style={{
-              backgroundColor:
-                gamification.wrongQuestionIds.length > 0
-                  ? 'rgba(239, 68, 68, 0.10)'
-                  : 'var(--bg-surface)',
-              borderColor:
-                gamification.wrongQuestionIds.length > 0
-                  ? 'rgba(239, 68, 68, 0.35)'
-                  : 'var(--border-subtle)',
-              color:
-                gamification.wrongQuestionIds.length > 0 ? '#DC2626' : 'var(--text-secondary)',
-            }}
-          >
-            <RotateCcw className="w-3.5 h-3.5 shrink-0" />
-            <span>Hata Kampı ({formatNumberTr(gamification.wrongQuestionIds.length)})</span>
           </button>
         </div>
       </section>

@@ -17,11 +17,30 @@ function generateId(prefix: string): string {
 }
 
 function sanitizeVerseEntry(raw: unknown, idx: number): ResearchVerseEntry | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const r = raw as Partial<ResearchVerseEntry>;
-  const surah = Number(r.surah);
-  const startAyah = Number(r.startAyah);
-  const endAyah = r.endAyah !== undefined ? Number(r.endAyah) : startAyah;
+  if (!raw) return null;
+
+  let surah = NaN;
+  let startAyah = NaN;
+  let endAyah = NaN;
+  let id: string | undefined;
+  let note: string | undefined;
+  let addedAt: string | undefined;
+
+  if (Array.isArray(raw)) {
+    surah = Number(raw[0]);
+    startAyah = Number(raw[1]);
+    endAyah = raw[2] !== undefined ? Number(raw[2]) : startAyah;
+  } else if (typeof raw === 'object') {
+    const r = raw as Record<string, unknown>;
+    surah = Number(r.surah ?? r.s);
+    const rawStart = r.startAyah ?? r.start ?? r.ayah ?? r.a;
+    const rawEnd = r.endAyah ?? r.end ?? rawStart;
+    startAyah = Number(rawStart);
+    endAyah = rawEnd !== undefined ? Number(rawEnd) : startAyah;
+    if (typeof r.id === 'string' && r.id.trim()) id = r.id.trim();
+    if (typeof r.note === 'string' && r.note.trim()) note = r.note.trim();
+    if (typeof r.addedAt === 'string' && r.addedAt) addedAt = r.addedAt;
+  }
 
   if (
     !Number.isInteger(surah) ||
@@ -36,22 +55,29 @@ function sanitizeVerseEntry(raw: unknown, idx: number): ResearchVerseEntry | nul
   }
 
   return {
-    id: typeof r.id === 'string' && r.id.trim() ? r.id.trim() : `rv_${idx}_${surah}_${startAyah}`,
+    id: id ?? `rv_${idx}_${surah}_${startAyah}`,
     surah,
     startAyah: Math.min(startAyah, endAyah),
     endAyah: Math.max(startAyah, endAyah),
-    note: typeof r.note === 'string' && r.note.trim() ? r.note.trim() : undefined,
-    addedAt: typeof r.addedAt === 'string' && r.addedAt ? r.addedAt : new Date().toISOString(),
+    note,
+    addedAt: addedAt ?? new Date().toISOString(),
   };
 }
 
 function sanitizeTopic(raw: unknown, idx: number): ResearchTopic | null {
   if (!raw || typeof raw !== 'object') return null;
-  const t = raw as Partial<ResearchTopic>;
-  const title = typeof t.title === 'string' ? t.title.trim() : '';
+  const t = raw as Record<string, unknown>;
+  const rawTitle = typeof t.title === 'string' ? t.title : typeof t.name === 'string' ? t.name : '';
+  const title = rawTitle.trim();
   if (!title) return null;
 
-  const rawItems = Array.isArray(t.items) ? t.items : [];
+  const rawItems = Array.isArray(t.items)
+    ? t.items
+    : Array.isArray(t.entries)
+      ? t.entries
+      : Array.isArray(t.refs)
+        ? t.refs
+        : [];
   const items: ResearchVerseEntry[] = [];
   const seenItemIds = new Set<string>();
 
@@ -252,6 +278,39 @@ export function updateResearchVerseNote(
   writeToStorage(next);
 }
 
+export function updateResearchVerse(
+  topicId: string,
+  entryId: string,
+  patch: { surah: number; startAyah: number; endAyah: number; note?: string },
+): void {
+  const s = Math.max(1, Math.min(114, Math.trunc(patch.surah)));
+  const a1 = Math.max(1, Math.trunc(Math.min(patch.startAyah, patch.endAyah)));
+  const a2 = Math.max(a1, Math.trunc(Math.max(patch.startAyah, patch.endAyah)));
+  const cleanNote = patch.note !== undefined ? patch.note.trim() || undefined : undefined;
+
+  const current = getResearchTopicsSnapshot();
+  const now = new Date().toISOString();
+  const next = current.map((topic) => {
+    if (topic.id !== topicId) return topic;
+    return {
+      ...topic,
+      items: topic.items.map((it) =>
+        it.id === entryId
+          ? {
+              ...it,
+              surah: s,
+              startAyah: a1,
+              endAyah: a2,
+              note: patch.note !== undefined ? cleanNote : it.note,
+            }
+          : it,
+      ),
+      updatedAt: now,
+    };
+  });
+  writeToStorage(next);
+}
+
 export function removeResearchVerse(topicId: string, entryId: string): void {
   const current = getResearchTopicsSnapshot();
   const now = new Date().toISOString();
@@ -325,18 +384,33 @@ export function createResearchBackupPayload(): ResearchBackupPayload {
   };
 }
 
+function extractRawTopicsFromBackup(parsed: unknown): unknown[] | null {
+  if (Array.isArray(parsed)) return parsed;
+  if (!parsed || typeof parsed !== 'object') return null;
+  const obj = parsed as Record<string, unknown>;
+  if (Array.isArray(obj.topics)) return obj.topics;
+  if (Array.isArray(obj.notebooks)) return obj.notebooks;
+  if (Array.isArray(obj.items) && (typeof obj.title === 'string' || typeof obj.name === 'string')) {
+    return [obj];
+  }
+  if (Array.isArray(obj.refs) && (typeof obj.title === 'string' || typeof obj.name === 'string')) {
+    return [obj];
+  }
+  if (obj.data && typeof obj.data === 'object') {
+    if (Array.isArray(obj.data)) return obj.data;
+    const nested = obj.data as Record<string, unknown>;
+    if (Array.isArray(nested.topics)) return nested.topics;
+    if (Array.isArray(nested.notebooks)) return nested.notebooks;
+  }
+  return null;
+}
+
 export function importResearchBackupPayload(
   rawJson: string,
   mode: 'merge' | 'replace',
 ): { importedTopics: number; totalTopics: number } {
   const parsed = JSON.parse(rawJson) as unknown;
-  const rawTopics = Array.isArray(parsed)
-    ? parsed
-    : parsed &&
-        typeof parsed === 'object' &&
-        Array.isArray((parsed as { topics?: unknown[] }).topics)
-      ? (parsed as { topics: unknown[] }).topics
-      : null;
+  const rawTopics = extractRawTopicsFromBackup(parsed);
 
   if (!rawTopics) {
     throw new Error('Geçersiz yedek dosyası formatı. Geçerli bir Araştırma Defteri JSON dosyası seçin.');
@@ -383,6 +457,7 @@ export const researchStorage = {
   deleteTopic: deleteResearchTopic,
   addVerses: addVersesToResearchTopic,
   updateNote: updateResearchVerseNote,
+  updateVerse: updateResearchVerse,
   removeVerse: removeResearchVerse,
   moveVerse: moveResearchVerse,
   copyFromFihrist: copyFihristTopicToNotebook,

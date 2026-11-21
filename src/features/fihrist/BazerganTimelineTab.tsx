@@ -390,28 +390,57 @@ export const BazerganTimelineTab: React.FC = () => {
 
   return (
     <div className="space-y-3.5">
-      {/* Metodoloji Bilgi Kutusu */}
-      {timeline?.methodologyNote && (
-        <div
-          className="rounded-2xl px-3.5 py-2.5 border flex items-start gap-2.5 text-xs leading-relaxed"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <Info
-            className="w-4 h-4 shrink-0 mt-0.5"
-            style={{ color: 'var(--brand-primary-text)' }}
-          />
-          <div>
-            <span className="font-extrabold" style={{ color: 'var(--text-primary)' }}>
-              Metodoloji Notu:{' '}
+      {/* Kurumsal Başlık & Mehdi Bazergan Metodoloji Kartı */}
+      <div
+        className="surface-card rounded-2xl p-4 sm:p-5 space-y-2.5 border"
+        style={{
+          borderColor: 'var(--border-subtle)',
+          backgroundColor: 'var(--bg-surface)',
+        }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <span
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <Info className="w-4 h-4" />
             </span>
-            <span>{timeline.methodologyNote}</span>
+            <div className="min-w-0 space-y-1">
+              <h3 className="text-sm sm:text-base font-extrabold tracking-tight leading-snug">
+                Mehdi Bazergan&apos;a Göre Vahiy Kronolojisi{' '}
+                <span className="font-semibold" style={{ color: 'var(--brand-primary-text)' }}>
+                  (Seyr-i Tahavvül-i Kur&apos;ân)
+                </span>
+              </h3>
+              <p
+                className="text-xs leading-relaxed"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Bu kronoloji, klasik rivayetlere dayalı <strong>Hz. Osman</strong> ve{' '}
+                <strong>İbn Abbas</strong> nüzul sıralamalarından farklı olarak; İranlı araştırmacı{' '}
+                <strong>Mehdi Bazergan</strong>&apos;ın ayet ve kelime uzunlukları ile üslup
+                dönüşümünü istatistiksel yöntemle inceleyerek oluşturduğu pasaj bazlı tarihlendirme
+                modelini esas alır.
+              </p>
+              {timeline?.methodologyNote && (
+                <p
+                  className="text-[11px] leading-relaxed pt-1 border-t"
+                  style={{
+                    color: 'var(--text-muted)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  {timeline.methodologyNote}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Dönem Filtresi + Yatay Kaydırılabilir Yıl Şeridi */}
       <div className="surface-card rounded-2xl p-3.5 sm:p-4 space-y-3">

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { RotateCcw, Trophy } from 'lucide-react';
 import { audioQueueService } from '../../services/audioQueueService';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
@@ -15,11 +16,14 @@ import {
   saveActiveExamSession,
   selectAndPrepareExamQuestions,
 } from '../../utils/examUtils';
+import { formatNumberTr } from '../../utils/poolUtils';
+import { MistakeCampPage } from '../mistakes/MistakeCampPage';
 import { ActiveExamView } from './ActiveExamView';
 import { ExamHubPage } from './ExamHubPage';
 import { ExamResultView } from './ExamResultView';
 
 type ExamPhase = 'hub' | 'active' | 'result';
+type ExamHubSubTab = 'builder' | 'mistakes';
 
 export const ExamCenterPage: React.FC = () => {
   const {
@@ -33,6 +37,7 @@ export const ExamCenterPage: React.FC = () => {
   } = useAppStore();
 
   const [phase, setPhase] = useState<ExamPhase>('hub');
+  const [hubSubTab, setHubSubTab] = useState<ExamHubSubTab>('builder');
   const [activeSession, setActiveSession] = useState<ExamSessionState | null>(null);
   const [resumableSession, setResumableSession] = useState<ExamSessionState | null>(() =>
     loadActiveExamSession(),
@@ -165,7 +170,11 @@ export const ExamCenterPage: React.FC = () => {
         customQuestionUids: gamification.wrongQuestionIds,
         title: 'Hata Kampı Telafi Sınavı',
       });
+    } else if (examNavTarget.openMistakeCamp) {
+      setHubSubTab('mistakes');
+      setPhase('hub');
     } else {
+      setHubSubTab('builder');
       if (examNavTarget.surahNo !== undefined) {
         setInitialSurahFilter(examNavTarget.surahNo);
       } else {
@@ -334,17 +343,89 @@ export const ExamCenterPage: React.FC = () => {
     );
   }
 
+  const wrongCount = gamification.wrongQuestionIds.length;
+
   return (
-    <ExamHubPage
-      initialSurahFilter={initialSurahFilter}
-      resumableSession={resumableSession}
-      isStarting={isStarting}
-      startError={startError}
-      onStartExam={(cfg) => {
-        void startExamFromConfig(cfg);
-      }}
-      onResumeSession={handleResumeSession}
-      onDiscardResumable={handleDiscardResumable}
-    />
+    <div className="space-y-4">
+      {/* Sınav Merkezi Alt Sekmeleri: Sınav Oluştur | Hata Kampı (X) */}
+      <div
+        role="tablist"
+        aria-label="Sınav Merkezi alt sekmeleri"
+        className="grid grid-cols-2 sm:inline-flex p-1 rounded-2xl border gap-1 w-full sm:w-auto"
+        style={{
+          backgroundColor: 'var(--bg-surface-soft)',
+          borderColor: 'var(--border-subtle)',
+        }}
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={hubSubTab === 'builder'}
+          onClick={() => {
+            sfxService.play('click');
+            setHubSubTab('builder');
+          }}
+          className="min-h-[40px] px-3 sm:px-5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          style={{
+            backgroundColor: hubSubTab === 'builder' ? 'var(--bg-surface)' : 'transparent',
+            color: hubSubTab === 'builder' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+            boxShadow: hubSubTab === 'builder' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          <Trophy className="w-4 h-4 shrink-0" />
+          <span>Sınav Oluştur</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={hubSubTab === 'mistakes'}
+          onClick={() => {
+            sfxService.play('click');
+            setHubSubTab('mistakes');
+          }}
+          className="min-h-[40px] px-3 sm:px-5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          style={{
+            backgroundColor: hubSubTab === 'mistakes' ? 'var(--bg-surface)' : 'transparent',
+            color:
+              hubSubTab === 'mistakes'
+                ? wrongCount > 0
+                  ? '#DC2626'
+                  : 'var(--brand-primary-text)'
+                : 'var(--text-secondary)',
+            boxShadow: hubSubTab === 'mistakes' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          <RotateCcw className="w-4 h-4 shrink-0" />
+          <span>Hata Kampı</span>
+          <span
+            className="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums leading-none"
+            style={{
+              backgroundColor:
+                wrongCount > 0 ? 'rgba(239, 68, 68, 0.14)' : 'var(--bg-surface)',
+              color: wrongCount > 0 ? '#DC2626' : 'var(--text-muted)',
+            }}
+          >
+            {formatNumberTr(wrongCount)}
+          </span>
+        </button>
+      </div>
+
+      {hubSubTab === 'mistakes' ? (
+        <MistakeCampPage />
+      ) : (
+        <ExamHubPage
+          initialSurahFilter={initialSurahFilter}
+          resumableSession={resumableSession}
+          isStarting={isStarting}
+          startError={startError}
+          onStartExam={(cfg) => {
+            void startExamFromConfig(cfg);
+          }}
+          onResumeSession={handleResumeSession}
+          onDiscardResumable={handleDiscardResumable}
+        />
+      )}
+    </div>
   );
 };

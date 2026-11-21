@@ -15,7 +15,6 @@ import { FihristHubPage } from './features/fihrist/FihristHubPage';
 import { QuickAddToResearchModal } from './features/fihrist/QuickAddToResearchModal';
 import { MemorizationHubPage } from './features/memorization/MemorizationHubPage';
 import { QuickMemorizeFromVerseModal } from './features/memorization/QuickMemorizeFromVerseModal';
-import { MistakeCampPage } from './features/mistakes/MistakeCampPage';
 import { StudyPage } from './features/study/StudyPage';
 import { HomePage } from './pages/HomePage';
 import { AppProvider, useAppStore } from './store/useAppStore';
@@ -33,10 +32,8 @@ const MainRouter: React.FC = () => {
         <FihristHubPage />
       ) : activeTab === 'memorize' ? (
         <MemorizationHubPage />
-      ) : activeTab === 'exam' ? (
-        <ExamCenterPage />
       ) : (
-        <MistakeCampPage />
+        <ExamCenterPage />
       )}
       <AudioPlayerBar />
       <ListeningDrawerModal />

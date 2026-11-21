@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Headphones,
   Loader2,
+  MoreHorizontal,
   NotebookPen,
   Printer,
   Search,
@@ -31,6 +32,8 @@ import { PrintableFihristModal } from './PrintableFihristModal';
 type TopicDisplayMode = 'ar_meal' | 'meal' | 'ar';
 
 interface TopicFihristTabProps {
+  selectedTopicIdOverride?: string | null;
+  onClearTopicOverride?: () => void;
   onCopiedToNotebook?: (newTopicId: string, topicTitle: string) => void;
 }
 
@@ -51,7 +54,11 @@ function getTurkishLetterOrder(letter: string): number {
   return idx === -1 ? 999 : idx;
 }
 
-export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({ onCopiedToNotebook }) => {
+export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
+  selectedTopicIdOverride,
+  onClearTopicOverride,
+  onCopiedToNotebook,
+}) => {
   const {
     meta,
     manifest,
@@ -82,8 +89,21 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({ onCopiedToNote
   const [openFootnotes, setOpenFootnotes] = useState<Record<number, boolean>>({});
   const [isPrintOpen, setIsPrintOpen] = useState(false);
   const [justCopiedId, setJustCopiedId] = useState<string | null>(null);
+  const [isMobileActionsOpen, setIsMobileActionsOpen] = useState(false);
 
   const detailTopRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isMobileActionsOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setIsMobileActionsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [isMobileActionsOpen]);
 
   // 1. Konu Fihristi JSON dosyasını tembel yükle
   useEffect(() => {
@@ -106,6 +126,22 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({ onCopiedToNote
       cancelled = true;
     };
   }, []);
+
+  // Genel aramadan gelen konu kimliğini doğrudan seç ve detay görünümünü aç
+  useEffect(() => {
+    if (!selectedTopicIdOverride || topics.length === 0) return;
+    const target = topics.find((t) => t.id === selectedTopicIdOverride);
+    if (target) {
+      setSearchQuery('');
+      setSelectedLetter('ALL');
+      setSelectedTopicId(target.id);
+      setMobileShowDetail(true);
+      window.setTimeout(() => {
+        detailTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 40);
+    }
+    onClearTopicOverride?.();
+  }, [selectedTopicIdOverride, topics, onClearTopicOverride]);
 
   // 2. Yalnızca içinde konu bulunan harfleri Türk alfabesi sırasına göre çıkar
   const availableLetters = useMemo(() => {
@@ -627,13 +663,13 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({ onCopiedToNote
                     )}
                   </div>
 
-                  {/* Ana Aksiyonlar */}
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {/* Ana Aksiyonlar (Mobilde Dinle + '⋯' Diğer İşlemler, Masaüstünde Tam Şerit) */}
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleListenTopic(0)}
                       disabled={isLoadingVerses || topicVerses.length === 0}
-                      className="min-h-[38px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="min-h-[38px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap"
                       style={{ backgroundColor: 'var(--brand-primary)' }}
                     >
                       {isTopicPlaying ? (
@@ -644,6 +680,7 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({ onCopiedToNote
                       <span>Konuyu Dinle</span>
                     </button>
 
+                    {/* Masaüstü (sm+) ikincil aksiyonlar */}
                     <button
                       type="button"
                       onClick={() => {
@@ -651,7 +688,7 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({ onCopiedToNote
                         setIsPrintOpen(true);
                       }}
                       disabled={selectedTopic.refs.length === 0}
-                      className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="hidden sm:inline-flex min-h-[38px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -666,7 +703,7 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({ onCopiedToNote
                       type="button"
                       onClick={handleCopyToNotebook}
                       title="Bu konuyu kişisel Araştırma Defterime kopyala"
-                      className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                      className="hidden sm:inline-flex min-h-[38px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer whitespace-nowrap"
                       style={{
                         backgroundColor:
                           justCopiedId === selectedTopic.id
@@ -687,10 +724,75 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({ onCopiedToNote
                       ) : (
                         <NotebookPen className="w-3.5 h-3.5 shrink-0" />
                       )}
-                      <span className="hidden sm:inline">
+                      <span>
                         {justCopiedId === selectedTopic.id ? 'Kopyalandı' : 'Defterime Kopyala'}
                       </span>
                     </button>
+
+                    {/* Mobil (< sm) kompakt '⋯' Diğer İşlemler menüsü */}
+                    <div ref={mobileMenuRef} className="relative sm:hidden">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setIsMobileActionsOpen((v) => !v);
+                        }}
+                        aria-label="Diğer işlemler"
+                        aria-expanded={isMobileActionsOpen}
+                        className="w-9 h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+
+                      {isMobileActionsOpen && (
+                        <div
+                          className="absolute right-0 mt-1.5 w-48 rounded-2xl border shadow-xl p-1.5 z-30 space-y-1"
+                          style={{
+                            backgroundColor: 'var(--bg-surface)',
+                            borderColor: 'var(--border-strong)',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            disabled={selectedTopic.refs.length === 0}
+                            onClick={() => {
+                              sfxService.play('click');
+                              setIsMobileActionsOpen(false);
+                              setIsPrintOpen(true);
+                            }}
+                            className="w-full min-h-[36px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer disabled:opacity-45 hover:bg-[var(--bg-surface-soft)]"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            <Printer className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                            <span>Yazdır / A4 PDF</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsMobileActionsOpen(false);
+                              handleCopyToNotebook();
+                            }}
+                            className="w-full min-h-[36px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer hover:bg-[var(--bg-surface-soft)]"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            {justCopiedId === selectedTopic.id ? (
+                              <Check className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                            ) : (
+                              <NotebookPen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                            )}
+                            <span>
+                              {justCopiedId === selectedTopic.id ? 'Deftere Kopyalandı' : 'Defterime Kopyala'}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

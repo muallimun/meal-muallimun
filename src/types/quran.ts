@@ -550,8 +550,15 @@ export interface ExamResultSummary {
 export interface ExamNavigationTarget {
   surahNo?: number; // Tek sure filtresi ile Sınav Merkezini aç
   mode?: ExamMode;
+  openMistakeCamp?: boolean; // Sınav Merkezi içindeki Hata Kampı alt sekmesini aç
   autoStartMistakeCamp?: boolean;
   mistakeLimit?: number; // 0 = tümü
+  nonce: number;
+}
+
+export interface FihristNavigationTarget {
+  subTab?: 'topics' | 'surah_nuzul' | 'timeline' | 'notebook';
+  topicId?: string;
   nonce: number;
 }
 
