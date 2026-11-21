@@ -1,22 +1,27 @@
-import { getDynamicMealAudioSources } from '../config/assetsConfig';
+import { getDynamicMealAudioSources, getIconUrl } from '../config/assetsConfig';
 import {
   buildReciterAudioUrls,
   findReciterById,
 } from '../config/recitersConfig';
+import { dataService, getPageBounds } from './dataService';
+import { wakeLockService } from './wakeLockService';
 import type {
   AudioPlayMode,
+  AudioPlaylistItem,
   AudioPrefs,
   CombinedVerse,
   ManifestData,
   MetaData,
+  QueueLoopOption,
   ReciterDefinition,
   ReciterFilePattern,
+  RepeatCountOption,
 } from '../types/quran';
 
 export type AudioQueueStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 export type PreviewAudioStatus = 'idle' | 'loading' | 'playing' | 'error';
 export type AudioPhase = 'besmele' | 'ar' | 'meal';
-export type AudioQueueContext = 'page' | 'surah' | 'single';
+export type AudioQueueContext = 'page' | 'surah' | 'single' | 'playlist' | 'custom';
 export type AudioSourceKey = string;
 
 export interface AudioQueueSnapshot {
@@ -24,6 +29,11 @@ export interface AudioQueueSnapshot {
   isVisible: boolean;
   context: AudioQueueContext | null;
   contextKey: string | null;
+  queueTitle: string;
+  currentSegmentIndex: number;
+  totalSegments: number;
+  currentQueueRound: number;
+  totalQueueRounds: QueueLoopOption;
   currentSurah: number | null;
   currentSurahName: string;
   currentAyah: number | null;
@@ -33,7 +43,7 @@ export interface AudioQueueSnapshot {
   activeSourceKey: AudioSourceKey | null;
   activeReciterLabel: string;
   currentRepeat: number;
-  totalRepeats: number;
+  totalRepeats: RepeatCountOption;
   canGoPrev: boolean;
   canGoNext: boolean;
   errorMessage: string | null;
@@ -52,7 +62,17 @@ interface PlaybackStep {
   repeatIndex: number;
 }
 
-interface StartQueueOptions {
+interface AtomicSegment {
+  kind: 'surah_slice' | 'page';
+  surah?: number;
+  startAyah?: number;
+  endAyah?: number;
+  pageNo?: number;
+  parentIndex: number;
+  parentLabel: string;
+}
+
+export interface StartQueueOptions {
   verses: CombinedVerse[];
   startIndex: number;
   context: AudioQueueContext;
@@ -62,6 +82,23 @@ interface StartQueueOptions {
   prefs: AudioPrefs;
   singleAyahOnly?: boolean;
   modeOverride?: AudioPlayMode;
+  queueTitle?: string;
+  queueLoopOverride?: QueueLoopOption;
+  repeatCountOverride?: RepeatCountOption;
+}
+
+export interface StartSegmentQueueOptions {
+  items: AudioPlaylistItem[];
+  title: string;
+  context?: AudioQueueContext;
+  contextKey?: string;
+  manifest: ManifestData;
+  meta: MetaData;
+  prefs: AudioPrefs;
+  startItemIndex?: number;
+  modeOverride?: AudioPlayMode;
+  queueLoopOverride?: QueueLoopOption;
+  repeatCountOverride?: RepeatCountOption;
 }
 
 type NextPageProvider = (nextPage: number) => Promise<{
@@ -79,6 +116,11 @@ const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   isVisible: false,
   context: null,
   contextKey: null,
+  queueTitle: '',
+  currentSegmentIndex: 0,
+  totalSegments: 1,
+  currentQueueRound: 1,
+  totalQueueRounds: 1,
   currentSurah: null,
   currentSurahName: '',
   currentAyah: null,
@@ -129,6 +171,16 @@ class AudioQueueService {
   private currentVerseIndex = 0;
   private steps: PlaybackStep[] = [];
   private currentStepIndex = 0;
+  private infiniteRepeatCounter = 1;
+
+  // Segment tabanlı tembel kuyruk (Çalma listesi, Cüz, Sayfa aralığı, Ayet aralığı)
+  private atomicSegments: AtomicSegment[] = [];
+  private currentAtomicIdx = 0;
+  private totalParentSegments = 1;
+  private queueBaseTitle = '';
+  private currentQueueRound = 1;
+  private queueLoopOverride: QueueLoopOption | undefined;
+  private repeatCountOverride: RepeatCountOption | undefined;
 
   private manifest: ManifestData | null = null;
   private meta: MetaData | null = null;
@@ -140,6 +192,7 @@ class AudioQueueService {
     mealAudioSource: 'tdv',
     playbackRate: 1,
     repeatCount: 1,
+    queueLoop: 1,
     autoScroll: true,
   };
   private singleAyahOnly = false;
@@ -149,6 +202,7 @@ class AudioQueueService {
   private activeInfoNotice: string | null = null;
 
   private nextPageProvider: NextPageProvider | null = null;
+  private externalAudioPausers = new Set<() => void>();
 
   public subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
@@ -161,6 +215,9 @@ class AudioQueueService {
 
   private emit(patch: Partial<AudioQueueSnapshot>): void {
     this.snapshot = { ...this.snapshot, ...patch };
+    const isActivelyPlaying =
+      this.snapshot.status === 'playing' || this.snapshot.status === 'loading';
+    wakeLockService.setContinuousReason('audio', isActivelyPlaying);
     for (const listener of this.listeners) {
       listener();
     }
@@ -170,9 +227,48 @@ class AudioQueueService {
     this.nextPageProvider = provider;
   }
 
+  /**
+   * Karşılıklı kilit (Mutual Exclusion): Ezber ses motoru gibi dış ses motorları kendilerini kaydeder.
+   * Bu oynatıcı başladığında veya devam ettiğinde kayıtlı tüm dış ses motorları otomatik duraklatılır.
+   */
+  public registerExternalAudioPauser(pauser: () => void): () => void {
+    this.externalAudioPausers.add(pauser);
+    return () => {
+      this.externalAudioPausers.delete(pauser);
+    };
+  }
+
+  private pauseExternalAudioEngines(): void {
+    for (const pauseFn of this.externalAudioPausers) {
+      try {
+        pauseFn();
+      } catch {
+        // ignore external pause errors
+      }
+    }
+  }
+
   private getSurahName(surahNo: number): string {
     const found = this.meta?.surahs.find((s) => s.no === surahNo);
     return found ? found.nameTr : `${surahNo}. Sure`;
+  }
+
+  private getEffectiveRepeatCount(): RepeatCountOption {
+    return this.repeatCountOverride ?? this.prefs.repeatCount;
+  }
+
+  private getEffectiveQueueLoop(): QueueLoopOption {
+    return this.queueLoopOverride ?? this.prefs.queueLoop ?? 1;
+  }
+
+  private getFormattedQueueTitle(): string {
+    if (this.atomicSegments.length > 0 && this.totalParentSegments > 1) {
+      const seg = this.atomicSegments[this.currentAtomicIdx];
+      const partNo = (seg?.parentIndex ?? 0) + 1;
+      const base = this.queueBaseTitle || 'Çalma Listesi';
+      return `${base} (${partNo}/${this.totalParentSegments})`;
+    }
+    return this.queueBaseTitle;
   }
 
   private resolveArabicSource(): ReciterDefinition {
@@ -188,15 +284,9 @@ class AudioQueueService {
       const exact = sources.find((s) => s.id === preferred);
       if (exact) return exact;
     }
-    // Seslendirmesi olmayan meal (m3..m24) okunurken ses motoru varsayılan sesli meale (TDV) düşer
     return sources[0] ?? null;
   }
 
-  /**
-   * Okuyucunun `filePattern` değerine göre URL üretir:
-   * - 'underscore' (Türk Kurrâlar ve TDV/DİB mealleri): {SSS}_{AAA}.mp3 (Besmele: 001_001.mp3)
-   * - 'compact' (EveryAyah Arap Kurrâlar): {SSS}{AAA}.mp3 (Besmele: 001001.mp3)
-   */
   private buildAudioUrlsForSource(
     source: {
       baseUrl: string;
@@ -215,13 +305,203 @@ class AudioQueueService {
     return this.activeModeOverride ?? this.prefs.mode;
   }
 
-  /**
-   * Seçili ayet için Besmele, Arapça, Meal ve Tekrar kurallarına göre adımları oluşturur.
-   * Seslendirmesi bulunmayan meal seçiliyse güvenli fallback uygular.
-   */
+  // ==========================================================================
+  // Media Session API (Kilit Ekranı & Kulaklık Kontrolü)
+  // ==========================================================================
+
+  private updateMediaSession(verse: CombinedVerse, step: PlaybackStep): void {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    try {
+      const ms = navigator.mediaSession;
+      if (typeof MediaMetadata !== 'undefined') {
+        const surahName = this.getSurahName(verse.surah);
+        const title =
+          step.phase === 'besmele'
+            ? `Besmele · ${surahName}`
+            : `${surahName} · ${verse.ayah}. Ayet`;
+        const album = this.getFormattedQueueTitle() || "Muallimun Kur'an & Meal";
+        const icon192 = getIconUrl('icon-192.png');
+        const icon512 = getIconUrl('icon-512.png');
+        ms.metadata = new MediaMetadata({
+          title,
+          artist: step.reciterLabel || "Muallimun Kur'an",
+          album,
+          artwork: [
+            { src: icon192, sizes: '192x192', type: 'image/png' },
+            { src: icon512, sizes: '512x512', type: 'image/png' },
+          ],
+        });
+      }
+      ms.setActionHandler('play', () => {
+        if (this.snapshot.status === 'paused' || this.snapshot.status === 'error') {
+          this.togglePlayPause();
+        }
+      });
+      ms.setActionHandler('pause', () => {
+        this.pause();
+      });
+      ms.setActionHandler('previoustrack', () => {
+        this.prevVerse();
+      });
+      ms.setActionHandler('nexttrack', () => {
+        this.nextVerse();
+      });
+    } catch {
+      // Desteklemeyen tarayıcı/WebView ortamlarında sessizce geç
+    }
+  }
+
+  private setMediaPlaybackState(state: 'none' | 'paused' | 'playing'): void {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.playbackState = state;
+    } catch {
+      // ignore
+    }
+  }
+
+  // ==========================================================================
+  // Segment Genişletme & Tembel (Lazy) Veri Yükleme
+  // ==========================================================================
+
+  private expandPlaylistItemsToAtomic(items: AudioPlaylistItem[], meta: MetaData): AtomicSegment[] {
+    const out: AtomicSegment[] = [];
+    const bounds = getPageBounds(meta);
+
+    items.forEach((item, parentIndex) => {
+      if (item.type === 'surah' && typeof item.surah === 'number') {
+        const sNo = Math.max(1, Math.min(114, item.surah));
+        out.push({
+          kind: 'surah_slice',
+          surah: sNo,
+          parentIndex,
+          parentLabel: item.label || this.getSurahName(sNo),
+        });
+        return;
+      }
+
+      if (item.type === 'ayah_range' && typeof item.surah === 'number') {
+        const sNo = Math.max(1, Math.min(114, item.surah));
+        const sMeta = meta.surahs.find((s) => s.no === sNo);
+        const maxAyah = sMeta?.ayahCount ?? 286;
+        const startA = Math.max(1, Math.min(maxAyah, item.startAyah ?? 1));
+        const endA = Math.max(startA, Math.min(maxAyah, item.endAyah ?? startA));
+        out.push({
+          kind: 'surah_slice',
+          surah: sNo,
+          startAyah: startA,
+          endAyah: endA,
+          parentIndex,
+          parentLabel: item.label || `${this.getSurahName(sNo)} ${startA}-${endA}`,
+        });
+        return;
+      }
+
+      if (item.type === 'page_range') {
+        const startP = Math.max(bounds.minPage, Math.min(bounds.maxPage, item.startPage ?? 1));
+        const endP = Math.max(startP, Math.min(bounds.maxPage, item.endPage ?? startP));
+        for (let p = startP; p <= endP; p += 1) {
+          out.push({
+            kind: 'page',
+            pageNo: p,
+            parentIndex,
+            parentLabel: item.label || `Sayfa ${p}`,
+          });
+        }
+        return;
+      }
+
+      if (item.type === 'juz' && typeof item.juz === 'number') {
+        const juzNo = Math.max(1, Math.min(30, item.juz));
+        const juzMeta = meta.juzs.find((j) => j.no === juzNo);
+        if (juzMeta) {
+          const startS = juzMeta.start.s;
+          const startA = juzMeta.start.a;
+          const endS = juzMeta.end.s;
+          const endA = juzMeta.end.a;
+          for (let sNo = startS; sNo <= endS; sNo += 1) {
+            const sMeta = meta.surahs.find((s) => s.no === sNo);
+            const fromA = sNo === startS ? startA : 1;
+            const toA = sNo === endS ? endA : (sMeta?.ayahCount ?? 286);
+            out.push({
+              kind: 'surah_slice',
+              surah: sNo,
+              startAyah: fromA,
+              endAyah: toA,
+              parentIndex,
+              parentLabel: item.label || `${juzNo}. Cüz`,
+            });
+          }
+        }
+      }
+    });
+
+    return out;
+  }
+
+  private async loadAtomicSegmentVerses(seg: AtomicSegment): Promise<CombinedVerse[]> {
+    if (seg.kind === 'page' && typeof seg.pageNo === 'number') {
+      const bundle = await dataService.getPageBundle(seg.pageNo);
+      return bundle.verses;
+    }
+
+    if (seg.kind === 'surah_slice' && typeof seg.surah === 'number') {
+      const bundle = await dataService.getSurahBundle(seg.surah);
+      if (typeof seg.startAyah === 'number' || typeof seg.endAyah === 'number') {
+        const startA = seg.startAyah ?? 1;
+        const endA = seg.endAyah ?? Number.MAX_SAFE_INTEGER;
+        return bundle.verses.filter((v) => v.ayah >= startA && v.ayah <= endA);
+      }
+      return bundle.verses;
+    }
+
+    return [];
+  }
+
+  private prewarmUpcomingSegment(): void {
+    if (this.atomicSegments.length > 0) {
+      const remainingInCurrent = this.verses.length - 1 - this.currentVerseIndex;
+      if (remainingInCurrent <= 2) {
+        let nextSegIdx = this.currentAtomicIdx + 1;
+        if (nextSegIdx >= this.atomicSegments.length) {
+          const loop = this.getEffectiveQueueLoop();
+          if (loop === 'infinite' || this.currentQueueRound < loop) {
+            nextSegIdx = 0;
+          }
+        }
+        const upcoming = this.atomicSegments[nextSegIdx];
+        if (upcoming && nextSegIdx !== this.currentAtomicIdx) {
+          this.loadAtomicSegmentVerses(upcoming).catch(() => {});
+        }
+      }
+      return;
+    }
+
+    // Normal Mushaf / Sure okumasında da sonraki sayfayı/sureyi önceden ısıt
+    if (!this.meta || this.singleAyahOnly) return;
+    const remaining = this.verses.length - 1 - this.currentVerseIndex;
+    if (remaining <= 1 && this.getEffectiveQueueLoop() === 1) {
+      const lastVerse = this.verses[this.verses.length - 1];
+      if (!lastVerse) return;
+      if (this.context === 'page') {
+        const bounds = getPageBounds(this.meta);
+        if (lastVerse.page + 1 <= bounds.maxPage) {
+          dataService.getPageBundle(lastVerse.page + 1).catch(() => {});
+        }
+      } else if (this.context === 'surah' && lastVerse.surah < 114) {
+        dataService.getSurahBundle(lastVerse.surah + 1).catch(() => {});
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Adım İnşası (Besmele, Arapça, Meal, Ayet Tekrarı)
+  // ==========================================================================
+
   private buildStepsForVerse(
     verseIndex: number,
     includeBesmeleIfApplicable: boolean,
+    repeatStartNumber = 1,
   ): PlaybackStep[] {
     const verse = this.verses[verseIndex];
     if (!verse || !this.manifest || !this.meta) return [];
@@ -229,16 +509,14 @@ class AudioQueueService {
     const mode = this.getEffectiveMode();
     const arabicSource = this.resolveArabicSource();
     const mealSource = this.resolveMealSource();
-    const repeatCount = this.prefs.repeatCount;
+    const effectiveRepeat = this.getEffectiveRepeatCount();
+    const numericRepeatCount = effectiveRepeat === 'infinite' ? 1 : effectiveRepeat;
     const steps: PlaybackStep[] = [];
 
-    // Sadece Sesli Meal modunda seçili mealin ses kaydı yoksa boş adım dön (startQueue nazikçe uyarır)
     if (mode === 'meal' && !mealSource) {
       return [];
     }
 
-    // 1. Besmele Kuralı: Sure 1 (Fâtiha) ve Sure 9 (Tevbe) hariç 1. ayette
-    // o an seçili okuyucunun kendi Besmele kaydını (001_001.mp3 veya 001001.mp3) çal
     const excludeBesmele = this.meta.besmele.excludeSurahs ?? [1, 9];
     if (
       includeBesmeleIfApplicable &&
@@ -254,7 +532,7 @@ class AudioQueueService {
             reciterLabel: mealSource.label,
             urls: mealBesmeleUrls,
             verseIndex,
-            repeatIndex: 1,
+            repeatIndex: repeatStartNumber,
           });
         }
       } else if (arabicSource) {
@@ -266,14 +544,12 @@ class AudioQueueService {
             reciterLabel: arabicSource.shortLabel,
             urls: arBesmeleUrls,
             verseIndex,
-            repeatIndex: 1,
+            repeatIndex: repeatStartNumber,
           });
         }
       }
     }
 
-    // 2. Birleşik Meal (mg) Kuralı:
-    // mg: [startAyet, endAyet] varsa ve ayetNo > startAyet ise sıralı oynatmada meal sesini tekrar çalma.
     const activeMealObj =
       mealSource?.mealId === 'm2' || mealSource?.id === 'dib' ? verse.m2 : verse.m1;
     const mg = activeMealObj?.mg;
@@ -287,7 +563,9 @@ class AudioQueueService {
         : [];
     const combinedMealUrls = dedupeUrls([...primaryMealUrls, ...mergedStartMealUrls]);
 
-    for (let rep = 1; rep <= repeatCount; rep += 1) {
+    for (let rep = 1; rep <= numericRepeatCount; rep += 1) {
+      const displayRep = effectiveRepeat === 'infinite' ? repeatStartNumber : rep;
+
       if ((mode === 'ar' || mode === 'ar_then_meal') && arabicSource && arUrls.length > 0) {
         steps.push({
           phase: 'ar',
@@ -295,13 +573,13 @@ class AudioQueueService {
           reciterLabel: arabicSource.shortLabel,
           urls: arUrls,
           verseIndex,
-          repeatIndex: rep,
+          repeatIndex: displayRep,
         });
       }
 
       const shouldPlayMeal =
         (mode === 'meal' || mode === 'ar_then_meal') && Boolean(mealSource)
-          ? this.singleAyahOnly || !isMergedContinuation
+          ? this.singleAyahOnly || !isMergedContinuation || this.verses.length === 1
           : false;
 
       if (shouldPlayMeal && mealSource && combinedMealUrls.length > 0) {
@@ -311,7 +589,7 @@ class AudioQueueService {
           reciterLabel: mealSource.label,
           urls: combinedMealUrls,
           verseIndex,
-          repeatIndex: rep,
+          repeatIndex: displayRep,
         });
       }
     }
@@ -357,9 +635,14 @@ class AudioQueueService {
   private preloadNextUrl(): void {
     if (typeof window === 'undefined' || typeof Audio === 'undefined') return;
 
+    this.prewarmUpcomingSegment();
+
     let nextUrl: string | null = null;
     if (this.currentStepIndex + 1 < this.steps.length) {
       nextUrl = this.steps[this.currentStepIndex + 1].urls[0] ?? null;
+    } else if (this.getEffectiveRepeatCount() === 'infinite') {
+      const sameSteps = this.buildStepsForVerse(this.currentVerseIndex, false, this.infiniteRepeatCounter + 1);
+      nextUrl = sameSteps[0]?.urls[0] ?? null;
     } else if (!this.singleAyahOnly && this.currentVerseIndex + 1 < this.verses.length) {
       const upcomingSteps = this.buildStepsForVerse(this.currentVerseIndex + 1, true);
       nextUrl = upcomingSteps[0]?.urls[0] ?? null;
@@ -383,12 +666,30 @@ class AudioQueueService {
     if (this.verses.length === 0) {
       return { canGoPrev: false, canGoNext: false };
     }
-    return {
-      canGoPrev: this.currentVerseIndex > 0,
-      canGoNext:
-        this.currentVerseIndex < this.verses.length - 1 ||
-        (this.context === 'page' && this.nextPageProvider !== null),
-    };
+    const loop = this.getEffectiveQueueLoop();
+    const hasMoreLoopRounds = loop === 'infinite' || this.currentQueueRound < loop;
+
+    const canGoPrev =
+      this.currentVerseIndex > 0 ||
+      (this.atomicSegments.length > 0 && this.currentAtomicIdx > 0);
+
+    let canGoNext = this.currentVerseIndex < this.verses.length - 1;
+    if (!canGoNext) {
+      if (this.atomicSegments.length > 0) {
+        canGoNext = this.currentAtomicIdx < this.atomicSegments.length - 1 || hasMoreLoopRounds;
+      } else if (hasMoreLoopRounds) {
+        canGoNext = true;
+      } else if (!this.singleAyahOnly && this.meta) {
+        const lastVerse = this.verses[this.verses.length - 1];
+        if (this.context === 'page' && lastVerse) {
+          canGoNext = lastVerse.page < getPageBounds(this.meta).maxPage;
+        } else if (this.context === 'surah' && lastVerse) {
+          canGoNext = lastVerse.surah < 114;
+        }
+      }
+    }
+
+    return { canGoPrev, canGoNext };
   }
 
   private playCurrentStep(urlIndex = 0): void {
@@ -415,11 +716,21 @@ class AudioQueueService {
     this.teardownAudioElement();
 
     const nav = this.updateNavigationAvailability();
+    const segParentIdx =
+      this.atomicSegments.length > 0
+        ? (this.atomicSegments[this.currentAtomicIdx]?.parentIndex ?? 0)
+        : 0;
+
     this.emit({
       status: 'loading',
       isVisible: true,
       context: this.context,
       contextKey: this.contextKey,
+      queueTitle: this.getFormattedQueueTitle(),
+      currentSegmentIndex: segParentIdx,
+      totalSegments: this.totalParentSegments,
+      currentQueueRound: this.currentQueueRound,
+      totalQueueRounds: this.getEffectiveQueueLoop(),
       currentSurah: verse.surah,
       currentSurahName: this.getSurahName(verse.surah),
       currentAyah: verse.ayah,
@@ -429,13 +740,15 @@ class AudioQueueService {
       activeSourceKey: step.sourceKey,
       activeReciterLabel: step.reciterLabel,
       currentRepeat: step.repeatIndex,
-      totalRepeats: this.prefs.repeatCount,
+      totalRepeats: this.getEffectiveRepeatCount(),
       canGoPrev: nav.canGoPrev,
       canGoNext: nav.canGoNext,
       errorMessage: null,
       infoMessage: this.activeInfoNotice,
       missingMealAudio: false,
     });
+
+    this.updateMediaSession(verse, step);
 
     if (typeof window === 'undefined' || typeof Audio === 'undefined') {
       this.emit({
@@ -445,7 +758,7 @@ class AudioQueueService {
       return;
     }
 
-    // Archive.org yönlendirmelerinde CORS engeli olmaması için crossOrigin KULLANILMAZ
+    // Archive.org / EveryAyah yönlendirmelerinde CORS engeli olmaması için crossOrigin KULLANILMAZ
     const audio = new Audio();
     audio.preload = 'auto';
     audio.playbackRate = this.prefs.playbackRate;
@@ -492,6 +805,7 @@ class AudioQueueService {
         this.consecutiveFailures = 0;
         audio.playbackRate = this.prefs.playbackRate;
         this.emit({ status: 'playing', errorMessage: null });
+        this.setMediaPlaybackState('playing');
         this.preloadNextUrl();
       },
       { signal },
@@ -537,6 +851,7 @@ class AudioQueueService {
         if (errName === 'AbortError') return;
         if (errName === 'NotAllowedError') {
           this.clearLoadTimer();
+          this.setMediaPlaybackState('paused');
           this.emit({
             status: 'paused',
             errorMessage: 'Ses oynatmak için oynat butonuna dokunun.',
@@ -554,6 +869,7 @@ class AudioQueueService {
 
     if (this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
       this.teardownAudioElement();
+      this.setMediaPlaybackState('paused');
       this.emit({
         status: 'paused',
         errorMessage:
@@ -575,20 +891,101 @@ class AudioQueueService {
       this.playCurrentStep(0);
       return;
     }
+
+    // Sonsuz ayet tekrarı aktifse kullanıcı müdahale edene kadar aynı ayeti döndür
+    if (this.getEffectiveRepeatCount() === 'infinite') {
+      this.infiniteRepeatCounter += 1;
+      const loopedSteps = this.buildStepsForVerse(
+        this.currentVerseIndex,
+        false,
+        this.infiniteRepeatCounter,
+      );
+      if (loopedSteps.length > 0) {
+        this.steps = loopedSteps;
+        this.currentStepIndex = 0;
+        this.playCurrentStep(0);
+        return;
+      }
+    }
+
     void this.advanceToNextVerse();
   }
 
-  private async advanceToNextVerse(): Promise<void> {
-    const session = this.playSessionId;
+  private async loadAndPlayAtomicSegment(
+    segIdx: number,
+    session: number,
+    startFromLastVerse = false,
+  ): Promise<boolean> {
+    const seg = this.atomicSegments[segIdx];
+    if (!seg) return false;
 
-    if (this.singleAyahOnly) {
+    this.emit({ status: 'loading' });
+    try {
+      const verses = await this.loadAtomicSegmentVerses(seg);
+      if (session !== this.playSessionId) return false;
+      if (verses.length === 0) return false;
+
+      this.currentAtomicIdx = segIdx;
+      this.verses = verses;
+      this.infiniteRepeatCounter = 1;
+
+      if (startFromLastVerse) {
+        for (let i = verses.length - 1; i >= 0; i -= 1) {
+          const built = this.buildStepsForVerse(i, true);
+          if (built.length > 0) {
+            this.currentVerseIndex = i;
+            this.steps = built;
+            this.currentStepIndex = 0;
+            this.playCurrentStep(0);
+            return true;
+          }
+        }
+      } else {
+        for (let i = 0; i < verses.length; i += 1) {
+          const built = this.buildStepsForVerse(i, true);
+          if (built.length > 0) {
+            this.currentVerseIndex = i;
+            this.steps = built;
+            this.currentStepIndex = 0;
+            this.playCurrentStep(0);
+            return true;
+          }
+        }
+      }
+    } catch {
+      // Hata durumunda sessizce false dön
+    }
+    return false;
+  }
+
+  private async advanceToNextVerse(forceSkipInfiniteAyah = false): Promise<void> {
+    const session = this.playSessionId;
+    const loop = this.getEffectiveQueueLoop();
+    const canLoopAgain = loop === 'infinite' || this.currentQueueRound < loop;
+
+    // 1. Tek ayet modu (sadece 1 ayet oynatılıyorsa)
+    if (this.singleAyahOnly && !forceSkipInfiniteAyah) {
+      if (canLoopAgain && this.verses.length > 0) {
+        this.currentQueueRound += 1;
+        this.infiniteRepeatCounter = 1;
+        const restartSteps = this.buildStepsForVerse(this.currentVerseIndex, false);
+        if (restartSteps.length > 0) {
+          this.steps = restartSteps;
+          this.currentStepIndex = 0;
+          this.playCurrentStep(0);
+          return;
+        }
+      }
       this.teardownAudioElement();
+      this.setMediaPlaybackState('paused');
       this.emit({ status: 'paused', activePhase: null });
       return;
     }
 
+    // 2. Mevcut verse listesinde sıradaki ayete geç
     let nextIdx = this.currentVerseIndex + 1;
     while (nextIdx < this.verses.length) {
+      this.infiniteRepeatCounter = 1;
       const nextSteps = this.buildStepsForVerse(nextIdx, true);
       if (nextSteps.length > 0) {
         this.currentVerseIndex = nextIdx;
@@ -600,48 +997,147 @@ class AudioQueueService {
       nextIdx += 1;
     }
 
-    if (this.context === 'page' && this.nextPageProvider && this.verses.length > 0) {
+    // 3. Segment tabanlı kuyruk (Çalma listesi / Cüz / Sayfa aralığı / Ayet aralığı)
+    if (this.atomicSegments.length > 0) {
+      for (let segIdx = this.currentAtomicIdx + 1; segIdx < this.atomicSegments.length; segIdx += 1) {
+        const loaded = await this.loadAndPlayAtomicSegment(segIdx, session, false);
+        if (session !== this.playSessionId) return;
+        if (loaded) return;
+      }
+
+      // Tüm segmentler bitti -> Liste döngüsü (QueueLoop) kontrolü
+      if (canLoopAgain) {
+        this.currentQueueRound += 1;
+        for (let segIdx = 0; segIdx < this.atomicSegments.length; segIdx += 1) {
+          const loaded = await this.loadAndPlayAtomicSegment(segIdx, session, false);
+          if (session !== this.playSessionId) return;
+          if (loaded) return;
+        }
+      }
+
+      this.teardownAudioElement();
+      this.setMediaPlaybackState('paused');
+      this.emit({ status: 'paused', activePhase: null });
+      return;
+    }
+
+    // 4. Normal Okuma Kuyruğunda Bölüm Döngüsü aktifse (2x..10x, ∞) mevcut sayfa/sureyi baştan döndür
+    if (canLoopAgain && this.verses.length > 0) {
+      this.currentQueueRound += 1;
+      this.infiniteRepeatCounter = 1;
+      for (let i = 0; i < this.verses.length; i += 1) {
+        const restartSteps = this.buildStepsForVerse(i, true);
+        if (restartSteps.length > 0) {
+          this.currentVerseIndex = i;
+          this.steps = restartSteps;
+          this.currentStepIndex = 0;
+          this.playCurrentStep(0);
+          return;
+        }
+      }
+    }
+
+    // 5. Sekmeden Bağımsız Mushaf Sayfa İlerlemesi (queueLoop === 1)
+    if (this.context === 'page' && this.meta && this.verses.length > 0) {
       const lastVerse = this.verses[this.verses.length - 1];
       const nextPageNo = lastVerse.page + 1;
-      this.emit({ status: 'loading' });
+      const bounds = getPageBounds(this.meta);
 
-      try {
-        const nextPageData = await this.nextPageProvider(nextPageNo);
-        if (session !== this.playSessionId) return;
-
-        if (nextPageData && nextPageData.verses.length > 0) {
-          this.verses = nextPageData.verses;
-          this.contextKey = nextPageData.contextKey;
-          this.currentVerseIndex = 0;
-
-          for (let i = 0; i < this.verses.length; i += 1) {
-            const nextSteps = this.buildStepsForVerse(i, true);
-            if (nextSteps.length > 0) {
-              this.currentVerseIndex = i;
-              this.steps = nextSteps;
-              this.currentStepIndex = 0;
-              this.playCurrentStep(0);
-              return;
+      if (nextPageNo <= bounds.maxPage) {
+        this.emit({ status: 'loading' });
+        try {
+          let nextPageData: { verses: CombinedVerse[]; contextKey: string } | null = null;
+          if (this.nextPageProvider) {
+            nextPageData = await this.nextPageProvider(nextPageNo);
+          } else {
+            // StudyPage kapalı olsa bile (Ana Sayfa / Ezber sekmesindeyken) doğrudan dataService ile devam et
+            const bundle = await dataService.getPageBundle(nextPageNo);
+            if (bundle.verses.length > 0) {
+              nextPageData = {
+                verses: bundle.verses,
+                contextKey: `page:${bundle.pageNo}`,
+              };
             }
           }
+
+          if (session !== this.playSessionId) return;
+
+          if (nextPageData && nextPageData.verses.length > 0) {
+            this.verses = nextPageData.verses;
+            this.contextKey = nextPageData.contextKey;
+            this.queueBaseTitle = `Sayfa ${nextPageNo}`;
+            this.currentVerseIndex = 0;
+            this.infiniteRepeatCounter = 1;
+
+            for (let i = 0; i < this.verses.length; i += 1) {
+              const nextSteps = this.buildStepsForVerse(i, true);
+              if (nextSteps.length > 0) {
+                this.currentVerseIndex = i;
+                this.steps = nextSteps;
+                this.currentStepIndex = 0;
+                this.playCurrentStep(0);
+                return;
+              }
+            }
+          }
+        } catch {
+          // Sonraki sayfa yüklenemezse sessizce duraklat
         }
-      } catch {
-        // Sonraki sayfa yüklenemezse sessizce duraklat
+      }
+    }
+
+    // 6. Sekmeden Bağımsız Sure İlerlemesi (queueLoop === 1)
+    if (this.context === 'surah' && this.meta && this.verses.length > 0) {
+      const lastVerse = this.verses[this.verses.length - 1];
+      const nextSurahNo = lastVerse.surah + 1;
+      if (nextSurahNo <= 114) {
+        this.emit({ status: 'loading' });
+        try {
+          const nextBundle = await dataService.getSurahBundle(nextSurahNo);
+          if (session !== this.playSessionId) return;
+          if (nextBundle.verses.length > 0) {
+            this.verses = nextBundle.verses;
+            this.contextKey = `surah:${nextSurahNo}`;
+            this.queueBaseTitle = nextBundle.surahMeta.nameTr;
+            this.currentVerseIndex = 0;
+            this.infiniteRepeatCounter = 1;
+
+            for (let i = 0; i < this.verses.length; i += 1) {
+              const nextSteps = this.buildStepsForVerse(i, true);
+              if (nextSteps.length > 0) {
+                this.currentVerseIndex = i;
+                this.steps = nextSteps;
+                this.currentStepIndex = 0;
+                this.playCurrentStep(0);
+                return;
+              }
+            }
+          }
+        } catch {
+          // Sonraki sure yüklenemezse sessizce duraklat
+        }
       }
     }
 
     this.teardownAudioElement();
+    this.setMediaPlaybackState('paused');
     this.emit({ status: 'paused', activePhase: null });
   }
 
   private emitMissingMealAudioNotice(verse: CombinedVerse): void {
     const nav = this.updateNavigationAvailability();
     this.teardownAudioElement();
+    this.setMediaPlaybackState('paused');
     this.emit({
       status: 'paused',
       isVisible: true,
       context: this.context,
       contextKey: this.contextKey,
+      queueTitle: this.getFormattedQueueTitle(),
+      currentSegmentIndex: 0,
+      totalSegments: this.totalParentSegments,
+      currentQueueRound: this.currentQueueRound,
+      totalQueueRounds: this.getEffectiveQueueLoop(),
       currentSurah: verse.surah,
       currentSurahName: this.getSurahName(verse.surah),
       currentAyah: verse.ayah,
@@ -651,7 +1147,7 @@ class AudioQueueService {
       activeSourceKey: null,
       activeReciterLabel: '',
       currentRepeat: 1,
-      totalRepeats: this.prefs.repeatCount,
+      totalRepeats: this.getEffectiveRepeatCount(),
       canGoPrev: nav.canGoPrev,
       canGoNext: nav.canGoNext,
       errorMessage:
@@ -661,11 +1157,24 @@ class AudioQueueService {
     });
   }
 
+  // ==========================================================================
+  // Kuyruk Başlatma API'leri
+  // ==========================================================================
+
   public startQueue(options: StartQueueOptions): void {
+    this.pauseExternalAudioEngines();
     this.stopPreview();
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
     this.teardownAudioElement();
+
+    this.atomicSegments = [];
+    this.currentAtomicIdx = 0;
+    this.totalParentSegments = 1;
+    this.currentQueueRound = 1;
+    this.infiniteRepeatCounter = 1;
+    this.queueLoopOverride = options.queueLoopOverride;
+    this.repeatCountOverride = options.repeatCountOverride;
 
     this.verses = options.verses;
     this.currentVerseIndex = Math.max(
@@ -688,17 +1197,23 @@ class AudioQueueService {
 
     const targetIndex = this.currentVerseIndex;
     const targetVerse = this.verses[targetIndex];
+    this.queueBaseTitle =
+      options.queueTitle ??
+      (options.context === 'page'
+        ? `Sayfa ${targetVerse.page}`
+        : options.singleAyahOnly
+          ? `${this.getSurahName(targetVerse.surah)} ${targetVerse.ayah}. Ayet`
+          : this.getSurahName(targetVerse.surah));
+
     const effectiveMode = this.getEffectiveMode();
     const resolvedMeal = this.resolveMealSource();
 
-    // Sadece sesli meal istendi ama o mealin seslendirmesi yoksa hızlı atlama/çökme yapma; net bildirim ver
     if (effectiveMode === 'meal' && !resolvedMeal) {
       this.steps = [];
       this.emitMissingMealAudioNotice(targetVerse);
       return;
     }
 
-    // Arapça + Meal modunda meal sesi yoksa Arapça tilaveti oynat ve nazik bilgi göster
     if (effectiveMode === 'ar_then_meal' && !resolvedMeal) {
       this.activeInfoNotice =
         'Seçili mealin ses kaydı olmadığı için Arapça tilavet oynatılıyor.';
@@ -706,7 +1221,6 @@ class AudioQueueService {
 
     let builtSteps = this.buildStepsForVerse(targetIndex, true);
 
-    // Meal modunda birleşik meal devam ayetinden başlandıysa mevcut ayeti zorla çal
     if (builtSteps.length === 0) {
       const prevSingle = this.singleAyahOnly;
       this.singleAyahOnly = true;
@@ -730,9 +1244,126 @@ class AudioQueueService {
     this.playCurrentStep(0);
   }
 
+  /**
+   * Çoklu segmentli (Playlist / Cüz / Sayfa Aralığı / Ayet Aralığı / Çoklu Sure)
+   * tembel yüklemeli dinleme kuyruğunu başlatır.
+   */
+  public async startSegmentQueue(options: StartSegmentQueueOptions): Promise<void> {
+    this.pauseExternalAudioEngines();
+    this.stopPreview();
+    this.playSessionId += 1;
+    const session = this.playSessionId;
+    this.consecutiveFailures = 0;
+    this.teardownAudioElement();
+
+    this.manifest = options.manifest;
+    this.meta = options.meta;
+    this.prefs = { ...options.prefs };
+    this.singleAyahOnly = false;
+    this.activeModeOverride = options.modeOverride;
+    this.queueLoopOverride = options.queueLoopOverride;
+    this.repeatCountOverride = options.repeatCountOverride;
+    this.context = options.context ?? 'playlist';
+    this.contextKey = options.contextKey ?? `playlist:${Date.now()}`;
+    this.queueBaseTitle = options.title;
+    this.currentQueueRound = 1;
+    this.infiniteRepeatCounter = 1;
+    this.activeInfoNotice = null;
+
+    const expanded = this.expandPlaylistItemsToAtomic(options.items, options.meta);
+    if (expanded.length === 0) {
+      this.emit({
+        status: 'paused',
+        isVisible: true,
+        errorMessage: 'Çalma listesinde oynatılacak geçerli bir bölüm bulunamadı.',
+      });
+      return;
+    }
+
+    this.atomicSegments = expanded;
+    this.totalParentSegments = Math.max(1, options.items.length);
+
+    const startParentIdx = Math.max(0, options.startItemIndex ?? 0);
+    const firstAtomicIdx = Math.max(
+      0,
+      expanded.findIndex((seg) => seg.parentIndex >= startParentIdx),
+    );
+    this.currentAtomicIdx = firstAtomicIdx;
+
+    const effectiveMode = this.getEffectiveMode();
+    const resolvedMeal = this.resolveMealSource();
+
+    if (effectiveMode === 'ar_then_meal' && !resolvedMeal) {
+      this.activeInfoNotice =
+        'Seçili mealin ses kaydı olmadığı için Arapça tilavet oynatılıyor.';
+    }
+
+    this.emit({
+      status: 'loading',
+      isVisible: true,
+      context: this.context,
+      contextKey: this.contextKey,
+      queueTitle: this.getFormattedQueueTitle(),
+      currentSegmentIndex: expanded[firstAtomicIdx]?.parentIndex ?? 0,
+      totalSegments: this.totalParentSegments,
+      currentQueueRound: 1,
+      totalQueueRounds: this.getEffectiveQueueLoop(),
+      totalRepeats: this.getEffectiveRepeatCount(),
+      errorMessage: null,
+      infoMessage: this.activeInfoNotice,
+      missingMealAudio: false,
+    });
+
+    for (let idx = firstAtomicIdx; idx < expanded.length; idx += 1) {
+      const seg = expanded[idx];
+      try {
+        const verses = await this.loadAtomicSegmentVerses(seg);
+        if (session !== this.playSessionId) return;
+        if (verses.length === 0) continue;
+
+        this.currentAtomicIdx = idx;
+        this.verses = verses;
+
+        if (effectiveMode === 'meal' && !resolvedMeal) {
+          this.steps = [];
+          this.emitMissingMealAudioNotice(verses[0]);
+          return;
+        }
+
+        for (let vIdx = 0; vIdx < verses.length; vIdx += 1) {
+          let built = this.buildStepsForVerse(vIdx, true);
+          if (built.length === 0 && verses.length === 1) {
+            const prevSingle: boolean = this.singleAyahOnly;
+            this.singleAyahOnly = true;
+            built = this.buildStepsForVerse(vIdx, true);
+            this.singleAyahOnly = prevSingle;
+          }
+          if (built.length > 0) {
+            this.currentVerseIndex = vIdx;
+            this.steps = built;
+            this.currentStepIndex = 0;
+            this.playCurrentStep(0);
+            return;
+          }
+        }
+      } catch {
+        // Sıradaki segmente devam et
+      }
+    }
+
+    if (session === this.playSessionId) {
+      this.emit({
+        status: 'paused',
+        isVisible: true,
+        errorMessage: 'Seçili kapsamın ses verisi yüklenemedi.',
+      });
+    }
+  }
+
   public togglePlayPause(): void {
     if (!this.audio) {
       if (this.verses.length > 0 && this.steps.length > 0) {
+        this.pauseExternalAudioEngines();
         this.stopPreview();
         this.playSessionId += 1;
         this.consecutiveFailures = 0;
@@ -749,8 +1380,10 @@ class AudioQueueService {
       } catch {
         // ignore
       }
+      this.setMediaPlaybackState('paused');
       this.emit({ status: 'paused' });
     } else if (this.snapshot.status === 'paused' || this.snapshot.status === 'error') {
+      this.pauseExternalAudioEngines();
       this.stopPreview();
       const session = this.playSessionId;
       this.consecutiveFailures = 0;
@@ -765,6 +1398,7 @@ class AudioQueueService {
           this.playCurrentStep(0);
         });
       }
+      this.setMediaPlaybackState('playing');
       this.emit({ status: 'playing', errorMessage: null });
     }
   }
@@ -778,25 +1412,29 @@ class AudioQueueService {
       } catch {
         // ignore
       }
+      this.setMediaPlaybackState('paused');
       this.emit({ status: 'paused' });
     }
   }
 
   public nextVerse(): void {
     if (this.verses.length === 0) return;
+    this.pauseExternalAudioEngines();
     this.stopPreview();
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
-    this.singleAyahOnly = false;
-    void this.advanceToNextVerse();
+    this.infiniteRepeatCounter = 1;
+    void this.advanceToNextVerse(true);
   }
 
   public prevVerse(): void {
-    if (this.verses.length === 0 || this.currentVerseIndex <= 0) return;
+    if (this.verses.length === 0) return;
+    this.pauseExternalAudioEngines();
     this.stopPreview();
     this.playSessionId += 1;
+    const session = this.playSessionId;
     this.consecutiveFailures = 0;
-    this.singleAyahOnly = false;
+    this.infiniteRepeatCounter = 1;
 
     for (let idx = this.currentVerseIndex - 1; idx >= 0; idx -= 1) {
       const prevSteps = this.buildStepsForVerse(idx, true);
@@ -807,6 +1445,17 @@ class AudioQueueService {
         this.playCurrentStep(0);
         return;
       }
+    }
+
+    // Önceki segmente geri dön (playlist / cüz / sayfa aralığı)
+    if (this.atomicSegments.length > 0 && this.currentAtomicIdx > 0) {
+      void (async () => {
+        for (let segIdx = this.currentAtomicIdx - 1; segIdx >= 0; segIdx -= 1) {
+          const loaded = await this.loadAndPlayAtomicSegment(segIdx, session, true);
+          if (session !== this.playSessionId) return;
+          if (loaded) return;
+        }
+      })();
     }
   }
 
@@ -838,10 +1487,6 @@ class AudioQueueService {
     }
   }
 
-  /**
-   * Okuyucu seçicideki ▶ Önizle butonu için bağımsız Besmele kaydı çalar (001_001.mp3 / 001001.mp3).
-   * Ana oynatıcı çalıyorsa geçici duraklatır; aynı okuyucuya tekrar basılınca durdurur.
-   */
   public previewReciter(reciter: ReciterDefinition): void {
     if (
       this.snapshot.previewReciterId === reciter.id &&
@@ -851,6 +1496,7 @@ class AudioQueueService {
       return;
     }
 
+    this.pauseExternalAudioEngines();
     if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
       this.pause();
     }
@@ -880,7 +1526,6 @@ class AudioQueueService {
       }
 
       this.teardownPreviewAudio();
-      // CORS hatası olmaması için crossOrigin KULLANILMAZ
       const audio = new Audio();
       audio.preload = 'auto';
       const controller = new AbortController();
@@ -944,6 +1589,12 @@ class AudioQueueService {
     if (prevPrefs.mode !== nextPrefs.mode) {
       this.activeModeOverride = undefined;
     }
+    if (prevPrefs.repeatCount !== nextPrefs.repeatCount) {
+      this.repeatCountOverride = undefined;
+    }
+    if (prevPrefs.queueLoop !== nextPrefs.queueLoop) {
+      this.queueLoopOverride = undefined;
+    }
 
     if (this.audio) {
       this.audio.playbackRate = nextPrefs.playbackRate;
@@ -952,6 +1603,17 @@ class AudioQueueService {
     const prevReciterId = prevPrefs.arabicReciterId || prevPrefs.arabicAudioSource;
     const nextReciterId = nextPrefs.arabicReciterId || nextPrefs.arabicAudioSource;
     const reciterChanged = prevReciterId !== nextReciterId;
+
+    const queueLoopChanged = prevPrefs.queueLoop !== nextPrefs.queueLoop;
+
+    if (queueLoopChanged && this.snapshot.isVisible) {
+      const nav = this.updateNavigationAvailability();
+      this.emit({
+        totalQueueRounds: this.getEffectiveQueueLoop(),
+        canGoPrev: nav.canGoPrev,
+        canGoNext: nav.canGoNext,
+      });
+    }
 
     const structuralChanged =
       prevPrefs.mode !== nextPrefs.mode ||
@@ -981,19 +1643,23 @@ class AudioQueueService {
         return;
       }
 
+      this.infiniteRepeatCounter = 1;
       const includeBesmele = this.snapshot.activePhase === 'besmele';
       this.steps = this.buildStepsForVerse(this.currentVerseIndex, includeBesmele);
       this.currentStepIndex = 0;
       const firstStep = this.steps[0];
+      const nav = this.updateNavigationAvailability();
 
-      // Duraklatılmışken okuyucu değiştirildiyse mevcut audio elementini temizle ki Play basınca yeni okuyucu çalsın
       if (!wasPlayingOrWaitingRecovery) {
         this.teardownAudioElement();
       }
 
       this.emit({
-        totalRepeats: nextPrefs.repeatCount,
+        totalRepeats: this.getEffectiveRepeatCount(),
         currentRepeat: 1,
+        totalQueueRounds: this.getEffectiveQueueLoop(),
+        canGoPrev: nav.canGoPrev,
+        canGoNext: nav.canGoNext,
         missingMealAudio: false,
         infoMessage: this.activeInfoNotice,
         activeSourceKey: firstStep?.sourceKey ?? this.snapshot.activeSourceKey,
@@ -1002,6 +1668,7 @@ class AudioQueueService {
       });
 
       if (wasPlayingOrWaitingRecovery && this.steps.length > 0) {
+        this.pauseExternalAudioEngines();
         this.stopPreview();
         this.playSessionId += 1;
         this.consecutiveFailures = 0;
@@ -1017,6 +1684,14 @@ class AudioQueueService {
     this.teardownAudioElement();
     this.verses = [];
     this.steps = [];
+    this.atomicSegments = [];
+    this.currentAtomicIdx = 0;
+    this.totalParentSegments = 1;
+    this.queueBaseTitle = '';
+    this.currentQueueRound = 1;
+    this.infiniteRepeatCounter = 1;
+    this.queueLoopOverride = undefined;
+    this.repeatCountOverride = undefined;
     this.currentVerseIndex = 0;
     this.currentStepIndex = 0;
     this.context = null;
@@ -1024,6 +1699,7 @@ class AudioQueueService {
     this.singleAyahOnly = false;
     this.activeModeOverride = undefined;
     this.activeInfoNotice = null;
+    this.setMediaPlaybackState('none');
     this.emit({
       ...INITIAL_SNAPSHOT,
       isVisible: !hideBar,

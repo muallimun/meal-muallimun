@@ -4,11 +4,13 @@ import {
   ChevronDown,
   ChevronUp,
   Headphones,
+  ListMusic,
   Loader2,
   MonitorPlay,
   Pause,
   Play,
   Repeat,
+  Repeat1,
   SkipBack,
   SkipForward,
   Volume2,
@@ -24,11 +26,17 @@ import type {
   AudioPlayMode,
   MealAudioSourceId,
   PlaybackRateOption,
+  QueueLoopOption,
   RepeatCountOption,
 } from '../types/quran';
 
 const PLAYBACK_RATES: readonly PlaybackRateOption[] = [0.75, 1, 1.25, 1.5];
-const REPEAT_COUNTS: readonly RepeatCountOption[] = [1, 2, 3];
+const REPEAT_COUNTS: readonly RepeatCountOption[] = [1, 2, 3, 5, 10, 'infinite'];
+const QUEUE_LOOPS: readonly QueueLoopOption[] = [1, 2, 3, 5, 10, 'infinite'];
+
+function formatLoopShort(val: RepeatCountOption | QueueLoopOption): string {
+  return val === 'infinite' ? '∞' : `${val}x`;
+}
 
 const MODE_LABELS: { id: AudioPlayMode; label: string }[] = [
   { id: 'ar', label: 'AR' },
@@ -52,6 +60,7 @@ export const AudioPlayerBar: React.FC = () => {
     openPresentationMode,
     openReciterSelector,
     openMealSelector,
+    openListeningDrawer,
     manifest,
   } = useAppStore();
 
@@ -109,13 +118,20 @@ export const AudioPlayerBar: React.FC = () => {
       ? activeMealAudioSource?.shortLabel ?? 'Sesli Meal'
       : activeReciter.shortLabel);
 
+  const subtitlePrefix =
+    audioState.context === 'playlist' || audioState.context === 'custom'
+      ? audioState.queueTitle
+        ? `${audioState.queueTitle} · `
+        : ''
+      : '';
+
   const compactSubtitle = audioState.errorMessage
     ? audioState.errorMessage
     : audioState.activePhase === 'meal'
-      ? `Sesli Meal · ${resolvedReciterLabel}`
+      ? `${subtitlePrefix}Sesli Meal · ${resolvedReciterLabel}`
       : audioState.activePhase === 'besmele'
-        ? `Besmele · ${resolvedReciterLabel}`
-        : resolvedReciterLabel;
+        ? `${subtitlePrefix}Besmele · ${resolvedReciterLabel}`
+        : `${subtitlePrefix}${resolvedReciterLabel}`;
 
   const cycleRate = () => {
     sfxService.play('click');
@@ -129,6 +145,14 @@ export const AudioPlayerBar: React.FC = () => {
     const idx = REPEAT_COUNTS.indexOf(audioPrefs.repeatCount);
     const next = REPEAT_COUNTS[(idx + 1) % REPEAT_COUNTS.length];
     updateAudioPrefs({ repeatCount: next });
+  };
+
+  const cycleQueueLoop = () => {
+    sfxService.play('click');
+    const current = audioPrefs.queueLoop ?? 1;
+    const idx = QUEUE_LOOPS.indexOf(current);
+    const next = QUEUE_LOOPS[(idx + 1) % QUEUE_LOOPS.length];
+    updateAudioPrefs({ queueLoop: next });
   };
 
   const handleModeChange = (mode: AudioPlayMode) => {
@@ -149,13 +173,35 @@ export const AudioPlayerBar: React.FC = () => {
     openPresentationMode();
   };
 
+  const handleOpenListeningDrawer = () => {
+    setIsExpanded(false);
+    openListeningDrawer({
+      initialTab: audioState.context === 'playlist' ? 'playlists' : 'quick',
+      surah: audioState.currentSurah ?? undefined,
+      startAyah: audioState.currentAyah ?? undefined,
+      endAyah: audioState.currentAyah ?? undefined,
+      page: audioState.currentPage ?? undefined,
+    });
+  };
+
+  const activeLoopBadge =
+    audioState.totalQueueRounds !== 1
+      ? audioState.totalQueueRounds === 'infinite'
+        ? '∞'
+        : `${audioState.currentQueueRound}/${audioState.totalQueueRounds}`
+      : audioState.totalRepeats !== 1
+        ? audioState.totalRepeats === 'infinite'
+          ? '∞'
+          : `${audioState.currentRepeat}/${audioState.totalRepeats}`
+        : null;
+
   return (
     <div
       role="region"
       aria-label="Ses oynatıcı"
       className={`fixed ${isMobileReaderImmersive ? 'bottom-2.5' : 'bottom-16'} lg:bottom-4 left-0 right-0 ${
-        isSidebarCollapsed ? 'lg:left-0' : 'lg:left-72'
-      } z-35 px-2 sm:px-4 pointer-events-none`}
+        isSidebarCollapsed ? 'lg:left-0' : 'lg:left-64 xl:left-68'
+      } z-[35] px-2 sm:px-4 pointer-events-none`}
     >
       <div className="pointer-events-auto max-w-2xl mx-auto flex flex-col gap-1.5">
         {/* Açılır Kompakt Ses Ayarları Paneli (Yalnızca ▴ ikonuyla açılır) */}
@@ -338,40 +384,81 @@ export const AudioPlayerBar: React.FC = () => {
                 <button
                   type="button"
                   onClick={cycleRepeat}
-                  title="Ayet tekrar sayısı"
-                  className="min-h-[34px] px-2.5 rounded-xl border font-bold tabular-nums flex items-center gap-1 cursor-pointer"
+                  title="Ayet tekrarı (1x · 2x · 3x · 5x · 10x · ∞)"
+                  className="min-h-[34px] px-2.5 rounded-xl border font-bold tabular-nums flex items-center gap-1 cursor-pointer whitespace-nowrap"
                   style={{
                     backgroundColor:
-                      audioPrefs.repeatCount > 1
+                      audioPrefs.repeatCount !== 1
                         ? 'var(--brand-primary-soft)'
                         : 'var(--bg-surface)',
                     borderColor:
-                      audioPrefs.repeatCount > 1 ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                      audioPrefs.repeatCount !== 1 ? 'var(--brand-primary)' : 'var(--border-subtle)',
                     color:
-                      audioPrefs.repeatCount > 1
+                      audioPrefs.repeatCount !== 1
                         ? 'var(--brand-primary-text)'
                         : 'var(--text-primary)',
                   }}
                 >
-                  <Repeat className="w-3.5 h-3.5" />
-                  <span>{audioPrefs.repeatCount}x</span>
+                  <Repeat1 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Ayet {formatLoopShort(audioPrefs.repeatCount)}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={cycleQueueLoop}
+                  title="Bölüm / Liste döngüsü (1x · 2x · 3x · 5x · 10x · ∞)"
+                  className="min-h-[34px] px-2.5 rounded-xl border font-bold tabular-nums flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor:
+                      (audioPrefs.queueLoop ?? 1) !== 1
+                        ? 'var(--brand-accent-soft)'
+                        : 'var(--bg-surface)',
+                    borderColor:
+                      (audioPrefs.queueLoop ?? 1) !== 1
+                        ? 'var(--brand-accent)'
+                        : 'var(--border-subtle)',
+                    color:
+                      (audioPrefs.queueLoop ?? 1) !== 1
+                        ? 'var(--brand-accent-text)'
+                        : 'var(--text-primary)',
+                  }}
+                >
+                  <Repeat className="w-3.5 h-3.5 shrink-0" />
+                  <span>Liste {formatLoopShort(audioPrefs.queueLoop ?? 1)}</span>
                 </button>
               </div>
 
-              <button
-                type="button"
-                onClick={handleOpenPresentation}
-                title="Tam ekran Sunum Modunu aç"
-                className="min-h-[34px] px-3 rounded-xl border font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                style={{
-                  backgroundColor: 'var(--brand-primary-soft)',
-                  borderColor: 'var(--brand-primary)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                <MonitorPlay className="w-3.5 h-3.5" />
-                <span>Sunum Modu</span>
-              </button>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleOpenListeningDrawer}
+                  title="Dinleme kapsamı, döngü ve çalma listeleri"
+                  className="min-h-[34px] px-2.5 rounded-xl border font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <ListMusic className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                  <span>Liste &amp; Kapsam</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenPresentation}
+                  title="Tam ekran Sunum Modunu aç"
+                  className="min-h-[34px] px-2.5 rounded-xl border font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'var(--brand-primary-soft)',
+                    borderColor: 'var(--brand-primary)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <MonitorPlay className="w-3.5 h-3.5 shrink-0" />
+                  <span>Sunum</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -413,14 +500,24 @@ export const AudioPlayerBar: React.FC = () => {
             </span>
 
             <div className="min-w-0 flex-1">
-              <p className="text-xs sm:text-sm font-extrabold truncate tabular-nums leading-tight">
-                {audioState.currentSurahName} : {audioState.currentAyah}
-                {audioState.totalRepeats > 1 && (
-                  <span className="font-semibold ml-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                    ({audioState.currentRepeat}/{audioState.totalRepeats})
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="text-xs sm:text-sm font-extrabold truncate tabular-nums leading-tight">
+                  {audioState.currentSurahName} : {audioState.currentAyah}
+                </p>
+                {activeLoopBadge && (
+                  <span
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums shrink-0"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                    title="Aktif döngü / tekrar"
+                  >
+                    <Repeat className="w-2.5 h-2.5" />
+                    <span>{activeLoopBadge}</span>
                   </span>
                 )}
-              </p>
+              </div>
               <p
                 className="text-[11px] font-medium truncate leading-tight mt-0.5"
                 style={{

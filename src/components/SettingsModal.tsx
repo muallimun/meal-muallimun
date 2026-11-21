@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Sparkles,
   Square,
+  Sun,
   Type,
   Volume2,
   VolumeX,
@@ -412,6 +413,75 @@ export const SettingsModal: React.FC = () => {
                     );
                   })}
                 </div>
+              </section>
+
+              {/* Akıllı Ekran Açık Tutma (Wake Lock) */}
+              <section className="space-y-2">
+                <h3
+                  className="text-xs font-extrabold uppercase tracking-wider"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Ekran &amp; Pil Koruması
+                </h3>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.keepScreenAwake}
+                  onClick={() => {
+                    sfxService.play('click');
+                    updateSettings({ keepScreenAwake: !settings.keepScreenAwake });
+                  }}
+                  className="w-full p-3.5 rounded-xl border text-left flex items-center justify-between gap-3 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: settings.keepScreenAwake
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface-soft)',
+                    borderColor: settings.keepScreenAwake
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-subtle)',
+                  }}
+                >
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <Sun
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                      style={{
+                        color: settings.keepScreenAwake
+                          ? 'var(--brand-primary-text)'
+                          : 'var(--text-muted)',
+                      }}
+                    />
+                    <div className="min-w-0">
+                      <p
+                        className="text-xs sm:text-sm font-extrabold"
+                        style={{
+                          color: settings.keepScreenAwake
+                            ? 'var(--brand-primary-text)'
+                            : 'var(--text-primary)',
+                        }}
+                      >
+                        Okuma ve Dinlemede Ekranı Açık Tut
+                      </p>
+                      <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                        Sesli tilavet, Sunum ve Ezber sırasında kesintisiz; sessiz okumada 15 dk
+                        hareketsiz kalınırsa pil dostu otomatik kapanma.
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className="w-10 h-6 rounded-full p-0.5 transition-colors shrink-0 flex items-center"
+                    style={{
+                      backgroundColor: settings.keepScreenAwake
+                        ? 'var(--brand-primary)'
+                        : 'var(--border-strong)',
+                    }}
+                  >
+                    <span
+                      className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                        settings.keepScreenAwake ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </span>
+                </button>
               </section>
 
               {/* İntro & Uygulama Kurulumu */}

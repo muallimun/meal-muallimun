@@ -9,13 +9,16 @@ import {
   Headphones,
   Languages,
   Link2,
+  ListPlus,
   MoreHorizontal,
+  Repeat,
   Scale,
   Share2,
   Star,
   Volume2,
 } from 'lucide-react';
 import { findMealById } from '../../config/mealsConfig';
+import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -71,7 +74,14 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   onPlayMealFromHere,
   onShareVerse,
 }) => {
-  const { openMealCompare, openQuickMemorize, manifest } = useAppStore();
+  const {
+    openMealCompare,
+    openQuickMemorize,
+    openListeningDrawer,
+    manifest,
+    meta,
+    audioPrefs,
+  } = useAppStore();
   const surahNameTr = surahMeta.nameTr;
   const [localWordOverride, setLocalWordOverride] = useState<boolean | null>(null);
   const [showFootnotes, setShowFootnotes] = useState(false);
@@ -422,6 +432,63 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                 >
                   <BookMarked className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
                   <span>Buradan Ezber Başlat</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    sfxService.play('click');
+                    if (manifest && meta) {
+                      void audioQueueService.startSegmentQueue({
+                        items: [
+                          {
+                            id: `loop_${verse.id}`,
+                            type: 'ayah_range',
+                            label: `${surahNameTr} ${verse.ayah}. Ayet`,
+                            surah: verse.surah,
+                            startAyah: verse.ayah,
+                            endAyah: verse.ayah,
+                          },
+                        ],
+                        title: `${surahNameTr} ${verse.ayah}. Ayet`,
+                        context: 'single',
+                        contextKey: `single:${verse.id}`,
+                        manifest,
+                        meta,
+                        prefs: audioPrefs,
+                        queueLoopOverride: 'infinite',
+                      });
+                    }
+                  }}
+                  className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <Repeat className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
+                  <span>Bu Ayeti Döngüde Dinle</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    sfxService.play('click');
+                    openListeningDrawer({
+                      initialTab: 'playlists',
+                      pendingAddItem: {
+                        type: 'ayah_range',
+                        label: `${surahNameTr} ${verse.ayah}. Ayet`,
+                        surah: verse.surah,
+                        startAyah: verse.ayah,
+                        endAyah: verse.ayah,
+                      },
+                    });
+                  }}
+                  className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <ListPlus className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
+                  <span>Çalma Listesine Ekle</span>
                 </button>
 
                 <button

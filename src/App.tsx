@@ -5,6 +5,7 @@ import { IntroSplash } from './components/IntroSplash';
 import { PageBookmarksDrawer } from './components/PageBookmarksDrawer';
 import { PoolSelectorModal } from './components/PoolSelectorModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { ListeningDrawerModal } from './components/ListeningDrawerModal';
 import { MealCompareModal } from './components/MealCompareModal';
 import { MealSelectorModal } from './components/MealSelectorModal';
 import { ReciterSelectorModal } from './components/ReciterSelectorModal';
@@ -34,6 +35,7 @@ const MainRouter: React.FC = () => {
         <MistakeCampPage />
       )}
       <AudioPlayerBar />
+      <ListeningDrawerModal />
       <PoolSelectorModal />
       <SettingsModal />
       <ReciterSelectorModal />

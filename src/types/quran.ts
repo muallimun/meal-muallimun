@@ -17,7 +17,43 @@ export type WordMealMode = 'off' | 'visible' | 'quiz';
 export type AudioPlayMode = 'ar' | 'meal' | 'ar_then_meal';
 export type MealAudioSourceId = 'tdv' | 'dib' | (string & {});
 export type PlaybackRateOption = 0.75 | 1 | 1.25 | 1.5;
-export type RepeatCountOption = 1 | 2 | 3;
+export type RepeatCountOption = 1 | 2 | 3 | 5 | 10 | 'infinite';
+export type QueueLoopOption = 1 | 2 | 3 | 5 | 10 | 'infinite';
+
+export type PlaylistItemType = 'surah' | 'page_range' | 'juz' | 'ayah_range';
+
+export interface AudioPlaylistItem {
+  id: string;
+  type: PlaylistItemType;
+  label: string;
+  surah?: number;
+  startAyah?: number;
+  endAyah?: number;
+  startPage?: number;
+  endPage?: number;
+  juz?: number;
+}
+
+export interface AudioPlaylist {
+  id: string;
+  name: string;
+  items: AudioPlaylistItem[];
+  createdAt: string;
+  updatedAt: string;
+  isPreset?: boolean;
+}
+
+export interface ListeningDrawerSeed {
+  initialTab?: 'quick' | 'playlists';
+  scope?: 'surah' | 'page' | 'juz' | 'ayah';
+  surah?: number;
+  startAyah?: number;
+  endAyah?: number;
+  page?: number;
+  juz?: number;
+  pendingAddItem?: Omit<AudioPlaylistItem, 'id'>;
+  nonce?: number;
+}
 
 // 1. manifest.json
 export interface MealSourceInfo {
@@ -373,6 +409,7 @@ export interface AppSettings {
   wordByWordEnabled: boolean;
   showFootnotes: boolean;
   highlightSajdah: boolean;
+  keepScreenAwake: boolean;
 }
 
 export interface StudyPool {
@@ -425,6 +462,7 @@ export interface AudioPrefs {
   mealAudioSource: MealAudioSourceId;
   playbackRate: PlaybackRateOption;
   repeatCount: RepeatCountOption;
+  queueLoop: QueueLoopOption;
   autoScroll: boolean;
 }
 
@@ -573,6 +611,7 @@ export interface PersistedAppState {
   studyPrefs: StudyPrefs;
   studyProgress: StudyProgress;
   audioPrefs: AudioPrefs;
+  audioPlaylists: AudioPlaylist[];
   gamification: GamificationState;
   questionAudit: QuestionAuditState;
 }

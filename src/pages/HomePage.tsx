@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   Flame,
   Layers,
+  ListMusic,
+  Play,
   Plus,
   RefreshCw,
   SlidersHorizontal,
@@ -18,6 +20,7 @@ import {
   Type,
 } from 'lucide-react';
 import { PwaInstallControl } from '../components/PwaInstallControl';
+import { audioQueueService } from '../services/audioQueueService';
 import { dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -47,7 +50,10 @@ export const HomePage: React.FC = () => {
     studyPool,
     setStudyPool,
     studyProgress,
+    audioPrefs,
+    audioPlaylists,
     gamification,
+    manifest,
     meta,
     questionIndex,
     isLoadingCore,
@@ -62,6 +68,7 @@ export const HomePage: React.FC = () => {
     openSettingsModal,
     openIntroSplash,
     openBookmarksDrawer,
+    openListeningDrawer,
   } = useAppStore();
 
   const [previewAyah, setPreviewAyah] = useState<AyahPreviewData | null>(null);
@@ -625,6 +632,109 @@ export const HomePage: React.FC = () => {
           1.7. PWA Kurulum Önerisi (Sadece kurulabilir tarayıcı / iOS'ta görünür)
           ==================================================================== */}
       <PwaInstallControl variant="banner" />
+
+      {/* ====================================================================
+          1.8. Dinleme & Çalma Listelerim Hızlı Erişim Kartı
+          ==================================================================== */}
+      {meta && manifest && audioPlaylists.length > 0 && (
+        <section aria-label="Dinleme ve çalma listelerim">
+          <div className="surface-card rounded-2xl p-4 sm:p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                  style={{
+                    backgroundColor: 'var(--brand-primary-soft)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <ListMusic className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm sm:text-base font-extrabold tracking-tight">
+                    Dinleme &amp; Çalma Listelerim
+                  </h3>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                    Sure, sayfa, cüz veya özel listelerle döngülü tilavet
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  openListeningDrawer({ initialTab: 'quick' });
+                }}
+                className="min-h-[38px] px-3.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <span>Hızlı Dinle &amp; Listeler</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {audioPlaylists.slice(0, 3).map((playlist) => (
+                <div
+                  key={playlist.id}
+                  className="p-3 rounded-xl border flex items-center justify-between gap-2.5 min-w-0"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      openListeningDrawer({ initialTab: 'playlists' });
+                    }}
+                    className="min-w-0 flex-1 text-left cursor-pointer"
+                  >
+                    <p className="text-xs sm:text-sm font-extrabold truncate">
+                      {playlist.name}
+                    </p>
+                    <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      {playlist.items.length} bölüm ·{' '}
+                      {playlist.items.map((i) => i.label).slice(0, 2).join(', ')}
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!playlist.items.length) return;
+                      sfxService.play('click');
+                      void audioQueueService.startSegmentQueue({
+                        items: playlist.items,
+                        title: playlist.name,
+                        context: 'playlist',
+                        contextKey: `playlist:${playlist.id}`,
+                        manifest,
+                        meta,
+                        prefs: audioPrefs,
+                      });
+                    }}
+                    disabled={playlist.items.length === 0}
+                    aria-label={`${playlist.name} listesini dinle`}
+                    title={`${playlist.name} listesini dinle`}
+                    className="h-9 px-3 rounded-xl text-xs font-bold text-white flex items-center gap-1 shrink-0 cursor-pointer disabled:opacity-45 transition-transform active:scale-95"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Dinle</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ====================================================================
           2. Ana 2-Sütunlu Alan: Aktif Çalışma Havuzu + Rastgele Ayet Önizleme

@@ -8,6 +8,7 @@ import {
   Eye,
   Languages,
   LayoutList,
+  ListMusic,
   MapPin,
   Minus,
   MonitorPlay,
@@ -15,6 +16,7 @@ import {
   Search,
   Settings,
   Star,
+  Sun,
   Trophy,
   X,
 } from 'lucide-react';
@@ -55,6 +57,7 @@ interface MobileReaderDrawerProps {
   onOpenBookmarks: () => void;
   favoritesCount: number;
   onOpenFavorites: () => void;
+  onOpenListeningDrawer: () => void;
   onOpenSettings: () => void;
 }
 
@@ -86,6 +89,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
   onOpenBookmarks,
   favoritesCount,
   onOpenFavorites,
+  onOpenListeningDrawer,
   onOpenSettings,
 }) => {
   useEffect(() => {
@@ -523,6 +527,34 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                 <span className="text-[11px] font-extrabold">{isImmersive ? 'Açık' : 'Kapalı'}</span>
               </button>
             )}
+            {/* Ekranı Açık Tut (Akıllı Wake Lock) */}
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                onUpdateSettings({ keepScreenAwake: !settings.keepScreenAwake });
+              }}
+              className="w-full min-h-[42px] px-3 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 cursor-pointer"
+              style={{
+                backgroundColor: settings.keepScreenAwake
+                  ? 'var(--brand-primary-soft)'
+                  : 'var(--bg-surface-soft)',
+                borderColor: settings.keepScreenAwake
+                  ? 'var(--brand-primary)'
+                  : 'var(--border-subtle)',
+                color: settings.keepScreenAwake
+                  ? 'var(--brand-primary-text)'
+                  : 'var(--text-primary)',
+              }}
+            >
+              <span className="flex items-center gap-2 text-left">
+                <Sun className="w-4 h-4 shrink-0" />
+                <span>Okuma ve Dinlemede Ekranı Açık Tut</span>
+              </span>
+              <span className="text-[11px] font-extrabold shrink-0">
+                {settings.keepScreenAwake ? 'Açık' : 'Kapalı'}
+              </span>
+            </button>
           </section>
 
           {/* 4. Hızlı Araçlar */}
@@ -534,6 +566,27 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               Hızlı Araçlar
             </p>
             <div className="grid grid-cols-1 gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  onClose();
+                  onOpenListeningDrawer();
+                }}
+                className="w-full min-h-[44px] px-3.5 rounded-xl border text-xs font-bold flex items-center justify-between cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  borderColor: 'var(--brand-primary)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <span className="flex items-center gap-2.5">
+                  <ListMusic className="w-4 h-4" />
+                  <span>Dinleme Kapsamı &amp; Çalma Listelerim</span>
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-70" />
+              </button>
+
               <button
                 type="button"
                 onClick={() => {

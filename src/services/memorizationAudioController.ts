@@ -1,5 +1,6 @@
 import { buildReciterAudioUrls } from '../config/recitersConfig';
 import { audioQueueService } from './audioQueueService';
+import { wakeLockService } from './wakeLockService';
 import type {
   PauseMultiplier,
   SessionStep,
@@ -74,11 +75,6 @@ const FALLBACK_AYAH_DURATION_MS = 4500;
 const MIN_PAUSE_MS = 1500;
 const MAX_PAUSE_MS = 28000;
 
-interface WakeLockSentinelLike {
-  released?: boolean;
-  release: () => Promise<void>;
-}
-
 /**
  * Ezber Modu için çift kanallı (<audio> A/B) ön-yüklemeli ses ve akıllı sekte (Dinle & Tekrar Et) motoru.
  * - `crossOrigin` KULLANMAZ (Archive.org & EveryAyah CORS güvenliği).
@@ -106,9 +102,6 @@ class MemorizationAudioController {
   private trackQueue: SubTrackItem[] = [];
   private currentTrackIdx = 0;
   private lastMeasuredDurationMs = FALLBACK_AYAH_DURATION_MS;
-
-  private wakeLock: WakeLockSentinelLike | null = null;
-  private visibilityBound = false;
 
   public subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
@@ -174,51 +167,15 @@ class MemorizationAudioController {
   }
 
   // ==========================================================================
-  // Wake Lock API
+  // Wake Lock API (Merkezi wakeLockService ile çakışmasız senkronizasyon)
   // ==========================================================================
 
-  private handleVisibilityChange = (): void => {
-    if (typeof document === 'undefined') return;
-    if (document.visibilityState === 'hidden') {
-      void this.releaseWakeLock();
-    } else if (
-      this.snapshot.status === 'playing' ||
-      this.snapshot.status === 'waiting_pause' ||
-      this.snapshot.status === 'loading'
-    ) {
-      void this.acquireWakeLock();
-    }
-  };
-
-  private bindVisibility(): void {
-    if (this.visibilityBound || typeof document === 'undefined') return;
-    document.addEventListener('visibilitychange', this.handleVisibilityChange);
-    this.visibilityBound = true;
+  private acquireWakeLock(): void {
+    wakeLockService.setContinuousReason('memorize_audio', true);
   }
 
-  private async acquireWakeLock(): Promise<void> {
-    if (typeof navigator === 'undefined') return;
-    this.bindVisibility();
-    const nav = navigator as Navigator & {
-      wakeLock?: { request: (type: 'screen') => Promise<WakeLockSentinelLike> };
-    };
-    if (!nav.wakeLock?.request || this.wakeLock) return;
-    try {
-      this.wakeLock = await nav.wakeLock.request('screen');
-    } catch {
-      this.wakeLock = null;
-    }
-  }
-
-  private async releaseWakeLock(): Promise<void> {
-    if (!this.wakeLock) return;
-    const lock = this.wakeLock;
-    this.wakeLock = null;
-    try {
-      await lock.release();
-    } catch {
-      // ignore
-    }
+  private releaseWakeLock(): void {
+    wakeLockService.setContinuousReason('memorize_audio', false);
   }
 
   // ==========================================================================
@@ -692,3 +649,8 @@ class MemorizationAudioController {
 }
 
 export const memorizationAudioController = new MemorizationAudioController();
+
+// Karşılıklı kilit: Genel dinleme motoru başladığında Ezber ses motorunu otomatik duraklat
+audioQueueService.registerExternalAudioPauser(() => {
+  memorizationAudioController.pause();
+});

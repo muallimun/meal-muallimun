@@ -20,6 +20,7 @@ import {
 } from '../config/mealsConfig';
 import { dataService, type DataSourceMode } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
+import { wakeLockService } from '../services/wakeLockService';
 import type {
   MemorizeLaunchTarget,
   QuickMemorizeSeed,
@@ -27,12 +28,15 @@ import type {
 import type {
   AppSettings,
   AudioPlayMode,
+  AudioPlaylist,
+  AudioPlaylistItem,
   AudioPrefs,
   ExamHistoryRecord,
   ExamMode,
   ExamNavigationTarget,
   GamificationState,
   LastReadPosition,
+  ListeningDrawerSeed,
   ManifestData,
   MealDisplayMode,
   MealKey,
@@ -42,11 +46,14 @@ import type {
   PageBookmarkColor,
   PageLayoutMode,
   PersistedAppState,
+  PlaylistItemType,
   PoolStatsSummary,
+  QueueLoopOption,
   QuestionAuditState,
   QuestionIndexFile,
   QuestionIssueReason,
   QuestionIssueReport,
+  RepeatCountOption,
   StudyNavigationTarget,
   StudyPool,
   StudyPrefs,
@@ -84,6 +91,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   wordByWordEnabled: true,
   showFootnotes: true,
   highlightSajdah: true,
+  keepScreenAwake: true,
 };
 
 export const DEFAULT_STUDY_POOL: StudyPool = {
@@ -115,8 +123,106 @@ export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
   mealAudioSource: 'tdv',
   playbackRate: 1,
   repeatCount: 1,
+  queueLoop: 1,
   autoScroll: true,
 };
+
+function createDefaultAudioPlaylists(): AudioPlaylist[] {
+  const now = new Date().toISOString();
+  const shortSurahs: { no: number; name: string }[] = [
+    { no: 93, name: 'Duhâ Suresi' },
+    { no: 94, name: 'İnşirâh Suresi' },
+    { no: 95, name: 'Tîn Suresi' },
+    { no: 96, name: 'Alak Suresi' },
+    { no: 97, name: 'Kadir Suresi' },
+    { no: 98, name: 'Beyyine Suresi' },
+    { no: 99, name: 'Zilzâl Suresi' },
+    { no: 100, name: 'Âdiyât Suresi' },
+    { no: 101, name: 'Kâria Suresi' },
+    { no: 102, name: 'Tekâsür Suresi' },
+    { no: 103, name: 'Asr Suresi' },
+    { no: 104, name: 'Hümeze Suresi' },
+    { no: 105, name: 'Fîl Suresi' },
+    { no: 106, name: 'Kureyş Suresi' },
+    { no: 107, name: 'Mâûn Suresi' },
+    { no: 108, name: 'Kevser Suresi' },
+    { no: 109, name: 'Kâfirûn Suresi' },
+    { no: 110, name: 'Nasr Suresi' },
+    { no: 111, name: 'Tebbet Suresi' },
+    { no: 112, name: 'İhlâs Suresi' },
+    { no: 113, name: 'Felak Suresi' },
+    { no: 114, name: 'Nâs Suresi' },
+  ];
+
+  return [
+    {
+      id: 'preset_yasin_mulk_nebe',
+      name: 'Yâsîn · Mülk · Nebe',
+      isPreset: true,
+      createdAt: now,
+      updatedAt: now,
+      items: [
+        { id: 'p1_s36', type: 'surah', label: 'Yâsîn Suresi', surah: 36 },
+        { id: 'p1_s67', type: 'surah', label: 'Mülk Suresi', surah: 67 },
+        { id: 'p1_s78', type: 'surah', label: 'Nebe Suresi', surah: 78 },
+      ],
+    },
+    {
+      id: 'preset_namaz_kisa_sureler',
+      name: 'Namaz & Kısa Sureler (Duhâ–Nâs)',
+      isPreset: true,
+      createdAt: now,
+      updatedAt: now,
+      items: shortSurahs.map((s) => ({
+        id: `p2_s${s.no}`,
+        type: 'surah' as const,
+        label: s.name,
+        surah: s.no,
+      })),
+    },
+    {
+      id: 'preset_sifa_korunma',
+      name: 'Şifa & Korunma Aşırları',
+      isPreset: true,
+      createdAt: now,
+      updatedAt: now,
+      items: [
+        { id: 'p3_fatiha', type: 'surah', label: 'Fâtiha Suresi', surah: 1 },
+        {
+          id: 'p3_kursi',
+          type: 'ayah_range',
+          label: "Âyetü'l-Kürsî (Bakara 255)",
+          surah: 2,
+          startAyah: 255,
+          endAyah: 255,
+        },
+        {
+          id: 'p3_amenerrasulu',
+          type: 'ayah_range',
+          label: 'Âmenerrasûlü (Bakara 285–286)',
+          surah: 2,
+          startAyah: 285,
+          endAyah: 286,
+        },
+        {
+          id: 'p3_huvallahullezi',
+          type: 'ayah_range',
+          label: 'Hüvallâhüllezî (Haşr 22–24)',
+          surah: 59,
+          startAyah: 22,
+          endAyah: 24,
+        },
+        { id: 'p3_ihlas', type: 'surah', label: 'İhlâs Suresi', surah: 112 },
+        { id: 'p3_felak', type: 'surah', label: 'Felak Suresi', surah: 113 },
+        { id: 'p3_nas', type: 'surah', label: 'Nâs Suresi', surah: 114 },
+      ],
+    },
+  ];
+}
+
+function isValidLoopCount(val: unknown): val is RepeatCountOption {
+  return val === 1 || val === 2 || val === 3 || val === 5 || val === 10 || val === 'infinite';
+}
 
 function resolveAudioModeForStudyPrefs(prefs: StudyPrefs): AudioPlayMode {
   if (prefs.viewMode === 'mushaf') {
@@ -192,6 +298,7 @@ function createDefaultState(today: string): PersistedAppState {
     studyPrefs: DEFAULT_STUDY_PREFS,
     studyProgress: DEFAULT_STUDY_PROGRESS,
     audioPrefs: DEFAULT_AUDIO_PREFS,
+    audioPlaylists: createDefaultAudioPlaylists(),
     gamification: { ...DEFAULT_GAMIFICATION, lastActiveDate: today },
     questionAudit: DEFAULT_QUESTION_AUDIT,
   };
@@ -330,6 +437,10 @@ function hydrateState(): PersistedAppState {
         typeof rawSettings.highlightSajdah === 'boolean'
           ? rawSettings.highlightSajdah
           : DEFAULT_SETTINGS.highlightSajdah,
+      keepScreenAwake:
+        typeof rawSettings.keepScreenAwake === 'boolean'
+          ? rawSettings.keepScreenAwake
+          : DEFAULT_SETTINGS.keepScreenAwake,
     };
 
     const rawPool = parsed.studyPool;
@@ -502,17 +613,73 @@ function hydrateState(): PersistedAppState {
         rawAudio?.playbackRate === 1.5
           ? rawAudio.playbackRate
           : DEFAULT_AUDIO_PREFS.playbackRate,
-      repeatCount:
-        rawAudio?.repeatCount === 1 ||
-        rawAudio?.repeatCount === 2 ||
-        rawAudio?.repeatCount === 3
-          ? rawAudio.repeatCount
-          : DEFAULT_AUDIO_PREFS.repeatCount,
+      repeatCount: isValidLoopCount(rawAudio?.repeatCount)
+        ? rawAudio.repeatCount
+        : DEFAULT_AUDIO_PREFS.repeatCount,
+      queueLoop: isValidLoopCount(rawAudio?.queueLoop)
+        ? (rawAudio.queueLoop as QueueLoopOption)
+        : DEFAULT_AUDIO_PREFS.queueLoop,
       autoScroll:
         typeof rawAudio?.autoScroll === 'boolean'
           ? rawAudio.autoScroll
           : DEFAULT_AUDIO_PREFS.autoScroll,
     };
+
+    const validPlaylistItemTypes: PlaylistItemType[] = [
+      'surah',
+      'page_range',
+      'juz',
+      'ayah_range',
+    ];
+    let audioPlaylists: AudioPlaylist[];
+    if (Array.isArray(parsed.audioPlaylists)) {
+      const cleaned: AudioPlaylist[] = [];
+      const seenPlaylistIds = new Set<string>();
+      for (const rawPl of parsed.audioPlaylists) {
+        if (!rawPl || typeof rawPl !== 'object') continue;
+        const pl = rawPl as Partial<AudioPlaylist>;
+        const plId =
+          typeof pl.id === 'string' && pl.id.trim()
+            ? pl.id.trim()
+            : `pl_${cleaned.length}_${Date.now()}`;
+        if (seenPlaylistIds.has(plId)) continue;
+        seenPlaylistIds.add(plId);
+        const name =
+          typeof pl.name === 'string' && pl.name.trim() ? pl.name.trim() : 'Çalma Listesi';
+        const rawItems = Array.isArray(pl.items) ? pl.items : [];
+        const items: AudioPlaylistItem[] = [];
+        for (let idx = 0; idx < rawItems.length; idx += 1) {
+          const it = rawItems[idx] as Partial<AudioPlaylistItem> | null;
+          if (!it || typeof it !== 'object') continue;
+          if (!validPlaylistItemTypes.includes(it.type as PlaylistItemType)) continue;
+          items.push({
+            id:
+              typeof it.id === 'string' && it.id.trim()
+                ? it.id.trim()
+                : `${plId}_item_${idx}`,
+            type: it.type as PlaylistItemType,
+            label: typeof it.label === 'string' && it.label.trim() ? it.label.trim() : 'Bölüm',
+            surah: typeof it.surah === 'number' ? it.surah : undefined,
+            startAyah: typeof it.startAyah === 'number' ? it.startAyah : undefined,
+            endAyah: typeof it.endAyah === 'number' ? it.endAyah : undefined,
+            startPage: typeof it.startPage === 'number' ? it.startPage : undefined,
+            endPage: typeof it.endPage === 'number' ? it.endPage : undefined,
+            juz: typeof it.juz === 'number' ? it.juz : undefined,
+          });
+        }
+        cleaned.push({
+          id: plId,
+          name,
+          items,
+          createdAt: typeof pl.createdAt === 'string' ? pl.createdAt : new Date().toISOString(),
+          updatedAt: typeof pl.updatedAt === 'string' ? pl.updatedAt : new Date().toISOString(),
+          isPreset: Boolean(pl.isPreset),
+        });
+      }
+      audioPlaylists = cleaned;
+    } else {
+      audioPlaylists = createDefaultAudioPlaylists();
+    }
 
     const rawGam = parsed.gamification;
     let streakDays =
@@ -678,6 +845,7 @@ function hydrateState(): PersistedAppState {
       studyPrefs,
       studyProgress,
       audioPrefs,
+      audioPlaylists,
       gamification,
       questionAudit,
     };
@@ -693,6 +861,7 @@ interface AppContextValue {
   studyPrefs: StudyPrefs;
   studyProgress: StudyProgress;
   audioPrefs: AudioPrefs;
+  audioPlaylists: AudioPlaylist[];
   gamification: GamificationState;
   questionAudit: QuestionAuditState;
 
@@ -721,6 +890,12 @@ interface AppContextValue {
   updateAudioPrefs: (patch: Partial<AudioPrefs>) => void;
   setArabicReciter: (id: string) => void;
   toggleFavoriteReciter: (id: string) => void;
+  createPlaylist: (name: string, items?: Omit<AudioPlaylistItem, 'id'>[]) => AudioPlaylist;
+  renamePlaylist: (id: string, name: string) => void;
+  deletePlaylist: (id: string) => void;
+  addItemToPlaylist: (playlistId: string, item: Omit<AudioPlaylistItem, 'id'>) => void;
+  removeItemFromPlaylist: (playlistId: string, itemId: string) => void;
+  movePlaylistItem: (playlistId: string, itemId: string, direction: 'up' | 'down') => void;
   recordExamResult: (input: RecordExamResultInput) => RecordExamResultOutput;
   toggleBookmarkQuestion: (questionUid: string) => void;
   markQuestionMastered: (questionUid: string) => void;
@@ -781,6 +956,10 @@ interface AppContextValue {
   isSearchModalOpen: boolean;
   openSearchModal: () => void;
   closeSearchModal: () => void;
+  isListeningDrawerOpen: boolean;
+  listeningDrawerSeed: ListeningDrawerSeed | null;
+  openListeningDrawer: (seed?: Omit<ListeningDrawerSeed, 'nonce'>) => void;
+  closeListeningDrawer: () => void;
   isIntroOpen: boolean;
   introDismissed: boolean;
   openIntroSplash: () => void;
@@ -852,7 +1031,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isListeningDrawerOpen, setIsListeningDrawerOpen] = useState(false);
+  const [listeningDrawerSeed, setListeningDrawerSeed] = useState<ListeningDrawerSeed | null>(null);
   const [isReciterSelectorOpen, setIsReciterSelectorOpen] = useState(false);
+
+  // Merkezi Akıllı Ekran Açık Tutma (Wake Lock) Senkronizasyonu
+  useEffect(() => {
+    wakeLockService.setEnabled(persisted.settings.keepScreenAwake);
+  }, [persisted.settings.keepScreenAwake]);
+
+  useEffect(() => {
+    wakeLockService.setSilentReaderActive(activeTab === 'reader');
+  }, [activeTab]);
+
+  useEffect(() => {
+    wakeLockService.setContinuousReason('presentation', isPresentationOpen);
+  }, [isPresentationOpen]);
+
+  useEffect(() => {
+    wakeLockService.setContinuousReason('memorize_zen', isMemorizationZenActive);
+  }, [isMemorizationZenActive]);
+
+  useEffect(() => {
+    if (activeTab === 'reader' && persisted.studyProgress.lastRead) {
+      wakeLockService.notifyUserActivity();
+    }
+  }, [
+    activeTab,
+    persisted.studyProgress.lastRead?.page,
+    persisted.studyProgress.lastRead?.surah,
+    persisted.studyProgress.lastRead?.ayah,
+  ]);
   const [reciterSelectorContext, setReciterSelectorContext] = useState<'default' | 'memorize'>(
     'default',
   );
@@ -1733,6 +1942,122 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSearchModalOpen(false);
   }, []);
 
+  const openListeningDrawer = useCallback((seed?: Omit<ListeningDrawerSeed, 'nonce'>) => {
+    sfxService.play('click');
+    setListeningDrawerSeed({ ...(seed ?? {}), nonce: Date.now() });
+    setIsListeningDrawerOpen(true);
+  }, []);
+
+  const closeListeningDrawer = useCallback(() => {
+    setIsListeningDrawerOpen(false);
+  }, []);
+
+  const createPlaylist = useCallback(
+    (name: string, items: Omit<AudioPlaylistItem, 'id'>[] = []): AudioPlaylist => {
+      const now = new Date().toISOString();
+      const plId = `pl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const cleanName = name.trim() || 'Yeni Çalma Listesi';
+      const hydratedItems: AudioPlaylistItem[] = items.map((it, idx) => ({
+        ...it,
+        id: `${plId}_i_${idx}_${Math.random().toString(36).slice(2, 5)}`,
+      }));
+      const created: AudioPlaylist = {
+        id: plId,
+        name: cleanName,
+        items: hydratedItems,
+        createdAt: now,
+        updatedAt: now,
+        isPreset: false,
+      };
+      setPersisted((prev) => ({
+        ...prev,
+        audioPlaylists: [created, ...prev.audioPlaylists],
+      }));
+      return created;
+    },
+    [],
+  );
+
+  const renamePlaylist = useCallback((id: string, name: string) => {
+    const clean = name.trim();
+    if (!clean) return;
+    setPersisted((prev) => ({
+      ...prev,
+      audioPlaylists: prev.audioPlaylists.map((pl) =>
+        pl.id === id ? { ...pl, name: clean, updatedAt: new Date().toISOString() } : pl,
+      ),
+    }));
+  }, []);
+
+  const deletePlaylist = useCallback((id: string) => {
+    sfxService.play('click');
+    setPersisted((prev) => ({
+      ...prev,
+      audioPlaylists: prev.audioPlaylists.filter((pl) => pl.id !== id),
+    }));
+  }, []);
+
+  const addItemToPlaylist = useCallback(
+    (playlistId: string, item: Omit<AudioPlaylistItem, 'id'>) => {
+      const itemId = `${playlistId}_i_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
+      const nextItem: AudioPlaylistItem = { ...item, id: itemId };
+      setPersisted((prev) => ({
+        ...prev,
+        audioPlaylists: prev.audioPlaylists.map((pl) =>
+          pl.id === playlistId
+            ? {
+                ...pl,
+                items: [...pl.items, nextItem],
+                updatedAt: new Date().toISOString(),
+              }
+            : pl,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const removeItemFromPlaylist = useCallback((playlistId: string, itemId: string) => {
+    sfxService.play('click');
+    setPersisted((prev) => ({
+      ...prev,
+      audioPlaylists: prev.audioPlaylists.map((pl) =>
+        pl.id === playlistId
+          ? {
+              ...pl,
+              items: pl.items.filter((it) => it.id !== itemId),
+              updatedAt: new Date().toISOString(),
+            }
+          : pl,
+      ),
+    }));
+  }, []);
+
+  const movePlaylistItem = useCallback(
+    (playlistId: string, itemId: string, direction: 'up' | 'down') => {
+      sfxService.play('click');
+      setPersisted((prev) => ({
+        ...prev,
+        audioPlaylists: prev.audioPlaylists.map((pl) => {
+          if (pl.id !== playlistId) return pl;
+          const idx = pl.items.findIndex((it) => it.id === itemId);
+          if (idx === -1) return pl;
+          const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+          if (targetIdx < 0 || targetIdx >= pl.items.length) return pl;
+          const nextItems = [...pl.items];
+          const [moved] = nextItems.splice(idx, 1);
+          nextItems.splice(targetIdx, 0, moved);
+          return {
+            ...pl,
+            items: nextItems,
+            updatedAt: new Date().toISOString(),
+          };
+        }),
+      }));
+    },
+    [],
+  );
+
   const openIntroSplash = useCallback(() => {
     sfxService.play('click');
     setIsSettingsModalOpen(false);
@@ -1793,6 +2118,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       studyPrefs: persisted.studyPrefs,
       studyProgress: persisted.studyProgress,
       audioPrefs: persisted.audioPrefs,
+      audioPlaylists: persisted.audioPlaylists,
       gamification: persisted.gamification,
       questionAudit: persisted.questionAudit,
       updateSettings,
@@ -1813,6 +2139,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateAudioPrefs,
       setArabicReciter,
       toggleFavoriteReciter,
+      createPlaylist,
+      renamePlaylist,
+      deletePlaylist,
+      addItemToPlaylist,
+      removeItemFromPlaylist,
+      movePlaylistItem,
       recordExamResult,
       toggleBookmarkQuestion,
       markQuestionMastered,
@@ -1871,6 +2203,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSearchModalOpen,
       openSearchModal,
       closeSearchModal,
+      isListeningDrawerOpen,
+      listeningDrawerSeed,
+      openListeningDrawer,
+      closeListeningDrawer,
       isIntroOpen,
       introDismissed,
       openIntroSplash,
@@ -1896,6 +2232,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       persisted.studyPrefs,
       persisted.studyProgress,
       persisted.audioPrefs,
+      persisted.audioPlaylists,
       persisted.gamification,
       persisted.questionAudit,
       updateSettings,
@@ -1916,6 +2253,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateAudioPrefs,
       setArabicReciter,
       toggleFavoriteReciter,
+      createPlaylist,
+      renamePlaylist,
+      deletePlaylist,
+      addItemToPlaylist,
+      removeItemFromPlaylist,
+      movePlaylistItem,
       recordExamResult,
       toggleBookmarkQuestion,
       markQuestionMastered,
@@ -1970,6 +2313,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSearchModalOpen,
       openSearchModal,
       closeSearchModal,
+      isListeningDrawerOpen,
+      listeningDrawerSeed,
+      openListeningDrawer,
+      closeListeningDrawer,
       isIntroOpen,
       introDismissed,
       openIntroSplash,

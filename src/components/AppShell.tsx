@@ -595,17 +595,13 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 : 'px-1.5 pt-1 sm:px-3 lg:px-6 lg:pt-3.5'
               : 'px-3.5 pt-3.5 sm:px-5 lg:px-6 lg:pt-4'
           } ${
-            isAudioBarDetailsOpen
-              ? isMobileReaderImmersive
-                ? 'pb-56 lg:pb-52'
-                : 'pb-64 lg:pb-52'
-              : isAudioBarVisible
-                ? isMobileReaderImmersive
-                  ? 'pb-28 lg:pb-24'
-                  : 'pb-36 lg:pb-24'
-                : isMobileReaderImmersive
-                  ? 'pb-6 lg:pb-6'
-                  : 'pb-4 lg:pb-6'
+            isMobileReaderImmersive
+              ? isAudioBarDetailsOpen
+                ? 'pb-56 lg:pb-6'
+                : isAudioBarVisible
+                  ? 'pb-28 lg:pb-6'
+                  : 'pb-6 lg:pb-6'
+              : 'pb-4 lg:pb-6'
           }`}
         >
           {children}

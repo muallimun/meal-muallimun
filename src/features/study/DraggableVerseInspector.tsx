@@ -11,6 +11,8 @@ import {
   Info,
   Languages,
   Link2,
+  ListPlus,
+  Repeat,
   Scale,
   Share2,
   Sparkles,
@@ -19,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -78,7 +81,14 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   onShareVerse,
   onOpenSurahInfo,
 }) => {
-  const { openMealCompare, openQuickMemorize } = useAppStore();
+  const {
+    openMealCompare,
+    openQuickMemorize,
+    openListeningDrawer,
+    manifest,
+    meta,
+    audioPrefs,
+  } = useAppStore();
   const verseSurah = verse?.surah;
   const activeSurahNos = useMemo(
     () => (verseSurah ? [verseSurah] : []),
@@ -636,6 +646,71 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
             >
               <Scale className="w-3.5 h-3.5 shrink-0" />
               <span>Mealleri Karşılaştır (24)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                if (manifest && meta) {
+                  const sLabel = surahMeta?.nameTr ?? `${verse.surah}. Sure`;
+                  void audioQueueService.startSegmentQueue({
+                    items: [
+                      {
+                        id: `loop_${verse.id}`,
+                        type: 'ayah_range',
+                        label: `${sLabel} ${verse.ayah}. Ayet`,
+                        surah: verse.surah,
+                        startAyah: verse.ayah,
+                        endAyah: verse.ayah,
+                      },
+                    ],
+                    title: `${sLabel} ${verse.ayah}. Ayet`,
+                    context: 'single',
+                    contextKey: `single:${verse.id}`,
+                    manifest,
+                    meta,
+                    prefs: audioPrefs,
+                    queueLoopOverride: 'infinite',
+                  });
+                }
+              }}
+              className="w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Repeat className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+              <span>Bu Ayeti Döngüde Dinle</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                const sLabel = surahMeta?.nameTr ?? `${verse.surah}. Sure`;
+                openListeningDrawer({
+                  initialTab: 'playlists',
+                  pendingAddItem: {
+                    type: 'ayah_range',
+                    label: `${sLabel} ${verse.ayah}. Ayet`,
+                    surah: verse.surah,
+                    startAyah: verse.ayah,
+                    endAyah: verse.ayah,
+                  },
+                });
+              }}
+              className="w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <ListPlus className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+              <span>Çalma Listesine Ekle</span>
             </button>
           </div>
         </div>

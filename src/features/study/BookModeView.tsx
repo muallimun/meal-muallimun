@@ -11,14 +11,17 @@ import {
   Headphones,
   Info,
   Link2,
+  ListPlus,
   MoreHorizontal,
   Play,
+  Repeat,
   Scale,
   Share2,
   Star,
   Volume2,
 } from 'lucide-react';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -74,6 +77,10 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     moveHatimBookmark,
     openMealCompare,
     openQuickMemorize,
+    openListeningDrawer,
+    manifest,
+    meta,
+    audioPrefs,
   } = useAppStore();
 
   const bookSurahNos = useMemo(() => [bundle.surahMeta.no], [bundle.surahMeta.no]);
@@ -223,6 +230,61 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             >
               <Scale className="w-4 h-4 text-[var(--brand-primary-text)]" />
               <span>Mealleri Karşılaştır (24)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpenMenuAyahId(null);
+                sfxService.play('click');
+                if (manifest && meta) {
+                  void audioQueueService.startSegmentQueue({
+                    items: [
+                      {
+                        id: `loop_${verse.id}`,
+                        type: 'ayah_range',
+                        label: `${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`,
+                        surah: verse.surah,
+                        startAyah: verse.ayah,
+                        endAyah: verse.ayah,
+                      },
+                    ],
+                    title: `${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`,
+                    context: 'single',
+                    contextKey: `single:${verse.id}`,
+                    manifest,
+                    meta,
+                    prefs: audioPrefs,
+                    queueLoopOverride: 'infinite',
+                  });
+                }
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
+            >
+              <Repeat className="w-4 h-4 text-[var(--brand-primary-text)]" />
+              <span>Bu Ayeti Döngüde Dinle</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpenMenuAyahId(null);
+                sfxService.play('click');
+                openListeningDrawer({
+                  initialTab: 'playlists',
+                  pendingAddItem: {
+                    type: 'ayah_range',
+                    label: `${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`,
+                    surah: verse.surah,
+                    startAyah: verse.ayah,
+                    endAyah: verse.ayah,
+                  },
+                });
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
+            >
+              <ListPlus className="w-4 h-4 text-[var(--brand-primary-text)]" />
+              <span>Çalma Listesine Ekle</span>
             </button>
 
             <button
@@ -612,6 +674,59 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     >
                       <Scale className="w-3.5 h-3.5" />
                       <span>Mealleri Karşılaştır (24)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        if (manifest && meta) {
+                          void audioQueueService.startSegmentQueue({
+                            items: [
+                              {
+                                id: `loop_${selectedArabicVerse.id}`,
+                                type: 'ayah_range',
+                                label: `${bundle.surahMeta.nameTr} ${selectedArabicVerse.ayah}. Ayet`,
+                                surah: selectedArabicVerse.surah,
+                                startAyah: selectedArabicVerse.ayah,
+                                endAyah: selectedArabicVerse.ayah,
+                              },
+                            ],
+                            title: `${bundle.surahMeta.nameTr} ${selectedArabicVerse.ayah}. Ayet`,
+                            context: 'single',
+                            contextKey: `single:${selectedArabicVerse.id}`,
+                            manifest,
+                            meta,
+                            prefs: audioPrefs,
+                            queueLoopOverride: 'infinite',
+                          });
+                        }
+                      }}
+                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface-soft)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Repeat className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
+                      <span>Döngüde Dinle</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        openListeningDrawer({
+                          initialTab: 'playlists',
+                          pendingAddItem: {
+                            type: 'ayah_range',
+                            label: `${bundle.surahMeta.nameTr} ${selectedArabicVerse.ayah}. Ayet`,
+                            surah: selectedArabicVerse.surah,
+                            startAyah: selectedArabicVerse.ayah,
+                            endAyah: selectedArabicVerse.ayah,
+                          },
+                        });
+                      }}
+                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface-soft)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <ListPlus className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
+                      <span>Listeye Ekle</span>
                     </button>
                   </div>
                 </div>

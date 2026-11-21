@@ -6,9 +6,11 @@ import {
   ChevronRight,
   FileText,
   Info,
+  ListPlus,
   LocateFixed,
   PanelRightClose,
   Play,
+  Repeat,
   Scale,
   Sparkles,
   Star,
@@ -16,6 +18,7 @@ import {
 } from 'lucide-react';
 import { BOOKMARK_COLOR_STYLES } from '../../components/PageBookmarksDrawer';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { audioQueueService } from '../../services/audioQueueService';
 import {
   SAJDAH_AYAH_IDS,
   toArabicIndicDigits,
@@ -328,6 +331,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     openBookmarksDrawer,
     openMealCompare,
     openMealSelector,
+    openListeningDrawer,
+    manifest,
+    meta,
+    audioPrefs,
   } = useAppStore();
 
   const [openRibbonPage, setOpenRibbonPage] = useState<number | null>(null);
@@ -1478,6 +1485,67 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       style={{ color: 'var(--brand-primary-text)' }}
                                     >
                                       <Play className="w-3.5 h-3.5 fill-current" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        sfxService.play('click');
+                                        if (manifest && meta) {
+                                          const sName =
+                                            meta.surahs.find((s) => s.no === targetVerse.surah)
+                                              ?.nameTr ?? `${targetVerse.surah}. Sure`;
+                                          void audioQueueService.startSegmentQueue({
+                                            items: [
+                                              {
+                                                id: `loop_${targetVerse.id}`,
+                                                type: 'ayah_range',
+                                                label: `${sName} ${targetVerse.ayah}. Ayet`,
+                                                surah: targetVerse.surah,
+                                                startAyah: targetVerse.ayah,
+                                                endAyah: targetVerse.ayah,
+                                              },
+                                            ],
+                                            title: `${sName} ${targetVerse.ayah}. Ayet`,
+                                            context: 'single',
+                                            contextKey: `single:${targetVerse.id}`,
+                                            manifest,
+                                            meta,
+                                            prefs: audioPrefs,
+                                            queueLoopOverride: 'infinite',
+                                          });
+                                        }
+                                      }}
+                                      title={`${targetVerse.ayah}. ayeti döngüde dinle`}
+                                      aria-label={`${targetVerse.ayah}. ayeti döngüde dinle`}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      style={{ color: 'var(--brand-primary-text)' }}
+                                    >
+                                      <Repeat className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        sfxService.play('click');
+                                        const sName =
+                                          meta?.surahs.find((s) => s.no === targetVerse.surah)
+                                            ?.nameTr ?? `${targetVerse.surah}. Sure`;
+                                        openListeningDrawer({
+                                          initialTab: 'playlists',
+                                          pendingAddItem: {
+                                            type: 'ayah_range',
+                                            label: `${sName} ${targetVerse.ayah}. Ayet`,
+                                            surah: targetVerse.surah,
+                                            startAyah: targetVerse.ayah,
+                                            endAyah: targetVerse.ayah,
+                                          },
+                                        });
+                                      }}
+                                      title={`${targetVerse.ayah}. ayeti çalma listesine ekle`}
+                                      aria-label={`${targetVerse.ayah}. ayeti çalma listesine ekle`}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      style={{ color: 'var(--text-muted)' }}
+                                    >
+                                      <ListPlus className="w-3.5 h-3.5" />
                                     </button>
                                     <button
                                       type="button"

@@ -87,6 +87,7 @@ export const StudyPage: React.FC = () => {
     openBookmarksDrawer,
     openSearchModal,
     openSettingsModal,
+    openListeningDrawer,
     isMobileReaderImmersive,
     setIsMobileReaderImmersive,
     isAudioBarExpanded,
@@ -153,6 +154,7 @@ export const StudyPage: React.FC = () => {
   const [isLoadingView, setIsLoadingView] = useState(true);
   const [viewError, setViewError] = useState<string | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
+  const lastSyncedAudioAyahRef = useRef<number | null>(null);
 
   // Yeni Sade Arayüz Popover & Çekmece Durumları
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
@@ -331,12 +333,19 @@ export const StudyPage: React.FC = () => {
   useEffect(() => {
     if (!audioState.currentAyahId || audioState.status === 'idle') return;
 
-    if (viewMode === 'mushaf' && pageBundle) {
-      const combined = secondPageBundle
-        ? [...pageBundle.verses, ...secondPageBundle.verses]
-        : pageBundle.verses;
+    const isActivelyPlaying =
+      audioState.status === 'playing' || audioState.status === 'loading';
+    const isNewAudioAyah = audioState.currentAyahId !== lastSyncedAudioAyahRef.current;
+
+    if (viewMode === 'mushaf') {
+      const combined = pageBundle
+        ? secondPageBundle
+          ? [...pageBundle.verses, ...secondPageBundle.verses]
+          : pageBundle.verses
+        : [];
       const onThisPage = combined.find((v) => v.id === audioState.currentAyahId);
       if (onThisPage) {
+        lastSyncedAudioAyahRef.current = onThisPage.id;
         setSelectedAyahId(onThisPage.id);
         setCurrentSurahNo(onThisPage.surah);
         setLastRead({
@@ -363,10 +372,24 @@ export const StudyPage: React.FC = () => {
             }
           }
         }
+      } else if (
+        isActivelyPlaying &&
+        isNewAudioAyah &&
+        audioState.currentPage &&
+        audioState.currentPage !== currentPageNo &&
+        audioState.currentPage !== secondPageBundle?.pageNo
+      ) {
+        lastSyncedAudioAyahRef.current = audioState.currentAyahId;
+        setCurrentPageNo(audioState.currentPage);
+        if (audioState.currentSurah) {
+          setCurrentSurahNo(audioState.currentSurah);
+        }
+        setSelectedAyahId(audioState.currentAyahId);
       }
-    } else if ((viewMode === 'cards' || viewMode === 'book') && surahBundle) {
-      const inThisSurah = surahBundle.verses.find((v) => v.id === audioState.currentAyahId);
+    } else if (viewMode === 'cards' || viewMode === 'book') {
+      const inThisSurah = surahBundle?.verses.find((v) => v.id === audioState.currentAyahId);
       if (inThisSurah) {
+        lastSyncedAudioAyahRef.current = inThisSurah.id;
         setSelectedAyahId(inThisSurah.id);
         setLastRead({
           surah: inThisSurah.surah,
@@ -380,11 +403,27 @@ export const StudyPage: React.FC = () => {
           const el = document.getElementById(elId);
           el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+      } else if (
+        isActivelyPlaying &&
+        isNewAudioAyah &&
+        audioState.currentSurah &&
+        audioState.currentSurah !== currentSurahNo
+      ) {
+        lastSyncedAudioAyahRef.current = audioState.currentAyahId;
+        setCurrentSurahNo(audioState.currentSurah);
+        if (audioState.currentPage) {
+          setCurrentPageNo(audioState.currentPage);
+        }
+        setSelectedAyahId(audioState.currentAyahId);
       }
     }
   }, [
     audioState.currentAyahId,
+    audioState.currentPage,
+    audioState.currentSurah,
     audioState.status,
+    currentPageNo,
+    currentSurahNo,
     viewMode,
     studyPrefs.pageLayout,
     pageBundle,
@@ -1037,26 +1076,50 @@ export const StudyPage: React.FC = () => {
             )}
           </div>
 
-          {/* 🎧 Dinle */}
-          <button
-            type="button"
-            onClick={handleHeaderListen}
-            title={isAudioOnCurrentView ? 'Dinlemeyi duraklat' : 'Bu sayfayı / sureyi dinle'}
-            className="h-8 px-2.5 xl:px-3 rounded-xl text-[11px] xl:text-xs font-bold text-white flex items-center gap-1.5 transition-transform active:scale-[0.98] cursor-pointer whitespace-nowrap"
+          {/* 🎧 Dinle | ▾ (Bölünmüş Dinleme & Çalma Listesi Butonu) */}
+          <div
+            className="inline-flex items-center rounded-xl overflow-hidden shrink-0"
             style={{ backgroundColor: 'var(--brand-primary)' }}
           >
-            {isAudioOnCurrentView ? (
-              <>
-                <Pause className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden xl:inline">Duraklat</span>
-              </>
-            ) : (
-              <>
-                <Headphones className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden xl:inline">Dinle</span>
-              </>
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={handleHeaderListen}
+              title={isAudioOnCurrentView ? 'Dinlemeyi duraklat' : 'Bu sayfayı / sureyi dinle'}
+              className="h-8 pl-2.5 pr-2 xl:pl-3 xl:pr-2.5 text-[11px] xl:text-xs font-bold text-white flex items-center gap-1.5 transition-opacity hover:opacity-95 active:scale-[0.98] cursor-pointer whitespace-nowrap"
+            >
+              {isAudioOnCurrentView ? (
+                <>
+                  <Pause className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden xl:inline">Duraklat</span>
+                </>
+              ) : (
+                <>
+                  <Headphones className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden xl:inline">Dinle</span>
+                </>
+              )}
+            </button>
+            <span className="w-px h-4 bg-white/25" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openListeningDrawer({
+                  initialTab: 'quick',
+                  scope: viewMode === 'mushaf' ? 'page' : 'surah',
+                  surah: currentSurahNo,
+                  page: currentPageNo,
+                  startAyah: activeAyahNumber,
+                  endAyah: activeAyahNumber,
+                });
+              }}
+              aria-label="Dinleme kapsamı, döngü ve çalma listeleri"
+              title="Dinleme kapsamı, döngü ve çalma listeleri"
+              className="h-8 px-1.5 text-white/95 hover:bg-black/15 flex items-center justify-center cursor-pointer transition-colors"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           {/* 📺 Sunum */}
           <button
@@ -1158,11 +1221,8 @@ export const StudyPage: React.FC = () => {
 
           {/* Sağ: 🎧 Dinle · 🔖 Ayraç · 👁 Saf Sayfa (Mushaf/Kitap) */}
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={handleHeaderListen}
-              aria-label={isAudioOnCurrentView ? 'Duraklat' : 'Dinle'}
-              className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+            <div
+              className="inline-flex items-center rounded-lg overflow-hidden shrink-0"
               style={{
                 backgroundColor: isAudioOnCurrentView
                   ? 'var(--brand-primary)'
@@ -1170,12 +1230,46 @@ export const StudyPage: React.FC = () => {
                 color: isAudioOnCurrentView ? '#FFFFFF' : 'var(--brand-primary-text)',
               }}
             >
-              {isAudioOnCurrentView ? (
-                <Pause className="w-3.5 h-3.5" />
-              ) : (
-                <Headphones className="w-3.5 h-3.5" />
-              )}
-            </button>
+              <button
+                type="button"
+                onClick={handleHeaderListen}
+                aria-label={isAudioOnCurrentView ? 'Duraklat' : 'Dinle'}
+                className="w-7 h-8 flex items-center justify-center cursor-pointer"
+              >
+                {isAudioOnCurrentView ? (
+                  <Pause className="w-3.5 h-3.5" />
+                ) : (
+                  <Headphones className="w-3.5 h-3.5" />
+                )}
+              </button>
+              <span
+                className="w-px h-4"
+                style={{
+                  backgroundColor: isAudioOnCurrentView
+                    ? 'rgba(255,255,255,0.28)'
+                    : 'rgba(13,148,136,0.25)',
+                }}
+                aria-hidden="true"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  openListeningDrawer({
+                    initialTab: 'quick',
+                    scope: viewMode === 'mushaf' ? 'page' : 'surah',
+                    surah: currentSurahNo,
+                    page: currentPageNo,
+                    startAyah: activeAyahNumber,
+                    endAyah: activeAyahNumber,
+                  });
+                }}
+                aria-label="Dinleme kapsamı ve çalma listeleri"
+                className="w-5 h-8 flex items-center justify-center cursor-pointer"
+              >
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </div>
 
             <button
               type="button"
@@ -1488,6 +1582,16 @@ export const StudyPage: React.FC = () => {
         onOpenBookmarks={openBookmarksDrawer}
         favoritesCount={bookmarkedItems.length}
         onOpenFavorites={() => setIsFavoritesDrawerOpen(true)}
+        onOpenListeningDrawer={() =>
+          openListeningDrawer({
+            initialTab: 'quick',
+            scope: viewMode === 'mushaf' ? 'page' : 'surah',
+            surah: currentSurahNo,
+            page: currentPageNo,
+            startAyah: activeAyahNumber,
+            endAyah: activeAyahNumber,
+          })
+        }
         onOpenSettings={openSettingsModal}
       />
 
