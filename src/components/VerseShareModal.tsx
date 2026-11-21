@@ -9,7 +9,12 @@ import {
   X,
 } from 'lucide-react';
 import { resolveArabicFontFamily } from '../config/assetsConfig';
-import { findMealById, getAllMeals, isExtraMealId } from '../config/mealsConfig';
+import {
+  findMealById,
+  getAllMeals,
+  getMealTextPresentation,
+  isExtraMealId,
+} from '../config/mealsConfig';
 import { dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -613,7 +618,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                   htmlFor="share-meal-select"
                   className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]"
                 >
-                  Meal Kaynağı (24 Meal)
+                  Meal &amp; Tefsir Kaynağı ({allMeals.length} Eser)
                 </label>
                 <select
                   id="share-meal-select"
@@ -679,19 +684,32 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                 </div>
               )}
 
-              {(contentMode === 'both' || contentMode === 'meal') && activeMealText && (
-                <div className="space-y-2 max-w-xl">
-                  <p
-                    className="turkish-reading text-sm sm:text-base font-medium leading-relaxed"
-                    style={{ color: palette.mealColor }}
-                  >
-                    “{activeMealText}”
-                  </p>
-                  <p className="text-xs font-semibold" style={{ color: palette.mutedColor }}>
-                    — {activeMealLabel}
-                  </p>
-                </div>
-              )}
+              {(contentMode === 'both' || contentMode === 'meal') && activeMealText && (() => {
+                const mealPres = getMealTextPresentation(selectedMealDef, 16);
+                return (
+                  <div className="space-y-2 max-w-xl w-full">
+                    <p
+                      dir={mealPres.dir}
+                      lang={mealPres.lang}
+                      className={
+                        mealPres.isRtl
+                          ? 'text-center leading-[2.0] font-normal'
+                          : 'turkish-reading text-sm sm:text-base font-medium leading-relaxed'
+                      }
+                      style={{
+                        color: palette.mealColor,
+                        fontFamily: mealPres.fontFamily,
+                        fontSize: mealPres.isRtl ? `${mealPres.fontSizePx}px` : undefined,
+                      }}
+                    >
+                      {mealPres.isRtl ? activeMealText : `“${activeMealText}”`}
+                    </p>
+                    <p className="text-xs font-semibold" style={{ color: palette.mutedColor }}>
+                      — {activeMealLabel}
+                    </p>
+                  </div>
+                );
+              })()}
 
               <div className="pt-3 mt-1 border-t border-current/15 w-full flex flex-col items-center">
                 <span className="text-xs font-extrabold" style={{ color: palette.badgeText }}>

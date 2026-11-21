@@ -51,4 +51,8 @@ export interface TajweedActiveSelection {
   word: TajweedWord;
   rule: TajweedRuleDef;
   rect: TajweedAnchorRect;
+  surahNo?: number;
+  ayahNo?: number;
+  wordIndex?: number;
+  totalWords?: number;
 }

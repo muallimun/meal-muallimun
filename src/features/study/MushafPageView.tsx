@@ -25,11 +25,15 @@ import {
   Volume2,
 } from 'lucide-react';
 import { BOOKMARK_COLOR_STYLES } from '../../components/PageBookmarksDrawer';
-import { resolveSpokenMealInfo } from '../../config/mealsConfig';
+import {
+  MEALS_CATALOG,
+  getMealTextPresentation,
+  resolveSpokenMealInfo,
+} from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
-import { TajweedText } from './TajweedText';
+import { SyncedVerseArabic } from './SyncedArabicText';
 import {
   SAJDAH_AYAH_IDS,
   toArabicIndicDigits,
@@ -1018,11 +1022,20 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           color: 'var(--brand-primary-text)',
                         }}
                       >
-                        {settings.tajweedEnabled && tjBesmele ? (
-                          <TajweedText words={tjBesmele} rules={tjRules} theme={settings.theme} />
-                        ) : (
-                          besmele.ar
-                        )}
+                        <SyncedVerseArabic
+                          text={besmele.ar}
+                          surahNo={segment.surahMeta.no}
+                          ayahNo={1}
+                          isPlaying={Boolean(
+                            playingAyahId && segment.verses[0]?.id === playingAyahId,
+                          )}
+                          wordSyncEnabled={settings.wordSyncEnabled}
+                          useTajweed={Boolean(settings.tajweedEnabled && tjBesmele)}
+                          tajweedWords={tjBesmele}
+                          tajweedRules={tjRules}
+                          theme={settings.theme}
+                          isBesmele
+                        />
                       </p>
                     )}
 
@@ -1101,15 +1114,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 }`}
                                 style={{ backgroundColor: highlightBg }}
                               >
-                                {useVerseTajweed ? (
-                                  <TajweedText
-                                    words={tjWords!}
-                                    rules={tjRules}
-                                    theme={settings.theme}
-                                  />
-                                ) : (
-                                  verse.ar.t
-                                )}
+                                <SyncedVerseArabic
+                                  text={verse.ar.t}
+                                  surahNo={verse.surah}
+                                  ayahNo={verse.ayah}
+                                  isPlaying={isPlaying}
+                                  wordSyncEnabled={settings.wordSyncEnabled}
+                                  useTajweed={useVerseTajweed}
+                                  tajweedWords={tjWords}
+                                  tajweedRules={tjRules}
+                                  theme={settings.theme}
+                                />
                                 {highlightSajdah && (
                                   <span
                                     title="Tilâvet Secdesi Ayeti"
@@ -1234,7 +1249,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                     sfxService.play('click');
                     openMealSelector('primary');
                   }}
-                  title="24 Türkçe meal arasından değiştir"
+                  title={`${MEALS_CATALOG.length} meal ve tefsir arasından değiştir`}
                   className="font-extrabold truncate hover:underline text-left cursor-pointer"
                   style={{ color: 'var(--brand-primary-text)' }}
                 >
@@ -1631,8 +1646,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                         sfxService.play('click');
                                         openMealCompare(targetVerse.surah, targetVerse.ayah);
                                       }}
-                                      title={`${targetVerse.ayah}. ayeti 24 mealde karşılaştır`}
-                                      aria-label={`${targetVerse.ayah}. ayeti 24 mealde karşılaştır`}
+                                      title={`${targetVerse.ayah}. ayeti ${MEALS_CATALOG.length} meal ve tefsirde karşılaştır`}
+                                      aria-label={`${targetVerse.ayah}. ayeti ${MEALS_CATALOG.length} meal ve tefsirde karşılaştır`}
                                       className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--brand-primary-text)' }}
                                     >
@@ -1676,59 +1691,110 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 {/* Alt Metin Alanı: Birleşik ayetler tekrar etmeden tek kartta tam genişlikte */}
                                 <div className="w-full space-y-1.5">
                                   {group.primaryText ? (
-                                    <p
-                                      className="turkish-reading w-full leading-relaxed"
-                                      style={{
-                                        fontSize: `${settings.turkishFontSize}px`,
-                                        color: 'var(--text-primary)',
-                                      }}
-                                    >
-                                      {isDual && (
-                                        <span
-                                          className="font-extrabold mr-1.5 text-xs"
-                                          style={{ color: 'var(--brand-primary-text)' }}
-                                        >
-                                          {primaryMeal.shortLabel}:
-                                        </span>
-                                      )}
-                                      {group.primaryText}
-                                    </p>
+                                    (() => {
+                                      const primaryPres = getMealTextPresentation(
+                                        primaryMeal,
+                                        settings.turkishFontSize,
+                                      );
+                                      return (
+                                        <div className="w-full">
+                                          {isDual && primaryPres.isRtl && (
+                                            <span
+                                              className="block font-extrabold mb-0.5 text-xs"
+                                              style={{ color: 'var(--brand-primary-text)' }}
+                                            >
+                                              {primaryMeal.shortLabel}
+                                            </span>
+                                          )}
+                                          <p
+                                            dir={primaryPres.dir}
+                                            lang={primaryPres.lang}
+                                            className={
+                                              primaryPres.isRtl
+                                                ? `${primaryPres.className} w-full`
+                                                : `${primaryPres.className} w-full leading-relaxed`
+                                            }
+                                            style={{
+                                              fontSize: `${primaryPres.fontSizePx}px`,
+                                              fontFamily: primaryPres.fontFamily,
+                                              color: 'var(--text-primary)',
+                                            }}
+                                          >
+                                            {isDual && !primaryPres.isRtl && (
+                                              <span
+                                                className="font-extrabold mr-1.5 text-xs"
+                                                style={{ color: 'var(--brand-primary-text)' }}
+                                              >
+                                                {primaryMeal.shortLabel}:
+                                              </span>
+                                            )}
+                                            {group.primaryText}
+                                          </p>
+                                        </div>
+                                      );
+                                    })()
                                   ) : isLoadingExtra ? (
                                     <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
                                   ) : null}
 
                                   {isDual &&
                                     (group.secondaryEntries.length > 0 ? (
-                                      <div className="space-y-1">
-                                        {group.secondaryEntries.map((entry, idx) => (
-                                          <p
-                                            key={`sec-${group.key}-${idx}`}
-                                            className="turkish-reading w-full leading-relaxed"
-                                            style={{
-                                              fontSize: `${settings.turkishFontSize}px`,
-                                              color: 'var(--text-secondary)',
-                                            }}
-                                          >
-                                            {idx === 0 && (
+                                      (() => {
+                                        const secondaryPres = getMealTextPresentation(
+                                          secondaryMeal,
+                                          settings.turkishFontSize,
+                                        );
+                                        return (
+                                          <div className="space-y-1">
+                                            {secondaryPres.isRtl && (
                                               <span
-                                                className="font-extrabold mr-1.5 text-xs"
+                                                className="block font-extrabold text-xs"
                                                 style={{ color: 'var(--brand-accent-text)' }}
                                               >
-                                                {secondaryMeal.shortLabel}:
+                                                {secondaryMeal.shortLabel}
                                               </span>
                                             )}
-                                            {entry.ayahLabel && (
-                                              <span
-                                                className="font-bold mr-1 text-xs tabular-nums"
-                                                style={{ color: 'var(--brand-accent-text)' }}
+                                            {group.secondaryEntries.map((entry, idx) => (
+                                              <p
+                                                key={`sec-${group.key}-${idx}`}
+                                                dir={secondaryPres.dir}
+                                                lang={secondaryPres.lang}
+                                                className={
+                                                  secondaryPres.isRtl
+                                                    ? `${secondaryPres.className} w-full`
+                                                    : `${secondaryPres.className} w-full leading-relaxed`
+                                                }
+                                                style={{
+                                                  fontSize: `${secondaryPres.fontSizePx}px`,
+                                                  fontFamily: secondaryPres.fontFamily,
+                                                  color: 'var(--text-secondary)',
+                                                }}
                                               >
-                                                {entry.ayahLabel}
-                                              </span>
-                                            )}
-                                            {entry.text}
-                                          </p>
-                                        ))}
-                                      </div>
+                                                {idx === 0 && !secondaryPres.isRtl && (
+                                                  <span
+                                                    className="font-extrabold mr-1.5 text-xs"
+                                                    style={{ color: 'var(--brand-accent-text)' }}
+                                                  >
+                                                    {secondaryMeal.shortLabel}:
+                                                  </span>
+                                                )}
+                                                {entry.ayahLabel && (
+                                                  <span
+                                                    dir="ltr"
+                                                    className={`font-bold text-xs tabular-nums ${
+                                                      secondaryPres.isRtl ? 'ml-1.5' : 'mr-1'
+                                                    }`}
+                                                    style={{ color: 'var(--brand-accent-text)' }}
+                                                  >
+                                                    {entry.ayahLabel}
+                                                  </span>
+                                                )}
+                                                {entry.text}
+                                              </p>
+                                            ))}
+                                          </div>
+                                        );
+                                      })()
                                     ) : isLoadingExtra ? (
                                       <div className="h-4 w-3/4 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
                                     ) : null)}

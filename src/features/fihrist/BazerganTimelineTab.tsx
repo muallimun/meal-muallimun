@@ -8,6 +8,7 @@ import {
   Loader2,
   Volume2,
 } from 'lucide-react';
+import { getMealTextPresentation } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { audioQueueService } from '../../services/audioQueueService';
 import { dataService, toArabicIndicDigits } from '../../services/dataService';
@@ -278,50 +279,76 @@ const BazerganPassageCard: React.FC<BazerganPassageCardProps> = ({
                       </span>
                     </div>
 
-                    {pVerse?.t && (
-                      <div>
-                        {isDual && sVerse?.t && (
+                    {pVerse?.t && (() => {
+                      const primaryPres = getMealTextPresentation(
+                        primaryMeal,
+                        settings.turkishFontSize,
+                      );
+                      return (
+                        <div>
+                          {isDual && sVerse?.t && (
+                            <p
+                              className="text-[11px] font-bold mb-0.5"
+                              style={{ color: 'var(--brand-primary-text)' }}
+                            >
+                              {primaryMeal.shortLabel}
+                            </p>
+                          )}
+                          <p
+                            dir={primaryPres.dir}
+                            lang={primaryPres.lang}
+                            className={
+                              primaryPres.isRtl
+                                ? primaryPres.className
+                                : `${primaryPres.className} leading-relaxed`
+                            }
+                            style={{
+                              fontSize: `${primaryPres.fontSizePx}px`,
+                              fontFamily: primaryPres.fontFamily,
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {pVerse.t}
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {sVerse?.t && (() => {
+                      const secondaryPres = getMealTextPresentation(
+                        secondaryMeal,
+                        settings.turkishFontSize,
+                      );
+                      return (
+                        <div
+                          className="pt-2 border-t"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
                           <p
                             className="text-[11px] font-bold mb-0.5"
-                            style={{ color: 'var(--brand-primary-text)' }}
+                            style={{ color: 'var(--brand-accent-text)' }}
                           >
-                            {primaryMeal.shortLabel}
+                            {secondaryMeal.shortLabel}
                           </p>
-                        )}
-                        <p
-                          className="turkish-reading leading-relaxed"
-                          style={{
-                            fontSize: `${settings.turkishFontSize}px`,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {pVerse.t}
-                        </p>
-                      </div>
-                    )}
-
-                    {sVerse?.t && (
-                      <div
-                        className="pt-2 border-t"
-                        style={{ borderColor: 'var(--border-subtle)' }}
-                      >
-                        <p
-                          className="text-[11px] font-bold mb-0.5"
-                          style={{ color: 'var(--brand-accent-text)' }}
-                        >
-                          {secondaryMeal.shortLabel}
-                        </p>
-                        <p
-                          className="turkish-reading leading-relaxed"
-                          style={{
-                            fontSize: `${settings.turkishFontSize}px`,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {sVerse.t}
-                        </p>
-                      </div>
-                    )}
+                          <p
+                            dir={secondaryPres.dir}
+                            lang={secondaryPres.lang}
+                            className={
+                              secondaryPres.isRtl
+                                ? secondaryPres.className
+                                : `${secondaryPres.className} leading-relaxed`
+                            }
+                            style={{
+                              fontSize: `${secondaryPres.fontSizePx}px`,
+                              fontFamily: secondaryPres.fontFamily,
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {sVerse.t}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

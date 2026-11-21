@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertCircle,
+  AudioLines,
   Check,
   Headphones,
   Loader2,
@@ -14,11 +15,13 @@ import {
   formatReciterBadge,
   getAllReciters,
   RECITER_CATEGORIES,
+  resolveSyncedReciterKey,
 } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { ReciterCategory, ReciterDefinition } from '../types/quran';
+import type { SegMetaFile } from '../types/wordSync';
 import { normalizeTurkish } from '../utils/textNormalize';
 
 type FilterChipId = 'all' | 'favorites' | ReciterCategory;
@@ -59,6 +62,9 @@ export const ReciterSelectorModal: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterChipId>('all');
+  const [segMeta, setSegMeta] = useState<SegMetaFile | null>(() =>
+    audioQueueService.getCachedSegMeta(),
+  );
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const reciters = useMemo(() => getAllReciters(manifest), [manifest]);
@@ -72,11 +78,20 @@ export const ReciterSelectorModal: React.FC = () => {
     [reciters, audioPrefs.arabicReciterId],
   );
 
-  // Kapanınca veya unmount olunca Besmele önizlemesini temizle
+  // Kapanınca veya unmount olunca Besmele önizlemesini temizle; açılınca seg/meta.json bilgisini tembel yükle
   useEffect(() => {
     if (!isReciterSelectorOpen) {
       audioQueueService.stopPreview();
       return;
+    }
+
+    let cancelled = false;
+    if (!segMeta) {
+      void audioQueueService.ensureSegMetaLoaded().then((loaded) => {
+        if (!cancelled && loaded) {
+          setSegMeta(loaded);
+        }
+      });
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -90,10 +105,11 @@ export const ReciterSelectorModal: React.FC = () => {
 
     window.addEventListener('keydown', onKeyDown, true);
     return () => {
+      cancelled = true;
       window.removeEventListener('keydown', onKeyDown, true);
       audioQueueService.stopPreview();
     };
-  }, [isReciterSelectorOpen, closeReciterSelector]);
+  }, [isReciterSelectorOpen, closeReciterSelector, segMeta]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<ReciterCategory, number> = {
@@ -193,6 +209,7 @@ export const ReciterSelectorModal: React.FC = () => {
     const isPreviewPlaying = isPreviewTarget && audioState.previewStatus === 'playing';
     const isPreviewError = isPreviewTarget && audioState.previewStatus === 'error';
     const badge = formatReciterBadge(reciter);
+    const hasWordSync = Boolean(resolveSyncedReciterKey(reciter, segMeta));
     const catMeta = CATEGORY_MAP.get(reciter.category);
     const showCategoryMeta = activeFilter === 'all' || activeFilter === 'favorites' || Boolean(searchQuery.trim());
 
@@ -290,6 +307,20 @@ export const ReciterSelectorModal: React.FC = () => {
                   }}
                 >
                   {badge}
+                </span>
+              )}
+              {hasWordSync && (
+                <span
+                  title="Bu kurrâda sesle eşzamanlı kelime bazlı karaoke takibi desteklenir"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-extrabold border whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'var(--brand-primary-soft)',
+                    borderColor: 'rgba(15, 118, 110, 0.35)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <AudioLines className="w-3 h-3 shrink-0" />
+                  <span>Kelime Takibi</span>
                 </span>
               )}
               {showCategoryMeta && catMeta && (

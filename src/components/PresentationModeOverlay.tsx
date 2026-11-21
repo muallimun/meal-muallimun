@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import {
+  getMealTextPresentation,
   isDisplayedMealMatchingAudio,
   resolveSpokenMealInfo,
 } from '../config/mealsConfig';
@@ -954,82 +955,115 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     : ''
                 } ${isBesmeleHighlighted ? 'opacity-70' : 'opacity-100'}`}
               >
-                <div
-                  className="px-4 py-2.5 rounded-2xl border transition-all duration-200"
-                  style={{
-                    backgroundColor: isPrimaryMealHighlighted ? palette.accentSoft : 'transparent',
-                    borderColor: isPrimaryMealHighlighted
-                      ? palette.accent
-                      : isDual && secondaryMealText
-                        ? palette.border
-                        : 'transparent',
-                  }}
-                >
-                  <p
-                    className={`turkish-reading font-medium ${
-                      isDual && secondaryMealText ? 'text-left' : 'text-center'
-                    }`}
-                    style={{
-                      fontSize:
-                        isDual && secondaryMealText
-                          ? `${Math.max(14, Math.round(parseInt(fontMetrics.trSize, 10) * 0.84))}px`
-                          : fontMetrics.trSize,
-                      lineHeight: fontMetrics.trLine,
-                      color: palette.text,
-                    }}
-                  >
-                    {mealText}
-                  </p>
-                  <p
-                    className={`mt-2.5 text-xs sm:text-sm font-semibold ${
-                      isDual && secondaryMealText ? 'text-left' : 'text-center'
-                    }`}
-                    style={{ color: palette.muted }}
-                  >
-                    <span>{primaryMeal.label}</span>
-                    {isMealAudioFlowActive &&
-                      activeSpokenMeal &&
-                      activeSpokenMeal.mealId !== primaryMeal.id &&
-                      (!isDual || activeSpokenMeal.mealId !== secondaryMeal.id) && (
-                        <span className="opacity-80 font-normal">
-                          {' '}
-                          · (Seslendirilen: {activeSpokenMeal.label})
-                        </span>
-                      )}
-                  </p>
-                </div>
-
-                {isDual && secondaryMealText && (
-                  <div
-                    className="px-4 py-2.5 rounded-2xl border transition-all duration-200"
-                    style={{
-                      backgroundColor: isSecondaryMealHighlighted
-                        ? palette.accentSoft
-                        : 'transparent',
-                      borderColor: isSecondaryMealHighlighted ? palette.accent : palette.border,
-                    }}
-                  >
-                    <p
-                      className="turkish-reading font-medium text-left"
+                {(() => {
+                  const basePrimarySize =
+                    isDual && secondaryMealText
+                      ? Math.max(14, Math.round(parseInt(fontMetrics.trSize, 10) * 0.84))
+                      : parseInt(fontMetrics.trSize, 10);
+                  const primaryPres = getMealTextPresentation(primaryMeal, basePrimarySize);
+                  return (
+                    <div
+                      className="px-4 py-2.5 rounded-2xl border transition-all duration-200"
                       style={{
-                        fontSize: `${Math.max(14, Math.round(parseInt(fontMetrics.trSize, 10) * 0.84))}px`,
-                        lineHeight: fontMetrics.trLine,
-                        color: palette.text,
+                        backgroundColor: isPrimaryMealHighlighted ? palette.accentSoft : 'transparent',
+                        borderColor: isPrimaryMealHighlighted
+                          ? palette.accent
+                          : isDual && secondaryMealText
+                            ? palette.border
+                            : 'transparent',
                       }}
                     >
-                      {secondaryMealText}
-                    </p>
-                    <p
-                      className="mt-2.5 text-xs sm:text-sm font-semibold text-left"
-                      style={{ color: palette.muted }}
+                      <p
+                        dir={primaryPres.dir}
+                        lang={primaryPres.lang}
+                        className={
+                          primaryPres.isRtl
+                            ? `${isDual && secondaryMealText ? 'text-right' : 'text-center'} leading-[2.0]`
+                            : `turkish-reading font-medium ${
+                                isDual && secondaryMealText ? 'text-left' : 'text-center'
+                              }`
+                        }
+                        style={{
+                          fontSize: `${primaryPres.fontSizePx}px`,
+                          fontFamily: primaryPres.fontFamily,
+                          lineHeight: primaryPres.isRtl ? 2.0 : fontMetrics.trLine,
+                          color: palette.text,
+                        }}
+                      >
+                        {mealText}
+                      </p>
+                      <p
+                        className={`mt-2.5 text-xs sm:text-sm font-semibold ${
+                          isDual && secondaryMealText
+                            ? primaryPres.isRtl
+                              ? 'text-right'
+                              : 'text-left'
+                            : 'text-center'
+                        }`}
+                        style={{ color: palette.muted }}
+                      >
+                        <span>{primaryMeal.label}</span>
+                        {isMealAudioFlowActive &&
+                          activeSpokenMeal &&
+                          activeSpokenMeal.mealId !== primaryMeal.id &&
+                          (!isDual || activeSpokenMeal.mealId !== secondaryMeal.id) && (
+                            <span className="opacity-80 font-normal">
+                              {' '}
+                              · (Seslendirilen: {activeSpokenMeal.label})
+                            </span>
+                          )}
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                {isDual && secondaryMealText && (() => {
+                  const baseSecondarySize = Math.max(
+                    14,
+                    Math.round(parseInt(fontMetrics.trSize, 10) * 0.84),
+                  );
+                  const secondaryPres = getMealTextPresentation(secondaryMeal, baseSecondarySize);
+                  return (
+                    <div
+                      className="px-4 py-2.5 rounded-2xl border transition-all duration-200"
+                      style={{
+                        backgroundColor: isSecondaryMealHighlighted
+                          ? palette.accentSoft
+                          : 'transparent',
+                        borderColor: isSecondaryMealHighlighted ? palette.accent : palette.border,
+                      }}
                     >
-                      <span>{secondaryMeal.label}</span>
-                      {isSecondaryMealHighlighted && activeSpokenMeal && (
-                        <span className="opacity-85 font-normal"> · (Seslendirilen)</span>
-                      )}
-                    </p>
-                  </div>
-                )}
+                      <p
+                        dir={secondaryPres.dir}
+                        lang={secondaryPres.lang}
+                        className={
+                          secondaryPres.isRtl
+                            ? 'text-right leading-[2.0]'
+                            : 'turkish-reading font-medium text-left'
+                        }
+                        style={{
+                          fontSize: `${secondaryPres.fontSizePx}px`,
+                          fontFamily: secondaryPres.fontFamily,
+                          lineHeight: secondaryPres.isRtl ? 2.0 : fontMetrics.trLine,
+                          color: palette.text,
+                        }}
+                      >
+                        {secondaryMealText}
+                      </p>
+                      <p
+                        className={`mt-2.5 text-xs sm:text-sm font-semibold ${
+                          secondaryPres.isRtl ? 'text-right' : 'text-left'
+                        }`}
+                        style={{ color: palette.muted }}
+                      >
+                        <span>{secondaryMeal.label}</span>
+                        {isSecondaryMealHighlighted && activeSpokenMeal && (
+                          <span className="opacity-85 font-normal"> · (Seslendirilen)</span>
+                        )}
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>

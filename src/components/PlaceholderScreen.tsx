@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft, BookMarked, BookOpen, Layers, Library, RotateCcw, Settings, Trophy } from 'lucide-react';
+import { MEALS_CATALOG } from '../config/mealsConfig';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
 import { formatNumberTr } from '../utils/poolUtils';
@@ -34,7 +35,7 @@ const PLACEHOLDER_META: Record<
       "A'dan Z'ye Kur'an konu başlıklarını inceleyin, ayetleri kişisel araştırma başlıklarınızda toplayıp notlayın ve A4 PDF olarak yazdırın.",
     highlights: [
       'A–Z harf çubuğu ve anlık Türkçe konu arama',
-      '4 görünüm modu, kesintisiz sesli dinleme ve 24 meal karşılaştırma',
+      `4 görünüm modu, kesintisiz sesli dinleme ve ${MEALS_CATALOG.length} meal & tefsir karşılaştırma`,
       'Kişisel Araştırma Defteri, toplu referans ekleme ve JSON yedekleme',
     ],
     icon: Library,

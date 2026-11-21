@@ -10,6 +10,7 @@ import React, {
 import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
+  AudioLines,
   BookOpen,
   BookText,
   ChevronDown,
@@ -1182,6 +1183,50 @@ export const StudyPage: React.FC = () => {
                   <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
                 </button>
               )}
+
+              {/* Kelime Takibi (Karaoke) */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.wordSyncEnabled}
+                onClick={() => {
+                  sfxService.play('click');
+                  updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
+                }}
+                className="w-full pt-2 border-t flex items-center justify-between gap-2 text-left cursor-pointer"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <div className="min-w-0">
+                  <span
+                    className="text-xs font-extrabold flex items-center gap-1.5"
+                    style={{
+                      color: settings.wordSyncEnabled
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-primary)',
+                    }}
+                  >
+                    <AudioLines className="w-3.5 h-3.5 shrink-0" />
+                    <span>Kelime Takibi (Karaoke)</span>
+                  </span>
+                  <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Okunan kelimeyi sesle eşzamanlı vurgula
+                  </span>
+                </div>
+                <span
+                  className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
+                  style={{
+                    backgroundColor: settings.wordSyncEnabled
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-strong)',
+                  }}
+                >
+                  <span
+                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                      settings.wordSyncEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </span>
+              </button>
             </div>
 
             {/* 3. Hızlı Yazı Boyutu (Arapça & Meal) */}

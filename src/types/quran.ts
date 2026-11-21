@@ -3,7 +3,7 @@
 // ============================================================================
 
 export type MealKey = 'm1' | 'm2';
-export type MealCategory = 'resmi' | 'klasik' | 'cagdas';
+export type MealCategory = 'resmi' | 'klasik' | 'cagdas' | 'evrensel';
 export type MealStorageType = 'm1' | 'm2' | 'mx';
 export type MealDisplayMode = 'single' | 'dual';
 export type PreferredMeal = 'm1' | 'm2' | 'both';
@@ -62,6 +62,8 @@ export interface MealSourceInfo {
   label: string;
   shortLabel?: string;
   category?: MealCategory;
+  lang?: 'tr' | 'ar' | 'en';
+  dir?: 'ltr' | 'rtl';
   storage?: MealStorageType;
   audioSource?: string | null;
   audioSourceKey?: string | null;
@@ -75,6 +77,8 @@ export interface MealDefinition {
   label: string;
   shortLabel: string;
   category: MealCategory;
+  lang?: 'tr' | 'ar' | 'en';
+  dir?: 'ltr' | 'rtl';
   hasAudio: boolean;
   audioSource: string | null;
   storage: MealStorageType;
@@ -412,6 +416,7 @@ export interface AppSettings {
   keepScreenAwake: boolean;
   tajweedEnabled: boolean;
   showTajweedLegend: boolean;
+  wordSyncEnabled: boolean;
 }
 
 export interface StudyPool {

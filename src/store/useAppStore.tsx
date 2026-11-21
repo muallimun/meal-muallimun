@@ -18,6 +18,7 @@ import {
   DEFAULT_SECONDARY_MEAL_ID,
   findMealById,
 } from '../config/mealsConfig';
+import { audioQueueService } from '../services/audioQueueService';
 import { dataService, type DataSourceMode } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { wakeLockService } from '../services/wakeLockService';
@@ -96,6 +97,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   keepScreenAwake: true,
   tajweedEnabled: false,
   showTajweedLegend: true,
+  wordSyncEnabled: true,
 };
 
 export const DEFAULT_STUDY_POOL: StudyPool = {
@@ -458,6 +460,10 @@ function hydrateState(): PersistedAppState {
         typeof rawSettings.showTajweedLegend === 'boolean'
           ? rawSettings.showTajweedLegend
           : DEFAULT_SETTINGS.showTajweedLegend,
+      wordSyncEnabled:
+        typeof rawSettings.wordSyncEnabled === 'boolean'
+          ? rawSettings.wordSyncEnabled
+          : DEFAULT_SETTINGS.wordSyncEnabled,
     };
 
     const rawPool = parsed.studyPool;
@@ -1183,7 +1189,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     root.style.setProperty('--font-turkish', resolveTurkishFontStack(turkishFont));
 
     sfxService.configure(sfxEnabled, sfxVolume);
+    audioQueueService.setWordSyncEnabled(persisted.settings.wordSyncEnabled);
   }, [persisted.settings]);
+
+  // Kelime zamanlama meta dosyasını (seg/meta.json) arka planda sessizce ısıt
+  useEffect(() => {
+    if (persisted.settings.wordSyncEnabled) {
+      void audioQueueService.ensureSegMetaLoaded();
+    }
+  }, [persisted.settings.wordSyncEnabled]);
 
   // Çekirdek veri dosyalarını paralel yükle
   useEffect(() => {

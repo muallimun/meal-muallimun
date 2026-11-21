@@ -19,7 +19,12 @@ import {
   Star,
   Volume2,
 } from 'lucide-react';
-import { findMealById, resolveSpokenMealInfo } from '../../config/mealsConfig';
+import {
+  MEALS_CATALOG,
+  findMealById,
+  getMealTextPresentation,
+  resolveSpokenMealInfo,
+} from '../../config/mealsConfig';
 import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
@@ -35,7 +40,7 @@ import type {
 } from '../../types/quran';
 import type { SurahExtraInfo } from '../../types/fihrist';
 import type { TajweedRuleDef, TajweedWord } from '../../types/tajweed';
-import { TajweedText } from './TajweedText';
+import { SyncedVerseArabic } from './SyncedArabicText';
 import { WordMealGrid } from './WordMealGrid';
 
 interface VerseCardProps {
@@ -185,15 +190,17 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 
   const renderMealBlock = (
     meal: MealVerse | null,
-    mealId: string,
+    mealDef: MealDefinition,
     isPrimaryBlock: boolean,
-    label: string,
     accentColor: string,
     expanded: boolean,
     onToggleExpand: () => void,
     withTopBorder: boolean,
   ) => {
     if (!meal) return null;
+    const mealId = mealDef.id;
+    const label = mealDef.label;
+    const mealPres = getMealTextPresentation(mealDef, settings.turkishFontSize);
     const mg = meal.mg;
     const isMergedContinuation = Boolean(mg && verse.ayah > mg[0]);
     const showSpokenMismatch =
@@ -290,9 +297,12 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         ) : (
           <div>
             <p
-              className="turkish-reading"
+              dir={mealPres.dir}
+              lang={mealPres.lang}
+              className={mealPres.className}
               style={{
-                fontSize: `${settings.turkishFontSize}px`,
+                fontSize: `${mealPres.fontSizePx}px`,
+                fontFamily: mealPres.fontFamily,
                 color: 'var(--text-secondary)',
               }}
             >
@@ -485,8 +495,8 @@ export const VerseCard: React.FC<VerseCardProps> = ({
               sfxService.play('click');
               openMealCompare(verse.surah, verse.ayah);
             }}
-            title="Bu ayeti 24 farklı Türkçe mealde karşılaştır"
-            aria-label="24 mealde karşılaştır"
+            title={`Bu ayeti ${MEALS_CATALOG.length} farklı meal ve tefsirde karşılaştır`}
+            aria-label={`${MEALS_CATALOG.length} meal ve tefsirde karşılaştır`}
             className="hidden sm:flex min-w-[38px] min-h-[38px] px-2 rounded-xl items-center justify-center gap-1 text-xs font-bold transition-colors cursor-pointer hover:bg-[var(--brand-primary-soft)]"
             style={{ color: 'var(--brand-primary-text)' }}
           >
@@ -676,7 +686,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                   style={{ color: 'var(--text-primary)' }}
                 >
                   <Scale className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
-                  <span>Mealleri Karşılaştır (24)</span>
+                  <span>Mealleri Karşılaştır ({MEALS_CATALOG.length})</span>
                 </button>
 
                 <button
@@ -746,15 +756,19 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                   color: 'var(--text-primary)',
                 }}
               >
-                {useTajweed ? (
-                  <TajweedText
-                    words={tajweedWords!}
-                    rules={tajweedRules!}
+                {
+                  <SyncedVerseArabic
+                    text={verse.ar.t}
+                    surahNo={verse.surah}
+                    ayahNo={verse.ayah}
+                    isPlaying={isPlayingThisAyah}
+                    wordSyncEnabled={settings.wordSyncEnabled}
+                    useTajweed={useTajweed}
+                    tajweedWords={tajweedWords}
+                    tajweedRules={tajweedRules}
                     theme={settings.theme}
                   />
-                ) : (
-                  verse.ar.t
-                )}
+                }
                 {highlightSajdah && (
                   <span
                     title="Tilâvet Secdesi Ayeti"
@@ -786,22 +800,25 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         >
           <WordMealGrid
             ayahId={verse.id}
+            surah={verse.surah}
+            ayah={verse.ayah}
             words={verse.words}
             wordMode={effectiveWordMode}
             arabicFontSize={settings.arabicFontSize}
+            isPlayingThisAyah={isPlayingThisAyah}
+            wordSyncEnabled={settings.wordSyncEnabled}
           />
         </div>
       )}
 
-      {/* Seçili Meal / Çift Meal (24 Meal Desteği — Sadece AR modunda gizlenir) */}
+      {/* Seçili Meal / Çift Meal (Meal & Tefsir Desteği — Sadece AR modunda gizlenir) */}
       {contentMode !== 'ar_only' && (
         <div className="space-y-3.5">
           {resolvedPrimaryVerse ? (
             renderMealBlock(
               resolvedPrimaryVerse,
-              resolvedPrimaryMeal.id,
+              resolvedPrimaryMeal,
               true,
-              resolvedPrimaryMeal.label,
               'var(--brand-primary-text)',
               expandedMergedPrimary,
               () => setExpandedMergedPrimary((v) => !v),
@@ -820,9 +837,8 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             (resolvedSecondaryVerse ? (
               renderMealBlock(
                 resolvedSecondaryVerse,
-                resolvedSecondaryMeal.id,
+                resolvedSecondaryMeal,
                 false,
-                resolvedSecondaryMeal.label,
                 'var(--brand-accent-text)',
                 expandedMergedSecondary,
                 () => setExpandedMergedSecondary((v) => !v),

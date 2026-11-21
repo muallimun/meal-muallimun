@@ -844,6 +844,16 @@ export const SettingsModal: React.FC = () => {
               )}
 
               <ToggleRow
+                title="Kelime Takibi (Karaoke)"
+                description="Kelime senkronu destekli kurrâlarda (Husrî, Mâhir, Minşâvî, Şureym) tilavet sırasında okunan kelimeyi satır kayması olmadan anlık vurgular."
+                checked={settings.wordSyncEnabled}
+                onToggle={() => {
+                  sfxService.play('click');
+                  updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
+                }}
+              />
+
+              <ToggleRow
                 title="Tilâvet Secdesi İşaretlerini Vurgula"
                 description="Secde ayetlerinde özel ۩ Tilâvet Secdesi işaretini belirgin göster."
                 checked={settings.highlightSajdah}

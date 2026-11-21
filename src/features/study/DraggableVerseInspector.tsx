@@ -29,7 +29,11 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
-import { resolveSpokenMealInfo } from '../../config/mealsConfig';
+import {
+  MEALS_CATALOG,
+  getMealTextPresentation,
+  resolveSpokenMealInfo,
+} from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
@@ -42,7 +46,7 @@ import type {
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
-import { TajweedText } from './TajweedText';
+import { SyncedVerseArabic } from './SyncedArabicText';
 import { WordMealGrid } from './WordMealGrid';
 
 interface DraggableVerseInspectorProps {
@@ -556,11 +560,17 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
                 color: 'var(--text-primary)',
               }}
             >
-              {useVerseTajweed ? (
-                <TajweedText words={tjWords!} rules={tjRules} theme={settings.theme} />
-              ) : (
-                verse.ar.t
-              )}
+              <SyncedVerseArabic
+                text={verse.ar.t}
+                surahNo={verse.surah}
+                ayahNo={verse.ayah}
+                isPlaying={isPlaying}
+                wordSyncEnabled={settings.wordSyncEnabled}
+                useTajweed={useVerseTajweed}
+                tajweedWords={tjWords}
+                tajweedRules={tjRules}
+                theme={settings.theme}
+              />
             </div>
           );
         })()}
@@ -614,15 +624,26 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               )}
             </div>
             {primaryVerse?.t ? (
-              <p
-                className="turkish-reading"
-                style={{
-                  fontSize: `${Math.max(14, settings.turkishFontSize - 1)}px`,
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {primaryVerse.t}
-              </p>
+              (() => {
+                const pres = getMealTextPresentation(
+                  primaryMeal,
+                  Math.max(14, settings.turkishFontSize - 1),
+                );
+                return (
+                  <p
+                    dir={pres.dir}
+                    lang={pres.lang}
+                    className={pres.className}
+                    style={{
+                      fontSize: `${pres.fontSizePx}px`,
+                      fontFamily: pres.fontFamily,
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {primaryVerse.t}
+                  </p>
+                );
+              })()
             ) : isLoadingExtra ? (
               <div className="h-4 w-3/4 rounded bg-current/10 animate-pulse" />
             ) : (
@@ -676,15 +697,26 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
                 )}
               </div>
               {secondaryVerse?.t ? (
-                <p
-                  className="turkish-reading"
-                  style={{
-                    fontSize: `${Math.max(14, settings.turkishFontSize - 1)}px`,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {secondaryVerse.t}
-                </p>
+                (() => {
+                  const pres = getMealTextPresentation(
+                    secondaryMeal,
+                    Math.max(14, settings.turkishFontSize - 1),
+                  );
+                  return (
+                    <p
+                      dir={pres.dir}
+                      lang={pres.lang}
+                      className={pres.className}
+                      style={{
+                        fontSize: `${pres.fontSizePx}px`,
+                        fontFamily: pres.fontFamily,
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {secondaryVerse.t}
+                    </p>
+                  );
+                })()
               ) : isLoadingExtra ? (
                 <div className="h-4 w-3/4 rounded bg-current/10 animate-pulse" />
               ) : (
@@ -730,7 +762,7 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               }}
             >
               <Scale className="w-3.5 h-3.5 shrink-0" />
-              <span>Mealleri Karşılaştır (24)</span>
+              <span>Mealleri Karşılaştır ({MEALS_CATALOG.length})</span>
             </button>
 
             <button
@@ -929,9 +961,13 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               <div className="mt-2">
                 <WordMealGrid
                   ayahId={verse.id}
+                  surah={verse.surah}
+                  ayah={verse.ayah}
                   words={verse.words}
                   wordMode={wordMode === 'quiz' ? 'quiz' : 'visible'}
                   arabicFontSize={Math.max(20, settings.arabicFontSize - 4)}
+                  isPlayingThisAyah={isPlaying}
+                  wordSyncEnabled={settings.wordSyncEnabled}
                 />
               </div>
             )}

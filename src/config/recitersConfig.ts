@@ -4,6 +4,7 @@ import type {
   ReciterDefinition,
   ReciterFilePattern,
 } from '../types/quran';
+import type { SegMetaFile } from '../types/wordSync';
 
 export const DEFAULT_RECITER_ID = 'hatim';
 
@@ -495,4 +496,85 @@ export function buildReciterAudioUrls(
     : null;
 
   return fallback && fallback !== primary ? [primary, fallback] : [primary];
+}
+
+function foldReciterSearch(text: string): string {
+  return text
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/ç/g, 'c')
+    .replace(/ğ/g, 'g')
+    .replace(/ö/g, 'o')
+    .replace(/ş/g, 's')
+    .replace(/ü/g, 'u')
+    .replace(/shuraym/g, 'shuraim')
+    .replace(/sureym/g, 'shuraim')
+    .replace(/minshawy/g, 'minshawi')
+    .replace(/minsavi/g, 'minshawi')
+    .replace(/husri/g, 'husary')
+    .replace(/muaykili/g, 'muaiqly')
+    .replace(/muayqili/g, 'muaiqly');
+}
+
+/**
+ * Seçili kurrânın `seg/meta.json` içindeki kelime senkronu destekli reciterKey
+ * kaydıyla eşleşip eşleşmediğini `matchHints` ve `excludeHints` kurallarıyla çözer.
+ */
+export function resolveSyncedReciterKey(
+  reciter: Pick<
+    ReciterDefinition,
+    'id' | 'label' | 'shortLabel' | 'baseUrl' | 'styleLabel' | 'category'
+  >,
+  segMeta: SegMetaFile | null | undefined,
+): string | null {
+  if (!segMeta || !segMeta.reciters) return null;
+
+  const haystack = foldReciterSearch(
+    `${reciter.id} ${reciter.label} ${reciter.shortLabel} ${reciter.baseUrl} ${reciter.styleLabel} ${reciter.category}`,
+  );
+  const foldedId = foldReciterSearch(reciter.id);
+
+  for (const [key, meta] of Object.entries(segMeta.reciters)) {
+    if (!meta) continue;
+    const excludes = Array.isArray(meta.excludeHints) ? meta.excludeHints : [];
+    const isExcluded = excludes.some((hint) => {
+      const h = foldReciterSearch(String(hint || '').trim());
+      return Boolean(h && haystack.includes(h));
+    });
+    if (isExcluded) continue;
+
+    const foldedKey = foldReciterSearch(key);
+    if (foldedId === foldedKey) {
+      return key;
+    }
+
+    const hints = Array.isArray(meta.matchHints) ? meta.matchHints : [];
+    const isMatched = hints.some((hint) => {
+      const h = foldReciterSearch(String(hint || '').trim());
+      return Boolean(h && haystack.includes(h));
+    });
+    if (isMatched) {
+      return key;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * `{SSS}`, `{AAA}`, `{S}`, `{A}` yer tutucularını doldurarak birebir zaman senkronlu
+ * MP3 URL'sini üretir.
+ */
+export function buildTemplateAudioUrl(
+  template: string,
+  surahNo: number,
+  ayahNo: number,
+): string {
+  return template
+    .replace(/\{SSS\}/g, pad3(surahNo))
+    .replace(/\{AAA\}/g, pad3(ayahNo))
+    .replace(/\{S\}/g, String(surahNo))
+    .replace(/\{A\}/g, String(ayahNo));
 }

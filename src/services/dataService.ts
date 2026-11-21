@@ -38,6 +38,7 @@ import type {
   SurahExtraInfo,
   SurahInfoExtrasFile,
 } from '../types/fihrist';
+import type { SegMetaFile, SegSurahFile } from '../types/wordSync';
 import type { TajweedMetaFile, TajweedSurahFile } from '../types/tajweed';
 
 export type DataSourceMode = 'local' | 'remote' | 'demo';
@@ -781,6 +782,14 @@ export async function getTajweedSurah(surahNo: number): Promise<TajweedSurahFile
   return fetchJsonWithFallback<TajweedSurahFile>(`tj/s${padSurahNo(surahNo)}.json`);
 }
 
+export async function getSegMeta(): Promise<SegMetaFile> {
+  return fetchJsonWithFallback<SegMetaFile>('seg/meta.json');
+}
+
+export async function getSegSurah(reciterKey: string, surahNo: number): Promise<SegSurahFile> {
+  return fetchJsonWithFallback<SegSurahFile>(`seg/${reciterKey}/s${padSurahNo(surahNo)}.json`);
+}
+
 export const dataService = {
   getManifest,
   getMeta,
@@ -807,6 +816,8 @@ export const dataService = {
   getBazerganTimeline,
   getTajweedMeta,
   getTajweedSurah,
+  getSegMeta,
+  getSegSurah,
   enableDemoMode,
   disableDemoMode,
   isDemoMode,

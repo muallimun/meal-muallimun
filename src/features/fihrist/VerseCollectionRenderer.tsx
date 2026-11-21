@@ -17,7 +17,11 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { findMealById } from '../../config/mealsConfig';
+import {
+  MEALS_CATALOG,
+  findMealById,
+  getMealTextPresentation,
+} from '../../config/mealsConfig';
 import { audioQueueService } from '../../services/audioQueueService';
 import { dataService, findPageForSurahAyah, toArabicIndicDigits } from '../../services/dataService';
 import {
@@ -642,7 +646,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                     sfxService.play('click');
                     openMealCompare(selectedChipItem.surah, selectedChipItem.startAyah);
                   }}
-                  title="24 Türkçe mealde karşılaştır"
+                  title={`${MEALS_CATALOG.length} meal ve tefsirde karşılaştır`}
                   className="min-h-[34px] px-2.5 rounded-lg border text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
@@ -651,7 +655,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                   }}
                 >
                   <Scale className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary-text)' }} />
-                  <span className="hidden sm:inline">24 Meal</span>
+                  <span className="hidden sm:inline">{MEALS_CATALOG.length} Meal</span>
                 </button>
 
                 {!editable && (
@@ -721,7 +725,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                         className="font-bold hover:underline cursor-pointer"
                         style={{ color: 'var(--brand-primary-text)' }}
                       >
-                        24 Mealde Karşılaştır
+                        {MEALS_CATALOG.length} Mealde Karşılaştır
                       </button>
                     </div>
                     <p
@@ -740,41 +744,85 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                         ﴿{toArabicIndicDigits(hv.ayah)}﴾
                       </span>
                     </p>
-                    {hv.primaryMealVerse?.t && (
-                      <p
-                        className="turkish-reading"
-                        style={{
-                          fontSize: `${settings.turkishFontSize}px`,
-                          color: 'var(--text-secondary)',
-                        }}
-                      >
-                        <span
-                          className="text-[11px] font-extrabold mr-1.5"
-                          style={{ color: 'var(--brand-primary-text)' }}
+                    {hv.primaryMealVerse?.t && (() => {
+                      const primaryPres = getMealTextPresentation(
+                        primaryMeal,
+                        settings.turkishFontSize,
+                      );
+                      return (
+                        <div>
+                          {primaryPres.isRtl && (
+                            <span
+                              className="block text-[11px] font-extrabold mb-0.5"
+                              style={{ color: 'var(--brand-primary-text)' }}
+                            >
+                              [{primaryMeal.shortLabel}]
+                            </span>
+                          )}
+                          <p
+                            dir={primaryPres.dir}
+                            lang={primaryPres.lang}
+                            className={primaryPres.className}
+                            style={{
+                              fontSize: `${primaryPres.fontSizePx}px`,
+                              fontFamily: primaryPres.fontFamily,
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {!primaryPres.isRtl && (
+                              <span
+                                className="text-[11px] font-extrabold mr-1.5"
+                                style={{ color: 'var(--brand-primary-text)' }}
+                              >
+                                [{primaryMeal.shortLabel}]
+                              </span>
+                            )}
+                            {hv.primaryMealVerse.t}
+                          </p>
+                        </div>
+                      );
+                    })()}
+                    {isDual && hv.secondaryMealVerse?.t && (() => {
+                      const secondaryPres = getMealTextPresentation(
+                        secondaryMeal,
+                        settings.turkishFontSize,
+                      );
+                      return (
+                        <div
+                          className="pt-1.5 border-t"
+                          style={{ borderColor: 'var(--border-subtle)' }}
                         >
-                          [{primaryMeal.shortLabel}]
-                        </span>
-                        {hv.primaryMealVerse.t}
-                      </p>
-                    )}
-                    {isDual && hv.secondaryMealVerse?.t && (
-                      <p
-                        className="turkish-reading pt-1.5 border-t"
-                        style={{
-                          fontSize: `${settings.turkishFontSize}px`,
-                          color: 'var(--text-secondary)',
-                          borderColor: 'var(--border-subtle)',
-                        }}
-                      >
-                        <span
-                          className="text-[11px] font-extrabold mr-1.5"
-                          style={{ color: 'var(--brand-accent-text)' }}
-                        >
-                          [{secondaryMeal.shortLabel}]
-                        </span>
-                        {hv.secondaryMealVerse.t}
-                      </p>
-                    )}
+                          {secondaryPres.isRtl && (
+                            <span
+                              className="block text-[11px] font-extrabold mb-0.5"
+                              style={{ color: 'var(--brand-accent-text)' }}
+                            >
+                              [{secondaryMeal.shortLabel}]
+                            </span>
+                          )}
+                          <p
+                            dir={secondaryPres.dir}
+                            lang={secondaryPres.lang}
+                            className={secondaryPres.className}
+                            style={{
+                              fontSize: `${secondaryPres.fontSizePx}px`,
+                              fontFamily: secondaryPres.fontFamily,
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {!secondaryPres.isRtl && (
+                              <span
+                                className="text-[11px] font-extrabold mr-1.5"
+                                style={{ color: 'var(--brand-accent-text)' }}
+                              >
+                                [{secondaryMeal.shortLabel}]
+                              </span>
+                            )}
+                            {hv.secondaryMealVerse.t}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
 
@@ -1009,7 +1057,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                     sfxService.play('click');
                     openMealCompare(hv.surah, hv.ayah);
                   }}
-                  title="24 Türkçe mealde karşılaştır"
+                  title={`${MEALS_CATALOG.length} meal ve tefsirde karşılaştır`}
                   className="min-h-[34px] px-2.5 rounded-lg border text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
@@ -1018,7 +1066,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                   }}
                 >
                   <Scale className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                  <span className="hidden sm:inline">24 Meal</span>
+                  <span className="hidden sm:inline">{MEALS_CATALOG.length} Meal</span>
                 </button>
 
                 {!editable && (
@@ -1184,67 +1232,90 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
             )}
 
             {/* Meal Metinleri (Sadece Meal veya AR + Meal) */}
-            {(viewMode === 'meal' || viewMode === 'ar_meal') && (
-              <div className={isDual ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-2'}>
-                <div
-                  className={
-                    isDual
-                      ? 'p-3 rounded-xl border'
-                      : undefined
-                  }
-                  style={
-                    isDual
-                      ? {
-                          backgroundColor: 'var(--bg-surface-soft)',
-                          borderColor: 'var(--border-subtle)',
-                        }
-                      : undefined
-                  }
-                >
-                  <p
-                    className="text-[11px] font-extrabold mb-1"
-                    style={{ color: 'var(--brand-primary-text)' }}
-                  >
-                    {primaryMeal.label}
-                  </p>
-                  <p
-                    className="turkish-reading"
-                    style={{
-                      fontSize: `${settings.turkishFontSize}px`,
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    {hv.primaryMealVerse?.t ?? 'Bu ayet için seçili meal metni bulunamadı.'}
-                  </p>
-                </div>
-
-                {isDual && (
+            {(viewMode === 'meal' || viewMode === 'ar_meal') && (() => {
+              const primaryPres = getMealTextPresentation(primaryMeal, settings.turkishFontSize);
+              const secondaryPres = getMealTextPresentation(
+                secondaryMeal,
+                settings.turkishFontSize,
+              );
+              return (
+                <div className={isDual ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-2'}>
                   <div
-                    className="p-3 rounded-xl border"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
+                    className={
+                      isDual
+                        ? 'p-3 rounded-xl border'
+                        : undefined
+                    }
+                    style={
+                      isDual
+                        ? {
+                            backgroundColor: 'var(--bg-surface-soft)',
+                            borderColor: 'var(--border-subtle)',
+                          }
+                        : undefined
+                    }
                   >
                     <p
                       className="text-[11px] font-extrabold mb-1"
-                      style={{ color: 'var(--brand-accent-text)' }}
+                      style={{ color: 'var(--brand-primary-text)' }}
                     >
-                      {secondaryMeal.label}
+                      {primaryMeal.label}
                     </p>
                     <p
-                      className="turkish-reading"
+                      dir={hv.primaryMealVerse?.t ? primaryPres.dir : 'ltr'}
+                      lang={hv.primaryMealVerse?.t ? primaryPres.lang : 'tr'}
+                      className={hv.primaryMealVerse?.t ? primaryPres.className : 'turkish-reading'}
                       style={{
-                        fontSize: `${settings.turkishFontSize}px`,
+                        fontSize: `${
+                          hv.primaryMealVerse?.t ? primaryPres.fontSizePx : settings.turkishFontSize
+                        }px`,
+                        fontFamily: hv.primaryMealVerse?.t ? primaryPres.fontFamily : undefined,
                         color: 'var(--text-secondary)',
                       }}
                     >
-                      {hv.secondaryMealVerse?.t ?? 'Karşılaştırma meali bulunamadı.'}
+                      {hv.primaryMealVerse?.t ?? 'Bu ayet için seçili meal metni bulunamadı.'}
                     </p>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {isDual && (
+                    <div
+                      className="p-3 rounded-xl border"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <p
+                        className="text-[11px] font-extrabold mb-1"
+                        style={{ color: 'var(--brand-accent-text)' }}
+                      >
+                        {secondaryMeal.label}
+                      </p>
+                      <p
+                        dir={hv.secondaryMealVerse?.t ? secondaryPres.dir : 'ltr'}
+                        lang={hv.secondaryMealVerse?.t ? secondaryPres.lang : 'tr'}
+                        className={
+                          hv.secondaryMealVerse?.t ? secondaryPres.className : 'turkish-reading'
+                        }
+                        style={{
+                          fontSize: `${
+                            hv.secondaryMealVerse?.t
+                              ? secondaryPres.fontSizePx
+                              : settings.turkishFontSize
+                          }px`,
+                          fontFamily: hv.secondaryMealVerse?.t
+                            ? secondaryPres.fontFamily
+                            : undefined,
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        {hv.secondaryMealVerse?.t ?? 'Karşılaştırma meali bulunamadı.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Dipnotlar */}
             {(viewMode === 'meal' || viewMode === 'ar_meal') && totalFn > 0 && (

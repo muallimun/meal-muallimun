@@ -1,7 +1,9 @@
 import { getDynamicMealAudioSources, getIconUrl } from '../config/assetsConfig';
 import {
   buildReciterAudioUrls,
+  buildTemplateAudioUrl,
   findReciterById,
+  resolveSyncedReciterKey,
 } from '../config/recitersConfig';
 import { dataService, getPageBounds } from './dataService';
 import { wakeLockService } from './wakeLockService';
@@ -17,6 +19,7 @@ import type {
   ReciterFilePattern,
   RepeatCountOption,
 } from '../types/quran';
+import type { SegMetaFile, SegSurahFile, WordSegmentTuple } from '../types/wordSync';
 
 export type AudioQueueStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 export type PreviewAudioStatus = 'idle' | 'loading' | 'playing' | 'error';
@@ -53,6 +56,15 @@ export interface AudioQueueSnapshot {
   previewStatus: PreviewAudioStatus;
 }
 
+export interface WordSyncSnapshot {
+  activeWordIndex: number | null;
+  surah: number | null;
+  ayah: number | null;
+  phase: AudioPhase | null;
+  qulWordCount: number | null;
+  reciterKey: string | null;
+}
+
 interface PlaybackStep {
   phase: AudioPhase;
   sourceKey: AudioSourceKey;
@@ -60,6 +72,7 @@ interface PlaybackStep {
   urls: string[];
   verseIndex: number;
   repeatIndex: number;
+  syncedReciterKey?: string | null;
 }
 
 interface AtomicSegment {
@@ -140,6 +153,15 @@ const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   previewStatus: 'idle',
 };
 
+const INITIAL_WORD_SYNC_SNAPSHOT: WordSyncSnapshot = {
+  activeWordIndex: null,
+  surah: null,
+  ayah: null,
+  phase: null,
+  qulWordCount: null,
+  reciterKey: null,
+};
+
 function dedupeUrls(urls: (string | null | undefined)[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -155,6 +177,25 @@ function dedupeUrls(urls: (string | null | undefined)[]): string[] {
 class AudioQueueService {
   private snapshot: AudioQueueSnapshot = { ...INITIAL_SNAPSHOT };
   private listeners = new Set<Listener>();
+
+  // Faz 2: Yüksek hassasiyetli (rAF) kelime senkronu kanalı (yalnızca kelime değişiminde tetiklenir)
+  private wordSyncSnapshot: WordSyncSnapshot = { ...INITIAL_WORD_SYNC_SNAPSHOT };
+  private wordSyncListeners = new Set<Listener>();
+  private wordSyncEnabled = true;
+  private segMeta: SegMetaFile | null = null;
+  private segMetaPromise: Promise<SegMetaFile | null> | null = null;
+  private segSurahCache = new Map<string, SegSurahFile | null>();
+  private segSurahInflight = new Map<string, Promise<SegSurahFile | null>>();
+  private activeStepSegments: WordSegmentTuple[] | null = null;
+  private activeStepSegContext: {
+    surah: number;
+    ayah: number;
+    phase: AudioPhase;
+    reciterKey: string;
+    qulWordCount: number | null;
+  } | null = null;
+  private lastMatchedSegmentIdx = 0;
+  private wordSyncRafId: number | null = null;
 
   private audio: HTMLAudioElement | null = null;
   private audioAbortController: AbortController | null = null;
@@ -212,6 +253,291 @@ class AudioQueueService {
   };
 
   public getSnapshot = (): AudioQueueSnapshot => this.snapshot;
+
+  public subscribeWordSync = (listener: Listener): (() => void) => {
+    this.wordSyncListeners.add(listener);
+    return () => {
+      this.wordSyncListeners.delete(listener);
+    };
+  };
+
+  public getWordSyncSnapshot = (): WordSyncSnapshot => this.wordSyncSnapshot;
+
+  public getCachedSegMeta(): SegMetaFile | null {
+    return this.segMeta;
+  }
+
+  public getQulWordCount(surah: number, ayah: number): number | null {
+    const count = this.segMeta?.wordCounts?.[surah - 1]?.[ayah - 1];
+    return typeof count === 'number' && count > 0 ? count : null;
+  }
+
+  public ensureSegMetaLoaded(): Promise<SegMetaFile | null> {
+    if (this.segMeta) return Promise.resolve(this.segMeta);
+    if (!this.segMetaPromise) {
+      this.segMetaPromise = dataService
+        .getSegMeta()
+        .then((loaded) => {
+          if (loaded && typeof loaded === 'object' && loaded.reciters) {
+            this.segMeta = loaded;
+            return loaded;
+          }
+          return null;
+        })
+        .catch(() => null)
+        .finally(() => {
+          this.segMetaPromise = null;
+        });
+    }
+    return this.segMetaPromise;
+  }
+
+  private ensureSegSurahLoaded(reciterKey: string, surahNo: number): Promise<SegSurahFile | null> {
+    const cacheKey = `${reciterKey}:${surahNo}`;
+    if (this.segSurahCache.has(cacheKey)) {
+      return Promise.resolve(this.segSurahCache.get(cacheKey) ?? null);
+    }
+    const existing = this.segSurahInflight.get(cacheKey);
+    if (existing) return existing;
+
+    const promise = dataService
+      .getSegSurah(reciterKey, surahNo)
+      .then((file) => {
+        const valid = file && typeof file === 'object' && file.v ? file : null;
+        this.segSurahCache.set(cacheKey, valid);
+        return valid;
+      })
+      .catch(() => {
+        this.segSurahCache.set(cacheKey, null);
+        return null;
+      })
+      .finally(() => {
+        this.segSurahInflight.delete(cacheKey);
+      });
+
+    this.segSurahInflight.set(cacheKey, promise);
+    return promise;
+  }
+
+  private emitWordSync(next: WordSyncSnapshot): void {
+    const prev = this.wordSyncSnapshot;
+    if (
+      prev.activeWordIndex === next.activeWordIndex &&
+      prev.surah === next.surah &&
+      prev.ayah === next.ayah &&
+      prev.phase === next.phase &&
+      prev.qulWordCount === next.qulWordCount &&
+      prev.reciterKey === next.reciterKey
+    ) {
+      return;
+    }
+    this.wordSyncSnapshot = next;
+    for (const listener of this.wordSyncListeners) {
+      listener();
+    }
+  }
+
+  private clearWordSyncState(): void {
+    this.stopWordSyncLoop();
+    this.activeStepSegments = null;
+    this.activeStepSegContext = null;
+    this.lastMatchedSegmentIdx = 0;
+    this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+  }
+
+  private stopWordSyncLoop(): void {
+    if (this.wordSyncRafId !== null && typeof window !== 'undefined') {
+      window.cancelAnimationFrame(this.wordSyncRafId);
+      this.wordSyncRafId = null;
+    }
+  }
+
+  private findWordIndexForTimeMs(segments: WordSegmentTuple[], timeMs: number): number | null {
+    const len = segments.length;
+    if (len === 0) return null;
+
+    // Hızlı O(1) komşuluk kontrolü (son eşleşen veya bir sonraki kelime)
+    const hint = this.lastMatchedSegmentIdx;
+    if (hint >= 0 && hint < len) {
+      const cur = segments[hint];
+      if (timeMs >= cur[1] && timeMs < cur[2]) {
+        return cur[0];
+      }
+      if (hint + 1 < len) {
+        const next = segments[hint + 1];
+        if (timeMs >= next[1] && timeMs < next[2]) {
+          this.lastMatchedSegmentIdx = hint + 1;
+          return next[0];
+        }
+      }
+    }
+
+    // Tam tarama (geri sarma veya atlama durumları için)
+    for (let i = 0; i < len; i += 1) {
+      const seg = segments[i];
+      if (timeMs >= seg[1] && timeMs < seg[2]) {
+        this.lastMatchedSegmentIdx = i;
+        return seg[0];
+      }
+    }
+    return null;
+  }
+
+  private startWordSyncLoop(): void {
+    if (
+      typeof window === 'undefined' ||
+      !this.wordSyncEnabled ||
+      !this.audio ||
+      !this.activeStepSegments ||
+      !this.activeStepSegContext ||
+      this.snapshot.status !== 'playing'
+    ) {
+      return;
+    }
+    if (this.wordSyncRafId !== null) return;
+
+    const tick = () => {
+      this.wordSyncRafId = null;
+      if (
+        !this.wordSyncEnabled ||
+        !this.audio ||
+        this.audio.paused ||
+        !this.activeStepSegments ||
+        !this.activeStepSegContext ||
+        this.snapshot.status !== 'playing'
+      ) {
+        return;
+      }
+
+      const timeMs = this.audio.currentTime * 1000;
+      const wordIdx = this.findWordIndexForTimeMs(this.activeStepSegments, timeMs);
+      const ctx = this.activeStepSegContext;
+
+      this.emitWordSync({
+        activeWordIndex: wordIdx,
+        surah: ctx.surah,
+        ayah: ctx.ayah,
+        phase: ctx.phase,
+        qulWordCount: ctx.qulWordCount,
+        reciterKey: ctx.reciterKey,
+      });
+
+      this.wordSyncRafId = window.requestAnimationFrame(tick);
+    };
+
+    this.wordSyncRafId = window.requestAnimationFrame(tick);
+  }
+
+  private prepareWordSyncForStep(verse: CombinedVerse, step: PlaybackStep, session: number): void {
+    this.stopWordSyncLoop();
+    this.activeStepSegments = null;
+    this.activeStepSegContext = null;
+    this.lastMatchedSegmentIdx = 0;
+
+    if (!this.wordSyncEnabled || (step.phase !== 'ar' && step.phase !== 'besmele')) {
+      this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+      return;
+    }
+
+    const arabicSource = this.resolveArabicSource();
+    const bindSegments = (segMeta: SegMetaFile | null) => {
+      if (session !== this.playSessionId || !this.wordSyncEnabled) return;
+      if (!segMeta) {
+        this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+        return;
+      }
+
+      const reciterKey =
+        step.syncedReciterKey ?? resolveSyncedReciterKey(arabicSource, segMeta);
+      if (!reciterKey) {
+        this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+        return;
+      }
+
+      const reciterMeta = segMeta.reciters[reciterKey];
+      if (!reciterMeta) {
+        this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+        return;
+      }
+
+      if (step.phase === 'besmele') {
+        const besmeleSegs = Array.isArray(reciterMeta.besmele) ? reciterMeta.besmele : [];
+        if (besmeleSegs.length === 0) {
+          this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+          return;
+        }
+        this.activeStepSegments = besmeleSegs;
+        this.activeStepSegContext = {
+          surah: verse.surah,
+          ayah: verse.ayah,
+          phase: 'besmele',
+          reciterKey,
+          qulWordCount: this.getQulWordCount(1, 1) ?? besmeleSegs.length,
+        };
+        this.lastMatchedSegmentIdx = 0;
+        if (this.snapshot.status === 'playing') {
+          this.startWordSyncLoop();
+        }
+        return;
+      }
+
+      // phase === 'ar'
+      const cacheKey = `${reciterKey}:${verse.surah}`;
+      const applySurahFile = (surahFile: SegSurahFile | null) => {
+        if (session !== this.playSessionId || !this.wordSyncEnabled) return;
+        const ayahSegs = surahFile?.v?.[String(verse.ayah)];
+        if (!Array.isArray(ayahSegs) || ayahSegs.length === 0) {
+          this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+          return;
+        }
+        this.activeStepSegments = ayahSegs;
+        this.activeStepSegContext = {
+          surah: verse.surah,
+          ayah: verse.ayah,
+          phase: 'ar',
+          reciterKey,
+          qulWordCount: this.getQulWordCount(verse.surah, verse.ayah),
+        };
+        this.lastMatchedSegmentIdx = 0;
+        if (this.snapshot.status === 'playing') {
+          this.startWordSyncLoop();
+        }
+      };
+
+      if (this.segSurahCache.has(cacheKey)) {
+        applySurahFile(this.segSurahCache.get(cacheKey) ?? null);
+      } else {
+        this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+        void this.ensureSegSurahLoaded(reciterKey, verse.surah).then(applySurahFile);
+      }
+    };
+
+    if (this.segMeta) {
+      bindSegments(this.segMeta);
+    } else {
+      this.emitWordSync(INITIAL_WORD_SYNC_SNAPSHOT);
+      void this.ensureSegMetaLoaded().then(bindSegments);
+    }
+  }
+
+  public setWordSyncEnabled(enabled: boolean): void {
+    if (this.wordSyncEnabled === enabled) return;
+    this.wordSyncEnabled = enabled;
+
+    if (!enabled) {
+      this.clearWordSyncState();
+      return;
+    }
+
+    // Açıldığında aktif çalan bir Arapça/Besmele adımı varsa anında senkronu başlat
+    const step = this.steps[this.currentStepIndex];
+    const verse = step ? this.verses[step.verseIndex] : null;
+    if (verse && step && (step.phase === 'ar' || step.phase === 'besmele')) {
+      this.prepareWordSyncForStep(verse, step, this.playSessionId);
+    } else {
+      void this.ensureSegMetaLoaded();
+    }
+  }
 
   private emit(patch: Partial<AudioQueueSnapshot>): void {
     this.snapshot = { ...this.snapshot, ...patch };
@@ -516,6 +842,24 @@ class AudioQueueService {
       return [];
     }
 
+    const syncedReciterKey =
+      this.wordSyncEnabled && arabicSource
+        ? resolveSyncedReciterKey(arabicSource, this.segMeta)
+        : null;
+    const syncedTemplate =
+      syncedReciterKey && this.segMeta?.reciters[syncedReciterKey]?.audioUrlTemplate
+        ? this.segMeta.reciters[syncedReciterKey].audioUrlTemplate
+        : null;
+
+    const buildSyncedArabicUrls = (surahNo: number, ayahNo: number): string[] => {
+      const baseUrls = this.buildAudioUrlsForSource(arabicSource, surahNo, ayahNo);
+      if (syncedTemplate) {
+        const primarySyncedUrl = buildTemplateAudioUrl(syncedTemplate, surahNo, ayahNo);
+        return dedupeUrls([primarySyncedUrl, ...baseUrls]);
+      }
+      return baseUrls;
+    };
+
     const excludeBesmele = this.meta.besmele.excludeSurahs ?? [1, 9];
     if (
       includeBesmeleIfApplicable &&
@@ -535,7 +879,7 @@ class AudioQueueService {
           });
         }
       } else if (arabicSource) {
-        const arBesmeleUrls = this.buildAudioUrlsForSource(arabicSource, 1, 1);
+        const arBesmeleUrls = buildSyncedArabicUrls(1, 1);
         if (arBesmeleUrls.length > 0) {
           steps.push({
             phase: 'besmele',
@@ -544,6 +888,7 @@ class AudioQueueService {
             urls: arBesmeleUrls,
             verseIndex,
             repeatIndex: repeatStartNumber,
+            syncedReciterKey,
           });
         }
       }
@@ -554,7 +899,7 @@ class AudioQueueService {
     const mg = activeMealObj?.mg;
     const isMergedContinuation = Boolean(mg && verse.ayah > mg[0]);
 
-    const arUrls = this.buildAudioUrlsForSource(arabicSource, verse.surah, verse.ayah);
+    const arUrls = buildSyncedArabicUrls(verse.surah, verse.ayah);
     const primaryMealUrls = this.buildAudioUrlsForSource(mealSource, verse.surah, verse.ayah);
     const mergedStartMealUrls =
       mealSource && mg && mg[0] !== verse.ayah
@@ -571,6 +916,7 @@ class AudioQueueService {
           urls: arUrls,
           verseIndex,
           repeatIndex: rep,
+          syncedReciterKey,
         });
       }
 
@@ -611,6 +957,7 @@ class AudioQueueService {
   private teardownAudioElement(): void {
     this.clearSkipTimer();
     this.clearLoadTimer();
+    this.clearWordSyncState();
 
     if (this.audioAbortController) {
       this.audioAbortController.abort();
@@ -743,6 +1090,7 @@ class AudioQueueService {
     });
 
     this.updateMediaSession(verse, step);
+    this.prepareWordSyncForStep(verse, step, session);
 
     if (typeof window === 'undefined' || typeof Audio === 'undefined') {
       this.emit({
@@ -800,6 +1148,7 @@ class AudioQueueService {
         audio.playbackRate = this.prefs.playbackRate;
         this.emit({ status: 'playing', errorMessage: null });
         this.setMediaPlaybackState('playing');
+        this.startWordSyncLoop();
         this.preloadNextUrl();
       },
       { signal },
@@ -809,6 +1158,7 @@ class AudioQueueService {
       'waiting',
       () => {
         if (session !== this.playSessionId) return;
+        this.stopWordSyncLoop();
         if (this.snapshot.status === 'playing') {
           this.emit({ status: 'loading' });
         }
@@ -821,6 +1171,7 @@ class AudioQueueService {
       () => {
         if (session !== this.playSessionId) return;
         this.clearLoadTimer();
+        this.clearWordSyncState();
         this.advanceToNextStep();
       },
       { signal },
@@ -1345,6 +1696,7 @@ class AudioQueueService {
     if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
       this.clearSkipTimer();
       this.clearLoadTimer();
+      this.stopWordSyncLoop();
       try {
         this.audio.pause();
       } catch {
@@ -1370,6 +1722,7 @@ class AudioQueueService {
       }
       this.setMediaPlaybackState('playing');
       this.emit({ status: 'playing', errorMessage: null });
+      this.startWordSyncLoop();
     }
   }
 
@@ -1377,6 +1730,7 @@ class AudioQueueService {
     if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
       this.clearSkipTimer();
       this.clearLoadTimer();
+      this.stopWordSyncLoop();
       try {
         this.audio?.pause();
       } catch {

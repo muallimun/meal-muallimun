@@ -14,6 +14,7 @@ import {
   MEAL_CATEGORIES,
   findMealById,
   getAllMeals,
+  getMealLangBadge,
 } from '../config/mealsConfig';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -90,16 +91,18 @@ export const MealSelectorModal: React.FC = () => {
     let resmi = 0;
     let klasik = 0;
     let cagdas = 0;
+    let evrensel = 0;
     let audio = 0;
     let favorites = 0;
     for (const m of allMeals) {
       if (m.category === 'resmi') resmi += 1;
       else if (m.category === 'klasik') klasik += 1;
+      else if (m.category === 'evrensel') evrensel += 1;
       else cagdas += 1;
       if (m.hasAudio) audio += 1;
       if (favoriteSet.has(m.id)) favorites += 1;
     }
-    return { total: allMeals.length, resmi, klasik, cagdas, audio, favorites };
+    return { total: allMeals.length, resmi, klasik, cagdas, evrensel, audio, favorites };
   }, [allMeals, favoriteSet]);
 
   const filteredMeals = useMemo(() => {
@@ -108,13 +111,18 @@ export const MealSelectorModal: React.FC = () => {
       if (activeTab === 'favorites' && !favoriteSet.has(meal.id)) return false;
       if (activeTab === 'audio' && !meal.hasAudio) return false;
       if (
-        (activeTab === 'resmi' || activeTab === 'klasik' || activeTab === 'cagdas') &&
+        (activeTab === 'resmi' ||
+          activeTab === 'klasik' ||
+          activeTab === 'cagdas' ||
+          activeTab === 'evrensel') &&
         meal.category !== activeTab
       ) {
         return false;
       }
       if (!q) return true;
-      const haystack = foldSearchText(`${meal.label} ${meal.shortLabel} ${meal.slug} ${meal.id}`);
+      const haystack = foldSearchText(
+        `${meal.label} ${meal.shortLabel} ${meal.slug} ${meal.id} ${meal.lang ?? ''}`,
+      );
       return haystack.includes(q);
     });
 
@@ -153,6 +161,7 @@ export const MealSelectorModal: React.FC = () => {
     resmi: 'Resmî',
     klasik: 'Klasik',
     cagdas: 'Çağdaş',
+    evrensel: 'Arapça & Evrensel',
   };
 
   const filterTabs: { id: MealFilterTab; label: string }[] = [
@@ -162,6 +171,7 @@ export const MealSelectorModal: React.FC = () => {
     { id: 'resmi', label: `Resmî (${counts.resmi})` },
     { id: 'klasik', label: `Klasik (${counts.klasik})` },
     { id: 'cagdas', label: `Çağdaş (${counts.cagdas})` },
+    { id: 'evrensel', label: `Arapça & Evrensel (${counts.evrensel})` },
   ];
 
   return (
@@ -169,7 +179,7 @@ export const MealSelectorModal: React.FC = () => {
       className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center sm:p-4 bg-black/55 backdrop-blur-xs"
       role="dialog"
       aria-modal="true"
-      aria-label="Türkçe Meal Seçici"
+      aria-label="Meal ve Tefsir Seçici"
       onClick={closeMealSelector}
     >
       <div
@@ -201,7 +211,7 @@ export const MealSelectorModal: React.FC = () => {
             </span>
             <div className="min-w-0">
               <h2 className="text-base sm:text-lg font-extrabold tracking-tight truncate">
-                Türkçe Meal Seçici ({counts.total} Meal)
+                Meal &amp; Tefsir Seçici ({counts.total} Eser)
               </h2>
               <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                 {isDual
@@ -349,7 +359,7 @@ export const MealSelectorModal: React.FC = () => {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Meal veya müellif ara... (Elmalılı, Esed, Kur'an Yolu, Okuyan)"
+              placeholder="Meal, tefsir veya müellif ara... (Elmalılı, Müyesser, Celâleyn, Saheeh)"
               className="w-full min-h-[42px] pl-10 pr-9 rounded-xl border text-sm focus:outline-none"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
@@ -480,6 +490,32 @@ export const MealSelectorModal: React.FC = () => {
                         >
                           {categoryLabelMap[meal.category]}
                         </span>
+
+                        {(() => {
+                          const langBadge = getMealLangBadge(meal);
+                          if (!langBadge) return null;
+                          return (
+                            <span
+                              className="inline-flex items-center text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border"
+                              style={{
+                                backgroundColor:
+                                  meal.lang === 'ar'
+                                    ? 'var(--brand-accent-soft)'
+                                    : 'var(--brand-primary-soft)',
+                                borderColor:
+                                  meal.lang === 'ar'
+                                    ? 'rgba(217, 119, 6, 0.35)'
+                                    : 'rgba(15, 118, 110, 0.3)',
+                                color:
+                                  meal.lang === 'ar'
+                                    ? 'var(--brand-accent-text)'
+                                    : 'var(--brand-primary-text)',
+                              }}
+                            >
+                              {langBadge}
+                            </span>
+                          );
+                        })()}
 
                         {meal.hasAudio ? (
                           <span

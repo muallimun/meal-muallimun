@@ -19,7 +19,11 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
-import { getAllMeals } from '../config/mealsConfig';
+import {
+  getAllMeals,
+  getMealLangBadge,
+  getMealTextPresentation,
+} from '../config/mealsConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { SAJDAH_AYAH_IDS, dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
@@ -138,7 +142,7 @@ export const MealCompareModal: React.FC = () => {
         .catch(() => {
           if (cancelled) return;
           setIsLoadingExtra(false);
-          setExtraError('Ek 22 meal paketi şu anda indirilemedi (TDV ve DİB gösteriliyor).');
+          setExtraError('Ek meal ve tefsir paketi şu anda indirilemedi (TDV ve DİB gösteriliyor).');
         });
     }
 
@@ -148,6 +152,20 @@ export const MealCompareModal: React.FC = () => {
   }, [surahNo]);
 
   const allMeals = useMemo(() => getAllMeals(manifest), [manifest]);
+  const extraCount = Math.max(1, allMeals.length - 2);
+  const categoryCounts = useMemo(() => {
+    let resmi = 0;
+    let klasik = 0;
+    let cagdas = 0;
+    let evrensel = 0;
+    for (const m of allMeals) {
+      if (m.category === 'resmi') resmi += 1;
+      else if (m.category === 'klasik') klasik += 1;
+      else if (m.category === 'evrensel') evrensel += 1;
+      else cagdas += 1;
+    }
+    return { resmi, klasik, cagdas, evrensel };
+  }, [allMeals]);
   const favoriteSet = useMemo(
     () => new Set(settings.favoriteMealIds ?? []),
     [settings.favoriteMealIds],
@@ -200,7 +218,10 @@ export const MealCompareModal: React.FC = () => {
       .filter(({ meal, mealVerse }) => {
         if (filterTab === 'favorites' && !favoriteSet.has(meal.id)) return false;
         if (
-          (filterTab === 'resmi' || filterTab === 'klasik' || filterTab === 'cagdas') &&
+          (filterTab === 'resmi' ||
+            filterTab === 'klasik' ||
+            filterTab === 'cagdas' ||
+            filterTab === 'evrensel') &&
           meal.category !== filterTab
         ) {
           return false;
@@ -283,15 +304,17 @@ export const MealCompareModal: React.FC = () => {
   const filterChips: { id: CompareFilterTab; label: string }[] = [
     { id: 'all', label: `Tümü (${allMeals.length})` },
     { id: 'favorites', label: `⭐ Favorilerim (${settings.favoriteMealIds.length})` },
-    { id: 'resmi', label: 'Resmî (4)' },
-    { id: 'klasik', label: 'Klasik (7)' },
-    { id: 'cagdas', label: 'Çağdaş (13)' },
+    { id: 'resmi', label: `Resmî (${categoryCounts.resmi})` },
+    { id: 'klasik', label: `Klasik (${categoryCounts.klasik})` },
+    { id: 'cagdas', label: `Çağdaş (${categoryCounts.cagdas})` },
+    { id: 'evrensel', label: `Arapça & Evrensel (${categoryCounts.evrensel})` },
   ];
 
   const categoryLabels: Record<MealCategory, string> = {
     resmi: 'Resmî',
     klasik: 'Klasik',
     cagdas: 'Çağdaş',
+    evrensel: 'Arapça & Evrensel',
   };
 
   return (
@@ -358,7 +381,7 @@ export const MealCompareModal: React.FC = () => {
                 )}
               </div>
               <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
-                24 Türkçe Meal Karşılaştırma & Araştırma Merkezi
+                {allMeals.length} Meal &amp; Tefsir Karşılaştırma &amp; Araştırma Merkezi
               </p>
             </div>
           </div>
@@ -512,7 +535,7 @@ export const MealCompareModal: React.FC = () => {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="24 meal veya çeviri metni içinde filtrele..."
+                        placeholder={`${allMeals.length} meal, tefsir veya çeviri metni içinde filtrele...`}
                         className="w-full min-h-[40px] pl-9 pr-8 rounded-xl border text-xs sm:text-sm focus:outline-none"
                         style={{
                           backgroundColor: 'var(--bg-surface-soft)',
@@ -573,7 +596,7 @@ export const MealCompareModal: React.FC = () => {
                     >
                       <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                       <span>
-                        {surahName} suresi için ek 22 meal paketi indiriliyor...
+                        {surahName} suresi için ek {extraCount} meal &amp; tefsir paketi indiriliyor...
                       </span>
                     </div>
                   )}
@@ -641,6 +664,31 @@ export const MealCompareModal: React.FC = () => {
                               >
                                 {categoryLabels[meal.category]}
                               </span>
+                              {(() => {
+                                const langBadge = getMealLangBadge(meal);
+                                if (!langBadge) return null;
+                                return (
+                                  <span
+                                    className="inline-flex items-center text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border"
+                                    style={{
+                                      backgroundColor:
+                                        meal.lang === 'ar'
+                                          ? 'var(--brand-accent-soft)'
+                                          : 'var(--brand-primary-soft)',
+                                      borderColor:
+                                        meal.lang === 'ar'
+                                          ? 'rgba(217, 119, 6, 0.35)'
+                                          : 'rgba(15, 118, 110, 0.3)',
+                                      color:
+                                        meal.lang === 'ar'
+                                          ? 'var(--brand-accent-text)'
+                                          : 'var(--brand-primary-text)',
+                                    }}
+                                  >
+                                    {langBadge}
+                                  </span>
+                                );
+                              })()}
                               {meal.hasAudio ? (
                                 <span
                                   className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md"
@@ -742,17 +790,28 @@ export const MealCompareModal: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Meal Metni */}
+                          {/* Meal / Tefsir Metni */}
                           {mealVerse?.t ? (
-                            <p
-                              className="leading-relaxed"
-                              style={{
-                                fontSize: `${Math.max(14, settings.turkishFontSize)}px`,
-                                color: 'var(--text-primary)',
-                              }}
-                            >
-                              {mealVerse.t}
-                            </p>
+                            (() => {
+                              const pres = getMealTextPresentation(
+                                meal,
+                                Math.max(14, settings.turkishFontSize),
+                              );
+                              return (
+                                <p
+                                  dir={pres.dir}
+                                  lang={pres.lang}
+                                  className={pres.isRtl ? pres.className : `${pres.className} leading-relaxed`}
+                                  style={{
+                                    fontSize: `${pres.fontSizePx}px`,
+                                    fontFamily: pres.fontFamily,
+                                    color: 'var(--text-primary)',
+                                  }}
+                                >
+                                  {mealVerse.t}
+                                </p>
+                              );
+                            })()
                           ) : isLoadingExtra && meal.storage === 'mx' ? (
                             <div
                               className="h-5 w-4/5 rounded-md animate-pulse"

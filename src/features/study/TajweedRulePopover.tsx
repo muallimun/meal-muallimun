@@ -1,7 +1,8 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, X } from 'lucide-react';
+import { Loader2, Sparkles, Volume2, X } from 'lucide-react';
 import { sfxService } from '../../services/sfxService';
+import { buildWordAudioKey, wordAudioService } from '../../services/wordAudioService';
 import type { ThemeMode } from '../../types/quran';
 import type { TajweedActiveSelection, TajweedRuleDef } from '../../types/tajweed';
 
@@ -51,6 +52,10 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
   onClose,
 }) => {
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const wordAudioState = useSyncExternalStore(
+    wordAudioService.subscribe,
+    wordAudioService.getSnapshot,
+  );
   const [coords, setCoords] = useState<{ top: number; left: number; width: number }>({
     top: -9999,
     left: -9999,
@@ -207,10 +212,10 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
         </button>
       </div>
 
-      {/* Büyütülmüş Arapça Kelime Önizlemesi (Harf Birleşmesi %100 Korunur) */}
+      {/* Büyütülmüş Arapça Kelime Önizlemesi (Harf Birleşmesi %100 Korunur) + Kelimeyi Dinle */}
       <div className="px-3.5 pt-3 pb-2.5 space-y-2.5">
         <div
-          className="py-2.5 px-3 rounded-xl border text-center"
+          className="py-2.5 px-3 rounded-xl border text-center space-y-2"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
@@ -242,6 +247,67 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
               );
             })}
           </div>
+
+          {typeof selection.surahNo === 'number' &&
+            typeof selection.ayahNo === 'number' &&
+            typeof selection.wordIndex === 'number' &&
+            (() => {
+              const audioKey = buildWordAudioKey(
+                selection.surahNo,
+                selection.ayahNo,
+                selection.wordIndex,
+              );
+              const isThisWordLoading =
+                wordAudioState.playingKey === audioKey && wordAudioState.status === 'loading';
+              const isThisWordPlaying =
+                wordAudioState.playingKey === audioKey && wordAudioState.status === 'playing';
+              return (
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      wordAudioService.playWordAudio(
+                        selection.surahNo!,
+                        selection.ayahNo!,
+                        selection.wordIndex!,
+                        selection.totalWords,
+                      );
+                    }}
+                    className="min-h-[30px] px-2.5 py-1 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                    style={{
+                      backgroundColor:
+                        isThisWordPlaying || isThisWordLoading
+                          ? 'var(--brand-primary)'
+                          : 'var(--bg-surface)',
+                      borderColor:
+                        isThisWordPlaying || isThisWordLoading
+                          ? 'var(--brand-primary)'
+                          : 'var(--border-subtle)',
+                      color:
+                        isThisWordPlaying || isThisWordLoading
+                          ? '#FFFFFF'
+                          : 'var(--brand-primary-text)',
+                    }}
+                  >
+                    {isThisWordLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                    ) : (
+                      <Volume2
+                        className={`w-3.5 h-3.5 shrink-0 ${isThisWordPlaying ? 'animate-pulse' : ''}`}
+                      />
+                    )}
+                    <span>
+                      {isThisWordLoading
+                        ? 'Yükleniyor...'
+                        : isThisWordPlaying
+                          ? 'Okunuyor...'
+                          : 'Kelimeyi Dinle'}
+                    </span>
+                  </button>
+                </div>
+              );
+            })()}
         </div>
 
         {/* Türkçe Pratik Uygulama Açıklaması */}

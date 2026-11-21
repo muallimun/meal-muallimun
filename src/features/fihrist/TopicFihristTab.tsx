@@ -17,6 +17,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { getMealTextPresentation } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { audioQueueService } from '../../services/audioQueueService';
 import { dataService, toArabicIndicDigits } from '../../services/dataService';
@@ -1004,55 +1005,79 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
                           </div>
                         )}
 
-                        {/* Türkçe Meal(ler) */}
-                        {displayMode !== 'ar' && (
-                          <div className="space-y-2.5">
-                            {primaryMealVerse?.t && (
-                              <div>
-                                {isDual && secondaryMealVerse?.t && (
+                        {/* Meal / Tefsir Metinleri */}
+                        {displayMode !== 'ar' && (() => {
+                          const primaryPres = getMealTextPresentation(
+                            primaryMeal,
+                            settings.turkishFontSize,
+                          );
+                          const secondaryPres = getMealTextPresentation(
+                            secondaryMeal,
+                            settings.turkishFontSize,
+                          );
+                          return (
+                            <div className="space-y-2.5">
+                              {primaryMealVerse?.t && (
+                                <div>
+                                  {isDual && secondaryMealVerse?.t && (
+                                    <p
+                                      className="text-[11px] font-bold mb-1"
+                                      style={{ color: 'var(--brand-primary-text)' }}
+                                    >
+                                      {primaryMeal.shortLabel}
+                                    </p>
+                                  )}
+                                  <p
+                                    dir={primaryPres.dir}
+                                    lang={primaryPres.lang}
+                                    className={
+                                      primaryPres.isRtl
+                                        ? primaryPres.className
+                                        : `${primaryPres.className} leading-relaxed`
+                                    }
+                                    style={{
+                                      fontSize: `${primaryPres.fontSizePx}px`,
+                                      fontFamily: primaryPres.fontFamily,
+                                      color: 'var(--text-secondary)',
+                                    }}
+                                  >
+                                    {primaryMealVerse.t}
+                                  </p>
+                                </div>
+                              )}
+
+                              {secondaryMealVerse?.t && (
+                                <div
+                                  className="pt-2.5 border-t"
+                                  style={{ borderColor: 'var(--border-subtle)' }}
+                                >
                                   <p
                                     className="text-[11px] font-bold mb-1"
-                                    style={{ color: 'var(--brand-primary-text)' }}
+                                    style={{ color: 'var(--brand-accent-text)' }}
                                   >
-                                    {primaryMeal.shortLabel}
+                                    {secondaryMeal.shortLabel}
                                   </p>
-                                )}
-                                <p
-                                  className="turkish-reading leading-relaxed"
-                                  style={{
-                                    fontSize: `${settings.turkishFontSize}px`,
-                                    color: 'var(--text-secondary)',
-                                  }}
-                                >
-                                  {primaryMealVerse.t}
-                                </p>
-                              </div>
-                            )}
-
-                            {secondaryMealVerse?.t && (
-                              <div
-                                className="pt-2.5 border-t"
-                                style={{ borderColor: 'var(--border-subtle)' }}
-                              >
-                                <p
-                                  className="text-[11px] font-bold mb-1"
-                                  style={{ color: 'var(--brand-accent-text)' }}
-                                >
-                                  {secondaryMeal.shortLabel}
-                                </p>
-                                <p
-                                  className="turkish-reading leading-relaxed"
-                                  style={{
-                                    fontSize: `${settings.turkishFontSize}px`,
-                                    color: 'var(--text-secondary)',
-                                  }}
-                                >
-                                  {secondaryMealVerse.t}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                                  <p
+                                    dir={secondaryPres.dir}
+                                    lang={secondaryPres.lang}
+                                    className={
+                                      secondaryPres.isRtl
+                                        ? secondaryPres.className
+                                        : `${secondaryPres.className} leading-relaxed`
+                                    }
+                                    style={{
+                                      fontSize: `${secondaryPres.fontSizePx}px`,
+                                      fontFamily: secondaryPres.fontFamily,
+                                      color: 'var(--text-secondary)',
+                                    }}
+                                  >
+                                    {secondaryMealVerse.t}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Dipnotlar */}
                         {displayMode !== 'ar' && showFn && (

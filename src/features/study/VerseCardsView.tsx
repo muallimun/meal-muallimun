@@ -23,7 +23,7 @@ import type {
 } from '../../types/quran';
 import { formatSafeArabicTitle } from '../../utils/arabicUtils';
 import { formatNumberTr, normalizeTurkish } from '../../utils/poolUtils';
-import { TajweedText } from './TajweedText';
+import { SyncedVerseArabic } from './SyncedArabicText';
 import { VerseCard } from './VerseCard';
 
 interface VerseCardsViewProps {
@@ -581,11 +581,18 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                 color: 'var(--brand-primary-text)',
               }}
             >
-              {settings.tajweedEnabled && tjBesmele ? (
-                <TajweedText words={tjBesmele} rules={tjRules} theme={settings.theme} />
-              ) : (
-                besmele.ar
-              )}
+              <SyncedVerseArabic
+                text={besmele.ar}
+                surahNo={surahMeta.no}
+                ayahNo={1}
+                isPlaying={Boolean(playingAyahId && verses[0]?.id === playingAyahId)}
+                wordSyncEnabled={settings.wordSyncEnabled}
+                useTajweed={Boolean(settings.tajweedEnabled && tjBesmele)}
+                tajweedWords={tjBesmele}
+                tajweedRules={tjRules}
+                theme={settings.theme}
+                isBesmele
+              />
             </p>
           </div>
         )}

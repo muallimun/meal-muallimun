@@ -35,11 +35,17 @@ export const MEAL_CATEGORIES: readonly MealCategoryMeta[] = [
     shortLabel: 'Çağdaş',
     description: 'Modern dönem akademik ve açıklamalı mealler',
   },
+  {
+    id: 'evrensel',
+    label: 'Arapça & Evrensel',
+    shortLabel: 'Arapça & Evrensel',
+    description: 'Arapça klasik/kolay tefsirler ve İngilizce meal',
+  },
 ] as const;
 
 /**
- * 24 Türkçe Meal Kataloğu (Resmî: 4 · Klasik: 7 · Çağdaş: 13)
- * m1 ve m2 mevcut m1/ ve m2/ klasörlerinden; m3..m24 tembel yüklemeli mx/sXXX.json paketinden gelir.
+ * 27 Eserlik Meal & Tefsir Kataloğu (Resmî: 4 · Klasik: 7 · Çağdaş: 13 · Arapça & Evrensel: 3)
+ * m1 ve m2 mevcut m1/ ve m2/ klasörlerinden; m3..m27 tembel yüklemeli mx/sXXX.json paketinden gelir.
  */
 export const MEALS_CATALOG: readonly MealDefinition[] = [
   // ============================================================================
@@ -302,6 +308,46 @@ export const MEALS_CATALOG: readonly MealDefinition[] = [
     audioSource: null,
     storage: 'mx',
   },
+
+  // ============================================================================
+  // Arapça Tefsir & Evrensel Meal (3)
+  // ============================================================================
+  {
+    id: 'm25',
+    slug: 'ar-muyassar',
+    label: "et-Tefsîru'l-Müyesser (Arapça Kolay Tefsir)",
+    shortLabel: 'Müyesser (AR)',
+    category: 'evrensel',
+    lang: 'ar',
+    dir: 'rtl',
+    hasAudio: false,
+    audioSource: null,
+    storage: 'mx',
+  },
+  {
+    id: 'm26',
+    slug: 'ar-jalalayn',
+    label: "Tefsîru'l-Celâleyn (Arapça Klasik Tefsir)",
+    shortLabel: 'Celâleyn (AR)',
+    category: 'evrensel',
+    lang: 'ar',
+    dir: 'rtl',
+    hasAudio: false,
+    audioSource: null,
+    storage: 'mx',
+  },
+  {
+    id: 'm27',
+    slug: 'en-sahih',
+    label: 'Saheeh International (English Translation)',
+    shortLabel: 'Saheeh Int. (EN)',
+    category: 'evrensel',
+    lang: 'en',
+    dir: 'ltr',
+    hasAudio: false,
+    audioSource: null,
+    storage: 'mx',
+  },
 ] as const;
 
 function inferShortLabel(id: string, label: string): string {
@@ -320,7 +366,7 @@ function inferStorage(id: string, explicit?: MealStorageType): MealStorageType {
 }
 
 /**
- * 24 yerleşik meal kataloğunu manifest.json -> meals içindeki verilerle birleştirir/günceller.
+ * Yerleşik meal & tefsir kataloğunu manifest.json -> meals içindeki verilerle birleştirir/günceller.
  */
 export function getAllMeals(manifest: ManifestData | null): MealDefinition[] {
   const map = new Map<string, MealDefinition>();
@@ -344,12 +390,16 @@ export function getAllMeals(manifest: ManifestData | null): MealDefinition[] {
             : Boolean(rawAudioKey && (matchedAudio?.baseUrl?.trim() || existing?.hasAudio));
 
       if (existing) {
+        const resolvedLang = info.lang ?? existing.lang;
+        const resolvedDir = info.dir ?? existing.dir ?? (resolvedLang === 'ar' ? 'rtl' : undefined);
         map.set(id, {
           ...existing,
           slug: info.slug || existing.slug,
           label: info.label?.trim() || existing.label,
           shortLabel: info.shortLabel?.trim() || existing.shortLabel,
           category: info.category ?? existing.category,
+          lang: resolvedLang,
+          dir: resolvedDir,
           hasAudio: computedHasAudio,
           audioSource: computedHasAudio ? rawAudioKey : null,
           storage: inferStorage(id, info.storage ?? existing.storage),
@@ -357,12 +407,16 @@ export function getAllMeals(manifest: ManifestData | null): MealDefinition[] {
         });
       } else {
         const label = info.label?.trim() || id.toUpperCase();
+        const resolvedLang = info.lang;
+        const resolvedDir = info.dir ?? (resolvedLang === 'ar' ? 'rtl' : undefined);
         map.set(id, {
           id,
           slug: info.slug || id,
           label,
           shortLabel: info.shortLabel?.trim() || inferShortLabel(id, label),
           category: info.category ?? 'cagdas',
+          lang: resolvedLang,
+          dir: resolvedDir,
           hasAudio: computedHasAudio,
           audioSource: computedHasAudio ? rawAudioKey : null,
           storage: inferStorage(id, info.storage),
@@ -390,6 +444,67 @@ export function findMealById(
 export function isExtraMealId(id: string | null | undefined): boolean {
   if (!id) return false;
   return id !== 'm1' && id !== 'm2';
+}
+
+export function isRtlMeal(meal: Pick<MealDefinition, 'lang' | 'dir'> | null | undefined): boolean {
+  if (!meal) return false;
+  return meal.dir === 'rtl' || meal.lang === 'ar';
+}
+
+export function getMealLangBadge(
+  meal: Pick<MealDefinition, 'lang' | 'dir'> | null | undefined,
+): string | null {
+  if (!meal) return null;
+  if (meal.lang === 'ar' || meal.dir === 'rtl') return 'AR · Tefsir';
+  if (meal.lang === 'en') return 'EN · Meal';
+  return null;
+}
+
+export interface MealTextPresentation {
+  isRtl: boolean;
+  dir: 'rtl' | 'ltr';
+  lang: 'ar' | 'en' | 'tr';
+  className: string;
+  fontSizePx: number;
+  fontFamily?: string;
+}
+
+/**
+ * Seçili meal/tefsir kaynağının diline ve yönüne göre tutarlı tipografi ve RTL özelliklerini döndürür.
+ * - Arapça tefsirler (m25, m26): dir="rtl", lang="ar", text-right, leading-[2.0], Scheherazade New/Amiri, 1.25x punto
+ * - İngilizce meal (m27): dir="ltr", lang="en", temiz Latin tipografisi
+ * - Türkçe mealler (m1..m24): dir="ltr", lang="tr", mevcut .turkish-reading tipografisi
+ */
+export function getMealTextPresentation(
+  meal: Pick<MealDefinition, 'lang' | 'dir'> | null | undefined,
+  baseFontSize: number,
+): MealTextPresentation {
+  if (isRtlMeal(meal)) {
+    return {
+      isRtl: true,
+      dir: 'rtl',
+      lang: 'ar',
+      className: 'text-right leading-[2.0]',
+      fontSizePx: Math.round(baseFontSize * 1.25),
+      fontFamily: '"Scheherazade New", "Amiri", "Amiri Quran", serif',
+    };
+  }
+  if (meal?.lang === 'en') {
+    return {
+      isRtl: false,
+      dir: 'ltr',
+      lang: 'en',
+      className: 'turkish-reading text-left',
+      fontSizePx: baseFontSize,
+    };
+  }
+  return {
+    isRtl: false,
+    dir: 'ltr',
+    lang: 'tr',
+    className: 'turkish-reading',
+    fontSizePx: baseFontSize,
+  };
 }
 
 export interface SpokenMealInfo {

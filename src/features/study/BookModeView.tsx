@@ -21,11 +21,15 @@ import {
   Star,
   Volume2,
 } from 'lucide-react';
-import { resolveSpokenMealInfo } from '../../config/mealsConfig';
+import {
+  MEALS_CATALOG,
+  getMealTextPresentation,
+  resolveSpokenMealInfo,
+} from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
-import { TajweedText } from './TajweedText';
+import { SyncedVerseArabic } from './SyncedArabicText';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -259,7 +263,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
             >
               <Scale className="w-4 h-4 text-[var(--brand-primary-text)]" />
-              <span>Mealleri Karşılaştır (24)</span>
+              <span>Mealleri Karşılaştır ({MEALS_CATALOG.length})</span>
             </button>
 
             <button
@@ -504,11 +508,18 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   className={`${settings.tajweedEnabled && tjBesmele ? 'arabic-tajweed' : 'arabic-text'} text-center text-[var(--text-primary)]`}
                   style={{ fontSize: `${Math.max(22, settings.arabicFontSize - 2)}px` }}
                 >
-                  {settings.tajweedEnabled && tjBesmele ? (
-                    <TajweedText words={tjBesmele} rules={tjRules} theme={settings.theme} />
-                  ) : (
-                    besmeleAr
-                  )}
+                  <SyncedVerseArabic
+                    text={besmeleAr}
+                    surahNo={bundle.surahMeta.no}
+                    ayahNo={1}
+                    isPlaying={Boolean(playingAyahId && bundle.verses[0]?.id === playingAyahId)}
+                    wordSyncEnabled={settings.wordSyncEnabled}
+                    useTajweed={Boolean(settings.tajweedEnabled && tjBesmele)}
+                    tajweedWords={tjBesmele}
+                    tajweedRules={tjRules}
+                    theme={settings.theme}
+                    isBesmele
+                  />
                 </p>
               )}
               {bookMode === 'meal_only' && (
@@ -595,11 +606,17 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                                   : 'hover:bg-[var(--bg-surface-soft)]'
                           }`}
                         >
-                          {useVerseTajweed ? (
-                            <TajweedText words={tjWords!} rules={tjRules} theme={settings.theme} />
-                          ) : (
-                            verse.ar.t
-                          )}
+                          <SyncedVerseArabic
+                            text={verse.ar.t}
+                            surahNo={verse.surah}
+                            ayahNo={verse.ayah}
+                            isPlaying={isPlaying}
+                            wordSyncEnabled={settings.wordSyncEnabled}
+                            useTajweed={useVerseTajweed}
+                            tajweedWords={tjWords}
+                            tajweedRules={tjRules}
+                            theme={settings.theme}
+                          />
                           {isSajdah && (
                             <span
                               title="Tilâvet Secdesi Ayeti"
@@ -739,7 +756,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                       className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface-soft)] border border-[var(--brand-primary)]/40 text-[var(--brand-primary-text)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Scale className="w-3.5 h-3.5" />
-                      <span>Mealleri Karşılaştır (24)</span>
+                      <span>Mealleri Karşılaştır ({MEALS_CATALOG.length})</span>
                     </button>
 
                     <button
@@ -908,15 +925,17 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             className={`${useVerseTajweed ? 'arabic-tajweed' : 'arabic-text'} text-right text-[var(--text-primary)] mb-3.5`}
                             style={{ fontSize: `${settings.arabicFontSize}px` }}
                           >
-                            {useVerseTajweed ? (
-                              <TajweedText
-                                words={tjWords!}
-                                rules={tjRules}
-                                theme={settings.theme}
-                              />
-                            ) : (
-                              verse.ar.t
-                            )}
+                            <SyncedVerseArabic
+                              text={verse.ar.t}
+                              surahNo={verse.surah}
+                              ayahNo={verse.ayah}
+                              isPlaying={isPlaying}
+                              wordSyncEnabled={settings.wordSyncEnabled}
+                              useTajweed={useVerseTajweed}
+                              tajweedWords={tjWords}
+                              tajweedRules={tjRules}
+                              theme={settings.theme}
+                            />
                             {isSajdah && (
                               <span
                                 title="Tilâvet Secdesi Ayeti"
@@ -969,12 +988,27 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               </div>
                             )}
                             {primaryVerse?.t ? (
-                              <p
-                                className="turkish-reading text-left text-[var(--text-primary)]"
-                                style={{ fontSize: `${settings.turkishFontSize}px` }}
-                              >
-                                {primaryVerse.t}
-                              </p>
+                              (() => {
+                                const pres = getMealTextPresentation(
+                                  primaryMeal,
+                                  settings.turkishFontSize,
+                                );
+                                return (
+                                  <p
+                                    dir={pres.dir}
+                                    lang={pres.lang}
+                                    className={`${
+                                      pres.isRtl ? pres.className : `${pres.className} text-left`
+                                    } text-[var(--text-primary)]`}
+                                    style={{
+                                      fontSize: `${pres.fontSizePx}px`,
+                                      fontFamily: pres.fontFamily,
+                                    }}
+                                  >
+                                    {primaryVerse.t}
+                                  </p>
+                                );
+                              })()
                             ) : isLoadingExtra ? (
                               <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
                             ) : null}
@@ -1006,12 +1040,27 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               )}
                           </div>
                           {secondaryVerse?.t ? (
-                            <p
-                              className="turkish-reading text-left text-[var(--text-primary)]"
-                              style={{ fontSize: `${settings.turkishFontSize}px` }}
-                            >
-                              {secondaryVerse.t}
-                            </p>
+                            (() => {
+                              const pres = getMealTextPresentation(
+                                secondaryMeal,
+                                settings.turkishFontSize,
+                              );
+                              return (
+                                <p
+                                  dir={pres.dir}
+                                  lang={pres.lang}
+                                  className={`${
+                                    pres.isRtl ? pres.className : `${pres.className} text-left`
+                                  } text-[var(--text-primary)]`}
+                                  style={{
+                                    fontSize: `${pres.fontSizePx}px`,
+                                    fontFamily: pres.fontFamily,
+                                  }}
+                                >
+                                  {secondaryVerse.t}
+                                </p>
+                              );
+                            })()
                           ) : isLoadingExtra ? (
                             <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
                           ) : null}

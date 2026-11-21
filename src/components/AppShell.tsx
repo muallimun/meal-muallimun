@@ -19,6 +19,7 @@ import {
   Trophy,
   WifiOff,
 } from 'lucide-react';
+import { MEALS_CATALOG } from '../config/mealsConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -780,7 +781,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               © {currentYear} Muallimun.Net — Kur&apos;an &amp; Meal Eğitim Platformu
             </p>
             <p style={{ color: 'var(--text-muted)' }}>
-              24 Türkçe meal · 27 Kurrâ · Ezber &amp; Sınav Merkezi
+              {MEALS_CATALOG.length} Meal &amp; Tefsir · 27 Kurrâ · Ezber &amp; Sınav Merkezi
             </p>
           </div>
         </footer>
