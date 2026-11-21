@@ -45,6 +45,45 @@
       "id": "m2",
       "label": "Diyanet İşleri Meali (Yeni)",
       "audioSource": "dib"
+    },
+    "m25": {
+      "id": "m25",
+      "slug": "ar-muyassar",
+      "label": "et-Tefsîru'l-Müyesser (Arapça Kolay Tefsir)",
+      "shortLabel": "Müyesser (AR)",
+      "category": "evrensel",
+      "lang": "ar",
+      "dir": "rtl",
+      "storage": "mx",
+      "audioSource": null,
+      "hasAudio": false,
+      "hasFootnotes": false
+    },
+    "m26": {
+      "id": "m26",
+      "slug": "ar-jalalayn",
+      "label": "Tefsîru'l-Celâleyn (Arapça Klasik Tefsir)",
+      "shortLabel": "Celâleyn (AR)",
+      "category": "evrensel",
+      "lang": "ar",
+      "dir": "rtl",
+      "storage": "mx",
+      "audioSource": null,
+      "hasAudio": false,
+      "hasFootnotes": false
+    },
+    "m27": {
+      "id": "m27",
+      "slug": "en-sahih",
+      "label": "Saheeh International (English Translation)",
+      "shortLabel": "Saheeh Int. (EN)",
+      "category": "evrensel",
+      "lang": "en",
+      "dir": "ltr",
+      "storage": "mx",
+      "audioSource": null,
+      "hasAudio": false,
+      "hasFootnotes": false
     }
   },
   "audioSources": {
