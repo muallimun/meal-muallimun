@@ -32,3 +32,24 @@ export function formatSafeArabicTitle(
 
   return cleaned;
 }
+
+const ENDS_WITH_SURESI = /(?:suresi|sûresi)\s*$/iu;
+
+/**
+ * Sure adını çift "Suresi Suresi" tekrarını önleyerek temiz biçimde formatlar.
+ * Örn: "İsrâ Suresi" -> "İsrâ Suresi", "İsrâ" -> "İsrâ Suresi".
+ */
+export function formatSurahTitle(
+  name: string | null | undefined,
+  fallbackSurahNo?: number,
+): string {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) {
+    return fallbackSurahNo ? `${fallbackSurahNo}. Sure` : '';
+  }
+  if (ENDS_WITH_SURESI.test(trimmed)) {
+    return trimmed;
+  }
+  return `${trimmed} Suresi`;
+}
+

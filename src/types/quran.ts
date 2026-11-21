@@ -12,7 +12,7 @@ export type NavTab = 'home' | 'reader' | 'memorize' | 'exam' | 'mistakes';
 
 export type StudyViewMode = 'mushaf' | 'cards' | 'book';
 export type BookContentMode = 'ar_only' | 'meal_only' | 'interleaved';
-export type PageLayoutMode = 'single' | 'double_mushaf' | 'double_meal';
+export type PageLayoutMode = 'single' | 'double_mushaf' | 'double_meal' | 'meal_only';
 export type WordMealMode = 'off' | 'visible' | 'quiz';
 export type AudioPlayMode = 'ar' | 'meal' | 'ar_then_meal';
 export type MealAudioSourceId = 'tdv' | 'dib' | (string & {});

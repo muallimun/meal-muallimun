@@ -64,6 +64,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     setIsExamActive,
     isMemorizationZenActive,
     isMobileReaderImmersive,
+    isAudioBarExpanded,
     isOnline,
     isSidebarCollapsed,
     toggleSidebarCollapsed,
@@ -86,6 +87,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     !isMemorizationZenActive &&
     audioState.isVisible &&
     audioState.status !== 'idle';
+  const isAudioBarDetailsOpen =
+    isAudioBarVisible && (isAudioBarExpanded || audioState.missingMealAudio);
 
   const currentYear = new Date().getFullYear();
   const bookmarkCount = studyProgress.pageBookmarks.length;
@@ -332,34 +335,24 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           >
             {/* Sol: Menü (Masaüstü) + Marka Logosu/Başlığı + Daraltılmış Hızlı Sekmeler */}
             <div className="flex items-center gap-2 min-w-0">
-              {/* Masaüstü Sidebar Aç/Kapa */}
-              <button
-                type="button"
-                onClick={toggleSidebarCollapsed}
-                title={isSidebarCollapsed ? 'Sol menüyü aç' : 'Sol menüyü gizle'}
-                aria-label={isSidebarCollapsed ? 'Sol menüyü aç' : 'Sol menüyü gizle'}
-                className="hidden lg:inline-flex min-h-[36px] px-2.5 rounded-xl border items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
-                style={{
-                  backgroundColor: isSidebarCollapsed
-                    ? 'var(--brand-primary-soft)'
-                    : 'var(--bg-surface)',
-                  borderColor: isSidebarCollapsed
-                    ? 'var(--brand-primary)'
-                    : 'var(--border-subtle)',
-                  color: isSidebarCollapsed
-                    ? 'var(--brand-primary-text)'
-                    : 'var(--text-secondary)',
-                }}
-              >
-                {isSidebarCollapsed ? (
-                  <>
-                    <PanelLeftOpen className="w-4 h-4 shrink-0" />
-                    <span>Menü</span>
-                  </>
-                ) : (
-                  <PanelLeftClose className="w-4 h-4 shrink-0" />
-                )}
-              </button>
+              {/* Masaüstü Sidebar Aç — Yalnızca sol menü kapalıyken görünür (mükerrer ikon yok) */}
+              {isSidebarCollapsed && (
+                <button
+                  type="button"
+                  onClick={toggleSidebarCollapsed}
+                  title="Sol menüyü aç"
+                  aria-label="Sol menüyü aç"
+                  className="hidden lg:inline-flex min-h-[36px] px-2.5 rounded-xl border items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
+                  style={{
+                    backgroundColor: 'var(--brand-primary-soft)',
+                    borderColor: 'var(--brand-primary)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <PanelLeftOpen className="w-4 h-4 shrink-0" />
+                  <span>Menü</span>
+                </button>
+              )}
 
               {/* Marka Kimliği — Mobilde her zaman, masaüstünde sidebar kapalıyken görünür */}
               <button
@@ -597,16 +590,22 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <main
           className={`flex-1 w-full ${contentWidthClass} mx-auto ${
             isMobilePureReader
-              ? 'px-1.5 pt-1 pb-2 sm:px-3 lg:px-6 lg:py-3.5'
-              : 'px-3.5 py-3.5 sm:px-5 lg:px-6 lg:py-4'
-          } ${
-            isAudioBarVisible
               ? isMobileReaderImmersive
-                ? 'pb-20 lg:pb-24'
-                : 'pb-32 lg:pb-24'
-              : isMobileReaderImmersive
-                ? 'pb-4 lg:pb-6'
-                : ''
+                ? 'px-1.5 pt-12 sm:px-3 lg:px-6 lg:pt-3.5'
+                : 'px-1.5 pt-1 sm:px-3 lg:px-6 lg:pt-3.5'
+              : 'px-3.5 pt-3.5 sm:px-5 lg:px-6 lg:pt-4'
+          } ${
+            isAudioBarDetailsOpen
+              ? isMobileReaderImmersive
+                ? 'pb-56 lg:pb-52'
+                : 'pb-64 lg:pb-52'
+              : isAudioBarVisible
+                ? isMobileReaderImmersive
+                  ? 'pb-28 lg:pb-24'
+                  : 'pb-36 lg:pb-24'
+                : isMobileReaderImmersive
+                  ? 'pb-6 lg:pb-6'
+                  : 'pb-4 lg:pb-6'
           }`}
         >
           {children}
@@ -617,9 +616,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           className={`${isMobileReaderImmersive ? 'hidden lg:block' : ''} mt-auto border-t ${
             isExamActive || isMemorizationZenActive
               ? 'pb-5 lg:pb-5'
-              : isAudioBarVisible
-                ? 'pb-32 lg:pb-24'
-                : 'pb-20 lg:pb-5'
+              : isAudioBarDetailsOpen
+                ? 'pb-60 lg:pb-52'
+                : isAudioBarVisible
+                  ? 'pb-36 lg:pb-24'
+                  : 'pb-20 lg:pb-5'
           }`}
           style={{ borderColor: 'var(--border-subtle)' }}
         >

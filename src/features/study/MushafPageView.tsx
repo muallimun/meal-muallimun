@@ -4,6 +4,7 @@ import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
+  FileText,
   Info,
   PanelRightClose,
   Play,
@@ -30,7 +31,7 @@ import type {
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
-import { formatSafeArabicTitle } from '../../utils/arabicUtils';
+import { formatSafeArabicTitle, formatSurahTitle } from '../../utils/arabicUtils';
 import { DraggableVerseInspector } from './DraggableVerseInspector';
 import type { LocationPickerTab } from './LocationPickerModal';
 
@@ -144,12 +145,13 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
   const [openRibbonPage, setOpenRibbonPage] = useState<number | null>(null);
   const [isVerseDrawerOpen, setIsVerseDrawerOpen] = useState<boolean>(false);
+  const [openFootnoteVerseId, setOpenFootnoteVerseId] = useState<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  const isArOnly = contentMode === 'ar_only';
+  const isArOnly = contentMode === 'ar_only' || pageLayout === 'single';
   const isDoubleMushaf = pageLayout === 'double_mushaf' && Boolean(secondPageBundle);
   const isDoubleMeal = pageLayout === 'double_meal';
-  const isMealOnly = contentMode === 'meal_only' && !isDoubleMeal;
+  const isMealOnly = pageLayout === 'meal_only';
   const isBookSpread = isDoubleMushaf || isDoubleMeal;
 
   const allVisibleVerses = useMemo(() => {
@@ -742,33 +744,62 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             <CornerOrnament position="br" />
 
             <div>
-              {/* Sol Meal Sayfası Üst Şeridi (+ ◫ Kapat ikonu Tek Sayfa ile %100 senkronize) */}
+              {/* Sol Meal Sayfası Üst Şeridi (+ ◫ Kapat veya Mushaf'a Dön ikonu) */}
               <div
                 className="pb-2.5 mb-3.5 border-b flex items-center justify-between gap-2 text-xs"
                 style={{ borderColor: 'var(--border-subtle)' }}
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    openMealSelector('primary');
-                  }}
-                  title="24 Türkçe meal arasından değiştir"
-                  className="font-extrabold truncate hover:underline text-left cursor-pointer"
-                  style={{ color: 'var(--brand-primary-text)' }}
-                >
-                  {mealTitle}
-                </button>
+                <div className="flex items-center gap-2 min-w-0">
+                  {isMealOnly && side === 'single' && renderRibbonBookmark(bundle)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      openMealSelector('primary');
+                    }}
+                    title="24 Türkçe meal arasından değiştir"
+                    className="font-extrabold truncate hover:underline text-left cursor-pointer"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  >
+                    {mealTitle}
+                  </button>
+                </div>
+
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className="font-bold tabular-nums px-2 py-0.5 rounded-lg text-[11px]"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      onOpenLocationPicker?.('page');
+                    }}
+                    title="Sayfa değiştir"
+                    className="font-bold tabular-nums px-2 py-0.5 rounded-lg text-[11px] hover:opacity-80 cursor-pointer whitespace-nowrap"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       color: 'var(--text-secondary)',
                     }}
                   >
                     Sayfa {bundle.pageNo} Meali
-                  </span>
+                  </button>
+                  {isMealOnly && onChangePageLayout && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onChangePageLayout('single');
+                      }}
+                      title="Arapça Mushaf sayfasına dön"
+                      className="h-7 px-2 rounded-lg border text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors hover:opacity-85 whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--brand-primary-soft)',
+                        borderColor: 'var(--brand-primary)',
+                        color: 'var(--brand-primary-text)',
+                      }}
+                    >
+                      <BookOpen className="w-3 h-3 shrink-0" />
+                      <span className="hidden sm:inline">Mushaf</span>
+                    </button>
+                  )}
                   {isDoubleMeal && side === 'left' && onChangePageLayout && (
                     <button
                       type="button"
@@ -791,7 +822,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 </div>
               </div>
 
-              {/* Kitap Düzeninde Süslü Numaralı Meal Akışı */}
+              {/* Kitap Düzeninde Süslü Numaralı Meal Akışı (Dikey Kart Düzeni — Tam Genişlik Metin) */}
               <div className="space-y-3.5">
                 {bundle.segments.map((segment) => (
                   <div key={`meal-seg-${bundle.pageNo}-${segment.surahMeta.no}`} className="space-y-2">
@@ -803,10 +834,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           borderColor: 'var(--border-subtle)',
                         }}
                       >
-                        <span className="text-xs font-extrabold">
-                          {segment.surahMeta.no}. {segment.surahMeta.nameTr} Suresi
+                        <span className="text-xs font-extrabold truncate">
+                          {segment.surahMeta.no}. {formatSurahTitle(segment.surahMeta.nameTr, segment.surahMeta.no)}
                         </span>
-                        <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-[11px] font-semibold shrink-0" style={{ color: 'var(--text-muted)' }}>
                           {segment.surahMeta.ayahCount} Ayet
                         </span>
                       </div>
@@ -821,7 +852,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                       </p>
                     )}
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {segment.verses.map((v) => {
                         const isSelected = selectedVerse?.id === v.id;
                         const isPlaying = playingAyahId === v.id;
@@ -829,6 +860,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         const isSajdah = SAJDAH_AYAH_IDS.has(v.id) && settings.highlightSajdah;
                         const pVerse = getPrimaryVerse(v);
                         const sVerse = isDual ? getSecondaryVerse(v) : null;
+                        const primaryFootnotes =
+                          settings.showFootnotes && pVerse?.fn ? pVerse.fn : [];
+                        const secondaryFootnotes =
+                          settings.showFootnotes && isDual && sVerse?.fn ? sVerse.fn : [];
+                        const totalFootnotes = primaryFootnotes.length + secondaryFootnotes.length;
+                        const isFootnoteOpen = openFootnoteVerseId === v.id;
 
                         return (
                           <div
@@ -846,7 +883,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 onSelectVerse(v);
                               }
                             }}
-                            className="group rounded-xl px-2.5 py-2 transition-colors cursor-pointer border"
+                            className="group rounded-xl px-3 py-2.5 transition-colors cursor-pointer border"
                             style={{
                               backgroundColor: isPlaying
                                 ? 'var(--brand-primary-soft)'
@@ -861,44 +898,105 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                   ? 'rgba(217, 119, 6, 0.4)'
                                   : isSajdah
                                     ? 'rgba(217, 119, 6, 0.38)'
-                                    : 'transparent',
+                                    : 'var(--border-subtle)',
                             }}
                           >
-                            <div className="flex items-start gap-2">
-                              <span
-                                className="inline-flex items-center justify-center min-w-[28px] h-6 px-1.5 rounded-lg text-[11px] font-extrabold tabular-nums shrink-0 mt-0.5"
-                                style={{
-                                  backgroundColor: isPlaying
-                                    ? 'var(--brand-primary)'
-                                    : isSelected || isSajdah
-                                      ? 'var(--brand-accent)'
-                                      : 'var(--bg-surface-soft)',
-                                  color:
-                                    isPlaying || isSelected || isSajdah
-                                      ? '#FFFFFF'
-                                      : 'var(--brand-primary-text)',
-                                }}
-                              >
-                                ({v.ayah})
-                              </span>
-
-                              <div className="flex-1 min-w-0 space-y-1">
-                                {isSajdah && (
+                            <div className="flex flex-col gap-2 w-full">
+                              {/* Üst Başlık Satırı: Sol (12) ayet rozeti, Sağ kompakt aksiyon butonları */}
+                              <div className="flex items-center justify-between w-full gap-2">
+                                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                                   <span
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-extrabold"
+                                    className="inline-flex items-center justify-center min-w-[30px] h-6 px-1.5 rounded-lg text-[11px] font-extrabold tabular-nums shrink-0"
                                     style={{
-                                      backgroundColor: 'var(--brand-accent-soft)',
-                                      borderColor: 'rgba(217, 119, 6, 0.45)',
-                                      color: 'var(--brand-accent-text)',
+                                      backgroundColor: isPlaying
+                                        ? 'var(--brand-primary)'
+                                        : isSelected || isSajdah
+                                          ? 'var(--brand-accent)'
+                                          : 'var(--bg-surface-soft)',
+                                      color:
+                                        isPlaying || isSelected || isSajdah
+                                          ? '#FFFFFF'
+                                          : 'var(--brand-primary-text)',
                                     }}
                                   >
-                                    <span>۩</span>
-                                    <span>Tilâvet Secdesi</span>
+                                    ({v.ayah})
                                   </span>
-                                )}
+                                  {isSajdah && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-extrabold whitespace-nowrap"
+                                      style={{
+                                        backgroundColor: 'var(--brand-accent-soft)',
+                                        borderColor: 'rgba(217, 119, 6, 0.45)',
+                                        color: 'var(--brand-accent-text)',
+                                      }}
+                                    >
+                                      <span>۩</span>
+                                      <span>Tilâvet Secdesi</span>
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div
+                                  className="flex items-center gap-0.5 shrink-0 opacity-85 group-hover:opacity-100"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => onPlayFromVerse(v, false)}
+                                    title="Bu ayetten dinle"
+                                    aria-label={`${v.ayah}. ayetten dinle`}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                    style={{ color: 'var(--brand-primary-text)' }}
+                                  >
+                                    <Play className="w-3.5 h-3.5 fill-current" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      sfxService.play('click');
+                                      openMealCompare(v.surah, v.ayah);
+                                    }}
+                                    title="24 Mealde Karşılaştır"
+                                    aria-label={`${v.ayah}. ayeti 24 mealde karşılaştır`}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                    style={{ color: 'var(--brand-primary-text)' }}
+                                  >
+                                    <Scale className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => onToggleBookmark(v.id)}
+                                    title={isFav ? 'Favorilerden çıkar' : 'Favorile'}
+                                    aria-label={isFav ? 'Favorilerden çıkar' : 'Favorile'}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-amber-500/15 cursor-pointer"
+                                    style={{
+                                      color: isFav ? 'var(--brand-accent-text)' : 'var(--text-muted)',
+                                    }}
+                                  >
+                                    <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      sfxService.play('click');
+                                      onSelectVerse(v);
+                                      setIsVerseDrawerOpen(true);
+                                    }}
+                                    title="Dipnot, kelime meali ve ayet detayı"
+                                    aria-label={`${v.ayah}. ayet detayını aç`}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                    style={{ color: 'var(--text-muted)' }}
+                                  >
+                                    <Info className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Alt Metin Alanı: Kartın %100 Tam Genişliği (w-full) */}
+                              <div className="w-full space-y-1.5">
                                 {pVerse?.t ? (
                                   <p
-                                    className="turkish-reading"
+                                    className="turkish-reading w-full leading-relaxed"
                                     style={{
                                       fontSize: `${settings.turkishFontSize}px`,
                                       color: 'var(--text-primary)',
@@ -921,7 +1019,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 {isDual &&
                                   (sVerse?.t ? (
                                     <p
-                                      className="turkish-reading"
+                                      className="turkish-reading w-full leading-relaxed"
                                       style={{
                                         fontSize: `${settings.turkishFontSize}px`,
                                         color: 'var(--text-secondary)',
@@ -938,62 +1036,72 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                   ) : isLoadingExtra ? (
                                     <div className="h-4 w-3/4 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
                                   ) : null)}
-                              </div>
 
-                              {/* Satır içi zarif hızlı aksiyonlar */}
-                              <div
-                                className="flex items-center gap-0.5 shrink-0 opacity-75 group-hover:opacity-100"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => onPlayFromVerse(v, false)}
-                                  title="Bu ayetten dinle"
-                                  aria-label={`${v.ayah}. ayetten dinle`}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
-                                  style={{ color: 'var(--brand-primary-text)' }}
-                                >
-                                  <Play className="w-3.5 h-3.5 fill-current" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    sfxService.play('click');
-                                    openMealCompare(v.surah, v.ayah);
-                                  }}
-                                  title="24 Mealde Karşılaştır"
-                                  aria-label={`${v.ayah}. ayeti 24 mealde karşılaştır`}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
-                                  style={{ color: 'var(--brand-primary-text)' }}
-                                >
-                                  <Scale className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onToggleBookmark(v.id)}
-                                  title={isFav ? 'Favorilerden çıkar' : 'Favorile'}
-                                  aria-label={isFav ? 'Favorilerden çıkar' : 'Favorile'}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-amber-500/15 cursor-pointer"
-                                  style={{
-                                    color: isFav ? 'var(--brand-accent-text)' : 'var(--text-muted)',
-                                  }}
-                                >
-                                  <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    sfxService.play('click');
-                                    onSelectVerse(v);
-                                    setIsVerseDrawerOpen(true);
-                                  }}
-                                  title="Dipnot, kelime meali ve ayet detayı"
-                                  aria-label={`${v.ayah}. ayet detayını aç`}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
-                                  style={{ color: 'var(--text-muted)' }}
-                                >
-                                  <Info className="w-3.5 h-3.5" />
-                                </button>
+                                {totalFootnotes > 0 && (
+                                  <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        sfxService.play('click');
+                                        setOpenFootnoteVerseId((prev) =>
+                                          prev === v.id ? null : v.id,
+                                        );
+                                      }}
+                                      aria-expanded={isFootnoteOpen}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold cursor-pointer transition-colors"
+                                      style={{
+                                        backgroundColor: isFootnoteOpen
+                                          ? 'var(--brand-primary-soft)'
+                                          : 'var(--bg-surface-soft)',
+                                        borderColor: isFootnoteOpen
+                                          ? 'var(--brand-primary)'
+                                          : 'var(--border-subtle)',
+                                        color: 'var(--brand-primary-text)',
+                                      }}
+                                    >
+                                      <FileText className="w-3 h-3 shrink-0" />
+                                      <span>
+                                        {isFootnoteOpen
+                                          ? 'Dipnotu Gizle'
+                                          : `Dipnot (${totalFootnotes})`}
+                                      </span>
+                                    </button>
+
+                                    {isFootnoteOpen && (
+                                      <div
+                                        className="mt-1.5 w-full rounded-xl border p-2.5 space-y-1.5 text-xs leading-relaxed"
+                                        style={{
+                                          backgroundColor: 'var(--bg-surface-soft)',
+                                          borderColor: 'var(--border-subtle)',
+                                          color: 'var(--text-secondary)',
+                                        }}
+                                      >
+                                        {primaryFootnotes.map((fn, idx) => (
+                                          <p key={`pfn-${v.id}-${idx}`}>
+                                            <span
+                                              className="font-extrabold mr-1"
+                                              style={{ color: 'var(--brand-primary-text)' }}
+                                            >
+                                              [{primaryMeal.shortLabel} {idx + 1}]
+                                            </span>
+                                            {fn}
+                                          </p>
+                                        ))}
+                                        {secondaryFootnotes.map((fn, idx) => (
+                                          <p key={`sfn-${v.id}-${idx}`}>
+                                            <span
+                                              className="font-extrabold mr-1"
+                                              style={{ color: 'var(--brand-accent-text)' }}
+                                            >
+                                              [{secondaryMeal.shortLabel} {idx + 1}]
+                                            </span>
+                                            {fn}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>

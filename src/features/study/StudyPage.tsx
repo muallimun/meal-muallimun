@@ -24,7 +24,6 @@ import {
   Plus,
   RefreshCw,
   SlidersHorizontal,
-  Square,
   Star,
   Trophy,
   X,
@@ -52,6 +51,7 @@ import type {
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
+import { formatSurahTitle } from '../../utils/arabicUtils';
 import { buildSurahQuestionCountMap, getSurahMap } from '../../utils/poolUtils';
 import { BookModeView } from './BookModeView';
 import { LocationPickerModal, type LocationPickerTab } from './LocationPickerModal';
@@ -488,10 +488,38 @@ export const StudyPage: React.FC = () => {
       updateStudyPrefs({
         pageLayout: layout,
         mushafSidePanelOpen: false,
-        ...(layout === 'double_meal' ? { bookContentMode: 'interleaved' as BookContentMode } : {}),
       });
     },
     [updateStudyPrefs],
+  );
+
+  const mobileDrawerContentMode: BookContentMode =
+    viewMode === 'mushaf'
+      ? studyPrefs.pageLayout === 'double_meal'
+        ? 'interleaved'
+        : studyPrefs.pageLayout === 'meal_only'
+          ? 'meal_only'
+          : 'ar_only'
+      : studyPrefs.bookContentMode;
+
+  const handleMobileDrawerContentMode = useCallback(
+    (mode: BookContentMode) => {
+      if (viewMode === 'mushaf') {
+        const nextLayout: PageLayoutMode =
+          mode === 'interleaved'
+            ? 'double_meal'
+            : mode === 'meal_only'
+              ? 'meal_only'
+              : 'single';
+        updateStudyPrefs({
+          pageLayout: nextLayout,
+          mushafSidePanelOpen: false,
+        });
+      } else {
+        updateStudyPrefs({ bookContentMode: mode });
+      }
+    },
+    [viewMode, updateStudyPrefs],
   );
 
   // Üstteki "Dinle" butonu
@@ -620,7 +648,7 @@ export const StudyPage: React.FC = () => {
           ==================================================================== */}
       <section
         aria-label="Masaüstü okuma komut şeridi"
-        className="hidden lg:flex h-11 surface-card rounded-2xl px-2 items-center justify-between gap-2 relative z-20"
+        className="hidden lg:flex h-11 surface-card rounded-2xl px-2 items-center justify-between gap-1.5 xl:gap-2 relative z-20"
       >
         {/* Sol Grup: Mod Segmenti [Mushaf | Kartlar | Kitap] + Birleşik Konum Seçici */}
         <div className="flex items-center gap-1.5 min-w-0">
@@ -642,14 +670,14 @@ export const StudyPage: React.FC = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => handleSwitchViewMode(tab.id)}
-                  className="h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                  className="h-8 px-2 xl:px-2.5 rounded-lg text-[11px] xl:text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
                   style={{
                     backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                     color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                     boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                   }}
                 >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <Icon className="w-3.5 h-3.5 shrink-0 hidden xl:block" />
                   <span>{tab.label}</span>
                 </button>
               );
@@ -660,7 +688,7 @@ export const StudyPage: React.FC = () => {
             type="button"
             onClick={() => openLocationPicker('surah')}
             title="Sure, Sayfa, Cüz veya Ayet seç"
-            className="h-8 px-2.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 cursor-pointer min-w-0 max-w-[235px] xl:max-w-[270px] transition-colors hover:border-teal-600/50"
+            className="h-8 px-2 xl:px-2.5 rounded-xl border text-[11px] xl:text-xs font-extrabold flex items-center gap-1 cursor-pointer min-w-0 max-w-[165px] xl:max-w-[230px] 2xl:max-w-[270px] transition-colors hover:border-teal-600/50"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
@@ -672,7 +700,7 @@ export const StudyPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Orta Grup: Moda Duyarlı Tek Düzen Kontrolü (Sıfır Çakışma) */}
+        {/* Orta Grup: Moda Duyarlı Tek Düzen Kontrolü (Mushaf: 4 seçenek | Kartlar/Kitap: 3 seçenek) */}
         <div
           className="flex items-center p-0.5 rounded-xl shrink-0"
           style={{ backgroundColor: 'var(--bg-surface-soft)' }}
@@ -680,27 +708,26 @@ export const StudyPage: React.FC = () => {
           {viewMode === 'mushaf'
             ? (
                 [
-                  { id: 'single', label: 'Tek Sayfa', icon: Square },
-                  { id: 'double_mushaf', label: '2 Sayfa', icon: Columns2 },
-                  { id: 'double_meal', label: 'Mushaf + Meal', icon: BookOpen },
+                  { id: 'single', label: 'Tek Sayfa' },
+                  { id: 'double_mushaf', label: '2 Sayfa' },
+                  { id: 'double_meal', label: 'Mushaf + Meal' },
+                  { id: 'meal_only', label: 'Sadece Meal' },
                 ] as const
               ).map((opt) => {
-                const Icon = opt.icon;
                 const active = studyPrefs.pageLayout === opt.id;
                 return (
                   <button
                     key={opt.id}
                     type="button"
                     onClick={() => handleChangePageLayout(opt.id)}
-                    className="h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors"
+                    className="h-8 px-2 xl:px-2.5 rounded-lg text-[11px] xl:text-xs font-bold cursor-pointer whitespace-nowrap transition-colors"
                     style={{
                       backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                       color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                       boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                     }}
                   >
-                    <Icon className="w-3.5 h-3.5 shrink-0" />
-                    <span>{opt.label}</span>
+                    {opt.label}
                   </button>
                 );
               })
@@ -720,7 +747,7 @@ export const StudyPage: React.FC = () => {
                       sfxService.play('click');
                       updateStudyPrefs({ bookContentMode: opt.id });
                     }}
-                    className="h-8 px-2.5 rounded-lg text-xs font-bold cursor-pointer whitespace-nowrap transition-colors"
+                    className="h-8 px-2 xl:px-2.5 rounded-lg text-[11px] xl:text-xs font-bold cursor-pointer whitespace-nowrap transition-colors"
                     style={{
                       backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                       color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -734,13 +761,13 @@ export const StudyPage: React.FC = () => {
         </div>
 
         {/* Sağ Grup: Tek Meal Seçici · Görünüm ▾ Popover · 🎧 Dinle · 📺 Sunum · 🏆 Test */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 xl:gap-1.5 shrink-0">
           {/* Tek Meal Seçici (24 Meal + Tek/Çift Meal anahtarı modal içinde) */}
           <button
             type="button"
             onClick={() => openMealSelector('primary')}
             title={`Aktif Meal: ${primaryMealDef.label}${isDualMeal ? ` + ${secondaryMealDef.label}` : ''}`}
-            className="h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer max-w-[140px] xl:max-w-[175px]"
+            className="h-8 px-2 xl:px-2.5 rounded-xl border text-[11px] xl:text-xs font-bold flex items-center gap-1 cursor-pointer max-w-[115px] xl:max-w-[155px]"
             style={{
               backgroundColor: 'var(--brand-primary-soft)',
               borderColor: 'var(--brand-primary)',
@@ -972,18 +999,19 @@ export const StudyPage: React.FC = () => {
           <button
             type="button"
             onClick={handleHeaderListen}
-            className="h-8 px-3 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition-transform active:scale-[0.98] cursor-pointer whitespace-nowrap"
+            title={isAudioOnCurrentView ? 'Dinlemeyi duraklat' : 'Bu sayfayı / sureyi dinle'}
+            className="h-8 px-2.5 xl:px-3 rounded-xl text-[11px] xl:text-xs font-bold text-white flex items-center gap-1.5 transition-transform active:scale-[0.98] cursor-pointer whitespace-nowrap"
             style={{ backgroundColor: 'var(--brand-primary)' }}
           >
             {isAudioOnCurrentView ? (
               <>
                 <Pause className="w-3.5 h-3.5 shrink-0" />
-                <span>Duraklat</span>
+                <span className="hidden xl:inline">Duraklat</span>
               </>
             ) : (
               <>
                 <Headphones className="w-3.5 h-3.5 shrink-0" />
-                <span>Dinle</span>
+                <span className="hidden xl:inline">Dinle</span>
               </>
             )}
           </button>
@@ -993,7 +1021,7 @@ export const StudyPage: React.FC = () => {
             type="button"
             onClick={openPresentationMode}
             title="Tam ekran TV / Projeksiyon Sunum Modu"
-            className="h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+            className="h-8 px-2 xl:px-2.5 rounded-xl border text-[11px] xl:text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
@@ -1001,7 +1029,7 @@ export const StudyPage: React.FC = () => {
             }}
           >
             <MonitorPlay className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden xl:inline">Sunum</span>
+            <span className="hidden 2xl:inline">Sunum</span>
           </button>
 
           {/* 🏆 Test (Soru varsa kompakt rozet) */}
@@ -1009,8 +1037,8 @@ export const StudyPage: React.FC = () => {
             <button
               type="button"
               onClick={() => navigateToExam({ surahNo: activeSurahMeta.no })}
-              title={`${activeSurahMeta.nameTr} Suresinden Test Çöz (${activeSurahQuestionCount} Soru)`}
-              className="h-8 px-2.5 rounded-xl border text-xs font-extrabold flex items-center gap-1 cursor-pointer whitespace-nowrap tabular-nums"
+              title={`${formatSurahTitle(activeSurahMeta.nameTr, activeSurahMeta.no)}nden Test Çöz (${activeSurahQuestionCount} Soru)`}
+              className="h-8 px-2 xl:px-2.5 rounded-xl border text-[11px] xl:text-xs font-extrabold flex items-center gap-1 cursor-pointer whitespace-nowrap tabular-nums"
               style={{
                 backgroundColor: 'var(--brand-accent-soft)',
                 borderColor: 'var(--brand-accent)',
@@ -1018,7 +1046,8 @@ export const StudyPage: React.FC = () => {
               }}
             >
               <Trophy className="w-3.5 h-3.5 shrink-0" />
-              <span>Test ({activeSurahQuestionCount})</span>
+              <span className="hidden 2xl:inline">Test</span>
+              <span>({activeSurahQuestionCount})</span>
             </button>
           )}
         </div>
@@ -1392,8 +1421,8 @@ export const StudyPage: React.FC = () => {
         isDualMeal={isDualMeal}
         onOpenMealSelector={() => openMealSelector('primary')}
         onSetMealDisplayMode={setMealDisplayMode}
-        contentMode={studyPrefs.bookContentMode}
-        onChangeContentMode={(mode) => updateStudyPrefs({ bookContentMode: mode })}
+        contentMode={mobileDrawerContentMode}
+        onChangeContentMode={handleMobileDrawerContentMode}
         wordMode={studyPrefs.wordMode}
         onChangeWordMode={(mode) => updateStudyPrefs({ wordMode: mode })}
         settings={settings}

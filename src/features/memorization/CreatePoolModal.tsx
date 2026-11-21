@@ -22,6 +22,7 @@ import { memorizationStorage } from '../../services/memorizationStorage';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type { AyahRange, CuratedPresetItem, MemorizationUnit } from '../../types/memorization';
+import { formatSurahTitle } from '../../utils/arabicUtils';
 import { normalizeTurkish } from '../../utils/textNormalize';
 
 type PoolTab = 'preset' | 'page' | 'surah' | 'custom';
@@ -237,7 +238,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
 
       return [
         buildMemorizationUnitFromRanges(meta, {
-          title: `${selectedSurahMeta.nameTr} Suresi`,
+          title: formatSurahTitle(selectedSurahMeta.nameTr, selectedSurahNo),
           subtitle: `${selectedSurahNo}. Sure · ${selectedSurahMeta.ayahCount} Ayet`,
           sourceType: 'surah',
           ranges: [{ surah: selectedSurahNo, startAyah: 1, endAyah: selectedSurahMeta.ayahCount }],
@@ -307,7 +308,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
         : 1;
       return {
         valid: true,
-        title: `${selectedSurahMeta.nameTr} Suresi`,
+        title: formatSurahTitle(selectedSurahMeta.nameTr, selectedSurahNo),
         detail: willSplit
           ? `${chunkCount} günlük dilim (${surahChunkSize}’şar ayet) · Toplam ${selectedSurahMeta.ayahCount} ayet`
           : `Tek birim · ${selectedSurahMeta.ayahCount} ayet`,
@@ -336,6 +337,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
     pagePreview,
     selectedPage,
     pageSplit,
+    selectedSurahNo,
     selectedSurahMeta,
     splitSurahDaily,
     surahChunkSize,
@@ -865,7 +867,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                         className="text-xs sm:text-sm font-extrabold"
                         style={{ color: 'var(--brand-primary-text)' }}
                       >
-                        {selectedSurahMeta.nameTr} Suresini Günlük Dilimlere Böl
+                        {formatSurahTitle(selectedSurahMeta.nameTr, selectedSurahNo)}ni Günlük Dilimlere Böl
                       </p>
                       <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                         {selectedSurahMeta.ayahCount} ayetlik sureyi yormayan ardışık ezber birimlerine ayırır

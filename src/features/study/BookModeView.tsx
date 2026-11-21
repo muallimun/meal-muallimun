@@ -28,7 +28,7 @@ import type {
   SurahBundle,
   SurahMeta,
 } from '../../types/quran';
-import { formatSafeArabicTitle } from '../../utils/arabicUtils';
+import { formatSafeArabicTitle, formatSurahTitle } from '../../utils/arabicUtils';
 
 interface BookModeViewProps {
   bundle: SurahBundle;
@@ -134,12 +134,13 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
       mealLines.push(`${secondaryMeal.shortLabel}: ${sVerse.t}`);
     }
     const mealText = mealLines.join('\n') || verse.m1?.t || verse.m2?.t || '';
+    const surahTitle = formatSurahTitle(bundle.surahMeta.nameTr, bundle.surahMeta.no);
     const text =
       bookMode === 'ar_only'
-        ? `${verse.ar.t}\n— ${bundle.surahMeta.nameTr} Suresi, ${verse.ayah}. Ayet`
+        ? `${verse.ar.t}\n— ${surahTitle}, ${verse.ayah}. Ayet`
         : bookMode === 'meal_only'
-          ? `${mealText}\n— ${bundle.surahMeta.nameTr} Suresi, ${verse.ayah}. Ayet (${primaryMeal.shortLabel})`
-          : `${verse.ar.t}\n\n${mealText}\n— ${bundle.surahMeta.nameTr} Suresi, ${verse.ayah}. Ayet (${primaryMeal.shortLabel})`;
+          ? `${mealText}\n— ${surahTitle}, ${verse.ayah}. Ayet (${primaryMeal.shortLabel})`
+          : `${verse.ar.t}\n\n${mealText}\n— ${surahTitle}, ${verse.ayah}. Ayet (${primaryMeal.shortLabel})`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -380,7 +381,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             className="inline-flex flex-col items-center cursor-pointer hover:opacity-85 transition-opacity"
           >
             <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--text-primary)]">
-              {bundle.surahMeta.nameTr} Suresi
+              {formatSurahTitle(bundle.surahMeta.nameTr, bundle.surahMeta.no)}
             </h2>
             <p className="arabic-title text-xl sm:text-2xl text-[var(--brand-primary-text)] mt-1">
               {formatSafeArabicTitle(bundle.surahMeta.nameAr)}
@@ -509,7 +510,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-extrabold text-[var(--brand-primary-text)]">
-                        {bundle.surahMeta.nameTr} Suresi, {selectedArabicVerse.ayah}. Ayet
+                        {formatSurahTitle(bundle.surahMeta.nameTr, bundle.surahMeta.no)}, {selectedArabicVerse.ayah}. Ayet
                       </span>
                       {SAJDAH_AYAH_IDS.has(selectedArabicVerse.id) && settings.highlightSajdah && (
                         <span

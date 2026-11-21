@@ -14,7 +14,7 @@ import { dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { CombinedVerse, SurahMeta } from '../types/quran';
-import { formatSafeArabicTitle } from '../utils/arabicUtils';
+import { formatSafeArabicTitle, formatSurahTitle } from '../utils/arabicUtils';
 
 type ShareContentMode = 'both' | 'ar' | 'meal';
 type ShareCardTheme = 'cream' | 'emerald' | 'dark';
@@ -189,7 +189,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
 
   const activeMealLabel = selectedMealDef.label;
   const surahLabel = surahMeta
-    ? `${surahMeta.nameTr} Suresi, ${verse?.ayah ?? ''}. Ayet`
+    ? `${formatSurahTitle(surahMeta.nameTr, surahMeta.no)}, ${verse?.ayah ?? ''}. Ayet`
     : verse
       ? `${verse.surah}. Sure, ${verse.ayah}. Ayet`
       : '';

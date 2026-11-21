@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { sfxService } from '../../services/sfxService';
 import type { MetaData, SurahMeta } from '../../types/quran';
-import { formatSafeArabicTitle } from '../../utils/arabicUtils';
+import { formatSafeArabicTitle, formatSurahTitle } from '../../utils/arabicUtils';
 import { normalizeTurkish } from '../../utils/poolUtils';
 
 export type LocationPickerTab = 'surah' | 'page' | 'juz' | 'ayah';
@@ -366,7 +366,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               {activeSurahMeta && (
                 <div className="space-y-2">
                   <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>
-                    {activeSurahMeta.nameTr} Suresi Sayfaları ({activeSurahMeta.pageStart}–{activeSurahMeta.pageEnd})
+                    {formatSurahTitle(activeSurahMeta.nameTr, activeSurahMeta.no)} Sayfaları ({activeSurahMeta.pageStart}–{activeSurahMeta.pageEnd})
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {Array.from(

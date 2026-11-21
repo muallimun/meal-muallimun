@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   AlertCircle,
   ChevronDown,
@@ -44,6 +44,8 @@ export const AudioPlayerBar: React.FC = () => {
     isExamActive,
     isMemorizationZenActive,
     isMobileReaderImmersive,
+    isAudioBarExpanded: isExpanded,
+    setIsAudioBarExpanded: setIsExpanded,
     isSidebarCollapsed,
     activeTab,
     setActiveTab,
@@ -52,8 +54,6 @@ export const AudioPlayerBar: React.FC = () => {
     openMealSelector,
     manifest,
   } = useAppStore();
-
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
@@ -88,7 +88,7 @@ export const AudioPlayerBar: React.FC = () => {
     if (!audioState.isVisible || audioState.status === 'idle') {
       setIsExpanded(false);
     }
-  }, [audioState.isVisible, audioState.status]);
+  }, [audioState.isVisible, audioState.status, setIsExpanded]);
 
   if (
     isExamActive ||
@@ -389,7 +389,7 @@ export const AudioPlayerBar: React.FC = () => {
             type="button"
             onClick={() => {
               sfxService.play('click');
-              setIsExpanded((v) => !v);
+              setIsExpanded(!isExpanded);
             }}
             className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
             title="Ses ayarlarını aç/kapat"
@@ -481,7 +481,7 @@ export const AudioPlayerBar: React.FC = () => {
               type="button"
               onClick={() => {
                 sfxService.play('click');
-                setIsExpanded((v) => !v);
+                setIsExpanded(!isExpanded);
               }}
               aria-label={isExpanded ? 'Ses ayarlarını gizle' : 'Ses ayarlarını göster'}
               aria-expanded={showDetailsPanel}

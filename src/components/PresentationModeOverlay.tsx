@@ -28,7 +28,7 @@ import type {
   PlaybackRateOption,
   SurahMeta,
 } from '../types/quran';
-import { formatSafeArabicTitle } from '../utils/arabicUtils';
+import { formatSafeArabicTitle, formatSurahTitle } from '../utils/arabicUtils';
 
 type PresentationContentMode = 'both' | 'ar' | 'meal';
 type PresentationTheme = 'dark' | 'emerald' | 'cream';
@@ -485,7 +485,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           <div className="min-w-0 flex items-center gap-2">
             <h2 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
               {displayedVerse
-                ? `${surahMeta?.nameTr ?? `Sure ${displayedVerse.surah}`} Suresi · ${displayedVerse.ayah}. Ayet`
+                ? `${formatSurahTitle(surahMeta?.nameTr, displayedVerse.surah)} · ${displayedVerse.ayah}. Ayet`
                 : 'Sunum Modu'}
             </h2>
             {surahMeta?.nameAr && (
@@ -523,16 +523,47 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             </button>
 
             {isSettingsPopoverOpen && (
-              <div
-                className="absolute right-0 top-11 z-40 w-[290px] sm:w-[320px] rounded-2xl border shadow-2xl p-3.5 space-y-3 text-left"
-                style={{
-                  backgroundColor: palette.bg,
-                  borderColor: palette.border,
-                  color: palette.text,
-                }}
-              >
-                {/* Okuyucu & Meal */}
-                <div className="space-y-1.5">
+              <>
+                {/* Arka Plan (Mobilde karartılmış bottom-sheet örtüsü, masaüstünde şeffaf dış tıklama kapatıcı) */}
+                <div
+                  aria-hidden="true"
+                  onClick={() => setIsSettingsPopoverOpen(false)}
+                  className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
+                />
+                <div
+                  role="dialog"
+                  aria-label="Görünüm ve ses ayarları"
+                  className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl max-h-[82vh] overflow-y-auto p-4 pb-6 border-t shadow-2xl space-y-3.5 text-left md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-11 md:w-[320px] md:max-w-[calc(100vw-2rem)] md:max-h-[80vh] md:rounded-2xl md:border md:p-3.5"
+                  style={{
+                    backgroundColor: palette.bg,
+                    borderColor: palette.border,
+                    color: palette.text,
+                    paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
+                  }}
+                >
+                  {/* Mobil Bottom Sheet Tutamak ve Başlık */}
+                  <div className="md:hidden pb-2 border-b space-y-2" style={{ borderColor: palette.border }}>
+                    <div className="w-10 h-1 rounded-full mx-auto opacity-35 bg-current" />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-extrabold">Görünüm &amp; Ses Ayarları</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsSettingsPopoverOpen(false)}
+                        aria-label="Ayarları kapat"
+                        className="w-8 h-8 rounded-xl border flex items-center justify-center cursor-pointer"
+                        style={{
+                          borderColor: palette.border,
+                          backgroundColor: palette.surface,
+                          color: palette.muted,
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Okuyucu & Meal */}
+                  <div className="space-y-1.5">
                   <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: palette.muted }}>
                     Tilavet &amp; Meal
                   </p>
@@ -603,6 +634,14 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                           onClick={() => {
                             sfxService.play('click');
                             setContentMode(item.id);
+                            updateAudioPrefs({
+                              mode:
+                                item.id === 'ar'
+                                  ? 'ar'
+                                  : item.id === 'meal'
+                                    ? 'meal'
+                                    : 'ar_then_meal',
+                            });
                           }}
                           className="min-h-[32px] px-1.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
                           style={{
@@ -681,7 +720,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     })}
                   </div>
                 </div>
-              </div>
+                </div>
+              </>
             )}
           </div>
 

@@ -314,38 +314,43 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               </div>
             </div>
 
-            {/* İçerik: AR + Meal | Sadece AR | Sadece Meal */}
-            <div
-              className="grid grid-cols-3 gap-1 p-1 rounded-xl"
-              style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-            >
-              {(
-                [
-                  { id: 'interleaved', label: 'AR + Meal' },
-                  { id: 'ar_only', label: 'Sadece AR' },
-                  { id: 'meal_only', label: 'Sadece Meal' },
-                ] as { id: BookContentMode; label: string }[]
-              ).map((opt) => {
-                const active = contentMode === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      onChangeContentMode(opt.id);
-                    }}
-                    className="min-h-[36px] px-2 rounded-lg text-xs font-bold cursor-pointer whitespace-nowrap"
-                    style={{
-                      backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                      color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
+            {/* İçerik: Sadece AR | AR + Meal | Sadece Meal (Mushaf dahil tüm modlarda aktif) */}
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold block" style={{ color: 'var(--text-muted)' }}>
+                {viewMode === 'mushaf' ? 'Mushaf Sayfa İçeriği' : 'İçerik Görünümü'}
+              </span>
+              <div
+                className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+              >
+                {(
+                  [
+                    { id: 'ar_only', label: 'Sadece AR' },
+                    { id: 'interleaved', label: 'AR + Meal' },
+                    { id: 'meal_only', label: 'Sadece Meal' },
+                  ] as { id: BookContentMode; label: string }[]
+                ).map((opt) => {
+                  const active = contentMode === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onChangeContentMode(opt.id);
+                      }}
+                      className="min-h-[36px] px-2 rounded-lg text-xs font-bold cursor-pointer whitespace-nowrap"
+                      style={{
+                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Kelime Meali */}

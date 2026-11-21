@@ -26,14 +26,10 @@ import type {
   ArenaTimeLimit,
   ExamConfig,
   ExamDifficultyFilter,
-  ExamMealBasisFilter,
   ExamMode,
   ExamSessionState,
 } from '../../types/quran';
-import {
-  formatDurationTr,
-  normalizeMealBasis,
-} from '../../utils/examUtils';
+import { formatDurationTr } from '../../utils/examUtils';
 import { buildSurahQuestionCountMap, formatNumberTr, getSurahMap } from '../../utils/poolUtils';
 
 interface ExamHubPageProps {
@@ -84,7 +80,6 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
   const [selectedSingleSurah, setSelectedSingleSurah] = useState<number | null>(initialSurahFilter);
   const [mode, setMode] = useState<ExamMode>('practice');
   const [difficulty, setDifficulty] = useState<ExamDifficultyFilter>('all');
-  const [mealBasis, setMealBasis] = useState<ExamMealBasisFilter>('all');
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [prioritizeUnsolved, setPrioritizeUnsolved] = useState<boolean>(true);
   const [arenaTimePerQuestion, setArenaTimePerQuestion] = useState<ArenaTimeLimit>(45);
@@ -126,7 +121,6 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
     for (const item of questionIndex.items) {
       if (surahSet.size > 0 && !surahSet.has(item.surah)) continue;
       if (difficulty !== 'all' && item.difficulty !== difficulty) continue;
-      if (mealBasis !== 'all' && normalizeMealBasis(item.mealBasis) !== mealBasis) continue;
 
       if (questionAudit.skipReportedInExams && reportsList.length > 0) {
         const isReported = Boolean(
@@ -148,7 +142,6 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
     questionIndex,
     targetSurahs,
     difficulty,
-    mealBasis,
     questionAudit.skipReportedInExams,
     questionAudit.reports,
   ]);
@@ -167,7 +160,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       mode,
       surahs: targetSurahs,
       difficulty,
-      mealBasis,
+      mealBasis: 'all',
       questionCount,
       prioritizeUnsolved,
       arenaTimePerQuestion,
@@ -434,89 +427,46 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               </p>
             )}
 
-            {/* Zorluk ve Meal Esası */}
+            {/* Zorluk Filtresi */}
             <div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2.5 pt-2.5 border-t"
+              className="pt-2.5 border-t space-y-1.5"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
-              {/* Zorluk */}
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold block" style={{ color: 'var(--text-muted)' }}>
-                  Zorluk
-                </span>
-                <div
-                  className="grid grid-cols-4 gap-0.5 p-0.5 rounded-xl"
-                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-                >
-                  {(
-                    [
-                      { id: 'all', label: 'Tümü' },
-                      { id: 1, label: 'Kolay' },
-                      { id: 2, label: 'Orta' },
-                      { id: 3, label: 'Zor' },
-                    ] as { id: ExamDifficultyFilter; label: string }[]
-                  ).map((item) => {
-                    const active = difficulty === item.id;
-                    return (
-                      <button
-                        key={String(item.id)}
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          setDifficulty(item.id);
-                        }}
-                        className="min-h-[32px] rounded-lg text-[11px] font-bold transition-all cursor-pointer"
-                        style={{
-                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Meal Esası */}
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold block" style={{ color: 'var(--text-muted)' }}>
-                  Meal Esası
-                </span>
-                <div
-                  className="grid grid-cols-4 gap-0.5 p-0.5 rounded-xl"
-                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-                >
-                  {(
-                    [
-                      { id: 'all', label: 'Tümü' },
-                      { id: 'tdv', label: 'TDV' },
-                      { id: 'dib', label: 'DİB' },
-                      { id: 'common', label: 'Ortak' },
-                    ] as { id: ExamMealBasisFilter; label: string }[]
-                  ).map((item) => {
-                    const active = mealBasis === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          setMealBasis(item.id);
-                        }}
-                        className="min-h-[32px] rounded-lg text-[11px] font-bold transition-all cursor-pointer"
-                        style={{
-                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
+              <span className="text-[11px] font-bold block" style={{ color: 'var(--text-muted)' }}>
+                Zorluk
+              </span>
+              <div
+                className="grid grid-cols-4 gap-1 p-1 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+              >
+                {(
+                  [
+                    { id: 'all', label: 'Tümü' },
+                    { id: 1, label: 'Kolay' },
+                    { id: 2, label: 'Orta' },
+                    { id: 3, label: 'Zor' },
+                  ] as { id: ExamDifficultyFilter; label: string }[]
+                ).map((item) => {
+                  const active = difficulty === item.id;
+                  return (
+                    <button
+                      key={String(item.id)}
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setDifficulty(item.id);
+                      }}
+                      className="min-h-[34px] rounded-lg text-xs font-bold transition-all cursor-pointer"
+                      style={{
+                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -866,8 +816,8 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               )}
               {availableFilteredCount === 0 && (
                 <p className="text-xs font-semibold" style={{ color: 'var(--brand-accent-text)' }}>
-                  Seçili filtrelerle eşleşen soru bulunamadı. Zorluk veya meal esası filtresini
-                  &ldquo;Tümü&rdquo; yapmayı deneyin.
+                  Seçili filtrelerle eşleşen soru bulunamadı. Zorluk filtresini &ldquo;Tümü&rdquo;
+                  yapmayı deneyin.
                 </p>
               )}
             </div>

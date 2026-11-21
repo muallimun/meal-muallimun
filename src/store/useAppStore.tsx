@@ -26,6 +26,7 @@ import type {
 } from '../types/memorization';
 import type {
   AppSettings,
+  AudioPlayMode,
   AudioPrefs,
   ExamHistoryRecord,
   ExamMode,
@@ -107,7 +108,7 @@ export const DEFAULT_STUDY_PROGRESS: StudyProgress = {
 };
 
 export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
-  mode: 'ar_then_meal',
+  mode: 'ar',
   arabicAudioSource: 'hatim',
   arabicReciterId: 'hatim',
   favoriteReciterIds: ['hatim'],
@@ -116,6 +117,17 @@ export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
   repeatCount: 1,
   autoScroll: true,
 };
+
+function resolveAudioModeForStudyPrefs(prefs: StudyPrefs): AudioPlayMode {
+  if (prefs.viewMode === 'mushaf') {
+    if (prefs.pageLayout === 'double_meal') return 'ar_then_meal';
+    if (prefs.pageLayout === 'meal_only') return 'meal';
+    return 'ar';
+  }
+  if (prefs.bookContentMode === 'ar_only') return 'ar';
+  if (prefs.bookContentMode === 'meal_only') return 'meal';
+  return 'ar_then_meal';
+}
 
 export const DEFAULT_GAMIFICATION: GamificationState = {
   totalXp: 0,
@@ -337,6 +349,7 @@ function hydrateState(): PersistedAppState {
     const hydratedPageLayout: PageLayoutMode =
       rawStudyPrefs?.pageLayout === 'double_mushaf' ||
       rawStudyPrefs?.pageLayout === 'double_meal' ||
+      rawStudyPrefs?.pageLayout === 'meal_only' ||
       rawStudyPrefs?.pageLayout === 'single'
         ? rawStudyPrefs.pageLayout
         : rawStudyPrefs?.pageLayout === 'double'
@@ -731,6 +744,8 @@ interface AppContextValue {
   setIsMemorizationZenActive: (active: boolean) => void;
   isMobileReaderImmersive: boolean;
   setIsMobileReaderImmersive: (active: boolean) => void;
+  isAudioBarExpanded: boolean;
+  setIsAudioBarExpanded: (expanded: boolean) => void;
   quickMemorizeSeed: QuickMemorizeSeed | null;
   openQuickMemorize: (surah: number, ayah: number, page?: number) => void;
   closeQuickMemorize: () => void;
@@ -820,6 +835,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isExamActive, setIsExamActive] = useState(false);
   const [isMemorizationZenActive, setIsMemorizationZenActive] = useState(false);
   const [isMobileReaderImmersive, setIsMobileReaderImmersive] = useState(false);
+  const [isAudioBarExpanded, setIsAudioBarExpanded] = useState(false);
   const [quickMemorizeSeed, setQuickMemorizeSeed] = useState<QuickMemorizeSeed | null>(null);
 
   useEffect(() => {
@@ -1147,13 +1163,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const updateStudyPrefs = useCallback((patch: Partial<StudyPrefs>) => {
-    setPersisted((prev) => ({
-      ...prev,
-      studyPrefs: {
+    setPersisted((prev) => {
+      const nextStudyPrefs: StudyPrefs = {
         ...prev.studyPrefs,
         ...patch,
-      },
-    }));
+      };
+      const shouldSyncAudioMode =
+        patch.viewMode !== undefined ||
+        patch.pageLayout !== undefined ||
+        patch.bookContentMode !== undefined;
+      return {
+        ...prev,
+        studyPrefs: nextStudyPrefs,
+        ...(shouldSyncAudioMode
+          ? {
+              audioPrefs: {
+                ...prev.audioPrefs,
+                mode: resolveAudioModeForStudyPrefs(nextStudyPrefs),
+              },
+            }
+          : {}),
+      };
+    });
   }, []);
 
   const setLastRead = useCallback((pos: Omit<LastReadPosition, 'updatedAt'>) => {
@@ -1803,6 +1834,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsMemorizationZenActive,
       isMobileReaderImmersive,
       setIsMobileReaderImmersive,
+      isAudioBarExpanded,
+      setIsAudioBarExpanded,
       quickMemorizeSeed,
       openQuickMemorize,
       closeQuickMemorize,
@@ -1901,6 +1934,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isExamActive,
       isMemorizationZenActive,
       isMobileReaderImmersive,
+      isAudioBarExpanded,
       quickMemorizeSeed,
       openQuickMemorize,
       closeQuickMemorize,
