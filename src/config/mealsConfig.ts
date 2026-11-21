@@ -391,3 +391,77 @@ export function isExtraMealId(id: string | null | undefined): boolean {
   if (!id) return false;
   return id !== 'm1' && id !== 'm2';
 }
+
+export interface SpokenMealInfo {
+  sourceKey: string;
+  mealId: string;
+  label: string;
+  shortTag: string;
+  speakerName?: string;
+}
+
+/**
+ * Sesli meal kaynağını (ör. 'tdv' -> 'm1', 'dib' -> 'm2' veya manifest.audioSources[key].mealId)
+ * ilgili meal kimliği ve okunaklı etiketlerle çözümler.
+ */
+export function resolveSpokenMealInfo(
+  sourceKey: string | null | undefined,
+  manifest: ManifestData | null,
+): SpokenMealInfo | null {
+  if (!sourceKey) return null;
+  const manifestSource = manifest?.audioSources?.[sourceKey];
+  if (manifestSource && manifestSource.kind !== 'meal') return null;
+
+  let mealId = manifestSource?.mealId ?? null;
+  if (!mealId) {
+    if (sourceKey === 'tdv') mealId = 'm1';
+    else if (sourceKey === 'dib') mealId = 'm2';
+    else {
+      const matched = getAllMeals(manifest).find((m) => m.audioSource === sourceKey);
+      mealId = matched?.id ?? null;
+    }
+  }
+  if (!mealId) return null;
+
+  const mealDef = findMealById(mealId, manifest);
+  const label =
+    mealId === 'm1'
+      ? 'TDV Meali'
+      : mealId === 'm2'
+        ? 'DİB Yeni Meal'
+        : mealDef.shortLabel;
+  const shortTag = mealId === 'm1' ? 'TDV' : mealId === 'm2' ? 'DİB Yeni' : mealDef.shortLabel;
+
+  let speakerName = manifestSource?.reciterName;
+  if (!speakerName && manifestSource?.label) {
+    const paren = manifestSource.label.match(/\(([^)]+)\)/);
+    if (paren?.[1]) speakerName = paren[1].trim();
+  }
+  if (!speakerName) {
+    if (sourceKey === 'tdv') speakerName = 'Seyfullah Kartal';
+    else if (sourceKey === 'dib') speakerName = 'Mehmet Emin Ay';
+  }
+
+  return {
+    sourceKey,
+    mealId,
+    label,
+    shortTag,
+    speakerName,
+  };
+}
+
+/**
+ * Ekranda gösterilen meal kutusunun o an seslendirilen meal kaynağıyla birebir eşleşip eşleşmediğini döndürür.
+ */
+export function isDisplayedMealMatchingAudio(params: {
+  displayedMealId: string;
+  activePhase: 'besmele' | 'ar' | 'meal' | null;
+  activeSourceKey: string | null;
+  manifest: ManifestData | null;
+}): boolean {
+  if (params.activePhase !== 'meal') return false;
+  const spoken = resolveSpokenMealInfo(params.activeSourceKey, params.manifest);
+  if (!spoken) return false;
+  return spoken.mealId === params.displayedMealId;
+}

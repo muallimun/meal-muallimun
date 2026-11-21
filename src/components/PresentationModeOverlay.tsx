@@ -15,6 +15,10 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import {
+  isDisplayedMealMatchingAudio,
+  resolveSpokenMealInfo,
+} from '../config/mealsConfig';
 import { findReciterById } from '../config/recitersConfig';
 import { useActiveMeals } from '../hooks/useActiveMeals';
 import { audioQueueService } from '../services/audioQueueService';
@@ -135,7 +139,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     () => (isOpen ? Array.from(new Set(verses.map((v) => v.surah))) : []),
     [isOpen, verses],
   );
-  const { primaryMeal, getPrimaryVerse } = useActiveMeals(visibleSurahNos);
+  const { primaryMeal, secondaryMeal, isDual, getPrimaryVerse, getSecondaryVerse } =
+    useActiveMeals(visibleSurahNos);
 
   const activeReciter = useMemo(
     () => findReciterById(audioPrefs.arabicReciterId, manifest),
@@ -278,8 +283,11 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
   const surahMeta = displayedVerse ? surahMap.get(displayedVerse.surah) : undefined;
   const resolvedPrimaryMealVerse = displayedVerse ? getPrimaryVerse(displayedVerse) : null;
+  const resolvedSecondaryMealVerse =
+    displayedVerse && isDual ? getSecondaryVerse(displayedVerse) : null;
   const mealText =
     resolvedPrimaryMealVerse?.t || displayedVerse?.m1?.t || displayedVerse?.m2?.t || '';
+  const secondaryMealText = resolvedSecondaryMealVerse?.t || '';
   const arabicText = displayedVerse?.ar.t || '';
   const showBesmele = Boolean(
     displayedVerse &&
@@ -395,7 +403,32 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const isBesmelePhase = audioState.activePhase === 'besmele';
   const isBesmeleHighlighted = isAudioActiveOnVerse && isBesmelePhase;
   const isArabicHighlighted = isAudioActiveOnVerse && audioState.activePhase === 'ar';
-  const isMealHighlighted = isAudioActiveOnVerse && audioState.activePhase === 'meal';
+  const isMealAudioFlowActive =
+    isAudioActiveOnVerse &&
+    (audioState.activePhase === 'meal' ||
+      audioPrefs.mode === 'meal' ||
+      audioPrefs.mode === 'ar_then_meal');
+  const activeSpokenMeal = resolveSpokenMealInfo(
+    audioState.activePhase === 'meal' ? audioState.activeSourceKey : audioPrefs.mealAudioSource,
+    manifest,
+  );
+  const isPrimaryMealHighlighted =
+    isAudioActiveOnVerse &&
+    isDisplayedMealMatchingAudio({
+      displayedMealId: primaryMeal.id,
+      activePhase: audioState.activePhase,
+      activeSourceKey: audioState.activeSourceKey,
+      manifest,
+    });
+  const isSecondaryMealHighlighted =
+    isAudioActiveOnVerse &&
+    isDual &&
+    isDisplayedMealMatchingAudio({
+      displayedMealId: secondaryMeal.id,
+      activePhase: audioState.activePhase,
+      activeSourceKey: audioState.activeSourceKey,
+      manifest,
+    });
   const besmeleTrText = primaryMeal.id === 'm2' ? besmele.dib : besmele.tdv;
 
   const currentIdx = displayedVerse ? verses.findIndex((v) => v.id === displayedVerse.id) : -1;
@@ -801,7 +834,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     {isBesmelePhase
                       ? 'Besmele okunuyor'
                       : audioState.activePhase === 'meal'
-                        ? 'Sesli Meal akıyor'
+                        ? `Ses: ${activeSpokenMeal?.label ?? 'Sesli Meal'}`
                         : 'Arapça Tilavet akıyor'}
                   </span>
                 )}
@@ -912,33 +945,91 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               />
             )}
 
-            {/* Türkçe Meal */}
+            {/* Türkçe Meal (Tek veya Çift Meal — Yalnızca Sesle Eşleşen Meal Vurgulanır) */}
             {(contentMode === 'both' || contentMode === 'meal') && (
               <div
-                className={`w-full max-w-4xl mx-auto px-4 py-2.5 rounded-2xl border transition-all duration-200 ${
-                  isBesmeleHighlighted ? 'opacity-70' : 'opacity-100'
-                }`}
-                style={{
-                  backgroundColor: isMealHighlighted ? palette.accentSoft : 'transparent',
-                  borderColor: isMealHighlighted ? palette.accent : 'transparent',
-                }}
+                className={`w-full max-w-4xl mx-auto ${
+                  isDual && secondaryMealText
+                    ? 'grid grid-cols-1 md:grid-cols-2 gap-3 text-left'
+                    : ''
+                } ${isBesmeleHighlighted ? 'opacity-70' : 'opacity-100'}`}
               >
-                <p
-                  className="turkish-reading font-medium text-center"
+                <div
+                  className="px-4 py-2.5 rounded-2xl border transition-all duration-200"
                   style={{
-                    fontSize: fontMetrics.trSize,
-                    lineHeight: fontMetrics.trLine,
-                    color: palette.text,
+                    backgroundColor: isPrimaryMealHighlighted ? palette.accentSoft : 'transparent',
+                    borderColor: isPrimaryMealHighlighted
+                      ? palette.accent
+                      : isDual && secondaryMealText
+                        ? palette.border
+                        : 'transparent',
                   }}
                 >
-                  {mealText}
-                </p>
-                <p
-                  className="mt-2.5 text-xs sm:text-sm font-semibold"
-                  style={{ color: palette.muted }}
-                >
-                  {primaryMeal.label}
-                </p>
+                  <p
+                    className={`turkish-reading font-medium ${
+                      isDual && secondaryMealText ? 'text-left' : 'text-center'
+                    }`}
+                    style={{
+                      fontSize:
+                        isDual && secondaryMealText
+                          ? `${Math.max(14, Math.round(parseInt(fontMetrics.trSize, 10) * 0.84))}px`
+                          : fontMetrics.trSize,
+                      lineHeight: fontMetrics.trLine,
+                      color: palette.text,
+                    }}
+                  >
+                    {mealText}
+                  </p>
+                  <p
+                    className={`mt-2.5 text-xs sm:text-sm font-semibold ${
+                      isDual && secondaryMealText ? 'text-left' : 'text-center'
+                    }`}
+                    style={{ color: palette.muted }}
+                  >
+                    <span>{primaryMeal.label}</span>
+                    {isMealAudioFlowActive &&
+                      activeSpokenMeal &&
+                      activeSpokenMeal.mealId !== primaryMeal.id &&
+                      (!isDual || activeSpokenMeal.mealId !== secondaryMeal.id) && (
+                        <span className="opacity-80 font-normal">
+                          {' '}
+                          · (Seslendirilen: {activeSpokenMeal.label})
+                        </span>
+                      )}
+                  </p>
+                </div>
+
+                {isDual && secondaryMealText && (
+                  <div
+                    className="px-4 py-2.5 rounded-2xl border transition-all duration-200"
+                    style={{
+                      backgroundColor: isSecondaryMealHighlighted
+                        ? palette.accentSoft
+                        : 'transparent',
+                      borderColor: isSecondaryMealHighlighted ? palette.accent : palette.border,
+                    }}
+                  >
+                    <p
+                      className="turkish-reading font-medium text-left"
+                      style={{
+                        fontSize: `${Math.max(14, Math.round(parseInt(fontMetrics.trSize, 10) * 0.84))}px`,
+                        lineHeight: fontMetrics.trLine,
+                        color: palette.text,
+                      }}
+                    >
+                      {secondaryMealText}
+                    </p>
+                    <p
+                      className="mt-2.5 text-xs sm:text-sm font-semibold text-left"
+                      style={{ color: palette.muted }}
+                    >
+                      <span>{secondaryMeal.label}</span>
+                      {isSecondaryMealHighlighted && activeSpokenMeal && (
+                        <span className="opacity-85 font-normal"> · (Seslendirilen)</span>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

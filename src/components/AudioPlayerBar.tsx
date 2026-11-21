@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { getDynamicMealAudioSources } from '../config/assetsConfig';
-import { findMealById } from '../config/mealsConfig';
+import { findMealById, resolveSpokenMealInfo } from '../config/mealsConfig';
 import { findReciterById } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { sfxService } from '../services/sfxService';
@@ -125,13 +125,29 @@ export const AudioPlayerBar: React.FC = () => {
         : ''
       : '';
 
+  const spokenMealForBar = resolveSpokenMealInfo(
+    audioState.activePhase === 'meal' ? audioState.activeSourceKey : audioPrefs.mealAudioSource,
+    manifest,
+  );
+  const spokenMealDisplay = spokenMealForBar
+    ? spokenMealForBar.speakerName
+      ? `${spokenMealForBar.shortTag} (${spokenMealForBar.speakerName})`
+      : spokenMealForBar.shortTag
+    : activeMealAudioSource?.shortLabel ?? 'TDV';
+
   const compactSubtitle = audioState.errorMessage
     ? audioState.errorMessage
     : audioState.activePhase === 'meal'
-      ? `${subtitlePrefix}Sesli Meal · ${resolvedReciterLabel}`
+      ? `${subtitlePrefix}Sesli Meal: ${spokenMealDisplay}`
       : audioState.activePhase === 'besmele'
-        ? `${subtitlePrefix}Besmele · ${resolvedReciterLabel}`
-        : `${subtitlePrefix}${resolvedReciterLabel}`;
+        ? `${subtitlePrefix}Besmele · ${resolvedReciterLabel}${
+            audioPrefs.mode === 'ar_then_meal' && spokenMealForBar
+              ? ` · Meal: ${spokenMealForBar.shortTag}`
+              : ''
+          }`
+        : audioPrefs.mode === 'ar_then_meal' && spokenMealForBar
+          ? `${subtitlePrefix}${resolvedReciterLabel} · Sesli Meal: ${spokenMealForBar.shortTag}`
+          : `${subtitlePrefix}${resolvedReciterLabel}`;
 
   const cycleRate = () => {
     sfxService.play('click');

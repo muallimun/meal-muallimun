@@ -757,66 +757,6 @@ export const StudyPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Orta Grup: Moda Duyarlı Tek Düzen Kontrolü (Mushaf: 4 seçenek | Kartlar/Kitap: 3 seçenek) */}
-        <div
-          className="flex items-center p-0.5 rounded-xl shrink-0"
-          style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-        >
-          {viewMode === 'mushaf'
-            ? (
-                [
-                  { id: 'single', label: 'Tek Sayfa' },
-                  { id: 'double_mushaf', label: '2 Sayfa' },
-                  { id: 'double_meal', label: 'Mushaf + Meal' },
-                  { id: 'meal_only', label: 'Sadece Meal' },
-                ] as const
-              ).map((opt) => {
-                const active = studyPrefs.pageLayout === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => handleChangePageLayout(opt.id)}
-                    className="h-8 px-2 xl:px-2.5 rounded-lg text-[11px] xl:text-xs font-bold cursor-pointer whitespace-nowrap transition-colors"
-                    style={{
-                      backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                      color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })
-            : (
-                [
-                  { id: 'interleaved', label: 'AR + Meal' },
-                  { id: 'ar_only', label: 'Sadece AR' },
-                  { id: 'meal_only', label: 'Sadece Meal' },
-                ] as { id: BookContentMode; label: string }[]
-              ).map((opt) => {
-                const active = studyPrefs.bookContentMode === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      updateStudyPrefs({ bookContentMode: opt.id });
-                    }}
-                    className="h-8 px-2 xl:px-2.5 rounded-lg text-[11px] xl:text-xs font-bold cursor-pointer whitespace-nowrap transition-colors"
-                    style={{
-                      backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                      color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-        </div>
-
         {/* Sağ Grup: Tek Meal Seçici · Görünüm ▾ Popover · 🎧 Dinle · 📺 Sunum · 🏆 Test */}
         <div className="flex items-center gap-1 xl:gap-1.5 shrink-0">
           {/* Tek Meal Seçici (24 Meal + Tek/Çift Meal anahtarı modal içinde) */}
@@ -824,7 +764,7 @@ export const StudyPage: React.FC = () => {
             type="button"
             onClick={() => openMealSelector('primary')}
             title={`Aktif Meal: ${primaryMealDef.label}${isDualMeal ? ` + ${secondaryMealDef.label}` : ''}`}
-            className="h-8 px-2 xl:px-2.5 rounded-xl border text-[11px] xl:text-xs font-bold flex items-center gap-1 cursor-pointer max-w-[115px] xl:max-w-[155px]"
+            className="h-8 px-2 xl:px-2.5 rounded-xl border text-[11px] xl:text-xs font-bold flex items-center gap-1 cursor-pointer max-w-[135px] xl:max-w-[175px]"
             style={{
               backgroundColor: 'var(--brand-primary-soft)',
               borderColor: 'var(--brand-primary)',
@@ -836,40 +776,204 @@ export const StudyPage: React.FC = () => {
             <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-75" />
           </button>
 
-          {/* Görünüm ▾ Yüzen Popover (Sayfayı Aşağı İtmez!) */}
-          <div ref={viewPopoverRef} className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                setIsViewPopoverOpen((v) => !v);
-              }}
-              aria-expanded={isViewPopoverOpen}
-              title="Yazı Boyutu, Arapça Yazı Tipi ve Tema Ayarları"
-              className="h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors"
-              style={{
-                backgroundColor: isViewPopoverOpen
-                  ? 'var(--brand-primary-soft)'
-                  : 'var(--bg-surface-soft)',
-                borderColor: isViewPopoverOpen ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                color: isViewPopoverOpen ? 'var(--brand-primary-text)' : 'var(--text-primary)',
-              }}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden xl:inline">Görünüm</span>
-              <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-70" />
-            </button>
+          {/* Görünüm ▾ Yüzen Popover (Düzen, Yazı Boyutu, Yazı Tipi ve Tema) */}
+          {(() => {
+            const activeLayoutSummary =
+              viewMode === 'mushaf'
+                ? studyPrefs.pageLayout === 'double_mushaf'
+                  ? '2 Sayfa'
+                  : studyPrefs.pageLayout === 'double_meal'
+                    ? 'Mushaf + Meal'
+                    : studyPrefs.pageLayout === 'meal_only'
+                      ? 'Sadece Meal'
+                      : 'Tek Sayfa'
+                : (() => {
+                    const contentLabel =
+                      studyPrefs.bookContentMode === 'ar_only'
+                        ? 'Sadece AR'
+                        : studyPrefs.bookContentMode === 'meal_only'
+                          ? 'Sadece Meal'
+                          : 'AR + Meal';
+                    if (viewMode === 'book') {
+                      return `${contentLabel} · ${studyPrefs.pageLayout === 'single' ? 'Tek' : 'Çift'}`;
+                    }
+                    return contentLabel;
+                  })();
 
-            {isViewPopoverOpen && (
-              <div
-                className="absolute right-0 top-10 z-40 w-[296px] rounded-2xl border shadow-2xl p-3.5 space-y-3.5"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-strong)',
-                }}
-              >
-                {/* Hızlı Yazı Boyutu (Arapça & Meal) */}
-                <div className="space-y-2">
+            return (
+              <div ref={viewPopoverRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setIsViewPopoverOpen((v) => !v);
+                  }}
+                  aria-expanded={isViewPopoverOpen}
+                  title={`Görünüm & Düzen (${activeLayoutSummary})`}
+                  className="h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
+                  style={{
+                    backgroundColor: isViewPopoverOpen
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface-soft)',
+                    borderColor: isViewPopoverOpen ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                    color: isViewPopoverOpen ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+                  }}
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                  <span>Görünüm</span>
+                  <span
+                    className="hidden 2xl:inline text-[11px] font-semibold opacity-70"
+                    style={{ color: isViewPopoverOpen ? 'var(--brand-primary-text)' : 'var(--text-muted)' }}
+                  >
+                    · {activeLayoutSummary}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                </button>
+
+                {isViewPopoverOpen && (
+                  <div
+                    className="absolute right-0 top-10 z-40 w-[316px] max-w-[calc(100vw-1.5rem)] max-h-[82vh] overflow-y-auto rounded-2xl border shadow-2xl p-3.5 space-y-3.5"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-strong)',
+                    }}
+                  >
+                    {/* 1. Moda Duyarlı Sayfa / İçerik / Sütun Düzeni */}
+                    <div className="space-y-2">
+                      <span
+                        className="block text-[11px] font-extrabold uppercase tracking-wider"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {viewMode === 'mushaf'
+                          ? 'Sayfa & İçerik Düzeni'
+                          : viewMode === 'book'
+                            ? 'İçerik & Sütun Düzeni'
+                            : 'İçerik Görünümü'}
+                      </span>
+
+                      {viewMode === 'mushaf' ? (
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(
+                            [
+                              { id: 'single', label: 'Tek Sayfa' },
+                              { id: 'double_mushaf', label: '2 Sayfa' },
+                              { id: 'double_meal', label: 'Mushaf + Meal' },
+                              { id: 'meal_only', label: 'Sadece Meal' },
+                            ] as const
+                          ).map((opt) => {
+                            const active = studyPrefs.pageLayout === opt.id;
+                            return (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => handleChangePageLayout(opt.id)}
+                                className="h-9 px-2.5 rounded-xl border text-xs font-bold cursor-pointer whitespace-nowrap transition-colors"
+                                style={{
+                                  backgroundColor: active
+                                    ? 'var(--brand-primary-soft)'
+                                    : 'var(--bg-surface-soft)',
+                                  borderColor: active
+                                    ? 'var(--brand-primary)'
+                                    : 'var(--border-subtle)',
+                                  color: active
+                                    ? 'var(--brand-primary-text)'
+                                    : 'var(--text-secondary)',
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div
+                            className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                            style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                          >
+                            {(
+                              [
+                                { id: 'interleaved', label: 'AR + Meal' },
+                                { id: 'ar_only', label: 'Sadece AR' },
+                                { id: 'meal_only', label: 'Sadece Meal' },
+                              ] as { id: BookContentMode; label: string }[]
+                            ).map((opt) => {
+                              const active = studyPrefs.bookContentMode === opt.id;
+                              return (
+                                <button
+                                  key={opt.id}
+                                  type="button"
+                                  onClick={() => {
+                                    sfxService.play('click');
+                                    updateStudyPrefs({ bookContentMode: opt.id });
+                                  }}
+                                  className="h-8 px-1.5 rounded-lg text-[11px] font-bold cursor-pointer whitespace-nowrap transition-colors"
+                                  style={{
+                                    backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                                    color: active
+                                      ? 'var(--brand-primary-text)'
+                                      : 'var(--text-secondary)',
+                                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                                  }}
+                                >
+                                  {opt.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {viewMode === 'book' && (
+                            <div
+                              className="grid grid-cols-2 gap-1 p-1 rounded-xl"
+                              style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                            >
+                              {(
+                                [
+                                  { id: 'single', label: 'Tek Sütun' },
+                                  { id: 'double_mushaf', label: 'Çift Sütun' },
+                                ] as const
+                              ).map((colOpt) => {
+                                const active =
+                                  colOpt.id === 'single'
+                                    ? studyPrefs.pageLayout === 'single'
+                                    : studyPrefs.pageLayout !== 'single';
+                                return (
+                                  <button
+                                    key={colOpt.id}
+                                    type="button"
+                                    onClick={() => {
+                                      sfxService.play('click');
+                                      updateStudyPrefs({ pageLayout: colOpt.id });
+                                    }}
+                                    className="h-8 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
+                                    style={{
+                                      backgroundColor: active
+                                        ? 'var(--bg-surface)'
+                                        : 'transparent',
+                                      color: active
+                                        ? 'var(--brand-primary-text)'
+                                        : 'var(--text-secondary)',
+                                      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                                    }}
+                                  >
+                                    {colOpt.id === 'double_mushaf' && (
+                                      <Columns2 className="w-3.5 h-3.5 shrink-0" />
+                                    )}
+                                    <span>{colOpt.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Hızlı Yazı Boyutu (Arapça & Meal) */}
+                    <div
+                      className="pt-3 border-t space-y-2"
+                      style={{ borderColor: 'var(--border-subtle)' }}
+                    >
                   <span
                     className="block text-[11px] font-extrabold uppercase tracking-wider"
                     style={{ color: 'var(--text-muted)' }}
@@ -1045,36 +1149,11 @@ export const StudyPage: React.FC = () => {
                     })}
                   </div>
                 </div>
-
-                {/* Kitap Modu Sütun Düzeni */}
-                {viewMode === 'book' && (
-                  <div
-                    className="pt-3 border-t"
-                    style={{ borderColor: 'var(--border-subtle)' }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        updateStudyPrefs({
-                          pageLayout: studyPrefs.pageLayout === 'single' ? 'double_mushaf' : 'single',
-                        });
-                      }}
-                      className="w-full h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
-                      style={{
-                        backgroundColor: 'var(--bg-surface-soft)',
-                        borderColor: 'var(--border-subtle)',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      <Columns2 className="w-3.5 h-3.5" />
-                      <span>{studyPrefs.pageLayout === 'single' ? 'Çift Sütun' : 'Tek Sütun'}</span>
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
+            );
+          })()}
 
           {/* 🎧 Dinle | ▾ (Bölünmüş Dinleme & Çalma Listesi Butonu) */}
           <div

@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   BookOpen,
   Bookmark,
@@ -15,8 +22,10 @@ import {
   Sparkles,
   Star,
   Trash2,
+  Volume2,
 } from 'lucide-react';
 import { BOOKMARK_COLOR_STYLES } from '../../components/PageBookmarksDrawer';
+import { resolveSpokenMealInfo } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { audioQueueService } from '../../services/audioQueueService';
 import {
@@ -336,6 +345,24 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     meta,
     audioPrefs,
   } = useAppStore();
+
+  const audioState = useSyncExternalStore(
+    audioQueueService.subscribe,
+    audioQueueService.getSnapshot,
+  );
+  const isMealAudioFlowActive =
+    (audioState.status === 'playing' || audioState.status === 'loading') &&
+    (audioState.activePhase === 'meal' ||
+      audioPrefs.mode === 'meal' ||
+      audioPrefs.mode === 'ar_then_meal');
+  const activeSpokenMeal = useMemo(
+    () =>
+      resolveSpokenMealInfo(
+        audioState.activePhase === 'meal' ? audioState.activeSourceKey : audioPrefs.mealAudioSource,
+        manifest,
+      ),
+    [audioState.activePhase, audioState.activeSourceKey, audioPrefs.mealAudioSource, manifest],
+  );
 
   const [openRibbonPage, setOpenRibbonPage] = useState<number | null>(null);
   const [isVerseDrawerOpen, setIsVerseDrawerOpen] = useState<boolean>(false);
@@ -1470,6 +1497,24 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                         <span>Tilâvet Secdesi</span>
                                       </span>
                                     )}
+
+                                    {isGroupPlaying &&
+                                      isMealAudioFlowActive &&
+                                      activeSpokenMeal &&
+                                      activeSpokenMeal.mealId !== primaryMeal.id &&
+                                      (!isDual || activeSpokenMeal.mealId !== secondaryMeal.id) && (
+                                        <span
+                                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-semibold whitespace-nowrap"
+                                          style={{
+                                            backgroundColor: 'var(--bg-surface)',
+                                            borderColor: 'var(--border-subtle)',
+                                            color: 'var(--text-muted)',
+                                          }}
+                                        >
+                                          <Volume2 className="w-3 h-3 shrink-0" />
+                                          <span>Ses: {activeSpokenMeal.label}</span>
+                                        </span>
+                                      )}
                                   </div>
 
                                   <div

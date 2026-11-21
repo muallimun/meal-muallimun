@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import {
   BookMarked,
   BookOpen,
@@ -17,7 +17,7 @@ import {
   Star,
   Volume2,
 } from 'lucide-react';
-import { findMealById } from '../../config/mealsConfig';
+import { findMealById, resolveSpokenMealInfo } from '../../config/mealsConfig';
 import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
@@ -83,6 +83,24 @@ export const VerseCard: React.FC<VerseCardProps> = ({
     audioPrefs,
   } = useAppStore();
   const surahNameTr = surahMeta.nameTr;
+  const audioState = useSyncExternalStore(
+    audioQueueService.subscribe,
+    audioQueueService.getSnapshot,
+  );
+  const isMealAudioFlowActive =
+    (audioState.status === 'playing' || audioState.status === 'loading') &&
+    (audioState.activePhase === 'meal' ||
+      audioPrefs.mode === 'meal' ||
+      audioPrefs.mode === 'ar_then_meal');
+  const activeSpokenMeal = useMemo(
+    () =>
+      resolveSpokenMealInfo(
+        audioState.activePhase === 'meal' ? audioState.activeSourceKey : audioPrefs.mealAudioSource,
+        manifest,
+      ),
+    [audioState.activePhase, audioState.activeSourceKey, audioPrefs.mealAudioSource, manifest],
+  );
+
   const [localWordOverride, setLocalWordOverride] = useState<boolean | null>(null);
   const [showFootnotes, setShowFootnotes] = useState(false);
   const [expandedMergedPrimary, setExpandedMergedPrimary] = useState(false);
@@ -146,6 +164,8 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 
   const renderMealBlock = (
     meal: MealVerse | null,
+    mealId: string,
+    isPrimaryBlock: boolean,
     label: string,
     accentColor: string,
     expanded: boolean,
@@ -155,6 +175,19 @@ export const VerseCard: React.FC<VerseCardProps> = ({
     if (!meal) return null;
     const mg = meal.mg;
     const isMergedContinuation = Boolean(mg && verse.ayah > mg[0]);
+    const showSpokenMismatch =
+      isPrimaryBlock &&
+      isPlayingThisAyah &&
+      isMealAudioFlowActive &&
+      Boolean(activeSpokenMeal) &&
+      activeSpokenMeal!.mealId !== mealId &&
+      (!resolvedIsDual || resolvedSecondaryMeal.id !== activeSpokenMeal!.mealId);
+    const showSpokenMatchSecondary =
+      !isPrimaryBlock &&
+      isPlayingThisAyah &&
+      isMealAudioFlowActive &&
+      Boolean(activeSpokenMeal) &&
+      activeSpokenMeal!.mealId === mealId;
 
     return (
       <div
@@ -162,9 +195,37 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         style={withTopBorder ? { borderColor: 'var(--border-subtle)' } : undefined}
       >
         <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-          <span className="text-xs font-bold" style={{ color: accentColor }}>
-            {label}
-          </span>
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span className="text-xs font-bold" style={{ color: accentColor }}>
+              {label}
+            </span>
+            {showSpokenMismatch && activeSpokenMeal && (
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-semibold whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <Volume2 className="w-3 h-3 shrink-0" />
+                <span>Ses: {activeSpokenMeal.label}</span>
+              </span>
+            )}
+            {showSpokenMatchSecondary && activeSpokenMeal && (
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-semibold whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  borderColor: 'var(--brand-primary)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <Volume2 className="w-3 h-3 shrink-0" />
+                <span>Ses: {activeSpokenMeal.label}</span>
+              </span>
+            )}
+          </div>
           {mg && (
             <span
               className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
@@ -590,6 +651,8 @@ export const VerseCard: React.FC<VerseCardProps> = ({
           {resolvedPrimaryVerse ? (
             renderMealBlock(
               resolvedPrimaryVerse,
+              resolvedPrimaryMeal.id,
+              true,
               resolvedPrimaryMeal.label,
               'var(--brand-primary-text)',
               expandedMergedPrimary,
@@ -609,6 +672,8 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             (resolvedSecondaryVerse ? (
               renderMealBlock(
                 resolvedSecondaryVerse,
+                resolvedSecondaryMeal.id,
+                false,
                 resolvedSecondaryMeal.label,
                 'var(--brand-accent-text)',
                 expandedMergedSecondary,

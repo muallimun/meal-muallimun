@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import {
   BookMarked,
   BookOpen,
@@ -20,6 +20,7 @@ import {
   Star,
   Volume2,
 } from 'lucide-react';
+import { resolveSpokenMealInfo } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
@@ -99,8 +100,27 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   const [openFootnoteAyahId, setOpenFootnoteAyahId] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
+  const audioState = useSyncExternalStore(
+    audioQueueService.subscribe,
+    audioQueueService.getSnapshot,
+  );
+  const isMealAudioFlowActive =
+    (audioState.status === 'playing' || audioState.status === 'loading') &&
+    (audioState.activePhase === 'meal' ||
+      audioPrefs.mode === 'meal' ||
+      audioPrefs.mode === 'ar_then_meal');
+  const activeSpokenMeal = useMemo(
+    () =>
+      resolveSpokenMealInfo(
+        audioState.activePhase === 'meal' ? audioState.activeSourceKey : audioPrefs.mealAudioSource,
+        manifest,
+      ),
+    [audioState.activePhase, audioState.activeSourceKey, audioPrefs.mealAudioSource, manifest],
+  );
+
   const bookMode: BookContentMode = studyPrefs.bookContentMode;
   const isDoubleBookLayout = studyPrefs.pageLayout !== 'single';
+  const useRtlDoubleGrid = isDoubleBookLayout && bookMode !== 'meal_only';
   const isHatimOnSurahStart = studyProgress.pageBookmarks.some(
     (b) => b.isHatim && b.page === bundle.surahMeta.pageStart,
   );
@@ -735,6 +755,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           ) : (
             /* 2. SADECE TÜRKÇE MEAL veya 3. ARAPÇA + MEAL KİTAP AKIŞI */
             <div
+              dir={useRtlDoubleGrid ? 'rtl' : 'ltr'}
               className={
                 isDoubleBookLayout
                   ? 'grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8 gap-y-2'
@@ -765,7 +786,8 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   <section
                     key={verse.id}
                     id={`book-ayah-${verse.id}`}
-                    className={`py-4 sm:py-5 transition-all rounded-2xl px-2.5 sm:px-3.5 ${
+                    dir="ltr"
+                    className={`text-left py-4 sm:py-5 transition-all rounded-2xl px-2.5 sm:px-3.5 ${
                       isDoubleBookLayout
                         ? 'border-b border-[var(--border-subtle)]/70'
                         : 'first:pt-1 last:pb-1 -mx-2.5 sm:-mx-3.5'
@@ -854,32 +876,77 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 
                     {/* Türkçe Meal Bloğu */}
                     <div className="space-y-2.5">
-                      <div className="space-y-1">
-                        {(isDual || primaryMeal.id !== 'm1') && (
-                          <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-[var(--brand-primary-text)]">
-                            {primaryMeal.label}
-                          </span>
-                        )}
-                        {primaryVerse?.t ? (
-                          <p
-                            className="turkish-reading text-[var(--text-primary)]"
-                            style={{ fontSize: `${settings.turkishFontSize}px` }}
-                          >
-                            {primaryVerse.t}
-                          </p>
-                        ) : isLoadingExtra ? (
-                          <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
-                        ) : null}
-                      </div>
+                      {(() => {
+                        const showSpokenMismatchOnPrimary =
+                          isPlaying &&
+                          isMealAudioFlowActive &&
+                          Boolean(activeSpokenMeal) &&
+                          activeSpokenMeal!.mealId !== primaryMeal.id &&
+                          (!isDual || activeSpokenMeal!.mealId !== secondaryMeal.id);
+                        const showPrimaryHeader =
+                          isDual || primaryMeal.id !== 'm1' || showSpokenMismatchOnPrimary;
+                        return (
+                          <div className="space-y-1">
+                            {showPrimaryHeader && (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-[var(--brand-primary-text)]">
+                                  {primaryMeal.label}
+                                </span>
+                                {showSpokenMismatchOnPrimary && activeSpokenMeal && (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-semibold whitespace-nowrap"
+                                    style={{
+                                      backgroundColor: 'var(--bg-surface-soft)',
+                                      borderColor: 'var(--border-subtle)',
+                                      color: 'var(--text-muted)',
+                                    }}
+                                  >
+                                    <Volume2 className="w-3 h-3 shrink-0" />
+                                    <span>Ses: {activeSpokenMeal.label}</span>
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {primaryVerse?.t ? (
+                              <p
+                                className="turkish-reading text-left text-[var(--text-primary)]"
+                                style={{ fontSize: `${settings.turkishFontSize}px` }}
+                              >
+                                {primaryVerse.t}
+                              </p>
+                            ) : isLoadingExtra ? (
+                              <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                            ) : null}
+                          </div>
+                        );
+                      })()}
 
                       {isDual && (
                         <div className="space-y-1 pt-2 border-t border-dashed border-[var(--border-subtle)]">
-                          <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-[var(--brand-accent-text)]">
-                            {secondaryMeal.label}
-                          </span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="inline-block text-[11px] font-extrabold uppercase tracking-wider text-[var(--brand-accent-text)]">
+                              {secondaryMeal.label}
+                            </span>
+                            {isPlaying &&
+                              isMealAudioFlowActive &&
+                              activeSpokenMeal &&
+                              activeSpokenMeal.mealId === secondaryMeal.id && (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-semibold whitespace-nowrap"
+                                  style={{
+                                    backgroundColor: 'var(--brand-primary-soft)',
+                                    borderColor: 'var(--brand-primary)',
+                                    color: 'var(--brand-primary-text)',
+                                  }}
+                                >
+                                  <Volume2 className="w-3 h-3 shrink-0" />
+                                  <span>Ses: {activeSpokenMeal.label}</span>
+                                </span>
+                              )}
+                          </div>
                           {secondaryVerse?.t ? (
                             <p
-                              className="turkish-reading text-[var(--text-primary)]"
+                              className="turkish-reading text-left text-[var(--text-primary)]"
                               style={{ fontSize: `${settings.turkishFontSize}px` }}
                             >
                               {secondaryVerse.t}

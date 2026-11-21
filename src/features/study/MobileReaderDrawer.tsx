@@ -318,21 +318,26 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               </div>
             </div>
 
-            {/* İçerik: Sadece AR | AR + Meal | Sadece Meal (Mushaf dahil tüm modlarda aktif) */}
+            {/* İçerik & Sayfa Düzeni (Mushaf: Tek Sayfa / Mushaf + Meal / Sadece Meal | Kitap & Kartlar: AR + Meal / Sadece AR / Sadece Meal) */}
             <div className="space-y-1">
               <span className="text-[11px] font-bold block" style={{ color: 'var(--text-muted)' }}>
-                {viewMode === 'mushaf' ? 'Mushaf Sayfa İçeriği' : 'İçerik Görünümü'}
+                {viewMode === 'mushaf' ? 'Mushaf Sayfa Düzeni' : 'İçerik Görünümü'}
               </span>
               <div
                 className="grid grid-cols-3 gap-1 p-1 rounded-xl"
                 style={{ backgroundColor: 'var(--bg-surface-soft)' }}
               >
-                {(
-                  [
-                    { id: 'ar_only', label: 'Sadece AR' },
-                    { id: 'interleaved', label: 'AR + Meal' },
-                    { id: 'meal_only', label: 'Sadece Meal' },
-                  ] as { id: BookContentMode; label: string }[]
+                {(viewMode === 'mushaf'
+                  ? ([
+                      { id: 'ar_only', label: 'Tek Sayfa' },
+                      { id: 'interleaved', label: 'Mushaf + Meal' },
+                      { id: 'meal_only', label: 'Sadece Meal' },
+                    ] as { id: BookContentMode; label: string }[])
+                  : ([
+                      { id: 'interleaved', label: 'AR + Meal' },
+                      { id: 'ar_only', label: 'Sadece AR' },
+                      { id: 'meal_only', label: 'Sadece Meal' },
+                    ] as { id: BookContentMode; label: string }[])
                 ).map((opt) => {
                   const active = contentMode === opt.id;
                   return (
@@ -343,7 +348,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                         sfxService.play('click');
                         onChangeContentMode(opt.id);
                       }}
-                      className="min-h-[36px] px-2 rounded-lg text-xs font-bold cursor-pointer whitespace-nowrap"
+                      className="min-h-[36px] px-1.5 rounded-lg text-[11px] sm:text-xs font-bold cursor-pointer whitespace-nowrap truncate"
                       style={{
                         backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                         color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',

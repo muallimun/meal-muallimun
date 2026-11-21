@@ -1,4 +1,12 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   BookMarked,
   BookOpen,
@@ -20,6 +28,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { resolveSpokenMealInfo } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
@@ -102,6 +111,24 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
     getPrimaryVerse,
     getSecondaryVerse,
   } = useActiveMeals(activeSurahNos);
+
+  const audioState = useSyncExternalStore(
+    audioQueueService.subscribe,
+    audioQueueService.getSnapshot,
+  );
+  const isMealAudioFlowActive =
+    (audioState.status === 'playing' || audioState.status === 'loading') &&
+    (audioState.activePhase === 'meal' ||
+      audioPrefs.mode === 'meal' ||
+      audioPrefs.mode === 'ar_then_meal');
+  const activeSpokenMeal = useMemo(
+    () =>
+      resolveSpokenMealInfo(
+        audioState.activePhase === 'meal' ? audioState.activeSourceKey : audioPrefs.mealAudioSource,
+        manifest,
+      ),
+    [audioState.activePhase, audioState.activeSourceKey, audioPrefs.mealAudioSource, manifest],
+  );
 
   const panelRef = useRef<HTMLDivElement | null>(null);
   const hasDraggedRef = useRef(false);
@@ -527,12 +554,31 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
         >
           <div>
             <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
-              <span
-                className="text-xs font-extrabold"
-                style={{ color: 'var(--brand-primary-text)' }}
-              >
-                {primaryMeal.label}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                <span
+                  className="text-xs font-extrabold"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  {primaryMeal.label}
+                </span>
+                {isPlaying &&
+                  isMealAudioFlowActive &&
+                  activeSpokenMeal &&
+                  activeSpokenMeal.mealId !== primaryMeal.id &&
+                  (!isDual || activeSpokenMeal.mealId !== secondaryMeal.id) && (
+                    <span
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-semibold whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <Volume2 className="w-3 h-3 shrink-0" />
+                      <span>Ses: {activeSpokenMeal.label}</span>
+                    </span>
+                  )}
+              </div>
               {primaryVerse?.mg && (
                 <span
                   className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
@@ -571,12 +617,30 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               style={{ borderColor: 'var(--border-subtle)' }}
             >
               <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1">
-                <span
-                  className="text-xs font-extrabold"
-                  style={{ color: 'var(--brand-accent-text)' }}
-                >
-                  {secondaryMeal.label}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                  <span
+                    className="text-xs font-extrabold"
+                    style={{ color: 'var(--brand-accent-text)' }}
+                  >
+                    {secondaryMeal.label}
+                  </span>
+                  {isPlaying &&
+                    isMealAudioFlowActive &&
+                    activeSpokenMeal &&
+                    activeSpokenMeal.mealId === secondaryMeal.id && (
+                      <span
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[11px] font-semibold whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'var(--brand-primary-soft)',
+                          borderColor: 'var(--brand-primary)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <Volume2 className="w-3 h-3 shrink-0" />
+                        <span>Ses: {activeSpokenMeal.label}</span>
+                      </span>
+                    )}
+                </div>
                 {secondaryVerse?.mg && (
                   <span
                     className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md tabular-nums"
