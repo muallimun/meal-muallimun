@@ -6,7 +6,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Columns2,
   Copy,
   FileText,
   Headphones,
@@ -16,7 +15,6 @@ import {
   Play,
   Scale,
   Share2,
-  Square,
   Star,
   Volume2,
 } from 'lucide-react';
@@ -42,6 +40,8 @@ interface BookModeViewProps {
   onOpenSurahInfo: (surah: SurahMeta) => void;
   onSelectPrevSurah: () => void;
   onSelectNextSurah: () => void;
+  onOpenLocationPicker?: () => void;
+  onToggleMobileImmersive?: () => void;
 }
 
 const ARABIC_INDIC = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -63,12 +63,13 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   onOpenSurahInfo,
   onSelectPrevSurah,
   onSelectNextSurah,
+  onOpenLocationPicker,
+  onToggleMobileImmersive,
 }) => {
   const {
     settings,
     studyPrefs,
     studyProgress,
-    updateStudyPrefs,
     toggleBookmarkAyah,
     moveHatimBookmark,
     openMealCompare,
@@ -273,116 +274,65 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     );
   };
 
+  const handleContainerTap = (e: React.MouseEvent<HTMLElement>) => {
+    if (!onToggleMobileImmersive || typeof window === 'undefined' || window.innerWidth >= 1024) {
+      return;
+    }
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('button, a, [role="button"], input, select')) {
+      return;
+    }
+    onToggleMobileImmersive();
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Kitap Modu İçerik Akış Seçici */}
-      <div className="surface-card rounded-2xl p-3 sm:p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 w-full sm:w-auto sm:flex-1">
-            {(
-              [
-                { id: 'interleaved', label: 'Arapça + Meal Akışı' },
-                { id: 'meal_only', label: 'Sadece Türkçe Meal' },
-                { id: 'ar_only', label: 'Sadece Arapça Metin' },
-              ] as const
-            ).map((opt) => {
-              const active = bookMode === opt.id;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    updateStudyPrefs({ bookContentMode: opt.id });
-                  }}
-                  className={`min-h-[44px] px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
-                    active
-                      ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-xs'
-                      : 'bg-[var(--bg-surface-soft)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                updateStudyPrefs({
-                  pageLayout: isDoubleBookLayout ? 'single' : 'double_mushaf',
-                });
-              }}
-              className={`hidden lg:inline-flex min-h-[42px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                isDoubleBookLayout
-                  ? 'bg-[var(--brand-primary-soft)] text-[var(--brand-primary-text)] border-[var(--brand-primary)]'
-                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--brand-primary)]'
-              }`}
-              title={
-                isDoubleBookLayout
-                  ? 'Tek sütun kitap düzenine geç'
-                  : 'Yan yana çift sayfa kitap düzenine geç'
-              }
-            >
-              {isDoubleBookLayout ? (
-                <>
-                  <Square className="w-4 h-4" />
-                  <span>Tek Sütun</span>
-                </>
-              ) : (
-                <>
-                  <Columns2 className="w-4 h-4" />
-                  <span>Çift Sütun</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                setOnlyFavorites((v) => !v);
-              }}
-              className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border inline-flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
-                onlyFavorites
-                  ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border-[var(--brand-accent)]'
-                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--brand-accent)]'
-              }`}
-            >
-              <Star className={`w-4 h-4 ${onlyFavorites ? 'fill-current' : ''}`} />
-              <span>Favoriler ({favoriteCountInSurah})</span>
-            </button>
-          </div>
-        </div>
-
-        <p className="text-xs text-[var(--text-muted)]">
-          {bookMode === 'ar_only' &&
-            'Kesintisiz kitap sayfası düzeninde Arapça metin. İşlem yapmak istediğiniz ayete dokunun.'}
-          {bookMode === 'meal_only' &&
-            'Sade Türkçe meal kitap akışı. Sesli meal dinlerken aktif ayet otomatik vurgulanır ve ekranda ortalanır.'}
-          {bookMode === 'interleaved' &&
-            'Her Arapça ayetin hemen altında Türkçe mealinin yer aldığı tek parça kitap okuma düzeni.'}
-        </p>
-      </div>
-
-      {/* Kitap Sayfası Çerçevesi (Masaüstünde Çift Sayfa seçiliyse geniş açılım) */}
+    <div className="space-y-3" onClick={handleContainerTap}>
+      {/* Kitap Sayfası Çerçevesi (Mükerrer üst filtre kutusu kaldırıldı — doğrudan odak kitap sayfası) */}
       <article
         className={`${
           isDoubleBookLayout ? 'max-w-6xl' : 'max-w-3xl'
-        } mx-auto surface-card rounded-3xl border-2 border-[var(--border-strong)]/80 overflow-hidden shadow-md transition-all`}
+        } mx-auto surface-card rounded-2xl sm:rounded-3xl border border-[var(--border-strong)]/80 overflow-hidden shadow-md transition-all`}
       >
         {/* Kitap Serlevha Başlığı */}
-        <header className="px-5 py-4 sm:px-8 sm:py-5 border-b border-[var(--border-subtle)] bg-gradient-to-b from-[var(--brand-primary-soft)]/70 to-transparent text-center">
+        <header className="px-4 py-3.5 sm:px-8 sm:py-5 border-b border-[var(--border-subtle)] bg-gradient-to-b from-[var(--brand-primary-soft)]/70 to-transparent text-center">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[11px] font-bold text-[var(--text-secondary)]">
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                onOpenLocationPicker?.();
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[11px] font-bold text-[var(--text-secondary)] hover:border-[var(--brand-primary)] cursor-pointer"
+            >
               <BookOpen className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
-              {bundle.surahMeta.no}. Sure • {bundle.surahMeta.type}
-            </span>
+              <span>
+                {bundle.surahMeta.no}. Sure • {bundle.surahMeta.type}
+              </span>
+            </button>
 
             <div className="flex items-center gap-1.5">
+              {(favoriteCountInSurah > 0 || onlyFavorites) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setOnlyFavorites((v) => !v);
+                  }}
+                  title="Sadece favori ayetleri filtrele"
+                  className="min-h-[32px] px-2.5 py-1 rounded-lg border text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                  style={{
+                    backgroundColor: onlyFavorites
+                      ? 'var(--brand-accent-soft)'
+                      : 'var(--bg-surface)',
+                    borderColor: onlyFavorites ? 'var(--brand-accent)' : 'var(--border-subtle)',
+                    color: onlyFavorites ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
+                  }}
+                >
+                  <Star className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-current' : ''}`} />
+                  <span className="tabular-nums">{favoriteCountInSurah}</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() =>
@@ -393,7 +343,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   })
                 }
                 title="Hatim ayracını bu surenin sayfasına taşı"
-                className="min-h-[34px] px-2.5 py-1 rounded-lg border text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                className="min-h-[32px] px-2.5 py-1 rounded-lg border text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
                 style={{
                   backgroundColor: isHatimOnSurahStart
                     ? 'var(--brand-primary)'
@@ -413,24 +363,33 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenSurahInfo(bundle.surahMeta)}
-                className="min-h-[34px] px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--brand-primary-text)] hover:border-[var(--brand-primary)] inline-flex items-center gap-1 cursor-pointer"
+                className="min-h-[32px] px-2.5 py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs font-bold text-[var(--brand-primary-text)] hover:border-[var(--brand-primary)] inline-flex items-center gap-1 cursor-pointer"
               >
                 <Info className="w-3.5 h-3.5" />
-                <span>Sure Bilgisi</span>
+                <span className="hidden sm:inline">Sure Bilgisi</span>
               </button>
             </div>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--text-primary)]">
-            {bundle.surahMeta.nameTr} Suresi
-          </h2>
-          <p className="arabic-title text-xl sm:text-2xl text-[var(--brand-primary-text)] mt-1">
-            {formatSafeArabicTitle(bundle.surahMeta.nameAr)}
-          </p>
-          <p className="text-xs text-[var(--text-muted)] mt-1">
-            {bundle.surahMeta.ayahCount} Ayet • Sayfa {bundle.surahMeta.pageStart}–
-            {bundle.surahMeta.pageEnd}
-          </p>
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              onOpenLocationPicker?.();
+            }}
+            className="inline-flex flex-col items-center cursor-pointer hover:opacity-85 transition-opacity"
+          >
+            <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--text-primary)]">
+              {bundle.surahMeta.nameTr} Suresi
+            </h2>
+            <p className="arabic-title text-xl sm:text-2xl text-[var(--brand-primary-text)] mt-1">
+              {formatSafeArabicTitle(bundle.surahMeta.nameAr)}
+            </p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">
+              {bundle.surahMeta.ayahCount} Ayet • Sayfa {bundle.surahMeta.pageStart}–
+              {bundle.surahMeta.pageEnd}
+            </p>
+          </button>
 
           {bundle.hasBesmele && !onlyFavorites && (
             <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]/70">

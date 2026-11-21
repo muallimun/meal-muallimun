@@ -12,6 +12,7 @@ import { sfxService } from '../../services/sfxService';
 import type {
   AppSettings,
   BesmeleInfo,
+  BookContentMode,
   CombinedVerse,
   SurahBundle,
   SurahMeta,
@@ -26,6 +27,7 @@ interface VerseCardsViewProps {
   besmele: BesmeleInfo;
   settings: AppSettings;
   wordMode: WordMealMode;
+  contentMode?: BookContentMode;
   mealAudioFocusOnly?: boolean;
   bookmarkedSet: Set<number>;
   playingAyahId: number | null;
@@ -48,6 +50,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   besmele,
   settings,
   wordMode,
+  contentMode = 'interleaved',
   mealAudioFocusOnly = false,
   bookmarkedSet,
   playingAyahId,
@@ -443,6 +446,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                   surahMeta={surahMeta}
                   settings={settings}
                   globalWordMode={wordMode}
+                  contentMode={contentMode}
                   mealAudioFocusOnly={mealAudioFocusOnly}
                   isBookmarked={bookmarkedSet.has(verse.id)}
                   isPlayingThisAyah={playingAyahId === verse.id}

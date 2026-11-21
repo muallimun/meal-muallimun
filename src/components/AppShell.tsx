@@ -51,6 +51,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     activeTab,
     setActiveTab,
     gamification,
+    studyPrefs,
     studyProgress,
     poolStats,
     openPoolModal,
@@ -62,10 +63,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     isExamActive,
     setIsExamActive,
     isMemorizationZenActive,
+    isMobileReaderImmersive,
     isOnline,
     isSidebarCollapsed,
     toggleSidebarCollapsed,
   } = useAppStore();
+
+  const isMobilePureReader =
+    activeTab === 'reader' && (studyPrefs.viewMode === 'mushaf' || studyPrefs.viewMode === 'book');
 
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
@@ -314,9 +319,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           Sağ Ana İçerik Kabuğu (İnce h-14 Üst Çubuk + İçerik + Alt Bilgi)
           ==================================================================== */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Tüm cihazlarda ince, zarif, yüksek işlevli h-14 Üst Çubuk */}
+        {/* Tüm cihazlarda ince, zarif, yüksek işlevli h-14 Üst Çubuk (Mobilde Saf Mushaf/Kitap modunda gizlenir) */}
         <header
-          className="sticky top-0 z-30 h-14 border-b backdrop-blur-md shrink-0"
+          className={`${isMobilePureReader ? 'hidden lg:block' : ''} sticky top-0 z-30 h-14 border-b backdrop-blur-md shrink-0`}
           style={{
             backgroundColor: 'var(--bg-nav)',
             borderColor: 'var(--border-subtle)',
@@ -417,15 +422,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               )}
             </div>
 
-            {/* Orta / Sağ Hızlı Araçlar: Ara (Ctrl+K), Ayraçlar, Seri, Puan, Tam Ekran, Ayarlar */}
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Orta / Sağ Hızlı Araçlar: Mobilde marka adının kesilmemesi için sade, masaüstünde tam */}
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               {/* 1. Hızlı Arama Tetikleyicisi (Ctrl+K) */}
               <button
                 type="button"
                 onClick={openSearchModal}
                 title="Hızlı Ara (Ctrl+K)"
                 aria-label="Sure, ayet veya sayfa ara"
-                className="min-w-[38px] min-h-[38px] px-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition-colors cursor-pointer hover:border-teal-600/50"
+                className="min-w-[36px] min-h-[36px] sm:min-w-[38px] sm:min-h-[38px] px-2 sm:px-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition-colors cursor-pointer hover:border-teal-600/50"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -452,7 +457,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 onClick={openBookmarksDrawer}
                 title="Sayfa Ayraçlarım"
                 aria-label="Sayfa Ayraçlarım"
-                className="relative min-w-[38px] min-h-[38px] px-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
+                className="relative min-w-[36px] min-h-[36px] sm:min-w-[38px] sm:min-h-[38px] px-2 sm:px-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
                 style={{
                   backgroundColor:
                     bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
@@ -467,7 +472,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <span className="hidden md:inline whitespace-nowrap">Ayraçlar</span>
                 {bookmarkCount > 0 && (
                   <span
-                    className="min-w-[18px] h-[18px] px-1 rounded-md text-[10px] font-extrabold tabular-nums flex items-center justify-center text-white"
+                    className="min-w-[16px] h-[16px] px-1 rounded-md text-[10px] font-extrabold tabular-nums flex items-center justify-center text-white"
                     style={{ backgroundColor: 'var(--brand-accent)' }}
                   >
                     {bookmarkCount}
@@ -475,9 +480,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 )}
               </button>
 
-              {/* 3. Kompakt Günlük Seri Rozeti */}
+              {/* 3. Kompakt Günlük Seri Rozeti (sm+ ekranlarda) */}
               <div
-                className="h-[38px] px-2 sm:px-2.5 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
+                className="hidden sm:flex h-[38px] px-2.5 rounded-xl items-center gap-1 text-xs font-bold tabular-nums"
                 style={{
                   backgroundColor: 'var(--brand-accent-soft)',
                   color: 'var(--brand-accent-text)',
@@ -487,13 +492,13 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <Flame className="w-3.5 h-3.5 shrink-0" />
                 <span className="whitespace-nowrap">
                   {formatNumberTr(gamification.streakDays)}
-                  <span className="hidden sm:inline font-semibold"> g</span>
+                  <span className="font-semibold"> g</span>
                 </span>
               </div>
 
               {/* 3b. Kompakt Toplam Puan Rozeti */}
               <div
-                className="h-[38px] px-2 sm:px-2.5 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
+                className="h-[36px] sm:h-[38px] px-2 sm:px-2.5 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
                   color: 'var(--brand-primary-text)',
@@ -504,13 +509,13 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <span className="whitespace-nowrap">{formatNumberTr(gamification.totalXp)}</span>
               </div>
 
-              {/* 4. Genel Tam Ekran İkonu (Tüm Sayfalarda Çalışır) */}
+              {/* 4. Genel Tam Ekran İkonu (sm+ ekranlarda — dar mobilde taşmayı önler) */}
               <button
                 type="button"
                 onClick={handleToggleFullscreen}
                 title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
                 aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
-                className="min-w-[38px] min-h-[38px] rounded-xl flex items-center justify-center border transition-colors cursor-pointer"
+                className="hidden sm:flex min-w-[38px] min-h-[38px] rounded-xl items-center justify-center border transition-colors cursor-pointer"
                 style={{
                   backgroundColor: isFullscreen
                     ? 'var(--brand-primary-soft)'
@@ -532,7 +537,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 onClick={openSettingsModal}
                 title="Ayarlar"
                 aria-label="Ayarları aç"
-                className="min-w-[38px] min-h-[38px] rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                className="min-w-[36px] min-h-[36px] sm:min-w-[38px] sm:min-h-[38px] rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -590,20 +595,30 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
         {/* Sayfa İçeriği */}
         <main
-          className={`flex-1 w-full ${contentWidthClass} mx-auto px-3.5 py-3.5 sm:px-5 lg:px-6 lg:py-4 ${
-            isAudioBarVisible ? 'pb-36 lg:pb-28' : ''
+          className={`flex-1 w-full ${contentWidthClass} mx-auto ${
+            isMobilePureReader
+              ? 'px-1.5 pt-1 pb-2 sm:px-3 lg:px-6 lg:py-3.5'
+              : 'px-3.5 py-3.5 sm:px-5 lg:px-6 lg:py-4'
+          } ${
+            isAudioBarVisible
+              ? isMobileReaderImmersive
+                ? 'pb-20 lg:pb-24'
+                : 'pb-32 lg:pb-24'
+              : isMobileReaderImmersive
+                ? 'pb-4 lg:pb-6'
+                : ''
           }`}
         >
           {children}
         </main>
 
-        {/* Alt Bilgi (Footer) — Mobilde alt sabit nav bar ve yüzen ses oynatıcı için güvenli boşluk */}
+        {/* Alt Bilgi (Footer) — Mobilde Saf Odak modunda gizlenir */}
         <footer
-          className={`mt-auto border-t ${
+          className={`${isMobileReaderImmersive ? 'hidden lg:block' : ''} mt-auto border-t ${
             isExamActive || isMemorizationZenActive
               ? 'pb-5 lg:pb-5'
               : isAudioBarVisible
-                ? 'pb-40 lg:pb-28'
+                ? 'pb-32 lg:pb-24'
                 : 'pb-20 lg:pb-5'
           }`}
           style={{ borderColor: 'var(--border-subtle)' }}
@@ -624,7 +639,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       {/* ====================================================================
           Mobil Alt Sabit Navigasyon Çubuğu (5 Sekme — 360px taşmasız uyum)
           ==================================================================== */}
-      {!isExamActive && !isMemorizationZenActive && (
+      {!isExamActive && !isMemorizationZenActive && !isMobileReaderImmersive && (
         <nav
           aria-label="Alt navigasyon"
           className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-md pb-safe"
@@ -656,14 +671,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                       style={{ backgroundColor: 'var(--brand-primary)' }}
                     />
                   )}
-                  <span className="relative">
-                    <Icon className="w-[19px] h-[19px]" />
-                    {mistakeCount > 0 && (
-                      <span className="absolute -top-1.5 -right-2.5 min-w-[15px] h-[15px] px-1 rounded-full bg-red-500 text-white text-[9px] font-extrabold tabular-nums flex items-center justify-center">
-                        {mistakeCount > 99 ? '99+' : mistakeCount}
-                      </span>
-                    )}
-                  </span>
+                  <Icon className="w-[19px] h-[19px] shrink-0" />
+                  {mistakeCount > 0 && (
+                    <span
+                      className="absolute top-1 right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-extrabold tabular-nums flex items-center justify-center leading-none pointer-events-none"
+                      style={{ boxShadow: '0 0 0 2px var(--bg-nav)' }}
+                    >
+                      {mistakeCount > 99 ? '99+' : mistakeCount}
+                    </span>
+                  )}
                   <span className="text-[10px] sm:text-[11px] font-semibold tracking-tight whitespace-nowrap truncate max-w-full">
                     {item.mobileLabel}
                   </span>

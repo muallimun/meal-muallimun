@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   BookOpen,
-  ChevronDown,
+  ChevronRight,
   Headphones,
   Loader2,
   Maximize2,
@@ -11,6 +11,7 @@ import {
   Play,
   SkipBack,
   SkipForward,
+  SlidersHorizontal,
   Volume2,
   X,
 } from 'lucide-react';
@@ -144,9 +145,25 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const [contentMode, setContentMode] = useState<PresentationContentMode>('both');
   const [presTheme, setPresTheme] = useState<PresentationTheme>('emerald');
   const [manualIndex, setManualIndex] = useState<number>(0);
+  const [isSettingsPopoverOpen, setIsSettingsPopoverOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   );
+  const settingsPopoverRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isSettingsPopoverOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        settingsPopoverRef.current &&
+        !settingsPopoverRef.current.contains(e.target as Node)
+      ) {
+        setIsSettingsPopoverOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isSettingsPopoverOpen]);
   const [viewport, setViewport] = useState<{ w: number; h: number }>(() => ({
     w: typeof window !== 'undefined' ? window.innerWidth : 1280,
     h: typeof window !== 'undefined' ? window.innerHeight : 760,
@@ -449,157 +466,232 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         color: palette.text,
       }}
     >
-      {/* Üst Kontrol Şeridi */}
+      {/* Tek İnce Üst Şerit */}
       <header
-        className="px-4 sm:px-6 py-2.5 border-b flex flex-wrap items-center justify-between gap-2 shrink-0 backdrop-blur-md"
+        className="h-14 px-3 sm:px-6 border-b flex items-center justify-between gap-2 shrink-0 backdrop-blur-md relative z-20"
         style={{
           backgroundColor: palette.surface,
           borderColor: palette.border,
         }}
       >
-        {/* Sol: Sure & Ayet Konum Rozeti */}
-        <div className="flex items-center gap-2.5 min-w-0">
+        {/* Sol: Sure & Ayet Başlığı (Tek satır, taşmasız) */}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <span
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
             style={{ backgroundColor: palette.accentSoft, color: palette.accent }}
           >
             <MonitorPlay className="w-4 h-4" />
           </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
-                {displayedVerse
-                  ? `${surahMeta?.nameTr ?? `Sure ${displayedVerse.surah}`} · ${displayedVerse.ayah}. Ayet`
-                  : 'Sunum Modu'}
-              </h2>
-              {surahMeta?.nameAr && (
-                <span
-                  className="arabic-title text-base hidden sm:inline"
-                  style={{ color: palette.accent }}
-                  dir="rtl"
-                >
-                  {formatSafeArabicTitle(surahMeta.nameAr)}
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] truncate tabular-nums" style={{ color: palette.muted }}>
+          <div className="min-w-0 flex items-center gap-2">
+            <h2 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
               {displayedVerse
-                ? `Sayfa ${displayedVerse.page} · ${displayedVerse.cuz}. Cüz`
-                : 'Ayet bekleniyor'}
-              {isAudioRunning && audioState.activePhase === 'meal' && audioState.activeReciterLabel
-                ? ` · Sesli Meal: ${audioState.activeReciterLabel}`
-                : ''}
-            </p>
+                ? `${surahMeta?.nameTr ?? `Sure ${displayedVerse.surah}`} Suresi · ${displayedVerse.ayah}. Ayet`
+                : 'Sunum Modu'}
+            </h2>
+            {surahMeta?.nameAr && (
+              <span
+                className="arabic-title text-base hidden md:inline shrink-0"
+                style={{ color: palette.accent }}
+                dir="rtl"
+              >
+                {formatSafeArabicTitle(surahMeta.nameAr)}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Orta / Sağ: Okuyucu Seçici + İçerik Modu + Meal + Tema + Tam Ekran + Çıkış */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {/* Tıklanabilir Okuyucu Butonu (Tam ekrandan çıkmadan ReciterSelectorModal açar) */}
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              openReciterSelector();
-            }}
-            title={`Kur'an Okuyucu: ${activeReciter.label} (Değiştirmek için tıklayın)`}
-            className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer max-w-[185px] sm:max-w-[230px] transition-colors"
-            style={{
-              borderColor: palette.border,
-              backgroundColor: palette.accentSoft,
-              color: palette.accent,
-            }}
-          >
-            <Headphones className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">
-              <span className="hidden sm:inline opacity-85">Tilavet: </span>
-              {activeReciter.shortLabel}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-80" />
-          </button>
-          {/* İçerik Seçici */}
-          <div
-            className="flex items-center p-0.5 rounded-xl border text-xs"
-            style={{ borderColor: palette.border, backgroundColor: 'rgba(0,0,0,0.14)' }}
-          >
-            {(
-              [
-                { id: 'both', label: 'AR + Meal' },
-                { id: 'ar', label: 'Sadece AR' },
-                { id: 'meal', label: 'Sadece Meal' },
-              ] as const
-            ).map((item) => {
-              const active = contentMode === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    setContentMode(item.id);
-                  }}
-                  className="min-h-[32px] px-2.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
-                  style={{
-                    backgroundColor: active ? palette.accent : 'transparent',
-                    color: active ? '#071413' : palette.text,
-                  }}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* 24 Meal Seçici Butonu (Tam ekrandan çıkmadan MealSelectorModal açar) */}
-          {contentMode !== 'ar' && (
+        {/* Sağ: ⚙ Görünüm & Ses Popover + Tam Ekran + Çıkış */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div ref={settingsPopoverRef} className="relative">
             <button
               type="button"
-              onClick={() => openMealSelector('primary')}
-              title={`Aktif Meal: ${primaryMeal.label} (24 Meal arasından seç)`}
-              className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer max-w-[175px] sm:max-w-[215px]"
+              onClick={() => {
+                sfxService.play('click');
+                setIsSettingsPopoverOpen((v) => !v);
+              }}
+              aria-expanded={isSettingsPopoverOpen}
+              aria-label="Görünüm ve ses ayarları"
+              className="min-h-[36px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
               style={{
-                borderColor: palette.border,
-                backgroundColor: 'rgba(0,0,0,0.16)',
-                color: palette.text,
+                borderColor: isSettingsPopoverOpen ? palette.accent : palette.border,
+                backgroundColor: isSettingsPopoverOpen ? palette.accentSoft : 'rgba(0,0,0,0.14)',
+                color: isSettingsPopoverOpen ? palette.accent : palette.text,
               }}
             >
-              <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: palette.accent }} />
-              <span className="truncate">{primaryMeal.shortLabel}</span>
-              <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-75" />
+              <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">Görünüm &amp; Ses</span>
             </button>
-          )}
 
-          {/* Sunum Teması */}
-          <div className="hidden md:flex items-center gap-1">
-            {(['emerald', 'dark', 'cream'] as PresentationTheme[]).map((t) => {
-              const active = presTheme === t;
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    setPresTheme(t);
-                  }}
-                  className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer"
-                  style={{
-                    borderColor: active ? palette.accent : palette.border,
-                    backgroundColor: active ? palette.accentSoft : 'transparent',
-                    color: active ? palette.accent : palette.muted,
-                  }}
-                >
-                  {THEME_PALETTES[t].label}
-                </button>
-              );
-            })}
+            {isSettingsPopoverOpen && (
+              <div
+                className="absolute right-0 top-11 z-40 w-[290px] sm:w-[320px] rounded-2xl border shadow-2xl p-3.5 space-y-3 text-left"
+                style={{
+                  backgroundColor: palette.bg,
+                  borderColor: palette.border,
+                  color: palette.text,
+                }}
+              >
+                {/* Okuyucu & Meal */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: palette.muted }}>
+                    Tilavet &amp; Meal
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsSettingsPopoverOpen(false);
+                      openReciterSelector();
+                    }}
+                    className="w-full min-h-[38px] px-3 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 cursor-pointer"
+                    style={{
+                      borderColor: palette.border,
+                      backgroundColor: palette.surface,
+                      color: palette.text,
+                    }}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Headphones className="w-3.5 h-3.5 shrink-0" style={{ color: palette.accent }} />
+                      <span className="truncate">{activeReciter.shortLabel}</span>
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-65" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsSettingsPopoverOpen(false);
+                      openMealSelector('primary');
+                    }}
+                    className="w-full min-h-[38px] px-3 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 cursor-pointer"
+                    style={{
+                      borderColor: palette.border,
+                      backgroundColor: palette.surface,
+                      color: palette.text,
+                    }}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: palette.accent }} />
+                      <span className="truncate">{primaryMeal.shortLabel}</span>
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-65" />
+                  </button>
+                </div>
+
+                {/* Metin Görünümü */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: palette.muted }}>
+                    Metin Görünümü
+                  </p>
+                  <div
+                    className="grid grid-cols-3 gap-1 p-1 rounded-xl border text-[11px]"
+                    style={{ borderColor: palette.border, backgroundColor: palette.surface }}
+                  >
+                    {(
+                      [
+                        { id: 'both', label: 'AR + Meal' },
+                        { id: 'ar', label: 'Sadece AR' },
+                        { id: 'meal', label: 'Sadece Meal' },
+                      ] as const
+                    ).map((item) => {
+                      const active = contentMode === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setContentMode(item.id);
+                          }}
+                          className="min-h-[32px] px-1.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: active ? palette.accent : 'transparent',
+                            color: active ? '#071413' : palette.text,
+                          }}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Ses Akışı */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: palette.muted }}>
+                    Ses Akışı
+                  </p>
+                  <div
+                    className="grid grid-cols-3 gap-1 p-1 rounded-xl border text-[11px]"
+                    style={{ borderColor: palette.border, backgroundColor: palette.surface }}
+                  >
+                    {(
+                      [
+                        { id: 'ar', label: 'AR' },
+                        { id: 'meal', label: 'Meal' },
+                        { id: 'ar_then_meal', label: 'AR+Meal' },
+                      ] as { id: AudioPlayMode; label: string }[]
+                    ).map((m) => {
+                      const active = audioPrefs.mode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => handleAudioModeChange(m.id)}
+                          className="min-h-[32px] px-1.5 rounded-lg font-bold cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: active ? palette.accentSoft : 'transparent',
+                            color: active ? palette.accent : palette.muted,
+                          }}
+                        >
+                          {m.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Sunum Teması */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: palette.muted }}>
+                    Sunum Teması
+                  </p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {(['emerald', 'dark', 'cream'] as PresentationTheme[]).map((t) => {
+                      const active = presTheme === t;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setPresTheme(t);
+                          }}
+                          className="min-h-[34px] px-2 rounded-xl border text-xs font-bold cursor-pointer"
+                          style={{
+                            borderColor: active ? palette.accent : palette.border,
+                            backgroundColor: active ? palette.accentSoft : palette.surface,
+                            color: active ? palette.accent : palette.muted,
+                          }}
+                        >
+                          {THEME_PALETTES[t].label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Tam Ekran Butonu (document.documentElement — ses geçişinde bozulmaz) */}
+          {/* Tam Ekran Butonu */}
           <button
             type="button"
             onClick={handleToggleFullscreen}
-            title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran (TV / Projeksiyon)'}
-            className="min-w-[38px] min-h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
+            title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
+            aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
+            className="min-w-[36px] min-h-[36px] rounded-xl border flex items-center justify-center cursor-pointer"
             style={{
               borderColor: isFullscreen ? palette.accent : palette.border,
               backgroundColor: isFullscreen ? palette.accentSoft : 'transparent',
@@ -616,7 +708,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               sfxService.play('click');
               onClose();
             }}
-            className="min-h-[38px] px-3 rounded-xl border font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            className="min-h-[36px] px-2.5 sm:px-3 rounded-xl border font-bold text-xs flex items-center gap-1.5 cursor-pointer"
             style={{
               borderColor: palette.border,
               backgroundColor: 'rgba(239, 68, 68, 0.14)',
@@ -624,7 +716,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             }}
           >
             <X className="w-4 h-4" />
-            <span>Çıkış</span>
+            <span className="hidden xs:inline sm:inline">Çıkış</span>
           </button>
         </div>
       </header>
@@ -633,58 +725,48 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       <main className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-12 lg:px-20 py-4 overflow-y-auto">
         {displayedVerse ? (
           <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-4 sm:gap-6 text-center transition-opacity duration-200">
-            {/* Canlı Durum / Tilâvet Secdesi / Besmele Şeridi */}
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              <span
-                className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-extrabold tracking-wide tabular-nums border"
-                style={{
-                  backgroundColor: palette.accentSoft,
-                  borderColor: palette.border,
-                  color: palette.accent,
-                }}
-              >
-                {surahMeta?.nameTr ?? `Sure ${displayedVerse.surah}`} · {displayedVerse.surah}:
-                {displayedVerse.ayah}
-              </span>
+            {/* Yalnızca Tilâvet Secdesi veya Aktif Ses Fazı Rozeti (Mükerrer sure:ayet rozeti yok) */}
+            {(isSajdah || isPlaying || isLoading) && (
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                {isSajdah && (
+                  <span
+                    className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 border shadow-sm"
+                    style={{
+                      backgroundColor:
+                        presTheme === 'cream'
+                          ? 'rgba(217, 119, 6, 0.16)'
+                          : 'rgba(251, 191, 36, 0.22)',
+                      borderColor:
+                        presTheme === 'cream'
+                          ? 'rgba(180, 83, 9, 0.45)'
+                          : 'rgba(251, 191, 36, 0.6)',
+                      color: presTheme === 'cream' ? '#92400E' : '#FDE68A',
+                    }}
+                  >
+                    <span className="text-base leading-none">۩</span>
+                    <span>Tilâvet Secdesi Ayeti</span>
+                  </span>
+                )}
 
-              {isSajdah && (
-                <span
-                  className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 border shadow-sm"
-                  style={{
-                    backgroundColor:
-                      presTheme === 'cream'
-                        ? 'rgba(217, 119, 6, 0.16)'
-                        : 'rgba(251, 191, 36, 0.22)',
-                    borderColor:
-                      presTheme === 'cream'
-                        ? 'rgba(180, 83, 9, 0.45)'
-                        : 'rgba(251, 191, 36, 0.6)',
-                    color: presTheme === 'cream' ? '#92400E' : '#FDE68A',
-                  }}
-                >
-                  <span className="text-base leading-none">۩</span>
-                  <span>Tilâvet Secdesi Ayeti</span>
-                </span>
-              )}
-
-              {(isPlaying || isLoading) && (
-                <span
-                  className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border"
-                  style={{
-                    borderColor: palette.border,
-                    backgroundColor: palette.surface,
-                    color: palette.muted,
-                  }}
-                >
-                  <Volume2 className="w-3.5 h-3.5" style={{ color: palette.accent }} />
-                  {isBesmelePhase
-                    ? 'Besmele okunuyor'
-                    : audioState.activePhase === 'meal'
-                      ? 'Sesli Meal akıyor'
-                      : 'Arapça Tilavet akıyor'}
-                </span>
-              )}
-            </div>
+                {(isPlaying || isLoading) && (
+                  <span
+                    className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border"
+                    style={{
+                      borderColor: palette.border,
+                      backgroundColor: palette.surface,
+                      color: palette.muted,
+                    }}
+                  >
+                    <Volume2 className="w-3.5 h-3.5" style={{ color: palette.accent }} />
+                    {isBesmelePhase
+                      ? 'Besmele okunuyor'
+                      : audioState.activePhase === 'meal'
+                        ? 'Sesli Meal akıyor'
+                        : 'Arapça Tilavet akıyor'}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Sure Başı Besmelesi (1. Ayette — Fâtiha ve Tevbe hariç) */}
             {showBesmele && (contentMode === 'both' || contentMode === 'ar') && (
@@ -827,20 +909,17 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         )}
       </main>
 
-      {/* Alt Kontrol Barı: Canlı Ses Akışı & Gezinme */}
+      {/* Sade Alt Kontrol Barı: Yalnızca İlerleme, ⏮ ▶/⏸ ⏭ ve Hız (1x) */}
       <footer
-        className="px-4 sm:px-6 py-2.5 border-t flex flex-wrap items-center justify-between gap-2.5 shrink-0 backdrop-blur-md"
+        className="h-16 px-4 sm:px-6 border-t flex items-center justify-between gap-2 shrink-0 backdrop-blur-md"
         style={{
           backgroundColor: palette.surface,
           borderColor: palette.border,
         }}
       >
         {/* Sol: İlerleme Bilgisi */}
-        <div className="text-xs font-semibold tabular-nums" style={{ color: palette.muted }}>
-          {currentIdx >= 0 ? `${currentIdx + 1} / ${verses.length} ayet` : 'Hazır'}
-          <span className="hidden sm:inline ml-2 opacity-75">
-            · Yön tuşları ile geç · Boşluk ile duraklat · ESC ile çık
-          </span>
+        <div className="text-xs font-bold tabular-nums min-w-[64px]" style={{ color: palette.muted }}>
+          {currentIdx >= 0 ? `${currentIdx + 1} / ${verses.length}` : 'Hazır'}
         </div>
 
         {/* Orta: Oynatma Kontrolleri */}
@@ -850,30 +929,30 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             onClick={handlePrev}
             disabled={!canPrev}
             aria-label="Önceki ayet"
-            className="min-w-[42px] min-h-[42px] rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
+            className="w-10 h-10 rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
             style={{ borderColor: palette.border, color: palette.text }}
           >
-            <SkipBack className="w-5 h-5" />
+            <SkipBack className="w-4 h-4" />
           </button>
 
           <button
             type="button"
             onClick={handlePlayPause}
             aria-label={isPlaying ? 'Duraklat' : 'Oynat'}
-            className="min-w-[56px] min-h-[44px] px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95"
+            className="h-10 px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95"
             style={{
               backgroundColor: palette.accent,
               color: '#071413',
             }}
           >
             {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : isPlaying ? (
-              <Pause className="w-5 h-5" />
+              <Pause className="w-4 h-4" />
             ) : (
-              <Play className="w-5 h-5 ml-0.5" />
+              <Play className="w-4 h-4 ml-0.5" />
             )}
-            <span className="text-sm">{isPlaying ? 'Duraklat' : 'Dinle'}</span>
+            <span className="text-xs sm:text-sm">{isPlaying ? 'Duraklat' : 'Dinle'}</span>
           </button>
 
           <button
@@ -881,48 +960,20 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             onClick={handleNext}
             disabled={!canNext}
             aria-label="Sonraki ayet"
-            className="min-w-[42px] min-h-[42px] rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
+            className="w-10 h-10 rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
             style={{ borderColor: palette.border, color: palette.text }}
           >
-            <SkipForward className="w-5 h-5" />
+            <SkipForward className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Sağ: Ses Modu & Hız */}
-        <div className="flex items-center gap-1.5 text-xs">
-          <div
-            className="flex items-center p-0.5 rounded-lg border"
-            style={{ borderColor: palette.border }}
-          >
-            {(
-              [
-                { id: 'ar', label: 'AR' },
-                { id: 'meal', label: 'Meal' },
-                { id: 'ar_then_meal', label: 'AR+Meal' },
-              ] as { id: AudioPlayMode; label: string }[]
-            ).map((m) => {
-              const active = audioPrefs.mode === m.id;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => handleAudioModeChange(m.id)}
-                  className="min-h-[32px] px-2.5 rounded-md font-bold cursor-pointer whitespace-nowrap"
-                  style={{
-                    backgroundColor: active ? palette.accentSoft : 'transparent',
-                    color: active ? palette.accent : palette.muted,
-                  }}
-                >
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-
+        {/* Sağ: Yalnızca Oynatma Hızı */}
+        <div className="min-w-[64px] flex justify-end">
           <button
             type="button"
             onClick={cycleRate}
-            className="min-h-[34px] px-2.5 rounded-lg border font-bold tabular-nums cursor-pointer"
+            title="Oynatma hızı"
+            className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold tabular-nums cursor-pointer"
             style={{ borderColor: palette.border, color: palette.text }}
           >
             {audioPrefs.playbackRate}x

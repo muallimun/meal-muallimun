@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   AlertCircle,
   ChevronDown,
+  ChevronUp,
   Headphones,
   Loader2,
   MonitorPlay,
@@ -42,6 +43,7 @@ export const AudioPlayerBar: React.FC = () => {
     updateAudioPrefs,
     isExamActive,
     isMemorizationZenActive,
+    isMobileReaderImmersive,
     isSidebarCollapsed,
     activeTab,
     setActiveTab,
@@ -50,6 +52,9 @@ export const AudioPlayerBar: React.FC = () => {
     openMealSelector,
     manifest,
   } = useAppStore();
+
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
@@ -78,6 +83,13 @@ export const AudioPlayerBar: React.FC = () => {
     audioQueueService.syncPrefs(audioPrefs);
   }, [audioPrefs]);
 
+  // Oynatıcı kapanınca genişletilmiş çekmeceyi kapat
+  useEffect(() => {
+    if (!audioState.isVisible || audioState.status === 'idle') {
+      setIsExpanded(false);
+    }
+  }, [audioState.isVisible, audioState.status]);
+
   if (
     isExamActive ||
     isMemorizationZenActive ||
@@ -89,22 +101,21 @@ export const AudioPlayerBar: React.FC = () => {
 
   const isPlaying = audioState.status === 'playing';
   const isLoading = audioState.status === 'loading';
+  const showDetailsPanel = isExpanded || audioState.missingMealAudio;
 
   const resolvedReciterLabel =
     audioState.activeReciterLabel ||
-    (audioState.activePhase === 'meal' ? '' : activeReciter.shortLabel);
-  const reciterSuffix = resolvedReciterLabel ? ` · ${resolvedReciterLabel}` : '';
+    (audioState.activePhase === 'meal'
+      ? activeMealAudioSource?.shortLabel ?? 'Sesli Meal'
+      : activeReciter.shortLabel);
 
-  const phaseText =
-    audioState.activePhase === 'besmele'
-      ? `Besmele${reciterSuffix}`
-      : audioState.activePhase === 'ar'
-        ? `Arapça Tilavet${reciterSuffix}`
-        : audioState.activePhase === 'meal'
-          ? `Sesli Meal${reciterSuffix}`
-          : isPlaying
-            ? 'Oynatılıyor'
-            : 'Duraklatıldı';
+  const compactSubtitle = audioState.errorMessage
+    ? audioState.errorMessage
+    : audioState.activePhase === 'meal'
+      ? `Sesli Meal · ${resolvedReciterLabel}`
+      : audioState.activePhase === 'besmele'
+        ? `Besmele · ${resolvedReciterLabel}`
+        : resolvedReciterLabel;
 
   const cycleRate = () => {
     sfxService.play('click');
@@ -131,6 +142,7 @@ export const AudioPlayerBar: React.FC = () => {
   };
 
   const handleOpenPresentation = () => {
+    setIsExpanded(false);
     if (activeTab !== 'reader') {
       setActiveTab('reader');
     }
@@ -141,246 +153,81 @@ export const AudioPlayerBar: React.FC = () => {
     <div
       role="region"
       aria-label="Ses oynatıcı"
-      className={`fixed bottom-16 lg:bottom-4 left-0 right-0 ${
+      className={`fixed ${isMobileReaderImmersive ? 'bottom-2.5' : 'bottom-16'} lg:bottom-4 left-0 right-0 ${
         isSidebarCollapsed ? 'lg:left-0' : 'lg:left-72'
-      } z-35 px-2.5 sm:px-4 pointer-events-none`}
+      } z-35 px-2 sm:px-4 pointer-events-none`}
     >
-      <div
-        className="pointer-events-auto max-w-4xl mx-auto rounded-2xl border backdrop-blur-md shadow-xl px-3 py-2.5 sm:px-4 sm:py-3"
-        style={{
-          backgroundColor: 'var(--bg-nav)',
-          borderColor: 'var(--border-strong)',
-        }}
-      >
-        <div className="flex flex-col gap-2">
-          {/* Üst Satır: Aktif Ayet Bilgisi + Ana Oynatma Kontrolleri + Kapat */}
-          <div className="flex items-center justify-between gap-2">
-            {/* Sol: Aktif Sure : Ayet (Sayfa X) */}
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+      <div className="pointer-events-auto max-w-2xl mx-auto flex flex-col gap-1.5">
+        {/* Açılır Kompakt Ses Ayarları Paneli (Yalnızca ▴ ikonuyla açılır) */}
+        {showDetailsPanel && (
+          <div
+            className="rounded-2xl border backdrop-blur-md shadow-xl p-3 space-y-2.5 text-xs"
+            style={{
+              backgroundColor: 'var(--bg-nav)',
+              borderColor: 'var(--border-strong)',
+            }}
+          >
+            {/* Seslendirmesi Olmayan Meal İçin Alternatif Çubuğu */}
+            {audioState.missingMealAudio && (
+              <div
+                className="rounded-xl px-2.5 py-2 flex flex-wrap items-center justify-between gap-2"
                 style={{
-                  backgroundColor: audioState.missingMealAudio
-                    ? 'var(--brand-accent-soft)'
-                    : 'var(--brand-primary-soft)',
-                  color: audioState.missingMealAudio
-                    ? 'var(--brand-accent-text)'
-                    : 'var(--brand-primary-text)',
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  color: 'var(--brand-accent-text)',
                 }}
               >
-                {audioState.missingMealAudio ? (
-                  <AlertCircle className="w-4 h-4" />
-                ) : (
-                  <Volume2 className={`w-4 h-4 ${isPlaying ? 'animate-pulse' : ''}`} />
-                )}
-              </span>
-              <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-extrabold truncate tabular-nums">
-                  {audioState.currentSurahName} : {audioState.currentAyah}
-                  {audioState.currentPage !== null && (
-                    <span
-                      className="font-semibold ml-1.5"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      (Sayfa {audioState.currentPage})
-                    </span>
-                  )}
-                </p>
-                <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
-                  {audioState.errorMessage ? (
-                    <span
-                      style={{
-                        color: audioState.missingMealAudio
-                          ? 'var(--brand-accent-text)'
-                          : '#EF4444',
-                      }}
-                    >
-                      {audioState.errorMessage}
-                    </span>
-                  ) : (
-                    <>
-                      {audioState.activePhase === 'ar' || audioState.activePhase === 'besmele' ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sfxService.play('click');
-                            openReciterSelector();
-                          }}
-                          title="Kur'an okuyucusunu değiştir"
-                          className="font-semibold hover:underline cursor-pointer text-left"
-                          style={{ color: 'var(--brand-primary-text)' }}
-                        >
-                          {phaseText}
-                        </button>
-                      ) : (
-                        <span
-                          className="font-semibold"
-                          style={{ color: 'var(--brand-primary-text)' }}
-                        >
-                          {phaseText}
-                        </span>
-                      )}
-                      {audioState.totalRepeats > 1 && (
-                        <span className="tabular-nums">
-                          {' '}
-                          · Tekrar {audioState.currentRepeat}/{audioState.totalRepeats}
-                        </span>
-                      )}
-                      {audioState.infoMessage && (
-                        <span
-                          className="ml-1.5 font-medium"
-                          style={{ color: 'var(--brand-accent-text)' }}
-                        >
-                          · {audioState.infoMessage}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </p>
-              </div>
-            </div>
-
-            {/* Orta: Önceki / Oynat-Duraklat / Sonraki */}
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => audioQueueService.prevVerse()}
-                disabled={!audioState.canGoPrev}
-                aria-label="Önceki ayet"
-                className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                <SkipBack className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => audioQueueService.togglePlayPause()}
-                disabled={audioState.missingMealAudio}
-                aria-label={isPlaying ? 'Duraklat' : 'Oynat'}
-                className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-white shadow-sm transition-transform active:scale-95 cursor-pointer disabled:opacity-45"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : isPlaying ? (
-                  <Pause className="w-5 h-5" />
-                ) : (
-                  <Play className="w-5 h-5 ml-0.5" />
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => audioQueueService.nextVerse()}
-                disabled={!audioState.canGoNext}
-                aria-label="Sonraki ayet"
-                className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                <SkipForward className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => audioQueueService.stopAndReset(true)}
-                aria-label="Oynatıcıyı kapat"
-                className="min-w-[40px] min-h-[40px] ml-0.5 rounded-xl flex items-center justify-center border transition-colors cursor-pointer"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Seslendirmesi Olmayan Meal İçin Tek Dokunuşlu Alternatif Çubuğu */}
-          {audioState.missingMealAudio && (
-            <div
-              className="rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs"
-              style={{
-                backgroundColor: 'var(--brand-accent-soft)',
-                color: 'var(--brand-accent-text)',
-              }}
-            >
-              <span className="font-semibold">
-                Alternatif ses kaynağına geçin:
-              </span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {mealSources.map((src) => (
-                  <button
-                    key={src.id}
-                    type="button"
-                    onClick={() => handleMealSourceChange(src.id)}
-                    className="min-h-[34px] px-2.5 rounded-lg font-bold bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] cursor-pointer"
-                  >
-                    {src.shortLabel}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => handleModeChange('ar')}
-                  className="min-h-[34px] px-2.5 rounded-lg font-bold text-white cursor-pointer"
-                  style={{ backgroundColor: 'var(--brand-primary)' }}
-                >
-                  Arapça Tilavet
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Seslendirmesiz Meal (m3..m24) Okunurken Sesli Meal Bilgilendirme Şeridi */}
-          {showUnvoicedMealBanner && activeMealAudioSource && (
-            <div
-              className="rounded-xl px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] border"
-              style={{
-                backgroundColor: 'var(--brand-accent-soft)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--brand-accent-text)',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => openMealSelector('primary')}
-                className="font-semibold text-left hover:underline cursor-pointer truncate max-w-full"
-                title="Okuma mealini değiştir (24 Meal)"
-              >
-                Metin: <span className="font-extrabold">{activePrimaryMeal.shortLabel}</span> · Sesli
-                Meal:{' '}
-                <span className="font-extrabold">
-                  {activeMealAudioSource.id === 'tdv'
-                    ? 'TDV'
-                    : activeMealAudioSource.id === 'dib'
-                      ? 'DİB'
-                      : activeMealAudioSource.shortLabel}
-                </span>
-              </button>
-              <div className="flex items-center gap-1 shrink-0">
-                {mealSources.map((src) => {
-                  const isActive = activeMealAudioSource.id === src.id;
-                  const shortTag = src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
-                  return (
+                <span className="font-semibold">Alternatif ses kaynağına geçin:</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {mealSources.map((src) => (
                     <button
                       key={src.id}
                       type="button"
                       onClick={() => handleMealSourceChange(src.id)}
-                      className="min-h-[26px] px-2 rounded-md font-bold transition-colors cursor-pointer"
-                      style={{
-                        backgroundColor: isActive ? 'var(--brand-accent)' : 'var(--bg-surface)',
-                        color: isActive ? '#FFFFFF' : 'var(--text-primary)',
-                      }}
+                      className="min-h-[30px] px-2.5 rounded-lg font-bold bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] cursor-pointer"
                     >
-                      {shortTag}
+                      {src.shortLabel}
                     </button>
-                  );
-                })}
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('ar')}
+                    className="min-h-[30px] px-2.5 rounded-lg font-bold text-white cursor-pointer"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    Arapça Tilavet
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Seslendirmesiz Meal Bilgilendirmesi */}
+            {showUnvoicedMealBanner && activeMealAudioSource && (
+              <div
+                className="rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2 text-[11px] border"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => openMealSelector('primary')}
+                  className="font-semibold text-left hover:underline cursor-pointer truncate"
+                >
+                  Metin: <strong>{activePrimaryMeal.shortLabel}</strong> · Ses:{' '}
+                  <strong>
+                    {activeMealAudioSource.id === 'tdv'
+                      ? 'TDV'
+                      : activeMealAudioSource.id === 'dib'
+                        ? 'DİB'
+                        : activeMealAudioSource.shortLabel}
+                  </strong>
+                </button>
                 <button
                   type="button"
                   onClick={() => handleModeChange('ar')}
-                  className="min-h-[26px] px-2 rounded-md font-bold cursor-pointer border"
+                  className="px-2 py-0.5 rounded-md font-bold border shrink-0 cursor-pointer"
                   style={{
                     backgroundColor: 'var(--bg-surface)',
                     borderColor: 'var(--border-subtle)',
@@ -390,41 +237,34 @@ export const AudioPlayerBar: React.FC = () => {
                   Sadece AR
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Alt Satır: Mod (AR | Meal | AR+Meal), Dinamik Okuyucu / Meal Sesi, Hız ve Tekrar */}
-          <div
-            className="pt-2 border-t flex flex-wrap items-center justify-between gap-2 text-xs"
-            style={{ borderColor: 'var(--border-subtle)' }}
-          >
-            {/* Mod Seçici */}
-            <div
-              className="flex items-center p-0.5 rounded-lg"
-              style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-            >
-              {MODE_LABELS.map((item) => {
-                const active = audioPrefs.mode === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleModeChange(item.id)}
-                    className="min-h-[34px] px-2.5 rounded-md font-bold transition-colors cursor-pointer whitespace-nowrap"
-                    style={{
-                      backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                      color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
-                      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Satır 1: Ses Akışı + Okuyucu (27 Kurrâ) */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div
+                className="flex items-center p-0.5 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+              >
+                {MODE_LABELS.map((item) => {
+                  const active = audioPrefs.mode === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleModeChange(item.id)}
+                      className="min-h-[32px] px-2.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
+                      style={{
+                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
 
-            {/* Okuyucu Seçici (27 Kurrâ) + Meal Sesi + Hız + Tekrar */}
-            <div className="flex items-center gap-1.5 flex-wrap">
               {audioPrefs.mode !== 'meal' && (
                 <button
                   type="button"
@@ -432,9 +272,8 @@ export const AudioPlayerBar: React.FC = () => {
                     sfxService.play('click');
                     openReciterSelector();
                   }}
-                  aria-label="Arapça okuyucu seç"
-                  title={`Kur'an okuyucu: ${activeReciter.label} (Değiştirmek için tıklayın)`}
-                  className="min-h-[34px] px-2.5 rounded-lg border font-bold cursor-pointer max-w-[165px] sm:max-w-[195px] flex items-center gap-1.5 transition-colors"
+                  title={`Kur'an okuyucu: ${activeReciter.label}`}
+                  className="min-h-[34px] px-2.5 rounded-xl border font-bold cursor-pointer max-w-[205px] flex items-center gap-1.5"
                   style={{
                     backgroundColor: 'var(--bg-surface)',
                     borderColor: 'var(--border-subtle)',
@@ -449,78 +288,81 @@ export const AudioPlayerBar: React.FC = () => {
                   <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65" />
                 </button>
               )}
+            </div>
 
-              {(audioPrefs.mode !== 'ar' || audioState.activePhase === 'meal') &&
-                mealSources.length > 0 && (
-                  <div
-                    className="flex items-center p-0.5 rounded-lg"
-                    style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-                  >
-                    {mealSources.map((src) => {
-                      const active = audioPrefs.mealAudioSource === src.id;
-                      const label =
-                        src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
-                      return (
-                        <button
-                          key={src.id}
-                          type="button"
-                          onClick={() => handleMealSourceChange(src.id)}
-                          className="min-h-[34px] px-2 rounded-md font-bold transition-colors cursor-pointer whitespace-nowrap"
-                          style={{
-                            backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                            color: active ? 'var(--brand-accent-text)' : 'var(--text-muted)',
-                          }}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+            {/* Satır 2: Sesli Meal Kaynağı + Hız + Tekrar + Sunum */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {(audioPrefs.mode !== 'ar' || audioState.activePhase === 'meal') &&
+                  mealSources.length > 0 && (
+                    <div
+                      className="flex items-center p-0.5 rounded-xl"
+                      style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                    >
+                      {mealSources.map((src) => {
+                        const active = audioPrefs.mealAudioSource === src.id;
+                        const label =
+                          src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
+                        return (
+                          <button
+                            key={src.id}
+                            type="button"
+                            onClick={() => handleMealSourceChange(src.id)}
+                            className="min-h-[32px] px-2.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
+                            style={{
+                              backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                              color: active ? 'var(--brand-accent-text)' : 'var(--text-muted)',
+                            }}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
-              <button
-                type="button"
-                onClick={cycleRate}
-                title="Oynatma hızını değiştir"
-                className="min-h-[34px] px-2.5 rounded-lg border font-bold tabular-nums cursor-pointer whitespace-nowrap"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {audioPrefs.playbackRate}x
-              </button>
+                <button
+                  type="button"
+                  onClick={cycleRate}
+                  title="Oynatma hızı"
+                  className="min-h-[34px] px-2.5 rounded-xl border font-bold tabular-nums cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {audioPrefs.playbackRate}x
+                </button>
 
-              <button
-                type="button"
-                onClick={cycleRepeat}
-                title="Ayet tekrar sayısını değiştir"
-                className="min-h-[34px] px-2.5 rounded-lg border font-bold tabular-nums flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                style={{
-                  backgroundColor:
-                    audioPrefs.repeatCount > 1
-                      ? 'var(--brand-primary-soft)'
-                      : 'var(--bg-surface)',
-                  borderColor:
-                    audioPrefs.repeatCount > 1
-                      ? 'var(--brand-primary)'
-                      : 'var(--border-subtle)',
-                  color:
-                    audioPrefs.repeatCount > 1
-                      ? 'var(--brand-primary-text)'
-                      : 'var(--text-primary)',
-                }}
-              >
-                <Repeat className="w-3.5 h-3.5" />
-                <span>{audioPrefs.repeatCount}x</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={cycleRepeat}
+                  title="Ayet tekrar sayısı"
+                  className="min-h-[34px] px-2.5 rounded-xl border font-bold tabular-nums flex items-center gap-1 cursor-pointer"
+                  style={{
+                    backgroundColor:
+                      audioPrefs.repeatCount > 1
+                        ? 'var(--brand-primary-soft)'
+                        : 'var(--bg-surface)',
+                    borderColor:
+                      audioPrefs.repeatCount > 1 ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                    color:
+                      audioPrefs.repeatCount > 1
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-primary)',
+                  }}
+                >
+                  <Repeat className="w-3.5 h-3.5" />
+                  <span>{audioPrefs.repeatCount}x</span>
+                </button>
+              </div>
 
               <button
                 type="button"
                 onClick={handleOpenPresentation}
-                title="Tam ekran Sunum Modunu aç (TV / Projeksiyon)"
-                className="min-h-[34px] px-2.5 rounded-lg border font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                title="Tam ekran Sunum Modunu aç"
+                className="min-h-[34px] px-3 rounded-xl border font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
                   borderColor: 'var(--brand-primary)',
@@ -528,9 +370,151 @@ export const AudioPlayerBar: React.FC = () => {
                 }}
               >
                 <MonitorPlay className="w-3.5 h-3.5" />
-                <span>Sunum</span>
+                <span>Sunum Modu</span>
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Tek Satır İnce Mini Oynatıcı Barı (h-14) */}
+        <div
+          className="h-14 rounded-2xl border backdrop-blur-md shadow-xl px-2.5 sm:px-3.5 flex items-center justify-between gap-2"
+          style={{
+            backgroundColor: 'var(--bg-nav)',
+            borderColor: 'var(--border-strong)',
+          }}
+        >
+          {/* Sol: Sure:Ayet + Okuyucu (Tek dokunuşla detayları aç/kapa) */}
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setIsExpanded((v) => !v);
+            }}
+            className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+            title="Ses ayarlarını aç/kapat"
+          >
+            <span
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: audioState.missingMealAudio
+                  ? 'var(--brand-accent-soft)'
+                  : 'var(--brand-primary-soft)',
+                color: audioState.missingMealAudio
+                  ? 'var(--brand-accent-text)'
+                  : 'var(--brand-primary-text)',
+              }}
+            >
+              {audioState.missingMealAudio ? (
+                <AlertCircle className="w-4 h-4" />
+              ) : (
+                <Volume2 className={`w-4 h-4 ${isPlaying ? 'animate-pulse' : ''}`} />
+              )}
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-extrabold truncate tabular-nums leading-tight">
+                {audioState.currentSurahName} : {audioState.currentAyah}
+                {audioState.totalRepeats > 1 && (
+                  <span className="font-semibold ml-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    ({audioState.currentRepeat}/{audioState.totalRepeats})
+                  </span>
+                )}
+              </p>
+              <p
+                className="text-[11px] font-medium truncate leading-tight mt-0.5"
+                style={{
+                  color: audioState.errorMessage
+                    ? audioState.missingMealAudio
+                      ? 'var(--brand-accent-text)'
+                      : '#EF4444'
+                    : 'var(--text-muted)',
+                }}
+              >
+                {compactSubtitle}
+              </p>
+            </div>
+          </button>
+
+          {/* Sağ: ⏮ ▶/⏸ ⏭ ▴ ✕ */}
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => audioQueueService.prevVerse()}
+              disabled={!audioState.canGoPrev}
+              aria-label="Önceki ayet"
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              <SkipBack className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => audioQueueService.togglePlayPause()}
+              disabled={audioState.missingMealAudio}
+              aria-label={isPlaying ? 'Duraklat' : 'Oynat'}
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform active:scale-95 cursor-pointer disabled:opacity-45"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="w-4 h-4" />
+              ) : (
+                <Play className="w-4 h-4 ml-0.5" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => audioQueueService.nextVerse()}
+              disabled={!audioState.canGoNext}
+              aria-label="Sonraki ayet"
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              <SkipForward className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsExpanded((v) => !v);
+              }}
+              aria-label={isExpanded ? 'Ses ayarlarını gizle' : 'Ses ayarlarını göster'}
+              aria-expanded={showDetailsPanel}
+              title={isExpanded ? 'Ayarları gizle' : 'Okuyucu, akış ve hız ayarları'}
+              className="w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer"
+              style={{
+                backgroundColor: showDetailsPanel
+                  ? 'var(--brand-primary-soft)'
+                  : 'var(--bg-surface-soft)',
+                borderColor: showDetailsPanel ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                color: showDetailsPanel ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+              }}
+            >
+              {showDetailsPanel ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronUp className="w-4 h-4" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => audioQueueService.stopAndReset(true)}
+              aria-label="Oynatıcıyı kapat"
+              className="w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>

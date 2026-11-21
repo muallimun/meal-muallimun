@@ -729,6 +729,8 @@ interface AppContextValue {
   setIsExamActive: (active: boolean) => void;
   isMemorizationZenActive: boolean;
   setIsMemorizationZenActive: (active: boolean) => void;
+  isMobileReaderImmersive: boolean;
+  setIsMobileReaderImmersive: (active: boolean) => void;
   quickMemorizeSeed: QuickMemorizeSeed | null;
   openQuickMemorize: (surah: number, ayah: number, page?: number) => void;
   closeQuickMemorize: () => void;
@@ -817,7 +819,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [examNavTarget, setExamNavTarget] = useState<ExamNavigationTarget | null>(null);
   const [isExamActive, setIsExamActive] = useState(false);
   const [isMemorizationZenActive, setIsMemorizationZenActive] = useState(false);
+  const [isMobileReaderImmersive, setIsMobileReaderImmersive] = useState(false);
   const [quickMemorizeSeed, setQuickMemorizeSeed] = useState<QuickMemorizeSeed | null>(null);
+
+  useEffect(() => {
+    if (activeTab !== 'reader' || persisted.studyPrefs.viewMode === 'cards') {
+      setIsMobileReaderImmersive(false);
+    }
+  }, [activeTab, persisted.studyPrefs.viewMode]);
   const [memorizeLaunchTarget, setMemorizeLaunchTarget] = useState<MemorizeLaunchTarget | null>(
     null,
   );
@@ -1792,6 +1801,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsExamActive,
       isMemorizationZenActive,
       setIsMemorizationZenActive,
+      isMobileReaderImmersive,
+      setIsMobileReaderImmersive,
       quickMemorizeSeed,
       openQuickMemorize,
       closeQuickMemorize,
@@ -1889,6 +1900,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearExamNavTarget,
       isExamActive,
       isMemorizationZenActive,
+      isMobileReaderImmersive,
       quickMemorizeSeed,
       openQuickMemorize,
       closeQuickMemorize,

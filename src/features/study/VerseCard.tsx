@@ -21,6 +21,7 @@ import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   AppSettings,
+  BookContentMode,
   CombinedVerse,
   MealDefinition,
   MealVerse,
@@ -34,6 +35,7 @@ interface VerseCardProps {
   surahMeta: SurahMeta;
   settings: AppSettings;
   globalWordMode: WordMealMode;
+  contentMode?: BookContentMode;
   mealAudioFocusOnly?: boolean;
   isBookmarked: boolean;
   isPlayingThisAyah: boolean;
@@ -54,6 +56,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   surahMeta,
   settings,
   globalWordMode,
+  contentMode = 'interleaved',
   mealAudioFocusOnly = false,
   isBookmarked,
   isPlayingThisAyah,
@@ -467,9 +470,9 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         </div>
       </div>
 
-      {/* Arapça Metin (Odaklı Sesli Meal modunda gizlenir) */}
-      {!mealAudioFocusOnly && (
-        <div className="mb-4">
+      {/* Arapça Metin (Sadece Meal veya Odaklı Sesli Meal modunda gizlenir) */}
+      {!mealAudioFocusOnly && contentMode !== 'meal_only' && (
+        <div className={contentMode === 'ar_only' ? '' : 'mb-4'}>
           <p
             className="arabic-text text-right break-words"
             style={{
@@ -497,7 +500,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
       )}
 
       {/* Etkileşimli Kelime-Kelime Meal */}
-      {!mealAudioFocusOnly && showWordGrid && verse.words.length > 0 && (
+      {!mealAudioFocusOnly && contentMode !== 'meal_only' && showWordGrid && verse.words.length > 0 && (
         <div
           className="mb-4 p-3.5 rounded-xl border"
           style={{
@@ -514,51 +517,53 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         </div>
       )}
 
-      {/* Seçili Meal / Çift Meal (24 Meal Desteği) */}
-      <div className="space-y-3.5">
-        {resolvedPrimaryVerse ? (
-          renderMealBlock(
-            resolvedPrimaryVerse,
-            resolvedPrimaryMeal.label,
-            'var(--brand-primary-text)',
-            expandedMergedPrimary,
-            () => setExpandedMergedPrimary((v) => !v),
-            false,
-          )
-        ) : isLoadingExtra ? (
-          <div className="space-y-1.5">
-            <span className="text-xs font-bold" style={{ color: 'var(--brand-primary-text)' }}>
-              {resolvedPrimaryMeal.label}
-            </span>
-            <div className="h-4 w-5/6 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
-          </div>
-        ) : null}
-
-        {resolvedIsDual &&
-          (resolvedSecondaryVerse ? (
+      {/* Seçili Meal / Çift Meal (24 Meal Desteği — Sadece AR modunda gizlenir) */}
+      {contentMode !== 'ar_only' && (
+        <div className="space-y-3.5">
+          {resolvedPrimaryVerse ? (
             renderMealBlock(
-              resolvedSecondaryVerse,
-              resolvedSecondaryMeal.label,
-              'var(--brand-accent-text)',
-              expandedMergedSecondary,
-              () => setExpandedMergedSecondary((v) => !v),
-              true,
+              resolvedPrimaryVerse,
+              resolvedPrimaryMeal.label,
+              'var(--brand-primary-text)',
+              expandedMergedPrimary,
+              () => setExpandedMergedPrimary((v) => !v),
+              false,
             )
           ) : isLoadingExtra ? (
-            <div
-              className="pt-3.5 border-t space-y-1.5"
-              style={{ borderColor: 'var(--border-subtle)' }}
-            >
-              <span className="text-xs font-bold" style={{ color: 'var(--brand-accent-text)' }}>
-                {resolvedSecondaryMeal.label}
+            <div className="space-y-1.5">
+              <span className="text-xs font-bold" style={{ color: 'var(--brand-primary-text)' }}>
+                {resolvedPrimaryMeal.label}
               </span>
               <div className="h-4 w-5/6 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
             </div>
-          ) : null)}
-      </div>
+          ) : null}
+
+          {resolvedIsDual &&
+            (resolvedSecondaryVerse ? (
+              renderMealBlock(
+                resolvedSecondaryVerse,
+                resolvedSecondaryMeal.label,
+                'var(--brand-accent-text)',
+                expandedMergedSecondary,
+                () => setExpandedMergedSecondary((v) => !v),
+                true,
+              )
+            ) : isLoadingExtra ? (
+              <div
+                className="pt-3.5 border-t space-y-1.5"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <span className="text-xs font-bold" style={{ color: 'var(--brand-accent-text)' }}>
+                  {resolvedSecondaryMeal.label}
+                </span>
+                <div className="h-4 w-5/6 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+              </div>
+            ) : null)}
+        </div>
+      )}
 
       {/* Dipnotlar (fn) Akordeonu */}
-      {totalFootnotes > 0 && (
+      {contentMode !== 'ar_only' && totalFootnotes > 0 && (
         <div
           className="mt-4 pt-3 border-t"
           style={{ borderColor: 'var(--border-subtle)' }}
