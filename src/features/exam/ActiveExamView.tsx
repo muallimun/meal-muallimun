@@ -11,6 +11,7 @@ import {
   Flame,
   Grid,
   Heart,
+  Lock,
   Scissors,
   Star,
   Timer,
@@ -28,7 +29,6 @@ import {
   formatPremiseItem,
   formatSourceRefLabel,
   getDifficultyInfo,
-  getMealBasisLabel,
 } from '../../utils/examUtils';
 import { FormattedStem } from './FormattedStem';
 import { RelatedVerseDrawer } from './RelatedVerseDrawer';
@@ -54,8 +54,19 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showPaletteModal, setShowPaletteModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [openPracticeVerseDrawer, setOpenPracticeVerseDrawer] = useState(false);
 
   const isCompletingRef = useRef(false);
+  const feedbackSectionRef = useRef<HTMLDivElement | null>(null);
+  const mobileStripRef = useRef<HTMLDivElement | null>(null);
+  // Yarışma Arenası'nda aktif sorudan geri dönülüp tekrar gelindiğinde sürenin sıfırlanmasını engeller
+  const arenaStartedUidsRef = useRef<Set<string>>(
+    new Set(
+      session.questions[session.currentIndex]
+        ? [session.questions[session.currentIndex].uid]
+        : [],
+    ),
+  );
 
   // Sınav açıldığında arka plandaki tilavet/meal sesini duraklat
   useEffect(() => {
@@ -72,13 +83,31 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   const isLocked = !isMock && isAnswered;
   const isOutOfLives = isArena && session.livesRemaining <= 0;
 
+  // Soru değişince Antrenman ayet çekmecesini varsayılan kapalı konuma al ve mobil şeridi hizala
+  useEffect(() => {
+    setOpenPracticeVerseDrawer(false);
+    if (currentQuestion && isArena && !session.answers[currentQuestion.uid]) {
+      arenaStartedUidsRef.current.add(currentQuestion.uid);
+    }
+    const strip = mobileStripRef.current;
+    if (strip) {
+      const activeChip = strip.querySelector<HTMLElement>(
+        `[data-nav-idx="${session.currentIndex}"]`,
+      );
+      if (activeChip) {
+        const targetLeft =
+          activeChip.offsetLeft - strip.clientWidth / 2 + activeChip.clientWidth / 2;
+        strip.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+      }
+    }
+  }, [session.currentIndex, currentQuestion, isArena, session.answers]);
+
   const surahMeta = useMemo(() => {
     if (!meta || !currentQuestion) return null;
     return meta.surahs.find((s) => s.no === currentQuestion.question.surah) ?? null;
   }, [meta, currentQuestion]);
 
   const diffInfo = getDifficultyInfo(currentQuestion?.question.difficulty);
-  const mealLabel = getMealBasisLabel(currentQuestion?.question.mealBasis);
   const isBookmarked = currentQuestion
     ? gamification.bookmarkedQuestionIds.includes(currentQuestion.uid)
     : false;
@@ -99,6 +128,43 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   const isHintRevealed = currentQuestion
     ? session.hintRevealedUids.includes(currentQuestion.uid)
     : false;
+
+  // İstatistik özetleri (Navigatör & Bitir Onay Modalı için)
+  const { correctCount, wrongCount, answeredCount, blankCount } = useMemo(() => {
+    let correct = 0;
+    let wrong = 0;
+    for (const q of session.questions) {
+      const ans = session.answers[q.uid];
+      if (!ans) continue;
+      if (ans.isCorrect) correct += 1;
+      else wrong += 1;
+    }
+    const answered = correct + wrong;
+    return {
+      correctCount: correct,
+      wrongCount: wrong,
+      answeredCount: answered,
+      blankCount: Math.max(0, session.questions.length - answered),
+    };
+  }, [session.questions, session.answers]);
+
+  // Yarışma Arenası kilit/erişim sınırı: ilk cevaplanmamış soru aktif sınır sorusudur
+  const arenaFrontierIndex = useMemo(() => {
+    const firstUnanswered = session.questions.findIndex((q) => !session.answers[q.uid]);
+    return firstUnanswered === -1 ? session.questions.length - 1 : firstUnanswered;
+  }, [session.questions, session.answers]);
+
+  const canAccessQuestion = useCallback(
+    (idx: number): boolean => {
+      if (idx < 0 || idx >= session.questions.length) return false;
+      if (!isArena) return true;
+      const q = session.questions[idx];
+      if (session.answers[q.uid]) return true;
+      if (isOutOfLives) return false;
+      return idx === arenaFrontierIndex;
+    },
+    [session.questions, session.answers, isArena, isOutOfLives, arenaFrontierIndex],
+  );
 
   // Süre sayacı (tüm modlarda elapsedSec; Arena'da soru geri sayımı; Deneme'de toplam geri sayım)
   const triggerComplete = useCallback(
@@ -261,21 +327,50 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     });
   };
 
-  // İleri / Geri soru geçişleri
+  // İleri / Geri ve Palet soru geçişleri (Mod kurallarına saygılı)
   const handleGoToQuestion = useCallback(
     (targetIdx: number) => {
       const clamped = Math.max(0, Math.min(session.questions.length - 1, targetIdx));
       if (clamped === session.currentIndex) return;
+      if (!canAccessQuestion(clamped)) return;
+
       sfxService.play('click');
-      onUpdateSession((prev) => ({
-        ...prev,
-        currentIndex: clamped,
-        questionRemainingSec: prev.config.arenaTimePerQuestion,
-      }));
+      onUpdateSession((prev) => {
+        const targetQ = prev.questions[clamped];
+        let nextQSec = prev.questionRemainingSec;
+
+        if (prev.config.mode === 'arena' && targetQ) {
+          const isFreshUnanswered =
+            !prev.answers[targetQ.uid] && !arenaStartedUidsRef.current.has(targetQ.uid);
+          if (isFreshUnanswered) {
+            arenaStartedUidsRef.current.add(targetQ.uid);
+            nextQSec = prev.config.arenaTimePerQuestion;
+          }
+        }
+
+        return {
+          ...prev,
+          currentIndex: clamped,
+          questionRemainingSec: nextQSec,
+        };
+      });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [session.questions.length, session.currentIndex, onUpdateSession],
+    [session.questions.length, session.currentIndex, canAccessQuestion, onUpdateSession],
   );
+
+  const handleRequestFinish = useCallback(() => {
+    if (isOutOfLives) {
+      triggerComplete(session, true);
+      return;
+    }
+    if (!isMock && blankCount === 0) {
+      triggerComplete(session, false);
+      return;
+    }
+    sfxService.play('click');
+    setShowFinishModal(true);
+  }, [isOutOfLives, isMock, blankCount, session, triggerComplete]);
 
   const handleNextOrFinish = useCallback(() => {
     if (isOutOfLives) {
@@ -285,17 +380,21 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
 
     const isLast = session.currentIndex >= session.questions.length - 1;
     if (isLast) {
-      if (isMock) {
-        sfxService.play('click');
-        setShowFinishModal(true);
-      } else {
-        triggerComplete(session, false);
-      }
+      handleRequestFinish();
       return;
     }
 
-    handleGoToQuestion(session.currentIndex + 1);
-  }, [isOutOfLives, session, isMock, triggerComplete, handleGoToQuestion]);
+    if (canAccessQuestion(session.currentIndex + 1)) {
+      handleGoToQuestion(session.currentIndex + 1);
+    }
+  }, [
+    isOutOfLives,
+    session,
+    triggerComplete,
+    handleRequestFinish,
+    canAccessQuestion,
+    handleGoToQuestion,
+  ]);
 
   // Yarışma Arenası 3 Joker
   const handleUseFiftyFifty = () => {
@@ -307,7 +406,6 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     if (wrongIndices.length < 2) return;
     sfxService.play('click');
 
-    // Rastgele 2 yanlış şıkkı ele
     const shuffledWrong = [...wrongIndices].sort(() => Math.random() - 0.5);
     const toEliminate = shuffledWrong.slice(0, 2);
 
@@ -343,7 +441,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     }));
   };
 
-  // Masaüstü klavye kısayolları: 1-4 / A-D ve Enter
+  // Masaüstü klavye kısayolları: 1-4 / A-D, Enter, Sol/Sağ ok
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (showExitModal || showFinishModal || showPaletteModal || showReportModal) return;
@@ -380,8 +478,24 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
         return;
       }
 
+      if (e.key === 'ArrowLeft') {
+        if (canAccessQuestion(session.currentIndex - 1)) {
+          e.preventDefault();
+          handleGoToQuestion(session.currentIndex - 1);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowRight') {
+        if (canAccessQuestion(session.currentIndex + 1)) {
+          e.preventDefault();
+          handleGoToQuestion(session.currentIndex + 1);
+        }
+        return;
+      }
+
       if (e.key === 'Enter') {
-        if (isMock || isAnswered) {
+        if (isMock || isPractice || isAnswered) {
           e.preventDefault();
           handleNextOrFinish();
         }
@@ -396,18 +510,23 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     showPaletteModal,
     showReportModal,
     currentQuestion,
+    session.currentIndex,
     isMock,
+    isPractice,
     isAnswered,
+    canAccessQuestion,
     handleSelectOption,
+    handleGoToQuestion,
     handleNextOrFinish,
   ]);
 
   if (!currentQuestion) return null;
 
   const totalCount = session.questions.length;
-  const answeredCount = Object.keys(session.answers).length;
   const progressPct = Math.round(((session.currentIndex + 1) / totalCount) * 100);
   const isLastQuestion = session.currentIndex >= totalCount - 1;
+  const canGoPrev = canAccessQuestion(session.currentIndex - 1);
+  const canGoNext = !isLastQuestion && canAccessQuestion(session.currentIndex + 1);
 
   const timerValue = isArena
     ? session.questionRemainingSec
@@ -418,165 +537,98 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     (isArena && session.questionRemainingSec <= 10) ||
     (isMock && session.totalRemainingSec <= 60);
 
-  const hasTwoColSplit =
-    currentQuestion.question.premises.length > 0 || currentQuestion.question.stem.length > 155;
-  const areShortOptions =
-    !hasTwoColSplit && currentQuestion.options.every((o) => o.length <= 55);
+  // Çok kısa şıklar (örn. "Yalnız I", "I ve II") için 2x2 düzenli ızgara; normal şıklarda dikey tek sütun
+  const areVeryShortOptions =
+    currentQuestion.options.length <= 4 &&
+    currentQuestion.options.every((o) => o.trim().length <= 38 && !o.includes('\n'));
 
-  const arenaJokersNode =
-    isArena && !isAnswered ? (
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          type="button"
-          disabled={session.jokers.fiftyFiftyUsed || currentQuestion.options.length < 3}
-          onClick={handleUseFiftyFifty}
-          className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-            color: 'var(--text-primary)',
-          }}
-        >
-          <Scissors className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-accent-text)' }} />
-          <span className="truncate whitespace-nowrap">%50 Ele</span>
-        </button>
+  // Palet kutucuk stilini 3 mod için tutarlı üreten yardımcı
+  const getPaletteTileVisual = (idx: number) => {
+    const q = session.questions[idx];
+    const ans = session.answers[q.uid];
+    const flagged = isMock && session.flaggedUids.includes(q.uid);
+    const isCurrent = idx === session.currentIndex;
+    const accessible = canAccessQuestion(idx);
 
-        <button
-          type="button"
-          disabled={session.jokers.verseHintUsed}
-          onClick={handleUseVerseHint}
-          className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-            color: 'var(--text-primary)',
-          }}
-        >
-          <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-          <span className="truncate whitespace-nowrap">Ayet İpucu</span>
-        </button>
+    let bgColor = 'var(--bg-surface-soft)';
+    let borderColor = 'var(--border-subtle)';
+    let textColor = 'var(--text-primary)';
 
-        <button
-          type="button"
-          disabled={session.jokers.extraTimeUsed}
-          onClick={handleUseExtraTime}
-          className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-            color: 'var(--text-primary)',
-          }}
-        >
-          <Timer className="w-3.5 h-3.5 shrink-0" style={{ color: '#059669' }} />
-          <span className="truncate whitespace-nowrap">+30 Sn</span>
-        </button>
-      </div>
-    ) : null;
-
-  const optionsListNode = (
-    <div
-      className={
-        areShortOptions ? 'grid grid-cols-1 sm:grid-cols-2 gap-2.5' : 'space-y-2'
+    if (isMock) {
+      if (ans) {
+        bgColor = 'rgba(16, 185, 129, 0.16)';
+        borderColor = 'rgba(16, 185, 129, 0.42)';
+        textColor = '#059669';
       }
-    >
-      {currentQuestion.options.map((optText, idx) => {
-        const isEliminated = eliminatedSet.has(idx);
-        const isSelected = currentAnswer?.selectedIndex === idx;
-        const isCorrectOption = idx === currentQuestion.correctDisplayIndex;
+      if (flagged) {
+        borderColor = '#F59E0B';
+      }
+    } else {
+      if (ans?.isCorrect) {
+        bgColor = 'rgba(16, 185, 129, 0.16)';
+        borderColor = 'rgba(16, 185, 129, 0.45)';
+        textColor = '#059669';
+      } else if (ans && !ans.isCorrect) {
+        bgColor = 'rgba(239, 68, 68, 0.14)';
+        borderColor = 'rgba(239, 68, 68, 0.45)';
+        textColor = '#DC2626';
+      } else if (!accessible) {
+        bgColor = 'var(--bg-surface-soft)';
+        borderColor = 'transparent';
+        textColor = 'var(--text-muted)';
+      }
+    }
 
-        let borderColor = 'var(--border-subtle)';
-        let bgColor = 'var(--bg-surface)';
-        let indicatorBg = 'var(--bg-surface-soft)';
-        let indicatorColor = 'var(--text-secondary)';
+    if (isCurrent) {
+      borderColor = 'var(--brand-primary)';
+      if (!ans) {
+        bgColor = 'var(--brand-primary-soft)';
+        textColor = 'var(--brand-primary-text)';
+      }
+    }
 
-        if (isMock) {
-          if (isSelected) {
-            borderColor = 'var(--brand-primary)';
-            bgColor = 'var(--brand-primary-soft)';
-            indicatorBg = 'var(--brand-primary)';
-            indicatorColor = '#FFFFFF';
-          }
-        } else if (isLocked) {
-          if (isCorrectOption) {
-            borderColor = '#10B981';
-            bgColor = 'rgba(16, 185, 129, 0.12)';
-            indicatorBg = '#10B981';
-            indicatorColor = '#FFFFFF';
-          } else if (isSelected && !isCorrectOption) {
-            borderColor = '#EF4444';
-            bgColor = 'rgba(239, 68, 68, 0.12)';
-            indicatorBg = '#EF4444';
-            indicatorColor = '#FFFFFF';
-          }
-        }
+    return { bgColor, borderColor, textColor, flagged, isCurrent, accessible, ans };
+  };
+
+  const renderPaletteGrid = (closeOnSelect: boolean) => (
+    <div className="grid grid-cols-5 gap-1.5">
+      {session.questions.map((q, idx) => {
+        const { bgColor, borderColor, textColor, flagged, isCurrent, accessible } =
+          getPaletteTileVisual(idx);
 
         return (
           <button
-            key={idx}
+            key={q.uid}
             type="button"
-            disabled={isEliminated || isLocked}
-            onClick={() => handleSelectOption(idx)}
-            className={`w-full min-h-[46px] px-3.5 py-2.5 rounded-xl border-2 text-left flex items-start gap-2.5 transition-all ${
-              isEliminated
-                ? 'opacity-35 line-through cursor-not-allowed'
-                : isLocked
-                  ? 'cursor-default'
-                  : 'cursor-pointer hover:border-teal-600/50 active:scale-[0.995]'
+            disabled={!accessible}
+            onClick={() => {
+              if (!accessible) return;
+              if (closeOnSelect) setShowPaletteModal(false);
+              handleGoToQuestion(idx);
+            }}
+            aria-label={`Soru ${idx + 1}${!accessible ? ' (kilitli)' : ''}`}
+            aria-current={isCurrent ? 'step' : undefined}
+            className={`relative h-9 rounded-lg border-2 text-xs font-extrabold tabular-nums flex items-center justify-center transition-all ${
+              accessible
+                ? 'cursor-pointer hover:opacity-90 active:scale-[0.97]'
+                : 'opacity-45 cursor-not-allowed'
             }`}
             style={{
-              borderColor,
               backgroundColor: bgColor,
+              borderColor,
+              color: textColor,
+              boxShadow: isCurrent ? '0 0 0 2px rgba(15, 118, 110, 0.18)' : undefined,
             }}
           >
-            {/* Harf rozeti veya modern seçim halkası */}
-            {settings.showOptionLettersInApp ? (
+            <span>{idx + 1}</span>
+            {flagged && (
               <span
-                className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-extrabold shrink-0 mt-0.5"
-                style={{
-                  backgroundColor: indicatorBg,
-                  color: indicatorColor,
-                }}
-              >
-                {OPTION_LETTERS[idx] ?? idx + 1}
-              </span>
-            ) : (
-              <span
-                className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5"
-                style={{
-                  borderColor:
-                    isSelected || (isLocked && isCorrectOption)
-                      ? borderColor
-                      : 'var(--border-strong)',
-                  backgroundColor:
-                    isSelected || (isLocked && isCorrectOption) ? indicatorBg : 'transparent',
-                  color: indicatorColor,
-                }}
-              >
-                {isLocked && isCorrectOption ? (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                ) : isLocked && isSelected && !isCorrectOption ? (
-                  <XCircle className="w-3.5 h-3.5" />
-                ) : isSelected ? (
-                  <span className="w-2 h-2 rounded-full bg-white" />
-                ) : null}
-              </span>
+                className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-amber-500"
+                title="Şüpheli işaretli"
+              />
             )}
-
-            <span
-              className="flex-1 turkish-reading leading-snug"
-              style={{
-                fontSize: `${settings.turkishFontSize}px`,
-                color: 'var(--text-primary)',
-              }}
-            >
-              {optText}
-            </span>
-
-            {isLocked && isCorrectOption && (
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500 mt-0.5" />
-            )}
-            {isLocked && isSelected && !isCorrectOption && (
-              <XCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
+            {!accessible && (
+              <Lock className="w-2.5 h-2.5 absolute bottom-0.5 right-0.5 opacity-60" />
             )}
           </button>
         );
@@ -584,16 +636,116 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     </div>
   );
 
-  return (
+  const renderPaletteSummary = () =>
+    isMock ? (
+      <div className="grid grid-cols-3 gap-1.5 text-center">
+        <div className="py-1.5 px-1 rounded-xl" style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)' }}>
+          <p className="text-sm font-extrabold tabular-nums text-emerald-600">{answeredCount}</p>
+          <p className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>
+            Cevaplı
+          </p>
+        </div>
+        <div className="py-1.5 px-1 rounded-xl" style={{ backgroundColor: 'var(--bg-surface-soft)' }}>
+          <p className="text-sm font-extrabold tabular-nums">{blankCount}</p>
+          <p className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>
+            Boş
+          </p>
+        </div>
+        <div className="py-1.5 px-1 rounded-xl" style={{ backgroundColor: 'var(--brand-accent-soft)' }}>
+          <p
+            className="text-sm font-extrabold tabular-nums"
+            style={{ color: 'var(--brand-accent-text)' }}
+          >
+            {session.flaggedUids.length}
+          </p>
+          <p className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>
+            Şüpheli
+          </p>
+        </div>
+      </div>
+    ) : (
+      <div className="grid grid-cols-3 gap-1.5 text-center">
+        <div className="py-1.5 px-1 rounded-xl" style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)' }}>
+          <p className="text-sm font-extrabold tabular-nums text-emerald-600">{correctCount}</p>
+          <p className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>
+            Doğru
+          </p>
+        </div>
+        <div className="py-1.5 px-1 rounded-xl" style={{ backgroundColor: 'rgba(239, 68, 68, 0.10)' }}>
+          <p className="text-sm font-extrabold tabular-nums text-red-500">{wrongCount}</p>
+          <p className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>
+            Yanlış
+          </p>
+        </div>
+        <div className="py-1.5 px-1 rounded-xl" style={{ backgroundColor: 'var(--bg-surface-soft)' }}>
+          <p className="text-sm font-extrabold tabular-nums">{blankCount}</p>
+          <p className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>
+            Kalan
+          </p>
+        </div>
+      </div>
+    );
+
+  const renderPaletteLegend = () => (
     <div
-      className={`${hasTwoColSplit ? 'max-w-5xl' : 'max-w-3xl'} mx-auto space-y-3 pb-8 transition-[max-width] duration-200`}
+      className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] font-semibold"
+      style={{ color: 'var(--text-muted)' }}
     >
+      {isMock ? (
+        <>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500" /> Cevaplandı
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-xs bg-amber-500" /> Şüpheli
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span
+              className="w-2.5 h-2.5 rounded-xs border"
+              style={{ borderColor: 'var(--border-strong)' }}
+            />{' '}
+            Boş
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500" /> Doğru
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-xs bg-red-500" /> Yanlış
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span
+              className="w-2.5 h-2.5 rounded-xs border-2"
+              style={{ borderColor: 'var(--brand-primary)' }}
+            />{' '}
+            Aktif
+          </span>
+          {isArena && (
+            <span className="inline-flex items-center gap-1">
+              <Lock className="w-2.5 h-2.5" /> Kilitli
+            </span>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  const finishModalTitle = isMock
+    ? 'Deneme Sınavını Bitir'
+    : isArena
+      ? 'Yarışmayı Bitir'
+      : 'Antrenmanı Bitir';
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-2.5 pb-6">
       {/* ====================================================================
-          1. İnce Tek Şerit Aktif Sınav Üst Barı (Çıkış, Sayaç, Metaveri, Süre)
+          1. İnce Tek Şerit Aktif Sınav Üst Barı (Soru X/N · Sure · Zorluk · Süre)
           ==================================================================== */}
       <div className="surface-card rounded-2xl overflow-hidden">
-        <div className="min-h-[48px] px-2.5 sm:px-3 py-1.5 flex items-center justify-between gap-2">
-          {/* Sol: Çıkış + Soru Sayacı + Masaüstü Metaveri */}
+        <div className="min-h-[46px] px-2.5 sm:px-3.5 py-1.5 flex items-center justify-between gap-2">
+          {/* Sol: Çıkış + Soru Sayacı + Sade Metaveri (Meal Esası YOK) */}
           <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
@@ -625,9 +777,9 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               </span>
             )}
 
-            {/* Masaüstünde tek satırda kutusuz sade metaveri: Sure · Zorluk · Meal */}
+            {/* Masaüstü tek satır metaveri: Yalnızca Sure Adı ve Zorluk */}
             <div
-              className="hidden md:flex items-center gap-1.5 text-xs pl-2 border-l min-w-0 truncate"
+              className="hidden md:flex items-center gap-1.5 text-xs pl-2 border-l min-w-0"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
               <span
@@ -636,20 +788,17 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               >
                 {surahMeta?.nameTr ?? `${currentQuestion.question.surah}. Sure`}
               </span>
-              <span style={{ color: 'var(--text-muted)' }}>·</span>
-              <span className="font-bold whitespace-nowrap" style={{ color: diffInfo.color }}>
+              <span
+                className="px-2 py-0.5 rounded-md text-[11px] font-bold whitespace-nowrap shrink-0"
+                style={{ backgroundColor: diffInfo.bg, color: diffInfo.color }}
+              >
                 {diffInfo.label}
-              </span>
-              <span style={{ color: 'var(--text-muted)' }}>·</span>
-              <span className="font-semibold whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
-                {mealLabel}
               </span>
             </div>
           </div>
 
-          {/* Sağ: Mod Göstergeleri (Canlar, Seri, Süre, Palet, Yıldız, Bildir) */}
+          {/* Sağ: Canlar, Seri, Süre, Mobil Palet (3 Modda da), Yıldız, Hatalı */}
           <div className="flex items-center gap-1 shrink-0">
-            {/* Arena Canlar */}
             {isArena && (
               <div
                 className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg"
@@ -667,7 +816,6 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               </div>
             )}
 
-            {/* Seri (Combo) Rozeti */}
             {!isMock && session.currentStreak >= 2 && (
               <div
                 className="px-2 py-1 rounded-lg text-xs font-extrabold tabular-nums flex items-center gap-0.5"
@@ -697,26 +845,27 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               <span>{formatClockTimer(timerValue)}</span>
             </div>
 
-            {isMock && (
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setShowPaletteModal(true);
-                }}
-                className="min-h-[34px] px-2 rounded-lg border text-xs font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                <Grid className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden sm:inline tabular-nums">
-                  {answeredCount}/{totalCount}
-                </span>
-              </button>
-            )}
+            {/* Mobil Palet Tetikleyicisi (Tüm 3 sınav modunda aktif) */}
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setShowPaletteModal(true);
+              }}
+              aria-label="Soru paletini aç"
+              className="lg:hidden min-h-[34px] px-2 rounded-lg border text-[11px] font-extrabold flex items-center gap-1 cursor-pointer whitespace-nowrap"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                borderColor: 'var(--brand-primary)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <Grid className="w-3.5 h-3.5 shrink-0" />
+              <span className="tabular-nums">
+                {session.currentIndex + 1}/{totalCount}
+              </span>
+              <span className="hidden xs:inline sm:inline">Palet</span>
+            </button>
 
             {/* Soruyu Yıldızla */}
             <button
@@ -735,7 +884,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
             </button>
 
-            {/* Soruyu Hatalı / Gözden Geçirilecek Olarak İşaretle */}
+            {/* Hatalı Soru Bildir */}
             <button
               type="button"
               onClick={() => {
@@ -754,27 +903,31 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               }}
             >
               <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden lg:inline text-[11px] font-bold whitespace-nowrap">
+              <span className="hidden xl:inline text-[11px] font-bold whitespace-nowrap">
                 {isIssueReported ? 'İşaretli' : 'Hatalı'}
               </span>
             </button>
           </div>
         </div>
 
-        {/* Mobil Kompakt Tek Satır Metaveri Şeridi */}
-        <div
-          className="flex md:hidden items-center gap-1.5 px-3 pb-1.5 text-[11px] truncate"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          <span className="font-bold truncate" style={{ color: 'var(--brand-primary-text)' }}>
-            {surahMeta?.nameTr ?? `${currentQuestion.question.surah}. Sure`}
+        {/* Mobil Kompakt Tek Satır Metaveri: Yalnızca Sure Adı ve Zorluk */}
+        <div className="flex md:hidden items-center justify-between gap-2 px-3 pb-1.5 text-[11px]">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-bold truncate" style={{ color: 'var(--brand-primary-text)' }}>
+              {surahMeta?.nameTr ?? `${currentQuestion.question.surah}. Sure`}
+            </span>
+            <span
+              className="px-1.5 py-0.5 rounded text-[10px] font-bold whitespace-nowrap shrink-0"
+              style={{ backgroundColor: diffInfo.bg, color: diffInfo.color }}
+            >
+              {diffInfo.label}
+            </span>
+          </div>
+          <span className="text-[10px] font-bold tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+            {isMock
+              ? `${answeredCount} cevap · ${blankCount} boş`
+              : `${correctCount}D · ${wrongCount}Y`}
           </span>
-          <span>·</span>
-          <span className="font-bold whitespace-nowrap" style={{ color: diffInfo.color }}>
-            {diffInfo.label}
-          </span>
-          <span>·</span>
-          <span className="font-semibold whitespace-nowrap">{mealLabel}</span>
         </div>
 
         {/* İnce Alt İlerleme Çizgisi */}
@@ -793,185 +946,347 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
       </div>
 
       {/* ====================================================================
-          2. Soru Gövdesi ve Şık Kartları (Masaüstünde Akıllı 2-Sütunlu Düzen)
+          2. Mobil Yatay Kaydırılabilir Kompakt Soru Şeridi (< 1024px)
           ==================================================================== */}
-      <article className="surface-card rounded-2xl p-4 sm:p-5 space-y-4">
-        {hasTwoColSplit ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-            {/* Sol Sütun (7/12): Öncüller + Soru Kökü + Arena Ayet İpucu */}
-            <div className="lg:col-span-7 space-y-3">
-              {currentQuestion.question.premises.length > 0 && (
-                <div
-                  className="rounded-xl border p-3 space-y-1.5"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    borderColor: 'var(--border-subtle)',
-                  }}
-                >
-                  {currentQuestion.question.premises.map((rawPremise, idx) => {
-                    const { roman, text } = formatPremiseItem(rawPremise, idx);
-                    return (
-                      <div
-                        key={idx}
-                        className="flex items-start gap-2 turkish-reading leading-snug"
-                        style={{
-                          fontSize: `${settings.turkishFontSize}px`,
-                          color: 'var(--text-primary)',
-                        }}
-                      >
-                        <span
-                          className="font-extrabold shrink-0 min-w-[24px]"
-                          style={{ color: 'var(--brand-primary-text)' }}
-                        >
-                          {roman}
-                        </span>
-                        <span>{text}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <FormattedStem
-                text={currentQuestion.question.stem}
-                className="turkish-reading font-semibold leading-snug"
-                style={{
-                  fontSize: `${Math.min(22, settings.turkishFontSize + 1)}px`,
-                  color: 'var(--text-primary)',
-                }}
-              />
-
-              {isArena && isHintRevealed && !isAnswered && (
-                <RelatedVerseDrawer question={currentQuestion.question} hintOnly defaultOpen />
-              )}
-            </div>
-
-            {/* Sağ Sütun (5/12): Arena Jokerleri + Şık Kartları */}
-            <div className="lg:col-span-5 space-y-2.5">
-              {arenaJokersNode}
-              {optionsListNode}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3.5">
-            {arenaJokersNode}
-            {isArena && isHintRevealed && !isAnswered && (
-              <RelatedVerseDrawer question={currentQuestion.question} hintOnly defaultOpen />
-            )}
-            <FormattedStem
-              text={currentQuestion.question.stem}
-              className="turkish-reading font-semibold leading-relaxed"
+      <div
+        ref={mobileStripRef}
+        className="lg:hidden flex items-center gap-1.5 overflow-x-auto scrollbar-thin pb-0.5 px-0.5 max-w-full"
+        aria-label="Hızlı soru numaraları"
+      >
+        {session.questions.map((q, idx) => {
+          const { bgColor, borderColor, textColor, flagged, isCurrent, accessible } =
+            getPaletteTileVisual(idx);
+          return (
+            <button
+              key={`mob-nav-${q.uid}`}
+              data-nav-idx={idx}
+              type="button"
+              disabled={!accessible}
+              onClick={() => handleGoToQuestion(idx)}
+              className={`relative shrink-0 min-w-[34px] h-8 px-2 rounded-lg border-2 text-xs font-extrabold tabular-nums flex items-center justify-center transition-colors ${
+                accessible ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
+              }`}
               style={{
-                fontSize: `${Math.min(22, settings.turkishFontSize + 1)}px`,
-                color: 'var(--text-primary)',
+                backgroundColor: bgColor,
+                borderColor,
+                color: textColor,
               }}
-            />
-            {optionsListNode}
-          </div>
-        )}
+              aria-current={isCurrent ? 'step' : undefined}
+            >
+              {idx + 1}
+              {flagged && (
+                <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-amber-500" />
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* ================================================================
-            4. Anında Dönüt, Çözüm Açıklaması & İlgili Ayet (Antrenman & Arena)
-            ================================================================ */}
-        {!isMock && isAnswered && currentAnswer && (
-          <div className="pt-3.5 border-t space-y-3" style={{ borderColor: 'var(--border-subtle)' }}>
-            {/* Sonuç Şeridi */}
+      {/* ====================================================================
+          3. Ana 2 Sütunlu Masaüstü Düzeni: [Sol Ana Soru Kartı + Sağ Soru Navigatörü]
+          ==================================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_272px] gap-3.5 items-start">
+        {/* SOL ANA SORU KARTI: Öncüller -> Soru Kökü -> (Arena Joker) -> A/B/C/D Seçenekler -> Alt Aksiyon Barı */}
+        <article className="surface-card rounded-2xl p-4 sm:p-5 space-y-3.5 min-w-0">
+          {/* Öncüller (Varsa I, II, III) */}
+          {currentQuestion.question.premises.length > 0 && (
             <div
-              className="rounded-xl p-3 flex items-start gap-3"
+              className="rounded-xl border px-3.5 py-2.5 space-y-1"
               style={{
-                backgroundColor: currentAnswer.isCorrect
-                  ? 'rgba(16, 185, 129, 0.12)'
-                  : 'rgba(239, 68, 68, 0.10)',
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
               }}
             >
-              {currentAnswer.isCorrect ? (
-                <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 mt-0.5" />
-              ) : (
-                <XCircle className="w-5 h-5 shrink-0 text-red-500 mt-0.5" />
-              )}
-              <div className="space-y-1 min-w-0 flex-1">
-                <p
-                  className="text-sm font-extrabold"
-                  style={{ color: currentAnswer.isCorrect ? '#059669' : '#DC2626' }}
-                >
-                  {currentAnswer.isCorrect
-                    ? 'Tebrikler, doğru cevap!'
-                    : currentAnswer.timedOut
-                      ? 'Süre doldu!'
-                      : 'Yanlış cevap, doğrusunu inceleyelim:'}
-                </p>
-                {currentQuestion.question.explanation && (
-                  <p
-                    className="text-xs sm:text-sm leading-relaxed"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {currentQuestion.question.explanation}
-                  </p>
-                )}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-                  <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                    Kaynak: {formatSourceRefLabel(currentQuestion.question.sourceRef)}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setShowReportModal(true);
+              {currentQuestion.question.premises.map((rawPremise, idx) => {
+                const { roman, text } = formatPremiseItem(rawPremise, idx);
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2 turkish-reading leading-snug"
+                    style={{
+                      fontSize: `${settings.turkishFontSize}px`,
+                      color: 'var(--text-primary)',
                     }}
-                    className="text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer hover:underline"
-                    style={{ color: isIssueReported ? '#DC2626' : 'var(--text-muted)' }}
                   >
-                    <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
-                    <span>
-                      {isIssueReported
-                        ? 'Hatalı soru bildirimi düzenle'
-                        : 'Soruda mantık/dil hatası bildir'}
+                    <span
+                      className="font-extrabold shrink-0 min-w-[24px]"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      {roman}
                     </span>
-                  </button>
-                </div>
+                    <span>{text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Soru Kökü — Daima Seçeneklerin ÜSTÜNDE */}
+          <FormattedStem
+            text={currentQuestion.question.stem}
+            className="turkish-reading font-semibold leading-snug"
+            style={{
+              fontSize: `${Math.min(21, settings.turkishFontSize + 1)}px`,
+              color: 'var(--text-primary)',
+            }}
+          />
+
+          {/* Yarışma Arenası İnce Joker Çubuğu (Soru Kökü ile A Şıkkı Arasında) */}
+          {isArena && !isAnswered && (
+            <div
+              className="rounded-xl border px-2.5 py-2 flex flex-wrap items-center justify-between gap-2"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <span
+                className="text-[11px] font-extrabold uppercase tracking-wider px-1 hidden sm:inline"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Jokerler
+              </span>
+              <div className="grid grid-cols-3 gap-1.5 flex-1 sm:flex-initial">
+                <button
+                  type="button"
+                  disabled={session.jokers.fiftyFiftyUsed || currentQuestion.options.length < 3}
+                  onClick={handleUseFiftyFifty}
+                  className="min-h-[34px] px-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <Scissors
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: 'var(--brand-accent-text)' }}
+                  />
+                  <span className="truncate whitespace-nowrap">%50 Ele</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={session.jokers.verseHintUsed}
+                  onClick={handleUseVerseHint}
+                  className="min-h-[34px] px-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <BookOpen
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  />
+                  <span className="truncate whitespace-nowrap">Ayet İpucu</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={session.jokers.extraTimeUsed}
+                  onClick={handleUseExtraTime}
+                  className="min-h-[34px] px-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <Timer className="w-3.5 h-3.5 shrink-0" style={{ color: '#059669' }} />
+                  <span className="truncate whitespace-nowrap">+30 Sn</span>
+                </button>
               </div>
             </div>
+          )}
 
-            {/* İlgili Ayeti ve Meali Gör Çekmecesi */}
-            <RelatedVerseDrawer question={currentQuestion.question} />
+          {/* Arena Ayet İpucu Açıldıysa */}
+          {isArena && isHintRevealed && !isAnswered && (
+            <RelatedVerseDrawer question={currentQuestion.question} hintOnly defaultOpen />
+          )}
 
-            {/* Sonraki Soru / Sınavı Bitir */}
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleNextOrFinish}
-                className="w-full sm:w-auto min-h-[44px] px-6 rounded-xl text-sm font-extrabold text-white flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-[0.98]"
+          {/* Seçenekler (A, B, C, D Harf Rozetli — Daima Soru Kökü Altında) */}
+          <div
+            className={
+              areVeryShortOptions ? 'grid grid-cols-1 sm:grid-cols-2 gap-2' : 'space-y-2'
+            }
+          >
+            {currentQuestion.options.map((optText, idx) => {
+              const isEliminated = eliminatedSet.has(idx);
+              const isSelected = currentAnswer?.selectedIndex === idx;
+              const isCorrectOption = idx === currentQuestion.correctDisplayIndex;
+              const letter = OPTION_LETTERS[idx] ?? String.fromCharCode(65 + idx);
+
+              let borderColor = 'var(--border-subtle)';
+              let bgColor = 'var(--bg-surface)';
+              let badgeBg = 'var(--bg-surface-soft)';
+              let badgeBorder = 'var(--border-subtle)';
+              let badgeColor = 'var(--brand-primary-text)';
+
+              if (isEliminated) {
+                badgeColor = 'var(--text-muted)';
+              } else if (isMock) {
+                if (isSelected) {
+                  borderColor = 'var(--brand-primary)';
+                  bgColor = 'var(--brand-primary-soft)';
+                  badgeBg = 'var(--brand-primary)';
+                  badgeBorder = 'var(--brand-primary)';
+                  badgeColor = '#FFFFFF';
+                }
+              } else if (isLocked) {
+                if (isCorrectOption) {
+                  borderColor = '#10B981';
+                  bgColor = 'rgba(16, 185, 129, 0.12)';
+                  badgeBg = '#10B981';
+                  badgeBorder = '#10B981';
+                  badgeColor = '#FFFFFF';
+                } else if (isSelected && !isCorrectOption) {
+                  borderColor = '#EF4444';
+                  bgColor = 'rgba(239, 68, 68, 0.12)';
+                  badgeBg = '#EF4444';
+                  badgeBorder = '#EF4444';
+                  badgeColor = '#FFFFFF';
+                }
+              }
+
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  disabled={isEliminated || isLocked}
+                  onClick={() => handleSelectOption(idx)}
+                  className={`w-full min-h-[44px] px-3 py-2.5 rounded-xl border-2 text-left flex items-start gap-2.5 transition-all ${
+                    isEliminated
+                      ? 'opacity-35 line-through cursor-not-allowed'
+                      : isLocked
+                        ? 'cursor-default'
+                        : 'cursor-pointer hover:border-teal-600/55 active:scale-[0.995]'
+                  }`}
+                  style={{
+                    borderColor,
+                    backgroundColor: bgColor,
+                  }}
+                >
+                  <span
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center text-xs font-extrabold shrink-0"
+                    style={{
+                      backgroundColor: badgeBg,
+                      borderColor: badgeBorder,
+                      color: badgeColor,
+                    }}
+                  >
+                    {letter}
+                  </span>
+
+                  <span
+                    className="flex-1 turkish-reading leading-snug pt-0.5"
+                    style={{
+                      fontSize: `${settings.turkishFontSize}px`,
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {optText}
+                  </span>
+
+                  {isLocked && isCorrectOption && (
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500 mt-1" />
+                  )}
+                  {isLocked && isSelected && !isCorrectOption && (
+                    <XCircle className="w-4 h-4 shrink-0 text-red-500 mt-1" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Anında Dönüt, Çözüm Açıklaması & İlgili Ayet (Antrenman & Arena) */}
+          {!isMock && isAnswered && currentAnswer && (
+            <div
+              ref={feedbackSectionRef}
+              className="pt-3 border-t space-y-2.5"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <div
+                className="rounded-xl p-3 flex items-start gap-2.5"
                 style={{
-                  backgroundColor: isOutOfLives ? '#DC2626' : 'var(--brand-primary)',
+                  backgroundColor: currentAnswer.isCorrect
+                    ? 'rgba(16, 185, 129, 0.12)'
+                    : 'rgba(239, 68, 68, 0.10)',
                 }}
               >
-                <span>
-                  {isOutOfLives
-                    ? 'Canlar Bitti — Karneyi Gör'
-                    : isLastQuestion
-                      ? 'Sınavı Tamamla ve Karneyi Gör'
-                      : 'Sonraki Soru'}
-                </span>
-                <ArrowRight className="w-4 h-4 shrink-0" />
-              </button>
-            </div>
-          </div>
-        )}
+                {currentAnswer.isCorrect ? (
+                  <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 mt-0.5" />
+                ) : (
+                  <XCircle className="w-5 h-5 shrink-0 text-red-500 mt-0.5" />
+                )}
+                <div className="space-y-1 min-w-0 flex-1">
+                  <p
+                    className="text-xs sm:text-sm font-extrabold"
+                    style={{ color: currentAnswer.isCorrect ? '#059669' : '#DC2626' }}
+                  >
+                    {currentAnswer.isCorrect
+                      ? 'Tebrikler, doğru cevap!'
+                      : currentAnswer.timedOut
+                        ? 'Süre doldu!'
+                        : 'Yanlış cevap, doğrusunu inceleyelim:'}
+                  </p>
+                  {currentQuestion.question.explanation && (
+                    <p
+                      className="text-xs sm:text-sm leading-relaxed"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {currentQuestion.question.explanation}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                    <p
+                      className="text-[11px] font-semibold"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Kaynak: {formatSourceRefLabel(currentQuestion.question.sourceRef)}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setShowReportModal(true);
+                      }}
+                      className="text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer hover:underline"
+                      style={{ color: isIssueReported ? '#DC2626' : 'var(--text-muted)' }}
+                    >
+                      <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        {isIssueReported
+                          ? 'Hatalı soru bildirimi düzenle'
+                          : 'Soruda mantık/dil hatası bildir'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-        {/* ================================================================
-            5. Deneme Sınavı Alt Gezinme Çubuğu
-            ================================================================ */}
-        {isMock && (
+              <RelatedVerseDrawer
+                question={currentQuestion.question}
+                defaultOpen={openPracticeVerseDrawer}
+              />
+            </div>
+          )}
+
+          {/* ================================================================
+              4. Birleşik Alt Gezinme ve Aksiyon Barı (Her 3 Sınav Tipinde de Mevcut)
+              ================================================================ */}
           <div
-            className="pt-3.5 border-t flex flex-wrap items-center justify-between gap-2"
+            className="pt-3 border-t flex flex-wrap items-center justify-between gap-2"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <div className="flex items-center gap-2">
+            {/* Sol: Önceki */}
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                disabled={session.currentIndex === 0}
+                disabled={!canGoPrev}
                 onClick={() => handleGoToQuestion(session.currentIndex - 1)}
-                className="min-h-[40px] px-3.5 rounded-xl border text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-40 whitespace-nowrap"
+                className="min-h-[38px] px-3 rounded-xl border text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
@@ -982,80 +1297,195 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                 <span>Önceki</span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleToggleFlag}
-                className="min-h-[40px] px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                style={{
-                  backgroundColor: isFlagged
-                    ? 'var(--brand-accent-soft)'
-                    : 'var(--bg-surface)',
-                  borderColor: isFlagged ? 'var(--brand-accent)' : 'var(--border-subtle)',
-                  color: isFlagged ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
-                }}
-              >
-                <Flag className={`w-3.5 h-3.5 shrink-0 ${isFlagged ? 'fill-current' : ''}`} />
-                <span className="hidden sm:inline">
-                  {isFlagged ? 'İşaretli' : 'Şüpheli İşaretle'}
-                </span>
-              </button>
+              {/* Orta Aksiyon: Deneme -> Şüpheli İşaretle / Boş Bırak | Antrenman -> Ayet & Açıklama */}
+              {isMock && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleToggleFlag}
+                    className="min-h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: isFlagged
+                        ? 'var(--brand-accent-soft)'
+                        : 'var(--bg-surface)',
+                      borderColor: isFlagged ? 'var(--brand-accent)' : 'var(--border-subtle)',
+                      color: isFlagged ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
+                    }}
+                  >
+                    <Flag className={`w-3.5 h-3.5 shrink-0 ${isFlagged ? 'fill-current' : ''}`} />
+                    <span className="hidden sm:inline">
+                      {isFlagged ? 'İşaretli' : 'Şüpheli İşaretle'}
+                    </span>
+                  </button>
 
-              {isAnswered && (
+                  {isAnswered && (
+                    <button
+                      type="button"
+                      onClick={handleClearMockAnswer}
+                      className="min-h-[38px] px-2 rounded-xl text-xs font-semibold cursor-pointer hover:underline whitespace-nowrap"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Boş Bırak
+                    </button>
+                  )}
+                </>
+              )}
+
+              {isPractice && isAnswered && (
                 <button
                   type="button"
-                  onClick={handleClearMockAnswer}
-                  className="min-h-[40px] px-2.5 rounded-xl text-xs font-semibold cursor-pointer hover:underline whitespace-nowrap"
-                  style={{ color: 'var(--text-muted)' }}
+                  onClick={() => {
+                    sfxService.play('click');
+                    setOpenPracticeVerseDrawer((prev) => !prev);
+                    feedbackSectionRef.current?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'nearest',
+                    });
+                  }}
+                  className="min-h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor: openPracticeVerseDrawer
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface)',
+                    borderColor: openPracticeVerseDrawer
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-subtle)',
+                    color: 'var(--brand-primary-text)',
+                  }}
                 >
-                  Boş Bırak
+                  <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">Ayet &amp; Açıklama</span>
+                  <span className="sm:hidden">Ayet</span>
                 </button>
               )}
+
+              {/* Mobil orta hızlı palet butonu */}
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setShowPaletteModal(true);
+                }}
+                className="lg:hidden min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <Grid className="w-3.5 h-3.5 shrink-0" />
+                <span>Palet</span>
+              </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              {!isLastQuestion ? (
+            {/* Sağ: Sonraki + Sınavı Bitir */}
+            <div className="flex items-center gap-1.5 ml-auto">
+              {!isLastQuestion && (
                 <button
                   type="button"
+                  disabled={!canGoNext}
                   onClick={() => handleGoToQuestion(session.currentIndex + 1)}
-                  className="min-h-[40px] px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  title={
+                    !canGoNext && isArena
+                      ? 'Sonraki soruya geçmek için önce bu soruyu cevaplayın'
+                      : undefined
+                  }
+                  className="min-h-[38px] px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap transition-transform active:scale-[0.98]"
                   style={{ backgroundColor: 'var(--brand-primary)' }}
                 >
                   <span>Sonraki</span>
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
-              ) : null}
+              )}
 
               <button
                 type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setShowFinishModal(true);
-                }}
-                className="min-h-[40px] px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                onClick={handleRequestFinish}
+                className="min-h-[38px] px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-transform active:scale-[0.98]"
                 style={{
-                  backgroundColor: isLastQuestion
-                    ? 'var(--brand-primary)'
-                    : 'var(--brand-accent)',
-                  color: '#FFFFFF',
+                  backgroundColor: isOutOfLives
+                    ? '#DC2626'
+                    : isLastQuestion
+                      ? 'var(--brand-primary)'
+                      : 'var(--brand-accent)',
                 }}
               >
-                <span>Sınavı Bitir</span>
+                <span>
+                  {isOutOfLives
+                    ? 'Karneyi Gör'
+                    : isLastQuestion && !isMock && blankCount === 0
+                      ? 'Sınavı Tamamla'
+                      : 'Sınavı Bitir'}
+                </span>
               </button>
             </div>
           </div>
-        )}
-      </article>
+        </article>
 
-      {/* Masaüstü klavye kısayolu ipucu */}
-      <p
-        className="hidden sm:block text-center text-[11px]"
-        style={{ color: 'var(--text-muted)' }}
-      >
-        Kısayollar: Şık seçmek için <kbd className="font-bold">1–4</kbd> veya{' '}
-        <kbd className="font-bold">A–D</kbd>, ilerlemek için <kbd className="font-bold">Enter</kbd>{' '}
-        tuşlarını kullanabilirsin.
-        {isPractice ? ' (Süresiz Antrenman)' : ''}
-      </p>
+        {/* SAĞ MASAÜSTÜ SORU NAVİGATÖRÜ (Her 3 Sınav Modunda da Sabit & Zarif) */}
+        <aside className="hidden lg:flex flex-col surface-card rounded-2xl p-3.5 space-y-3 sticky top-18">
+          <div
+            className="flex items-center justify-between gap-2 pb-2 border-b"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Grid
+                className="w-4 h-4 shrink-0"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+              <h2 className="text-xs font-extrabold tracking-tight truncate">Soru Navigatörü</h2>
+            </div>
+            <span
+              className="text-[11px] font-extrabold tabular-nums px-2 py-0.5 rounded-md shrink-0"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              {answeredCount}/{totalCount}
+            </span>
+          </div>
+
+          {/* İlerleme Özet Sayaçları */}
+          {renderPaletteSummary()}
+
+          {/* 5'li Optik Soru Izgarası */}
+          <div className="max-h-[300px] overflow-y-auto scrollbar-thin pr-0.5">
+            {renderPaletteGrid(false)}
+          </div>
+
+          {/* Renk Açıklaması */}
+          <div className="pt-1 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+            {renderPaletteLegend()}
+          </div>
+
+          {/* Klavye Kısayol Özeti */}
+          <p
+            className="text-[10.5px] leading-relaxed rounded-xl px-2.5 py-2"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Kısayollar: <kbd className="font-extrabold">A–D</kbd> /{' '}
+            <kbd className="font-extrabold">1–4</kbd> şık seç ·{' '}
+            <kbd className="font-extrabold">←/→</kbd> veya{' '}
+            <kbd className="font-extrabold">Enter</kbd> geç
+          </p>
+
+          {/* Alt Sınavı Bitir CTA */}
+          <button
+            type="button"
+            onClick={handleRequestFinish}
+            className="w-full min-h-[38px] rounded-xl text-xs font-extrabold text-white flex items-center justify-center gap-1.5 cursor-pointer transition-opacity hover:opacity-95"
+            style={{
+              backgroundColor: isOutOfLives ? '#DC2626' : 'var(--brand-primary)',
+            }}
+          >
+            <span>{isOutOfLives ? 'Canlar Bitti — Karneyi Gör' : 'Sınavı Bitir'}</span>
+          </button>
+        </aside>
+      </div>
 
       {/* ====================================================================
           Modal 0: Hatalı Soru Bildirimi / Denetim İşaretleme
@@ -1079,7 +1509,10 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
             <div className="flex items-start gap-3">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ backgroundColor: 'var(--brand-accent-soft)', color: 'var(--brand-accent-text)' }}
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  color: 'var(--brand-accent-text)',
+                }}
               >
                 <AlertTriangle className="w-5 h-5" />
               </div>
@@ -1132,7 +1565,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
       )}
 
       {/* ====================================================================
-          Modal 2: Deneme Sınavı Bitir Onayı
+          Modal 2: Sınavı Bitir Onayı (Her 3 Mod İçin Uyarlanmış Özet)
           ==================================================================== */}
       {showFinishModal && (
         <div
@@ -1143,50 +1576,15 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
         >
           <div className="surface-card rounded-2xl p-6 max-w-md w-full space-y-4">
             <h3 id="finish-exam-title" className="text-lg font-extrabold">
-              Deneme Sınavını Bitir
+              {finishModalTitle}
             </h3>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div
-                className="p-3 rounded-xl"
-                style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)' }}
-              >
-                <p className="text-lg font-extrabold tabular-nums text-emerald-600">
-                  {answeredCount}
-                </p>
-                <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                  Cevaplanan
-                </p>
-              </div>
-              <div
-                className="p-3 rounded-xl"
-                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-              >
-                <p className="text-lg font-extrabold tabular-nums">
-                  {totalCount - answeredCount}
-                </p>
-                <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                  Boş
-                </p>
-              </div>
-              <div
-                className="p-3 rounded-xl"
-                style={{ backgroundColor: 'var(--brand-accent-soft)' }}
-              >
-                <p
-                  className="text-lg font-extrabold tabular-nums"
-                  style={{ color: 'var(--brand-accent-text)' }}
-                >
-                  {session.flaggedUids.length}
-                </p>
-                <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                  Şüpheli
-                </p>
-              </div>
-            </div>
+
+            {renderPaletteSummary()}
 
             <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Sınavı sonlandırdığında tüm soruların doğruları, çözüm açıklamaları ve ilgili ayet
-              mealleri karnende açılacak.
+              {blankCount > 0
+                ? `Henüz cevaplanmamış ${blankCount} soru var. Yine de sınavı bitirip sonuç karneni ve çözüm açıklamalarını görmek istiyor musun?`
+                : 'Sınavı sonlandırdığında tüm soruların doğruları, çözüm açıklamaları ve ilgili ayet mealleri karnende açılacak.'}
             </p>
 
             <div className="flex items-center gap-2.5 pt-1">
@@ -1203,7 +1601,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                   color: 'var(--text-primary)',
                 }}
               >
-                Kontrole Dön
+                Sınava Dön
               </button>
               <button
                 type="button"
@@ -1222,9 +1620,9 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
       )}
 
       {/* ====================================================================
-          Modal 3: Deneme Sınavı Soru Paleti
+          Modal 3: Mobil Soru Paleti Alt Çekmecesi (Her 3 Sınav Modunda da Aktif)
           ==================================================================== */}
-      {showPaletteModal && isMock && (
+      {showPaletteModal && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs"
           role="dialog"
@@ -1233,70 +1631,45 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
           onClick={() => setShowPaletteModal(false)}
         >
           <div
-            className="surface-card rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-lg w-full max-h-[80dvh] flex flex-col gap-4"
+            className="surface-card rounded-t-3xl sm:rounded-2xl p-5 max-w-md w-full max-h-[82dvh] flex flex-col gap-3.5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-2">
-              <h3 id="palette-title" className="text-base font-extrabold">
-                Soru Gezgini ({answeredCount}/{totalCount})
-              </h3>
+              <div className="flex items-center gap-2">
+                <Grid className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
+                <h3 id="palette-title" className="text-base font-extrabold">
+                  Soru Navigatörü ({answeredCount}/{totalCount})
+                </h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowPaletteModal(false)}
-                className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center cursor-pointer"
+                aria-label="Paleti kapat"
+                className="min-w-[38px] min-h-[38px] rounded-xl flex items-center justify-center cursor-pointer"
                 style={{ backgroundColor: 'var(--bg-surface-soft)' }}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-emerald-500" /> Cevaplandı
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded border" style={{ borderColor: 'var(--border-strong)' }} /> Boş
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded bg-amber-500" /> Şüpheli
-              </span>
-            </div>
+            {renderPaletteSummary()}
+            {renderPaletteLegend()}
 
-            <div className="grid grid-cols-5 sm:grid-cols-6 gap-2 overflow-y-auto py-1">
-              {session.questions.map((q, idx) => {
-                const answered = Boolean(session.answers[q.uid]);
-                const flagged = session.flaggedUids.includes(q.uid);
-                const isCurrent = idx === session.currentIndex;
+            <div className="overflow-y-auto scrollbar-thin py-1">{renderPaletteGrid(true)}</div>
 
-                return (
-                  <button
-                    key={q.uid}
-                    type="button"
-                    onClick={() => {
-                      setShowPaletteModal(false);
-                      handleGoToQuestion(idx);
-                    }}
-                    className="relative min-h-[44px] rounded-xl border-2 text-sm font-extrabold tabular-nums flex items-center justify-center cursor-pointer"
-                    style={{
-                      backgroundColor: answered
-                        ? 'rgba(16, 185, 129, 0.16)'
-                        : 'var(--bg-surface-soft)',
-                      borderColor: isCurrent
-                        ? 'var(--brand-primary)'
-                        : flagged
-                          ? '#F59E0B'
-                          : 'transparent',
-                      color: answered ? '#059669' : 'var(--text-primary)',
-                    }}
-                  >
-                    {idx + 1}
-                    {flagged && (
-                      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowPaletteModal(false);
+                handleRequestFinish();
+              }}
+              className="w-full min-h-[42px] rounded-xl text-sm font-extrabold text-white cursor-pointer shrink-0"
+              style={{
+                backgroundColor: isOutOfLives ? '#DC2626' : 'var(--brand-primary)',
+              }}
+            >
+              {isOutOfLives ? 'Canlar Bitti — Karneyi Gör' : 'Sınavı Bitir'}
+            </button>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import {
   AlignJustify,
   BookOpen,
   Check,
+  ChevronDown,
   Columns2,
   FileText,
   KeyRound,
@@ -12,6 +13,7 @@ import {
   Printer,
   Search,
   Shuffle,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { FormattedStem } from '../features/exam/FormattedStem';
@@ -23,7 +25,6 @@ import {
   OPTION_LETTERS,
   formatPremiseItem,
   formatVerseRefSummary,
-  getMealBasisLabel,
   getQuestionUid,
   prepareQuestionOptions,
   shuffleArray,
@@ -174,7 +175,6 @@ const PrintableExamSheet: React.FC<PrintableExamSheetProps> = ({
           const surahMeta = surahMap.get(item.question.surah);
           const surahName = surahMeta?.nameTr ?? `${item.question.surah}. Sure`;
           const refText = formatVerseRefSummary(item.verseRefs, surahName, item.question.scope);
-          const mealLabel = getMealBasisLabel(item.question.mealBasis);
 
           return (
             <article
@@ -202,7 +202,7 @@ const PrintableExamSheet: React.FC<PrintableExamSheetProps> = ({
                         isTwoCol ? 'text-[9.5px]' : 'text-[10px]'
                       }`}
                     >
-                      [{refText} · {mealLabel} Meali]
+                      [{refText}]
                     </p>
                   )}
 
@@ -478,6 +478,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   const [rawPoolQuestions, setRawPoolQuestions] = useState<QuestionItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState<boolean>(false);
 
   // Modal açıldığında başlangıç kapsamını senkronize et
   useEffect(() => {
@@ -511,7 +512,13 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
     document.body.style.overflow = 'hidden';
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (isMobileSettingsOpen) {
+          setIsMobileSettingsOpen(false);
+        } else {
+          onClose();
+        }
+      }
     };
     window.addEventListener('keydown', onKeyDown);
 
@@ -520,7 +527,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, isMobileSettingsOpen, onClose]);
 
   const normSurahStart = Math.min(surahRangeStart, surahRangeEnd);
   const normSurahEnd = Math.max(surahRangeStart, surahRangeEnd);
@@ -763,13 +770,599 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
     />
   );
 
+  const summaryPillLabel = `${preparedQuestions.length} Soru · ${
+    layoutColumns === 2 ? 'İki Sütun' : 'Tek Sütun'
+  }`;
+
+  // Masaüstü sol kenar çubuğu & mobil alt çekmecede paylaşılan temiz, gruplanmış ayar kartları
+  const settingsPanelContent = (
+    <div className="space-y-3.5">
+      {/* 1. Sınav Başlığı */}
+      <div
+        className="rounded-xl border p-3 space-y-1.5"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-subtle)',
+        }}
+      >
+        <label
+          htmlFor="print-exam-title-input"
+          className="text-[11px] font-extrabold uppercase tracking-wider block"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Sınav Başlığı
+        </label>
+        <input
+          id="print-exam-title-input"
+          type="text"
+          value={examTitle}
+          onChange={(e) => setExamTitle(e.target.value)}
+          placeholder={DEFAULT_EXAM_TITLE}
+          className="w-full min-h-[38px] px-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-600/35"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+            color: 'var(--text-primary)',
+          }}
+        />
+      </div>
+
+      {/* 2. Sınav Kapsamı */}
+      <div
+        className="rounded-xl border p-3 space-y-2.5"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-subtle)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="text-[11px] font-extrabold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Sınav Kapsamı
+          </span>
+          <span
+            className="text-[11px] font-bold tabular-nums"
+            style={{ color: 'var(--brand-primary-text)' }}
+          >
+            {formatNumberTr(eligiblePoolQuestions.length)} soru
+          </span>
+        </div>
+
+        <div
+          className="grid grid-cols-4 gap-1 p-1 rounded-xl border"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          {(
+            [
+              { id: 'pool', label: 'Havuz' },
+              { id: 'surah_range', label: 'Sure' },
+              { id: 'juz_range', label: 'Cüz' },
+              { id: 'multi_surah', label: 'Çoklu' },
+            ] as { id: PrintScopeMode; label: string }[]
+          ).map((opt) => {
+            const active = scopeMode === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setScopeMode(opt.id);
+                }}
+                className="min-h-[30px] px-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors whitespace-nowrap"
+                style={{
+                  backgroundColor: active ? 'var(--brand-primary)' : 'transparent',
+                  color: active ? '#FFFFFF' : 'var(--text-secondary)',
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Mod 1: Aktif Havuz */}
+        {scopeMode === 'pool' && (
+          <div
+            className="px-2.5 py-2 rounded-lg border text-[11px] font-semibold leading-relaxed"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>
+              {scopeSummary}
+            </p>
+            <p className="mt-0.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
+              {targetSurahs.length} sure · {formatNumberTr(eligiblePoolQuestions.length)} hazır soru
+            </p>
+          </div>
+        )}
+
+        {/* Mod 2: Sure Aralığı */}
+        {scopeMode === 'surah_range' && (
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-2">
+              <div className="space-y-1">
+                <label
+                  htmlFor="print-surah-start"
+                  className="text-[11px] font-bold block"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Başlangıç Suresi
+                </label>
+                <select
+                  id="print-surah-start"
+                  value={surahRangeStart}
+                  onChange={(e) => {
+                    sfxService.play('click');
+                    setSurahRangeStart(Number(e.target.value));
+                  }}
+                  className="w-full min-h-[36px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {allSurahs.map((s) => {
+                    const cnt = questionCountBySurah.get(s.no) ?? 0;
+                    return (
+                      <option key={s.no} value={s.no}>
+                        {s.no}. {s.nameTr}
+                        {cnt > 0 ? ` (${cnt})` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label
+                  htmlFor="print-surah-end"
+                  className="text-[11px] font-bold block"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Bitiş Suresi
+                </label>
+                <select
+                  id="print-surah-end"
+                  value={surahRangeEnd}
+                  onChange={(e) => {
+                    sfxService.play('click');
+                    setSurahRangeEnd(Number(e.target.value));
+                  }}
+                  className="w-full min-h-[36px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {allSurahs.map((s) => {
+                    const cnt = questionCountBySurah.get(s.no) ?? 0;
+                    return (
+                      <option key={s.no} value={s.no}>
+                        {s.no}. {s.nameTr}
+                        {cnt > 0 ? ` (${cnt})` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+            <p
+              className="text-[11px] font-semibold tabular-nums"
+              style={{ color: 'var(--brand-primary-text)' }}
+            >
+              {surahRangeStats.surahs.length} sure · {formatNumberTr(surahRangeStats.questionCount)}{' '}
+              soru
+            </p>
+          </div>
+        )}
+
+        {/* Mod 3: Cüz Aralığı */}
+        {scopeMode === 'juz_range' && (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label
+                  htmlFor="print-juz-start"
+                  className="text-[11px] font-bold block"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Başlangıç
+                </label>
+                <select
+                  id="print-juz-start"
+                  value={juzRangeStart}
+                  onChange={(e) => {
+                    sfxService.play('click');
+                    setJuzRangeStart(Number(e.target.value));
+                  }}
+                  className="w-full min-h-[36px] px-2 rounded-lg border text-xs font-bold cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {Array.from({ length: 30 }, (_, idx) => idx + 1).map((cuzNo) => {
+                    const info = juzQuestionCountMap.get(cuzNo);
+                    return (
+                      <option key={cuzNo} value={cuzNo}>
+                        {cuzNo}. Cüz{info ? ` (${info.count})` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label
+                  htmlFor="print-juz-end"
+                  className="text-[11px] font-bold block"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Bitiş
+                </label>
+                <select
+                  id="print-juz-end"
+                  value={juzRangeEnd}
+                  onChange={(e) => {
+                    sfxService.play('click');
+                    setJuzRangeEnd(Number(e.target.value));
+                  }}
+                  className="w-full min-h-[36px] px-2 rounded-lg border text-xs font-bold cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {Array.from({ length: 30 }, (_, idx) => idx + 1).map((cuzNo) => {
+                    const info = juzQuestionCountMap.get(cuzNo);
+                    return (
+                      <option key={cuzNo} value={cuzNo}>
+                        {cuzNo}. Cüz{info ? ` (${info.count})` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+            <p
+              className="text-[11px] font-semibold tabular-nums"
+              style={{ color: 'var(--brand-primary-text)' }}
+            >
+              {juzRangeStats.surahs.length} sure · {formatNumberTr(juzRangeStats.questionCount)}{' '}
+              soru
+            </p>
+          </div>
+        )}
+
+        {/* Mod 4: Çoklu Sure */}
+        {scopeMode === 'multi_surah' && (
+          <div className="space-y-2">
+            <div className="relative">
+              <Search
+                className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: 'var(--text-muted)' }}
+              />
+              <input
+                type="text"
+                value={multiSearchQuery}
+                onChange={(e) => setMultiSearchQuery(e.target.value)}
+                placeholder="Sure adı veya no ara..."
+                className="w-full min-h-[34px] pl-8 pr-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-600/30"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setMultiOnlyWithQuestions((v) => !v);
+                }}
+                className="min-h-[28px] px-2 rounded-lg border text-[10.5px] font-bold cursor-pointer whitespace-nowrap"
+                style={{
+                  backgroundColor: multiOnlyWithQuestions
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface-soft)',
+                  borderColor: multiOnlyWithQuestions
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
+                  color: multiOnlyWithQuestions
+                    ? 'var(--brand-primary-text)'
+                    : 'var(--text-secondary)',
+                }}
+              >
+                {multiOnlyWithQuestions ? 'Sorusu Olanlar' : 'Tüm 114'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setMultiSelectedSurahs(availableSurahs);
+                }}
+                className="min-h-[28px] px-2 rounded-lg border text-[10.5px] font-bold cursor-pointer whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Tümü
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setMultiSelectedSurahs([]);
+                }}
+                className="min-h-[28px] px-2 rounded-lg border text-[10.5px] font-bold cursor-pointer whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                Temizle
+              </button>
+            </div>
+
+            <div className="max-h-36 overflow-y-auto scrollbar-thin grid grid-cols-1 gap-1 pr-0.5">
+              {filteredMultiSurahList.map((s) => {
+                const qCnt = questionCountBySurah.get(s.no) ?? 0;
+                const hasQ = qCnt > 0;
+                const checked = multiSelectedSurahs.includes(s.no);
+                return (
+                  <button
+                    key={s.no}
+                    type="button"
+                    disabled={!hasQ}
+                    onClick={() => toggleMultiSurah(s.no)}
+                    className="min-h-[32px] px-2 py-1 rounded-lg border text-left text-[11px] font-bold flex items-center justify-between gap-1.5 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: checked
+                        ? 'var(--brand-primary-soft)'
+                        : 'var(--bg-surface-soft)',
+                      borderColor: checked ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                      color: checked ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+                    }}
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span
+                        className="w-3.5 h-3.5 rounded flex items-center justify-center border shrink-0"
+                        style={{
+                          backgroundColor: checked ? 'var(--brand-primary)' : 'transparent',
+                          borderColor: checked ? 'var(--brand-primary)' : 'var(--border-strong)',
+                          color: '#FFFFFF',
+                        }}
+                      >
+                        {checked && <Check className="w-2.5 h-2.5" />}
+                      </span>
+                      <span className="truncate">
+                        {s.no}. {s.shortNameTr}
+                      </span>
+                    </span>
+                    <span className="text-[10px] tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+                      {qCnt}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Soru Sayısı (Kompakt Izgara) */}
+      <div
+        className="rounded-xl border p-3 space-y-2"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-subtle)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="text-[11px] font-extrabold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Soru Sayısı
+          </span>
+          <span className="text-[11px] font-bold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+            Baskı: {formatNumberTr(preparedQuestions.length)}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-4 gap-1.5">
+          {PRINT_COUNT_OPTIONS.map((cnt) => {
+            const isAll = cnt === 0;
+            const disabled =
+              !isAll &&
+              eligiblePoolQuestions.length > 0 &&
+              cnt > eligiblePoolQuestions.length;
+            const active = questionCount === cnt;
+
+            return (
+              <button
+                key={cnt}
+                type="button"
+                disabled={disabled}
+                title={
+                  disabled
+                    ? `Bu kapsamda en fazla ${eligiblePoolQuestions.length} soru bulunuyor`
+                    : undefined
+                }
+                onClick={() => {
+                  sfxService.play('click');
+                  setQuestionCount(cnt);
+                }}
+                className={`min-h-[34px] px-2 rounded-lg border text-xs font-extrabold tabular-nums transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed whitespace-nowrap ${
+                  isAll ? 'col-span-2' : ''
+                }`}
+                style={{
+                  backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
+                  borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                  color: active ? '#FFFFFF' : 'var(--text-primary)',
+                }}
+              >
+                {isAll ? `Tümü (${formatNumberTr(eligiblePoolQuestions.length)})` : cnt}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. Sayfa Düzeni & Seçenekler */}
+      <div
+        className="rounded-xl border p-3 space-y-2.5"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-subtle)',
+        }}
+      >
+        <span
+          className="text-[11px] font-extrabold uppercase tracking-wider block"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Sayfa Düzeni &amp; Seçenekler
+        </span>
+
+        {/* Tek Sütun / İki Sütun Segmenti */}
+        <div
+          className="grid grid-cols-2 p-1 rounded-xl border gap-1"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
+          role="group"
+          aria-label="Sınav kâğıdı sütun düzeni"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setLayoutColumns(1);
+            }}
+            className="min-h-[32px] px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            style={{
+              backgroundColor: layoutColumns === 1 ? 'var(--brand-primary)' : 'transparent',
+              color: layoutColumns === 1 ? '#FFFFFF' : 'var(--text-secondary)',
+            }}
+          >
+            <AlignJustify className="w-3.5 h-3.5 shrink-0" />
+            <span>Tek Sütun</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setLayoutColumns(2);
+            }}
+            className="min-h-[32px] px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            style={{
+              backgroundColor: layoutColumns === 2 ? 'var(--brand-primary)' : 'transparent',
+              color: layoutColumns === 2 ? '#FFFFFF' : 'var(--text-secondary)',
+            }}
+          >
+            <Columns2 className="w-3.5 h-3.5 shrink-0" />
+            <span>İki Sütun</span>
+          </button>
+        </div>
+
+        {/* Cevap Anahtarı Ekle */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={includeAnswerKey}
+          onClick={() => {
+            sfxService.play('click');
+            setIncludeAnswerKey((v) => !v);
+          }}
+          className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 cursor-pointer transition-colors"
+          style={{
+            backgroundColor: includeAnswerKey
+              ? 'var(--brand-primary-soft)'
+              : 'var(--bg-surface-soft)',
+            borderColor: includeAnswerKey ? 'var(--brand-primary)' : 'var(--border-subtle)',
+            color: includeAnswerKey ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+          }}
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <KeyRound className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Cevap Anahtarı Ekle</span>
+          </span>
+          <span
+            className="w-8 h-4.5 rounded-full p-0.5 flex items-center transition-colors shrink-0"
+            style={{
+              backgroundColor: includeAnswerKey ? 'var(--brand-primary)' : 'var(--border-strong)',
+              justifyContent: includeAnswerKey ? 'flex-end' : 'flex-start',
+            }}
+          >
+            <span className="w-3.5 h-3.5 rounded-full bg-white shadow-xs" />
+          </span>
+        </button>
+
+        {/* Sure/Ayet Kaynağını Göster */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showSourcePerQuestion}
+          onClick={() => {
+            sfxService.play('click');
+            setShowSourcePerQuestion((v) => !v);
+          }}
+          className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 cursor-pointer transition-colors"
+          style={{
+            backgroundColor: showSourcePerQuestion
+              ? 'var(--brand-accent-soft)'
+              : 'var(--bg-surface-soft)',
+            borderColor: showSourcePerQuestion ? 'var(--brand-accent)' : 'var(--border-subtle)',
+            color: showSourcePerQuestion ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
+          }}
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <BookOpen className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Sure/Ayet Kaynağını Göster</span>
+          </span>
+          <span
+            className="w-8 h-4.5 rounded-full p-0.5 flex items-center transition-colors shrink-0"
+            style={{
+              backgroundColor: showSourcePerQuestion
+                ? 'var(--brand-accent)'
+                : 'var(--border-strong)',
+              justifyContent: showSourcePerQuestion ? 'flex-end' : 'flex-start',
+            }}
+          >
+            <span className="w-3.5 h-3.5 rounded-full bg-white shadow-xs" />
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       {/* ====================================================================
-          A. EKRAN MODALI (Ayarlar + Etkileşimli A4 Önizleme — Yazdırmada Gizlenir)
+          A. EKRAN MODALI (Masaüstü: Sol Ayar Paneli + Sağ A4 Sahnesi | Mobil: Çekmeceli Tam Önizleme)
           ==================================================================== */}
       <div
-        className="no-print fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        className="no-print fixed inset-0 z-50 flex items-end lg:items-center justify-center p-0 lg:p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="printable-exam-modal-title"
@@ -781,670 +1374,139 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
         />
 
         <div
-          className="relative z-10 w-full sm:max-w-5xl h-[94dvh] sm:h-[90dvh] rounded-t-3xl sm:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
+          className="relative z-10 w-full lg:max-w-6xl h-[96dvh] lg:h-[90vh] rounded-t-3xl lg:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderColor: 'var(--border-subtle)',
           }}
         >
-          {/* Üst Başlık Çubuğu */}
+          {/* Tek İnce Üst Başlık Barı */}
           <div
-            className="px-4 sm:px-5 py-3.5 border-b flex items-center justify-between gap-3 shrink-0"
+            className="px-3.5 sm:px-5 py-2.5 border-b flex items-center justify-between gap-2 shrink-0"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
               <span
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
                   color: 'var(--brand-primary-text)',
                 }}
               >
-                <Printer className="w-5 h-5" />
+                <Printer className="w-4 h-4" />
               </span>
-              <div className="min-w-0">
-                <h2
-                  id="printable-exam-modal-title"
-                  className="text-base sm:text-lg font-extrabold tracking-tight truncate"
-                >
-                  A4 Yazdırılabilir Sınav Kâğıdı &amp; Cevap Anahtarı
-                </h2>
-                <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                  Sınıf, kurs veya ev çalışması için tek tıkla A4 PDF veya yazıcı çıktısı alın.
-                </p>
-              </div>
+              <h2
+                id="printable-exam-modal-title"
+                className="text-sm sm:text-base font-extrabold tracking-tight truncate"
+              >
+                A4 Sınav Kâğıdı &amp; Cevap Anahtarı
+              </h2>
+              <span
+                className="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-bold tabular-nums whitespace-nowrap shrink-0"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                {summaryPillLabel}
+              </span>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={handlePrint}
-                disabled={isLoading || preparedQuestions.length === 0}
-                className="min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white flex items-center gap-2 cursor-pointer transition-transform active:scale-[0.98] disabled:opacity-45"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
-              >
-                <Printer className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Yazdır / A4 PDF Kaydet</span>
-                <span className="sm:hidden">Yazdır</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Pencereyi kapat"
-                className="min-w-[42px] min-h-[42px] rounded-xl border flex items-center justify-center cursor-pointer"
+                onClick={handleReshuffle}
+                disabled={isLoading || eligiblePoolQuestions.length === 0}
+                className="hidden lg:inline-flex min-h-[36px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-45 whitespace-nowrap"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
                   color: 'var(--text-primary)',
                 }}
               >
-                <X className="w-5 h-5" />
+                <Shuffle className="w-3.5 h-3.5 shrink-0" />
+                <span>Yeniden Seç</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePrint}
+                disabled={isLoading || preparedQuestions.length === 0}
+                className="hidden lg:inline-flex min-h-[36px] px-4 rounded-xl text-xs font-extrabold text-white items-center gap-1.5 cursor-pointer transition-transform active:scale-[0.98] disabled:opacity-45 whitespace-nowrap"
+                style={{ backgroundColor: 'var(--brand-primary)' }}
+              >
+                <Printer className="w-4 h-4 shrink-0" />
+                <span>Yazdır / A4 PDF Kaydet</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Pencereyi kapat"
+                className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* İçerik: Üstte Ayarlar Şeridi, Altta A4 Kağıt Önizlemesi */}
-          <div className="flex-1 overflow-y-auto flex flex-col">
-            {/* Ayarlar Paneli */}
-            <div
-              className="p-4 sm:p-5 border-b space-y-4 shrink-0"
+          {/* Mobil İnce Ayar Özeti Çubuğu (< 1024px) — Önizlemenin üstünü kapatmaz */}
+          <div
+            className="lg:hidden px-3 py-2 border-b shrink-0"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsMobileSettingsOpen(true);
+              }}
+              className="w-full min-h-[38px] px-3 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 cursor-pointer"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-strong)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <SlidersHorizontal
+                  className="w-3.5 h-3.5 shrink-0"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                />
+                <span className="truncate">Sınav Ayarları ({summaryPillLabel})</span>
+              </span>
+              <ChevronDown className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+            </button>
+          </div>
+
+          {/* Gövde: Masaüstünde Sol 320px Ayar Paneli + Sağ Tam Boy A4 Önizleme */}
+          <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[320px_1fr] overflow-hidden">
+            {/* Masaüstü Sol Kenar Ayar Paneli */}
+            <aside
+              className="hidden lg:block w-80 overflow-y-auto scrollbar-thin border-r p-4"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
               }}
             >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-                {/* Sınav Başlığı */}
-                <div className="lg:col-span-5 space-y-1.5">
-                  <label
-                    htmlFor="print-exam-title-input"
-                    className="text-xs font-bold block"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    Sınav Başlığı
-                  </label>
-                  <input
-                    id="print-exam-title-input"
-                    type="text"
-                    value={examTitle}
-                    onChange={(e) => setExamTitle(e.target.value)}
-                    placeholder={DEFAULT_EXAM_TITLE}
-                    className="w-full min-h-[42px] px-3 rounded-xl border text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-600/40"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                      color: 'var(--text-primary)',
-                    }}
-                  />
-                </div>
+              {settingsPanelContent}
+            </aside>
 
-                {/* Kapsam Seçici: Aktif Havuzum | Sure Aralığı | Cüz Aralığı | Çoklu Sure */}
-                <div className="lg:col-span-7 space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span
-                      className="text-xs font-bold"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      Sınav Kapsamı (114 Sure / 30 Cüz)
-                    </span>
-                    <div
-                      className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl border w-full sm:w-auto"
-                      style={{
-                        backgroundColor: 'var(--bg-surface)',
-                        borderColor: 'var(--border-subtle)',
-                      }}
-                    >
-                      {(
-                        [
-                          { id: 'pool', label: 'Aktif Havuzum' },
-                          { id: 'surah_range', label: 'Sure Aralığı' },
-                          { id: 'juz_range', label: 'Cüz Aralığı' },
-                          { id: 'multi_surah', label: 'Çoklu Sure' },
-                        ] as { id: PrintScopeMode; label: string }[]
-                      ).map((opt) => {
-                        const active = scopeMode === opt.id;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => {
-                              sfxService.play('click');
-                              setScopeMode(opt.id);
-                            }}
-                            className="min-h-[32px] px-2.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors whitespace-nowrap"
-                            style={{
-                              backgroundColor: active ? 'var(--brand-primary)' : 'transparent',
-                              color: active ? '#FFFFFF' : 'var(--text-secondary)',
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Mod 1: Aktif Çalışma Havuzum */}
-                  {scopeMode === 'pool' && (
-                    <div
-                      className="min-h-[42px] px-3 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs font-semibold"
-                      style={{
-                        backgroundColor: 'var(--bg-surface)',
-                        borderColor: 'var(--border-subtle)',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
-                      <span className="truncate">{scopeSummary}</span>
-                      <span
-                        className="tabular-nums font-bold shrink-0"
-                        style={{ color: 'var(--brand-primary-text)' }}
-                      >
-                        {targetSurahs.length} sure · {formatNumberTr(eligiblePoolQuestions.length)}{' '}
-                        hazır soru
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Mod 2: Sure Aralığı (Başlangıç Suresi .. Bitiş Suresi) */}
-                  {scopeMode === 'surah_range' && (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <label
-                            htmlFor="print-surah-start"
-                            className="text-[11px] font-bold block"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            Başlangıç Suresi
-                          </label>
-                          <select
-                            id="print-surah-start"
-                            value={surahRangeStart}
-                            onChange={(e) => {
-                              sfxService.play('click');
-                              setSurahRangeStart(Number(e.target.value));
-                            }}
-                            className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
-                            style={{
-                              backgroundColor: 'var(--bg-surface)',
-                              borderColor: 'var(--border-subtle)',
-                              color: 'var(--text-primary)',
-                            }}
-                          >
-                            {allSurahs.map((s) => {
-                              const cnt = questionCountBySurah.get(s.no) ?? 0;
-                              return (
-                                <option key={s.no} value={s.no}>
-                                  {s.no}. {s.nameTr}
-                                  {cnt > 0 ? ` (${cnt} soru)` : ''}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label
-                            htmlFor="print-surah-end"
-                            className="text-[11px] font-bold block"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            Bitiş Suresi
-                          </label>
-                          <select
-                            id="print-surah-end"
-                            value={surahRangeEnd}
-                            onChange={(e) => {
-                              sfxService.play('click');
-                              setSurahRangeEnd(Number(e.target.value));
-                            }}
-                            className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
-                            style={{
-                              backgroundColor: 'var(--bg-surface)',
-                              borderColor: 'var(--border-subtle)',
-                              color: 'var(--text-primary)',
-                            }}
-                          >
-                            {allSurahs.map((s) => {
-                              const cnt = questionCountBySurah.get(s.no) ?? 0;
-                              return (
-                                <option key={s.no} value={s.no}>
-                                  {s.no}. {s.nameTr}
-                                  {cnt > 0 ? ` (${cnt} soru)` : ''}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                      </div>
-                      <p className="text-[11px] font-semibold tabular-nums" style={{ color: 'var(--brand-primary-text)' }}>
-                        {scopeSummary} içinde soru bulunan {surahRangeStats.surahs.length} sure ·{' '}
-                        {formatNumberTr(surahRangeStats.questionCount)} soru
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Mod 3: Cüz Aralığı (1. Cüz .. 30. Cüz) */}
-                  {scopeMode === 'juz_range' && (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <label
-                            htmlFor="print-juz-start"
-                            className="text-[11px] font-bold block"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            Başlangıç Cüzü
-                          </label>
-                          <select
-                            id="print-juz-start"
-                            value={juzRangeStart}
-                            onChange={(e) => {
-                              sfxService.play('click');
-                              setJuzRangeStart(Number(e.target.value));
-                            }}
-                            className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
-                            style={{
-                              backgroundColor: 'var(--bg-surface)',
-                              borderColor: 'var(--border-subtle)',
-                              color: 'var(--text-primary)',
-                            }}
-                          >
-                            {Array.from({ length: 30 }, (_, idx) => idx + 1).map((cuzNo) => {
-                              const info = juzQuestionCountMap.get(cuzNo);
-                              return (
-                                <option key={cuzNo} value={cuzNo}>
-                                  {cuzNo}. Cüz{info ? ` (${info.count} soru)` : ''}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label
-                            htmlFor="print-juz-end"
-                            className="text-[11px] font-bold block"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            Bitiş Cüzü
-                          </label>
-                          <select
-                            id="print-juz-end"
-                            value={juzRangeEnd}
-                            onChange={(e) => {
-                              sfxService.play('click');
-                              setJuzRangeEnd(Number(e.target.value));
-                            }}
-                            className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
-                            style={{
-                              backgroundColor: 'var(--bg-surface)',
-                              borderColor: 'var(--border-subtle)',
-                              color: 'var(--text-primary)',
-                            }}
-                          >
-                            {Array.from({ length: 30 }, (_, idx) => idx + 1).map((cuzNo) => {
-                              const info = juzQuestionCountMap.get(cuzNo);
-                              return (
-                                <option key={cuzNo} value={cuzNo}>
-                                  {cuzNo}. Cüz{info ? ` (${info.count} soru)` : ''}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                      </div>
-                      <p className="text-[11px] font-semibold tabular-nums" style={{ color: 'var(--brand-primary-text)' }}>
-                        {scopeSummary} içinde soru bulunan {juzRangeStats.surahs.length} sure ·{' '}
-                        {formatNumberTr(juzRangeStats.questionCount)} soru
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Mod 4: Çoklu Sure Seçimi (Arama + Sadece Sorusu Olanlar + Tümünü Seç / Temizle) */}
-                  {scopeMode === 'multi_surah' && (
-                    <div
-                      className="rounded-xl border p-2.5 space-y-2"
-                      style={{
-                        backgroundColor: 'var(--bg-surface)',
-                        borderColor: 'var(--border-subtle)',
-                      }}
-                    >
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <div className="relative flex-1 min-w-[140px]">
-                          <Search
-                            className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                            style={{ color: 'var(--text-muted)' }}
-                          />
-                          <input
-                            type="text"
-                            value={multiSearchQuery}
-                            onChange={(e) => setMultiSearchQuery(e.target.value)}
-                            placeholder="Sure adı veya no ara..."
-                            className="w-full min-h-[32px] pl-8 pr-2.5 rounded-lg border text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-600/30"
-                            style={{
-                              backgroundColor: 'var(--bg-surface-soft)',
-                              borderColor: 'var(--border-subtle)',
-                              color: 'var(--text-primary)',
-                            }}
-                          />
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sfxService.play('click');
-                            setMultiOnlyWithQuestions((v) => !v);
-                          }}
-                          className="min-h-[32px] px-2.5 rounded-lg border text-[11px] font-bold cursor-pointer whitespace-nowrap"
-                          style={{
-                            backgroundColor: multiOnlyWithQuestions
-                              ? 'var(--brand-primary-soft)'
-                              : 'var(--bg-surface-soft)',
-                            borderColor: multiOnlyWithQuestions
-                              ? 'var(--brand-primary)'
-                              : 'var(--border-subtle)',
-                            color: multiOnlyWithQuestions
-                              ? 'var(--brand-primary-text)'
-                              : 'var(--text-secondary)',
-                          }}
-                        >
-                          {multiOnlyWithQuestions ? 'Sadece Sorusu Olanlar' : 'Tüm 114 Sure'}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sfxService.play('click');
-                            setMultiSelectedSurahs(availableSurahs);
-                          }}
-                          className="min-h-[32px] px-2 rounded-lg border text-[11px] font-bold cursor-pointer whitespace-nowrap"
-                          style={{
-                            backgroundColor: 'var(--bg-surface-soft)',
-                            borderColor: 'var(--border-subtle)',
-                            color: 'var(--text-primary)',
-                          }}
-                        >
-                          Tümünü Seç
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sfxService.play('click');
-                            setMultiSelectedSurahs([]);
-                          }}
-                          className="min-h-[32px] px-2 rounded-lg border text-[11px] font-bold cursor-pointer whitespace-nowrap"
-                          style={{
-                            backgroundColor: 'var(--bg-surface-soft)',
-                            borderColor: 'var(--border-subtle)',
-                            color: 'var(--text-muted)',
-                          }}
-                        >
-                          Temizle
-                        </button>
-                      </div>
-
-                      <div className="max-h-32 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-1.5 pr-0.5">
-                        {filteredMultiSurahList.map((s) => {
-                          const qCnt = questionCountBySurah.get(s.no) ?? 0;
-                          const hasQ = qCnt > 0;
-                          const checked = multiSelectedSurahs.includes(s.no);
-                          return (
-                            <button
-                              key={s.no}
-                              type="button"
-                              disabled={!hasQ}
-                              onClick={() => toggleMultiSurah(s.no)}
-                              className="min-h-[34px] px-2 py-1 rounded-lg border text-left text-[11px] font-bold flex items-center justify-between gap-1.5 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                              style={{
-                                backgroundColor: checked
-                                  ? 'var(--brand-primary-soft)'
-                                  : 'var(--bg-surface-soft)',
-                                borderColor: checked
-                                  ? 'var(--brand-primary)'
-                                  : 'var(--border-subtle)',
-                                color: checked
-                                  ? 'var(--brand-primary-text)'
-                                  : 'var(--text-primary)',
-                              }}
-                            >
-                              <span className="flex items-center gap-1.5 min-w-0">
-                                <span
-                                  className="w-3.5 h-3.5 rounded flex items-center justify-center border shrink-0"
-                                  style={{
-                                    backgroundColor: checked ? 'var(--brand-primary)' : 'transparent',
-                                    borderColor: checked
-                                      ? 'var(--brand-primary)'
-                                      : 'var(--border-strong)',
-                                    color: '#FFFFFF',
-                                  }}
-                                >
-                                  {checked && <Check className="w-2.5 h-2.5" />}
-                                </span>
-                                <span className="truncate">
-                                  {s.no}. {s.shortNameTr}
-                                </span>
-                              </span>
-                              <span
-                                className="text-[10px] tabular-nums shrink-0"
-                                style={{ color: 'var(--text-muted)' }}
-                              >
-                                {qCnt}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Soru Sayısı Seçici (10, 15, 20, 30, 50, 100, Tümü) */}
-              <div className="space-y-1.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span
-                    className="text-xs font-bold"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    Soru Sayısı (Kapsamda Uygun: {formatNumberTr(eligiblePoolQuestions.length)} Soru)
-                  </span>
-                  {eligiblePoolQuestions.length > 0 && (
-                    <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                      Seçili baskı: {formatNumberTr(preparedQuestions.length)} soru
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {PRINT_COUNT_OPTIONS.map((cnt) => {
-                    const isAll = cnt === 0;
-                    const disabled =
-                      !isAll &&
-                      eligiblePoolQuestions.length > 0 &&
-                      cnt > eligiblePoolQuestions.length;
-                    const active = questionCount === cnt;
-
-                    return (
-                      <button
-                        key={cnt}
-                        type="button"
-                        disabled={disabled}
-                        title={
-                          disabled
-                            ? `Bu kapsamda en fazla ${eligiblePoolQuestions.length} soru bulunuyor`
-                            : undefined
-                        }
-                        onClick={() => {
-                          sfxService.play('click');
-                          setQuestionCount(cnt);
-                        }}
-                        className="min-h-[36px] min-w-[48px] px-3 rounded-xl border text-xs font-extrabold tabular-nums transition-colors cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed whitespace-nowrap"
-                        style={{
-                          backgroundColor: active
-                            ? 'var(--brand-primary)'
-                            : 'var(--bg-surface)',
-                          borderColor: active
-                            ? 'var(--brand-primary)'
-                            : 'var(--border-subtle)',
-                          color: active ? '#FFFFFF' : 'var(--text-primary)',
-                        }}
-                      >
-                        {isAll
-                          ? `Tümü (${formatNumberTr(eligiblePoolQuestions.length)} Soru)`
-                          : cnt}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Seçenek Anahtarları + Sütun Düzeni + Soruları Yeniden Karıştır */}
-              <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Sayfa Sütun Düzeni: Tek Sütun / İki Sütun */}
-                  <div
-                    className="inline-flex items-center p-1 rounded-xl border gap-1"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                    role="group"
-                    aria-label="Sınav kâğıdı sütun düzeni"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        setLayoutColumns(1);
-                      }}
-                      className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-                      style={{
-                        backgroundColor:
-                          layoutColumns === 1 ? 'var(--brand-primary)' : 'transparent',
-                        color: layoutColumns === 1 ? '#FFFFFF' : 'var(--text-secondary)',
-                      }}
-                    >
-                      <AlignJustify className="w-3.5 h-3.5 shrink-0" />
-                      <span>Tek Sütun</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        setLayoutColumns(2);
-                      }}
-                      className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-                      style={{
-                        backgroundColor:
-                          layoutColumns === 2 ? 'var(--brand-primary)' : 'transparent',
-                        color: layoutColumns === 2 ? '#FFFFFF' : 'var(--text-secondary)',
-                      }}
-                    >
-                      <Columns2 className="w-3.5 h-3.5 shrink-0" />
-                      <span>İki Sütun</span>
-                    </button>
-                  </div>
-
-                  {/* Cevap Anahtarı Ekle */}
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={includeAnswerKey}
-                    onClick={() => {
-                      sfxService.play('click');
-                      setIncludeAnswerKey((v) => !v);
-                    }}
-                    className="min-h-[40px] px-3 rounded-xl border text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
-                    style={{
-                      backgroundColor: includeAnswerKey
-                        ? 'var(--brand-primary-soft)'
-                        : 'var(--bg-surface)',
-                      borderColor: includeAnswerKey
-                        ? 'var(--brand-primary)'
-                        : 'var(--border-subtle)',
-                      color: includeAnswerKey
-                        ? 'var(--brand-primary-text)'
-                        : 'var(--text-secondary)',
-                    }}
-                  >
-                    <KeyRound className="w-3.5 h-3.5 shrink-0" />
-                    <span>Cevap Anahtarı</span>
-                    <span
-                      className="w-8 h-4.5 rounded-full p-0.5 flex items-center transition-colors shrink-0"
-                      style={{
-                        backgroundColor: includeAnswerKey
-                          ? 'var(--brand-primary)'
-                          : 'var(--border-strong)',
-                        justifyContent: includeAnswerKey ? 'flex-end' : 'flex-start',
-                      }}
-                    >
-                      <span className="w-3.5 h-3.5 rounded-full bg-white shadow-xs" />
-                    </span>
-                  </button>
-
-                  {/* Soru Başına Kaynak Yazdır */}
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={showSourcePerQuestion}
-                    onClick={() => {
-                      sfxService.play('click');
-                      setShowSourcePerQuestion((v) => !v);
-                    }}
-                    className="min-h-[40px] px-3 rounded-xl border text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
-                    style={{
-                      backgroundColor: showSourcePerQuestion
-                        ? 'var(--brand-accent-soft)'
-                        : 'var(--bg-surface)',
-                      borderColor: showSourcePerQuestion
-                        ? 'var(--brand-accent)'
-                        : 'var(--border-subtle)',
-                      color: showSourcePerQuestion
-                        ? 'var(--brand-accent-text)'
-                        : 'var(--text-secondary)',
-                    }}
-                  >
-                    <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                    <span>Sure/Ayet Kaynağı</span>
-                    <span
-                      className="w-8 h-4.5 rounded-full p-0.5 flex items-center transition-colors shrink-0"
-                      style={{
-                        backgroundColor: showSourcePerQuestion
-                          ? 'var(--brand-accent)'
-                          : 'var(--border-strong)',
-                        justifyContent: showSourcePerQuestion ? 'flex-end' : 'flex-start',
-                      }}
-                    >
-                      <span className="w-3.5 h-3.5 rounded-full bg-white shadow-xs" />
-                    </span>
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleReshuffle}
-                  disabled={isLoading || eligiblePoolQuestions.length === 0}
-                  className="min-h-[40px] px-3.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-45"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-strong)',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  <Shuffle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Yeniden Rastgele Seç</span>
-                </button>
-              </div>
-            </div>
-
-            {/* A4 Canlı Önizleme Alanı */}
+            {/* Sağ Tam Boy A4 Canlı Önizleme Sahnesi (Mobilde ekranın %80'ini kaplar) */}
             <div
-              className="flex-1 p-4 sm:p-6"
+              className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3 sm:p-5 lg:p-6"
               style={{ backgroundColor: 'var(--bg-canvas)' }}
             >
               {isLoading ? (
-                <div className="py-16 flex flex-col items-center justify-center gap-3 text-center">
+                <div className="py-20 flex flex-col items-center justify-center gap-3 text-center">
                   <Loader2
                     className="w-7 h-7 animate-spin"
                     style={{ color: 'var(--brand-primary-text)' }}
@@ -1471,14 +1533,10 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="max-w-[794px] mx-auto space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs px-1">
-                    <span className="font-bold" style={{ color: 'var(--text-secondary)' }}>
-                      A4 Baskı Önizlemesi ({preparedQuestions.length} soru ·{' '}
-                      {layoutColumns === 2 ? 'İki Sütun' : 'Tek Sütun'}
-                      {includeAnswerKey ? ' + cevap anahtarı' : ''})
-                    </span>
-                    <div className="flex flex-wrap items-center gap-3">
+                <div className="max-w-[794px] mx-auto space-y-2.5">
+                  {(skippedReportedCount > 0 ||
+                    (questionCount !== 0 && eligiblePoolQuestions.length < questionCount)) && (
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] px-1">
                       {skippedReportedCount > 0 && (
                         <span className="font-semibold text-red-600 dark:text-red-400">
                           {skippedReportedCount} hatalı işaretli soru atlandı
@@ -1494,16 +1552,120 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                         </span>
                       )}
                     </div>
-                  </div>
+                  )}
 
-                  {/* A4 Kağıt Kartı */}
-                  <div className="bg-white rounded-xl shadow-lg border border-neutral-300 p-5 sm:p-9">
+                  {/* Gerçekçi A4 Kağıt Önizlemesi */}
+                  <div className="bg-white rounded-xl shadow-lg border border-neutral-300 p-4 sm:p-8 lg:p-9">
                     {sheetElement}
                   </div>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Mobil Sabit Alt Aksiyon Barı (< 1024px) */}
+          <div
+            className="lg:hidden px-3 py-2.5 border-t flex items-center gap-2 shrink-0 pb-safe"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleReshuffle}
+              disabled={isLoading || eligiblePoolQuestions.length === 0}
+              className="min-h-[42px] px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-strong)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Shuffle className="w-4 h-4 shrink-0" />
+              <span>Karıştır</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={isLoading || preparedQuestions.length === 0}
+              className="flex-1 min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white flex items-center justify-center gap-2 cursor-pointer disabled:opacity-45 whitespace-nowrap"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <Printer className="w-4 h-4 shrink-0" />
+              <span>Yazdır / PDF Kaydet</span>
+            </button>
+          </div>
+
+          {/* Mobil Ayarlar Bottom Sheet Alt Çekmecesi (< 1024px) */}
+          {isMobileSettingsOpen && (
+            <div
+              className="lg:hidden fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-xs"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Sınav ayarları"
+              onClick={() => setIsMobileSettingsOpen(false)}
+            >
+              <div
+                className="w-full max-h-[84dvh] rounded-t-3xl border-t flex flex-col overflow-hidden shadow-2xl"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-strong)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  className="px-4 py-3 border-b flex items-center justify-between gap-2 shrink-0"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal
+                      className="w-4 h-4"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <h3 className="text-sm font-extrabold">Sınav Ayarları</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileSettingsOpen(false)}
+                    aria-label="Ayarları kapat"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+                    style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto scrollbar-thin p-4">
+                  {settingsPanelContent}
+                </div>
+
+                <div
+                  className="px-4 py-3 border-t shrink-0 pb-safe"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsMobileSettingsOpen(false);
+                    }}
+                    className="w-full min-h-[44px] rounded-xl text-sm font-extrabold text-white cursor-pointer"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    Uygula / Önizlemeyi Gör ({preparedQuestions.length} Soru)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

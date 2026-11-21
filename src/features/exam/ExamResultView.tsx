@@ -22,7 +22,6 @@ import {
   formatPremiseItem,
   formatSourceRefLabel,
   getDifficultyInfo,
-  getMealBasisLabel,
 } from '../../utils/examUtils';
 import { formatNumberTr, getSurahMap } from '../../utils/poolUtils';
 import { FormattedStem } from './FormattedStem';
@@ -381,7 +380,6 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
             {filteredQuestions.map(({ q, index, ans }) => {
               const sMeta = surahMap.get(q.question.surah);
               const diffInfo = getDifficultyInfo(q.question.difficulty);
-              const mealLabel = getMealBasisLabel(q.question.mealBasis);
               const isBookmarked = gamification.bookmarkedQuestionIds.includes(q.uid);
               const isIssueReported = Boolean(
                 questionAudit.reports[q.uid] || questionAudit.reports[q.question.id],
@@ -439,15 +437,6 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                         style={{ backgroundColor: diffInfo.bg, color: diffInfo.color }}
                       >
                         {diffInfo.label}
-                      </span>
-                      <span
-                        className="font-semibold px-2 py-0.5 rounded-md"
-                        style={{
-                          backgroundColor: 'var(--bg-surface-soft)',
-                          color: 'var(--text-muted)',
-                        }}
-                      >
-                        {mealLabel}
                       </span>
                     </div>
 
