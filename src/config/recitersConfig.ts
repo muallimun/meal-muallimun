@@ -26,10 +26,10 @@ export const RECITER_CATEGORIES: readonly ReciterCategoryMeta[] = [
   },
   {
     id: 'talim',
-    label: '🎓 Talim & Ezber',
-    shortLabel: 'Talim & Ezber',
+    label: '🎓 Talim & Tecvit',
+    shortLabel: 'Talim & Tecvit',
     emoji: '🎓',
-    description: 'Tekrar boşluklu ve çocuk tekrarlı öğretici okuyuşlar',
+    description: 'Tecvit, mahreç, tekrar boşluklu ve çocuk tekrarlı öğretici okuyuşlar',
   },
   {
     id: 'murattal',
@@ -48,7 +48,7 @@ export const RECITER_CATEGORIES: readonly ReciterCategoryMeta[] = [
 ] as const;
 
 /**
- * 4 Kategoride 27 Kur'an Okuyucu (3 Türk Kurrâ + 24 Arap Kurrâ)
+ * 4 Kategoride 28 Kur'an Okuyucu (3 Türk Kurrâ + 25 Arap Kurrâ)
  * Varsayılan okuyucu: hatim (İshak Danış)
  */
 export const RECITERS_CATALOG: readonly ReciterDefinition[] = [
@@ -117,6 +117,17 @@ export const RECITERS_CATALOG: readonly ReciterDefinition[] = [
     styleLabel: 'Çocuk Tekrarlı',
     bitrate: '128k',
     baseUrl: 'https://everyayah.com/data/Minshawy_Teacher_128kbps',
+    filePattern: 'compact',
+    ext: 'mp3',
+  },
+  {
+    id: 'ayman_suwaid',
+    label: 'Dr. Eymen Süveyd (Tecvit & Mahreç Talimi)',
+    shortLabel: 'Dr. Eymen Süveyd',
+    category: 'talim',
+    styleLabel: 'Tecvit & Mahreç',
+    bitrate: '64k',
+    baseUrl: 'https://everyayah.com/data/Ayman_Sowaid_64kbps',
     filePattern: 'compact',
     ext: 'mp3',
   },

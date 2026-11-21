@@ -3,7 +3,10 @@ import { audioQueueService, type WordSyncSnapshot } from '../../services/audioQu
 import type { ThemeMode } from '../../types/quran';
 import type { TajweedRuleDef, TajweedWord } from '../../types/tajweed';
 import { mapQulWordIndexToDisplay, tokenizeArabicWithWaqf } from '../../utils/wordSyncUtils';
+import { splitTrailingWaqf, WaqfMarkSpan } from '../../utils/waqfTextUtils';
 import { TajweedText } from './TajweedText';
+
+const WAQF_CHAR_DETECT_REGEX = /[\u06d6-\u06dc]/;
 
 const NOOP_SUBSCRIBE = () => () => {};
 
@@ -44,7 +47,8 @@ interface SyncedVerseArabicProps {
 
 /**
  * Mushaf, Ayet Kartları ve Kitap modlarında Arapça metni (Tecvitli veya normal Türk hattı)
- * sıfır satır kayması (Zero Layout Shift) ile kelime bazlı karaoke vurgulu olarak çizer.
+ * sıfır satır kayması (Zero Layout Shift) ile kelime bazlı karaoke vurgulu ve
+ * dokun-öğren Secâvend vakıf işaretli olarak çizer.
  */
 export const SyncedVerseArabic: React.FC<SyncedVerseArabicProps> = ({
   text,
@@ -69,12 +73,14 @@ export const SyncedVerseArabic: React.FC<SyncedVerseArabicProps> = ({
       : sync.phase === 'ar' && sync.surah === surahNo && sync.ayah === ayahNo);
 
   const rawQulWordIdx = isMatched ? sync.activeWordIndex : null;
+  const hasWaqfMarks = useMemo(() => !useTajweed && WAQF_CHAR_DETECT_REGEX.test(text), [text, useTajweed]);
 
-  // Normal (Tecvitsiz) modda yalnızca şu an çalınan ayet için kelime tokenizasyonu yapılır
+  // Normal (Tecvitsiz) modda yalnızca karaoke aktifse veya ayette Secâvend durak işareti varsa tokenize et
   const plainTokens = useMemo(() => {
-    if (useTajweed || !shouldTrack) return null;
+    if (useTajweed) return null;
+    if (!shouldTrack && !hasWaqfMarks) return null;
     return tokenizeArabicWithWaqf(text);
-  }, [text, useTajweed, shouldTrack]);
+  }, [text, useTajweed, shouldTrack, hasWaqfMarks]);
 
   // 1. Renkli Tecvit Aktif
   if (useTajweed && tajweedWords && tajweedWords.length > 0 && tajweedRules) {
@@ -95,27 +101,38 @@ export const SyncedVerseArabic: React.FC<SyncedVerseArabicProps> = ({
     );
   }
 
-  // 2. Normal Türk Mushaf Hattı — Aktif kelime yoksa düz metin (0 ekstra DOM düğümü)
-  if (!shouldTrack || rawQulWordIdx === null || !plainTokens || plainTokens.length === 0) {
+  // 2. Normal Türk Mushaf Hattı — Aktif kelime yoksa ve durak işareti yoksa düz metin (0 ekstra DOM düğümü)
+  if ((!shouldTrack || rawQulWordIdx === null) && !hasWaqfMarks) {
     return <>{text}</>;
   }
 
-  const mappedPlainIdx = mapQulWordIndexToDisplay(
-    rawQulWordIdx,
-    sync.qulWordCount,
-    plainTokens.length,
-  );
+  if (!plainTokens || plainTokens.length === 0) {
+    return <>{text}</>;
+  }
+
+  const mappedPlainIdx =
+    shouldTrack && rawQulWordIdx !== null
+      ? mapQulWordIndexToDisplay(rawQulWordIdx, sync.qulWordCount, plainTokens.length)
+      : null;
 
   return (
     <>
-      {plainTokens.map((token, idx) => (
-        <React.Fragment key={idx}>
-          <span className={idx + 1 === mappedPlainIdx ? 'karaoke-word-active' : undefined}>
-            {token}
-          </span>
-          {idx < plainTokens.length - 1 ? ' ' : null}
-        </React.Fragment>
-      ))}
+      {plainTokens.map((token, idx) => {
+        const { body, waqf } = splitTrailingWaqf(token);
+        const isActiveWord = mappedPlainIdx !== null && idx + 1 === mappedPlainIdx;
+        return (
+          <React.Fragment key={idx}>
+            {isActiveWord ? (
+              <span className="karaoke-word-active">{body}</span>
+            ) : (
+              body
+            )}
+            {waqf && <WaqfMarkSpan waqf={waqf} />}
+            {idx < plainTokens.length - 1 ? ' ' : null}
+          </React.Fragment>
+        );
+      })}
     </>
   );
 };
+

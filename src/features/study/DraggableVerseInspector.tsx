@@ -8,6 +8,7 @@ import React, {
   useSyncExternalStore,
 } from 'react';
 import {
+  ArrowLeftRight,
   BookMarked,
   BookOpen,
   Check,
@@ -35,6 +36,7 @@ import {
   resolveSpokenMealInfo,
 } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReferenceData';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
@@ -46,6 +48,7 @@ import type {
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
+import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import { WordMealGrid } from './WordMealGrid';
 
@@ -99,6 +102,7 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
 }) => {
   const {
     openMealCompare,
+    openMutashabihat,
     openQuickMemorize,
     openQuickResearch,
     openListeningDrawer,
@@ -106,6 +110,8 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
     meta,
     audioPrefs,
   } = useAppStore();
+  const { getCount: getMutashabihatCount } = useMutashabihatData(isOpen);
+  const { getRukuEndingAt } = useRukusData(isOpen && settings.showRukuMarkers);
   const verseSurah = verse?.surah;
   const activeSurahNos = useMemo(
     () => (verseSurah ? [verseSurah] : []),
@@ -299,6 +305,8 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   if (!isOpen || !verse || !surahMeta) return null;
 
   const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
+  const mutashabihatCount = getMutashabihatCount(verse.surah, verse.ayah);
+  const rukuEnd = settings.showRukuMarkers ? getRukuEndingAt(verse.surah, verse.ayah) : null;
   const primaryVerse = getPrimaryVerse(verse);
   const secondaryVerse = isDual ? getSecondaryVerse(verse) : null;
   const primaryFootnotes = primaryVerse?.fn ?? [];
@@ -386,6 +394,14 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               <span className="text-xs sm:text-sm font-extrabold truncate">
                 {surahMeta.nameTr} · {verse.ayah}. Ayet
               </span>
+              {rukuEnd && (
+                <RukuMarkerBadge
+                  ruku={rukuEnd}
+                  surahNameTr={surahMeta.nameTr}
+                  page={verse.page}
+                  variant="pill"
+                />
+              )}
               {isPlaying && (
                 <Volume2
                   className="w-3.5 h-3.5 shrink-0 animate-pulse"
@@ -830,13 +846,31 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               <span>Çalma Listesine Ekle</span>
             </button>
 
+            {mutashabihatCount > 0 && (
+              <button
+                type="button"
+                onClick={() => openMutashabihat(verse.surah, verse.ayah)}
+                className="w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  borderColor: 'rgba(217, 119, 6, 0.45)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5 shrink-0" />
+                <span>Benzer Ayetler ({mutashabihatCount})</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
                 sfxService.play('click');
                 openQuickResearch(verse.surah, verse.ayah, verse.ayah, verse.page);
               }}
-              className="sm:col-span-2 w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
+              className={`${
+                mutashabihatCount > 0 ? '' : 'sm:col-span-2 '
+              }w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90`}
               style={{
                 backgroundColor: 'var(--brand-accent-soft)',
                 borderColor: 'rgba(217, 119, 6, 0.35)',

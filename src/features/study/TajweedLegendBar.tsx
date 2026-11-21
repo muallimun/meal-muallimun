@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, Sparkles, X } from 'lucide-react';
+import { BookOpenCheck, ChevronDown, Sparkles, X } from 'lucide-react';
 import { sfxService } from '../../services/sfxService';
+import { useAppStore } from '../../store/useAppStore';
 import type { ThemeMode } from '../../types/quran';
 import type { TajweedRuleDef } from '../../types/tajweed';
 
@@ -106,6 +107,7 @@ export const TajweedLegendBar: React.FC<TajweedLegendBarProps> = ({
   isLoading = false,
   onDismiss,
 }) => {
+  const { openWaqfGuide } = useAppStore();
   const [expandedGroupId, setExpandedGroupId] = useState<LegendGroupDef['id'] | null>(null);
 
   const groupedRules = useMemo(() => {
@@ -194,6 +196,22 @@ export const TajweedLegendBar: React.FC<TajweedLegendBarProps> = ({
             );
           })}
         </div>
+
+        <button
+          type="button"
+          onClick={() => openWaqfGuide()}
+          title="Secâvend Vakıf (Durak) İşaretleri Rehberi"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-bold whitespace-nowrap shrink-0 cursor-pointer transition-colors hover:opacity-85"
+          style={{
+            backgroundColor: 'var(--brand-primary-soft)',
+            borderColor: 'rgba(13, 148, 136, 0.3)',
+            color: 'var(--brand-primary-text)',
+          }}
+        >
+          <BookOpenCheck className="w-3 h-3 shrink-0" />
+          <span className="hidden sm:inline">Durak Rehberi</span>
+          <span className="sm:hidden">Durak</span>
+        </button>
 
         <button
           type="button"

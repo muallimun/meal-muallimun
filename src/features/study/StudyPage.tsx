@@ -98,6 +98,7 @@ export const StudyPage: React.FC = () => {
     openSearchModal,
     openSettingsModal,
     openListeningDrawer,
+    openWaqfGuide,
     isMobileReaderImmersive,
     setIsMobileReaderImmersive,
     isAudioBarExpanded,
@@ -608,6 +609,20 @@ export const StudyPage: React.FC = () => {
       setCurrentPageNo(loc.page);
       setSelectedAyahId(loc.surah * 1000 + loc.ayah);
       setJumpToAyahNo(loc.ayah);
+      setJumpNonce((n) => n + 1);
+    },
+    [meta],
+  );
+
+  const handleSelectRuku = useCallback(
+    (surahNo: number, startAyah: number) => {
+      if (!meta) return;
+      sfxService.play('click');
+      const targetPage = findPageForSurahAyah(meta, surahNo, startAyah);
+      setCurrentSurahNo(surahNo);
+      setCurrentPageNo(targetPage);
+      setSelectedAyahId(surahNo * 1000 + startAyah);
+      setJumpToAyahNo(startAyah);
       setJumpNonce((n) => n + 1);
     },
     [meta],
@@ -1227,6 +1242,77 @@ export const StudyPage: React.FC = () => {
                   />
                 </span>
               </button>
+
+              {/* Rükû (ع) İşaretleri + Durak Rehberi */}
+              <div
+                className="pt-2 border-t space-y-2"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.showRukuMarkers}
+                  onClick={() => {
+                    sfxService.play('click');
+                    updateSettings({ showRukuMarkers: !settings.showRukuMarkers });
+                  }}
+                  className="w-full flex items-center justify-between gap-2 text-left cursor-pointer"
+                >
+                  <div className="min-w-0">
+                    <span
+                      className="text-xs font-extrabold flex items-center gap-1.5"
+                      style={{
+                        color: settings.showRukuMarkers
+                          ? 'var(--brand-primary-text)'
+                          : 'var(--text-primary)',
+                      }}
+                    >
+                      <span className="arabic-title text-sm leading-none">ع</span>
+                      <span>Rükû (ع) İşaretleri</span>
+                    </span>
+                    <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      556 konu bölümü sonunda tıklanabilir rozet göster
+                    </span>
+                  </div>
+                  <span
+                    className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
+                    style={{
+                      backgroundColor: settings.showRukuMarkers
+                        ? 'var(--brand-primary)'
+                        : 'var(--border-strong)',
+                    }}
+                  >
+                    <span
+                      className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                        settings.showRukuMarkers ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setIsViewPopoverOpen(false);
+                    openWaqfGuide();
+                  }}
+                  className="w-full h-8 px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary-text)' }} />
+                    <span>Secâvend Durak Rehberi</span>
+                  </span>
+                  <span className="text-[10px] font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                    8 İşaret →
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* 3. Hızlı Yazı Boyutu (Arapça & Meal) */}
@@ -1976,7 +2062,7 @@ export const StudyPage: React.FC = () => {
         </div>
       )}
 
-      {/* Birleşik Hızlı Konum Seçici (Sure / Sayfa / Cüz / Ayet) */}
+      {/* Birleşik Hızlı Konum Seçici (Sure / Sayfa / Cüz / Rükû / Ayet) */}
       <LocationPickerModal
         isOpen={isLocationPickerOpen}
         initialTab={locationPickerTab}
@@ -1990,6 +2076,7 @@ export const StudyPage: React.FC = () => {
         onSelectSurah={handleSelectSurah}
         onSelectPage={handleChangePage}
         onSelectJuz={handleSelectJuz}
+        onSelectRuku={handleSelectRuku}
         onSelectAyah={handleJumpAyah}
         onClose={() => setIsLocationPickerOpen(false)}
       />
@@ -2035,6 +2122,7 @@ export const StudyPage: React.FC = () => {
             endAyah: activeAyahNumber,
           })
         }
+        onOpenWaqfGuide={openWaqfGuide}
         onOpenSettings={openSettingsModal}
       />
 

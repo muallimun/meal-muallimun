@@ -125,6 +125,7 @@ export const SettingsModal: React.FC = () => {
     openIntroSplash,
     openReciterSelector,
     openMealSelector,
+    openWaqfGuide,
     manifest,
   } = useAppStore();
 
@@ -852,6 +853,41 @@ export const SettingsModal: React.FC = () => {
                   updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
                 }}
               />
+
+              <ToggleRow
+                title="Rükû (ع) İşaretlerini Göster"
+                description="556 konu bölümünün bittiği ayetlerde tıklanabilir ع rozetini gösterir; dokunulduğunda bölümü dinleme veya ezber havuzuna ekleme seçenekleri açılır."
+                checked={settings.showRukuMarkers}
+                onToggle={() => {
+                  sfxService.play('click');
+                  updateSettings({ showRukuMarkers: !settings.showRukuMarkers });
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  closeSettingsModal();
+                  openWaqfGuide();
+                }}
+                className="w-full p-3.5 rounded-xl border flex items-center justify-between gap-3 text-left cursor-pointer transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                    <BookOpen className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                    <span>Secâvend Durak (Vakıf) Rehberi</span>
+                  </p>
+                  <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                    Ayet içindeki 8 vakıf işaretinin (مـ، ۖ، ۗ، ۚ، ۙ، ۛ) okuma hükmünü ve örneklerini inceleyin.
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+              </button>
 
               <ToggleRow
                 title="Tilâvet Secdesi İşaretlerini Vurgula"

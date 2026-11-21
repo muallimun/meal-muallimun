@@ -31,8 +31,10 @@ import {
   resolveSpokenMealInfo,
 } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { useRukusData } from '../../hooks/useStudyReferenceData';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
+import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import {
   SAJDAH_AYAH_IDS,
@@ -352,6 +354,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     audioPrefs,
   } = useAppStore();
 
+  const { getRukuEndingAt } = useRukusData(settings.showRukuMarkers);
+
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
@@ -656,7 +660,11 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       return;
     }
     const target = e.target as HTMLElement | null;
-    if (target?.closest('button, a, [role="button"], input, select, [data-tajweed-rule]')) {
+    if (
+      target?.closest(
+        'button, a, [role="button"], input, select, [data-tajweed-rule], [data-waqf-sign], [data-ruku-badge]',
+      )
+    ) {
       return;
     }
     onToggleMobileImmersive();
@@ -1157,7 +1165,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                   >
                                     ﴿{toArabicIndicDigits(verse.ayah)}﴾
                                   </span>
-                                )}{' '}
+                                )}
+                                {settings.showRukuMarkers &&
+                                  (() => {
+                                    const rukuEnd = getRukuEndingAt(verse.surah, verse.ayah);
+                                    return rukuEnd ? (
+                                      <RukuMarkerBadge
+                                        ruku={rukuEnd}
+                                        surahNameTr={segment.surahMeta.nameTr}
+                                        page={bundle.pageNo}
+                                        variant="inline"
+                                      />
+                                    ) : null;
+                                  })()}{' '}
                               </span>
                             );
                           })}
@@ -1545,6 +1565,22 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                         <span>Tilâvet Secdesi</span>
                                       </span>
                                     )}
+
+                                    {settings.showRukuMarkers &&
+                                      (() => {
+                                        const groupRukuEnd =
+                                          group.verses
+                                            .map((v) => getRukuEndingAt(v.surah, v.ayah))
+                                            .find((r) => Boolean(r)) ?? null;
+                                        return groupRukuEnd ? (
+                                          <RukuMarkerBadge
+                                            ruku={groupRukuEnd}
+                                            surahNameTr={segment.surahMeta.nameTr}
+                                            page={bundle.pageNo}
+                                            variant="pill"
+                                          />
+                                        ) : null;
+                                      })()}
 
                                     {isGroupPlaying &&
                                       isMealAudioFlowActive &&

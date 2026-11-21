@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import {
+  ArrowLeftRight,
   BookMarked,
   BookOpen,
   Check,
@@ -25,6 +26,7 @@ import {
   getMealTextPresentation,
   resolveSpokenMealInfo,
 } from '../../config/mealsConfig';
+import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReferenceData';
 import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
@@ -40,6 +42,7 @@ import type {
 } from '../../types/quran';
 import type { SurahExtraInfo } from '../../types/fihrist';
 import type { TajweedRuleDef, TajweedWord } from '../../types/tajweed';
+import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import { WordMealGrid } from './WordMealGrid';
 
@@ -92,6 +95,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 }) => {
   const {
     openMealCompare,
+    openMutashabihat,
     openQuickMemorize,
     openQuickResearch,
     openListeningDrawer,
@@ -99,7 +103,11 @@ export const VerseCard: React.FC<VerseCardProps> = ({
     meta,
     audioPrefs,
   } = useAppStore();
+  const { getCount: getMutashabihatCount } = useMutashabihatData(true);
+  const { getRukuEndingAt } = useRukusData(settings.showRukuMarkers);
   const surahNameTr = surahMeta.nameTr;
+  const mutashabihatCount = getMutashabihatCount(verse.surah, verse.ayah);
+  const rukuEnd = settings.showRukuMarkers ? getRukuEndingAt(verse.surah, verse.ayah) : null;
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
@@ -412,6 +420,31 @@ export const VerseCard: React.FC<VerseCardProps> = ({
               Medenî Ayet
             </span>
           )}
+          {rukuEnd && (
+            <RukuMarkerBadge
+              ruku={rukuEnd}
+              surahNameTr={surahNameTr}
+              page={verse.page}
+              variant="pill"
+            />
+          )}
+          {mutashabihatCount > 0 && (
+            <button
+              type="button"
+              onClick={() => openMutashabihat(verse.surah, verse.ayah)}
+              title={`Bu ayetle lafız benzerliği bulunan ${mutashabihatCount} ayeti karşılaştır`}
+              className="inline-flex items-center gap-1 h-6 px-2 rounded-lg border text-[11px] font-extrabold whitespace-nowrap cursor-pointer transition-colors hover:opacity-85"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                borderColor: 'rgba(217, 119, 6, 0.38)',
+                color: 'var(--brand-accent-text)',
+              }}
+            >
+              <ArrowLeftRight className="w-3 h-3 shrink-0" />
+              <span className="hidden sm:inline">Benzer ({mutashabihatCount})</span>
+              <span className="sm:hidden tabular-nums">{mutashabihatCount}</span>
+            </button>
+          )}
           {matchingNuzulNote && (
             <button
               type="button"
@@ -675,6 +708,24 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                   <span>Çalma Listesine Ekle</span>
                 </button>
 
+                {mutashabihatCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      openMutashabihat(verse.surah, verse.ayah);
+                    }}
+                    className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <ArrowLeftRight
+                      className="w-4 h-4"
+                      style={{ color: 'var(--brand-accent-text)' }}
+                    />
+                    <span>Benzer Ayetler ({mutashabihatCount})</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -782,6 +833,14 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                   >
                     ۩
                   </span>
+                )}
+                {rukuEnd && (
+                  <RukuMarkerBadge
+                    ruku={rukuEnd}
+                    surahNameTr={surahNameTr}
+                    page={verse.page}
+                    variant="inline"
+                  />
                 )}
               </p>
             );

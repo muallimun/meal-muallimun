@@ -22,10 +22,13 @@ export const QuickMemorizeFromVerseModal: React.FC = () => {
   useEffect(() => {
     if (!quickMemorizeSeed) return;
     const sAyah = Math.max(1, Math.min(maxAyah, quickMemorizeSeed.ayah));
-    const defaultEnd = Math.min(maxAyah, sAyah + 4);
+    const seededEnd =
+      typeof quickMemorizeSeed.endAyah === 'number'
+        ? Math.max(sAyah, Math.min(maxAyah, quickMemorizeSeed.endAyah))
+        : Math.min(maxAyah, sAyah + 4);
     setStartAyah(sAyah);
-    setEndAyah(defaultEnd);
-    setCustomTitle('');
+    setEndAyah(seededEnd);
+    setCustomTitle(quickMemorizeSeed.title ?? '');
     setAddedToast(false);
   }, [quickMemorizeSeed, maxAyah]);
 

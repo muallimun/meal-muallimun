@@ -35,6 +35,8 @@ import type {
 import type {
   BazerganTimelineFile,
   FihristTopicsFile,
+  MutashabihatFile,
+  RukusFile,
   SurahExtraInfo,
   SurahInfoExtrasFile,
 } from '../types/fihrist';
@@ -774,6 +776,38 @@ export async function getBazerganTimeline(): Promise<BazerganTimelineFile> {
   }
 }
 
+const EMPTY_MUTASHABIHAT_FILE: MutashabihatFile = {
+  version: '1.0',
+  source: 'Mutashabihat ul Quran (QUL)',
+  totalVersesWithSimilar: 0,
+  totalLinks: 0,
+  verses: {},
+};
+
+const EMPTY_RUKUS_FILE: RukusFile = {
+  version: '1.0',
+  source: 'Tanzil Quran Metadata (556 Rükû) & Secâvend Vakıf Rehberi',
+  totalRukus: 0,
+  rukus: [],
+  waqfSigns: [],
+};
+
+export async function getMutashabihatData(): Promise<MutashabihatFile> {
+  try {
+    return await fetchJsonWithFallback<MutashabihatFile>('fihrist/mutashabihat.json');
+  } catch {
+    return EMPTY_MUTASHABIHAT_FILE;
+  }
+}
+
+export async function getRukusData(): Promise<RukusFile> {
+  try {
+    return await fetchJsonWithFallback<RukusFile>('fihrist/rukus.json');
+  } catch {
+    return EMPTY_RUKUS_FILE;
+  }
+}
+
 export async function getTajweedMeta(): Promise<TajweedMetaFile> {
   return fetchJsonWithFallback<TajweedMetaFile>('tj/meta.json');
 }
@@ -814,6 +848,8 @@ export const dataService = {
   getSurahInfoExtras,
   getSurahInfoExtrasMap,
   getBazerganTimeline,
+  getMutashabihatData,
+  getRukusData,
   getTajweedMeta,
   getTajweedSurah,
   getSegMeta,

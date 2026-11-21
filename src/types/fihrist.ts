@@ -171,3 +171,61 @@ export interface ResearchBackupPayload {
   exportedAt: string;
   topics: ResearchTopic[];
 }
+
+// ============================================================================
+// Faz 5: Müteşâbihât (Benzer Ayetler) Veri Şeması (fihrist/mutashabihat.json)
+// ============================================================================
+
+/** 1-tabanlı kapsayıcı kelime aralığı: [baslangicKelime, bitisKelime] */
+export type MutashabihatWordRange = [number, number];
+
+/**
+ * [hedefSure, hedefAyet, kaynakKelimeAraligi?, hedefKelimeAraligi?]
+ */
+export type MutashabihatEntryTuple = [
+  number,
+  number,
+  MutashabihatWordRange?,
+  MutashabihatWordRange?,
+];
+
+export interface MutashabihatFile {
+  version: string;
+  source: string;
+  totalVersesWithSimilar: number;
+  totalLinks: number;
+  /** Anahtar formatı: "sure:ayet" (ör. "2:3") */
+  verses: Record<string, MutashabihatEntryTuple[]>;
+}
+
+// ============================================================================
+// Faz 6: 556 Rükû (ع) Bölümleri ve Secâvend Vakıf Rehberi (fihrist/rukus.json)
+// ============================================================================
+
+export interface RukuItem {
+  no: number;
+  surah: number;
+  surahRuku: number;
+  startAyah: number;
+  endAyah: number;
+  ayahCount: number;
+}
+
+export interface WaqfSignDef {
+  sign: string;
+  altSigns: string[];
+  code: string;
+  nameTr: string;
+  actionTr: string;
+  color: string;
+  desc: string;
+}
+
+export interface RukusFile {
+  version: string;
+  source: string;
+  totalRukus: number;
+  rukus: RukuItem[];
+  waqfSigns: WaqfSignDef[];
+}
+

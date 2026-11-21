@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import {
   ArrowLeft,
+  ArrowLeftRight,
   BookOpen,
   Check,
   CheckCircle2,
@@ -35,6 +36,7 @@ import {
 } from 'lucide-react';
 import { findReciterById } from '../../config/recitersConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { useMutashabihatData } from '../../hooks/useStudyReferenceData';
 import { audioQueueService } from '../../services/audioQueueService';
 import { dataService } from '../../services/dataService';
 import { memorizationAudioController } from '../../services/memorizationAudioController';
@@ -153,7 +155,10 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     setIsMemorizationZenActive,
     openReciterSelector,
     isReciterSelectorOpen,
+    openMutashabihat,
   } = useAppStore();
+
+  const { getCount: getMutashabihatCount } = useMutashabihatData(true);
 
   const audioSnap = useSyncExternalStore(
     memorizationAudioController.subscribe,
@@ -2014,6 +2019,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                   const revealedCount = revealedWordCounts[key] ?? 1;
                   const canRevealMore =
                     mask === 'hidden' || (mask === 'word_reveal' && revealedCount < totalWords);
+                  const mutashabihatCount = getMutashabihatCount(verse.surah, verse.ayah);
 
                   return (
                     <div
@@ -2034,17 +2040,42 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                       }}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                        <span
-                          className="px-2.5 py-1 rounded-xl text-xs font-extrabold tabular-nums"
-                          style={{
-                            backgroundColor: isActiveAudio
-                              ? 'var(--brand-primary)'
-                              : 'var(--bg-surface-soft)',
-                            color: isActiveAudio ? '#FFFFFF' : 'var(--brand-primary-text)',
-                          }}
-                        >
-                          {surahNameLookup(verse.surah)} · {verse.ayah}. Ayet
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className="px-2.5 py-1 rounded-xl text-xs font-extrabold tabular-nums"
+                            style={{
+                              backgroundColor: isActiveAudio
+                                ? 'var(--brand-primary)'
+                                : 'var(--bg-surface-soft)',
+                              color: isActiveAudio ? '#FFFFFF' : 'var(--brand-primary-text)',
+                            }}
+                          >
+                            {surahNameLookup(verse.surah)} · {verse.ayah}. Ayet
+                          </span>
+
+                          {mutashabihatCount > 0 && (
+                            <button
+                              type="button"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onPointerUp={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                sfxService.play('click');
+                                openMutashabihat(verse.surah, verse.ayah);
+                              }}
+                              title="Bu ayetin benzer (müteşâbih) ayetlerini karşılaştır"
+                              className="min-h-[28px] px-2.5 py-0.5 rounded-xl border text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                              style={{
+                                backgroundColor: 'var(--brand-accent-soft)',
+                                borderColor: 'rgba(217, 119, 6, 0.35)',
+                                color: 'var(--brand-accent-text)',
+                              }}
+                            >
+                              <ArrowLeftRight className="w-3 h-3 shrink-0" />
+                              <span>Müteşâbih Uyarı ({mutashabihatCount})</span>
+                            </button>
+                          )}
+                        </div>
 
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {canRevealMore && (
@@ -2271,7 +2302,34 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                   <span className="font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
                     Mushaf Görünümü · {unit.title}
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {highlightedVerseKey && (() => {
+                      const parsed = parseVerseKey(highlightedVerseKey);
+                      const mCount = getMutashabihatCount(parsed.surah, parsed.ayah);
+                      if (mCount <= 0) return null;
+                      return (
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onPointerUp={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sfxService.play('click');
+                            openMutashabihat(parsed.surah, parsed.ayah);
+                          }}
+                          title="Aktif ayetin benzer (müteşâbih) ayetlerini karşılaştır"
+                          className="px-2.5 py-1 rounded-lg border text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                          style={{
+                            backgroundColor: 'var(--brand-accent-soft)',
+                            borderColor: 'rgba(217, 119, 6, 0.35)',
+                            color: 'var(--brand-accent-text)',
+                          }}
+                        >
+                          <ArrowLeftRight className="w-3 h-3 shrink-0" />
+                          <span>Müteşâbih Uyarı ({mCount})</span>
+                        </button>
+                      );
+                    })()}
                     {(mask === 'word_reveal' || mask === 'hidden') && highlightedVerseKey && (
                       <button
                         type="button"

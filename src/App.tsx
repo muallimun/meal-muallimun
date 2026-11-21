@@ -8,14 +8,17 @@ import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { ListeningDrawerModal } from './components/ListeningDrawerModal';
 import { MealCompareModal } from './components/MealCompareModal';
 import { MealSelectorModal } from './components/MealSelectorModal';
+import { MutashabihatModal } from './components/MutashabihatModal';
 import { ReciterSelectorModal } from './components/ReciterSelectorModal';
 import { SettingsModal } from './components/SettingsModal';
+import { WaqfGuideModal } from './components/WaqfGuideModal';
 import { ExamCenterPage } from './features/exam/ExamCenterPage';
 import { FihristHubPage } from './features/fihrist/FihristHubPage';
 import { QuickAddToResearchModal } from './features/fihrist/QuickAddToResearchModal';
 import { MemorizationHubPage } from './features/memorization/MemorizationHubPage';
 import { QuickMemorizeFromVerseModal } from './features/memorization/QuickMemorizeFromVerseModal';
 import { StudyPage } from './features/study/StudyPage';
+import { RukuPopoverHost, WaqfPopoverHost } from './features/study/StudyPopovers';
 import { HomePage } from './pages/HomePage';
 import { AppProvider, useAppStore } from './store/useAppStore';
 
@@ -42,6 +45,10 @@ const MainRouter: React.FC = () => {
       <ReciterSelectorModal />
       <MealSelectorModal />
       <MealCompareModal />
+      <MutashabihatModal />
+      <WaqfGuideModal />
+      <WaqfPopoverHost />
+      <RukuPopoverHost />
       <QuickMemorizeFromVerseModal />
       <QuickAddToResearchModal />
       <PageBookmarksDrawer />

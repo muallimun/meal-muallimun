@@ -127,6 +127,8 @@ export interface ZenSessionLaunchOptions {
 export interface QuickMemorizeSeed {
   surah: number;
   ayah: number;
+  endAyah?: number;
+  title?: string;
   page?: number;
   nonce: number;
 }

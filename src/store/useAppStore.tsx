@@ -98,6 +98,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   tajweedEnabled: false,
   showTajweedLegend: true,
   wordSyncEnabled: true,
+  showRukuMarkers: true,
 };
 
 export const DEFAULT_STUDY_POOL: StudyPool = {
@@ -464,6 +465,10 @@ function hydrateState(): PersistedAppState {
         typeof rawSettings.wordSyncEnabled === 'boolean'
           ? rawSettings.wordSyncEnabled
           : DEFAULT_SETTINGS.wordSyncEnabled,
+      showRukuMarkers:
+        typeof rawSettings.showRukuMarkers === 'boolean'
+          ? rawSettings.showRukuMarkers
+          : DEFAULT_SETTINGS.showRukuMarkers,
     };
 
     const rawPool = parsed.studyPool;
@@ -952,7 +957,13 @@ interface AppContextValue {
   isAudioBarExpanded: boolean;
   setIsAudioBarExpanded: (expanded: boolean) => void;
   quickMemorizeSeed: QuickMemorizeSeed | null;
-  openQuickMemorize: (surah: number, ayah: number, page?: number) => void;
+  openQuickMemorize: (
+    surah: number,
+    ayah: number,
+    page?: number,
+    endAyah?: number,
+    title?: string,
+  ) => void;
   closeQuickMemorize: () => void;
   quickResearchSeed: QuickResearchSeed | null;
   openQuickResearch: (surah: number, startAyah: number, endAyah?: number, page?: number) => void;
@@ -983,6 +994,12 @@ interface AppContextValue {
   compareTarget: { surah: number; ayah: number } | null;
   openMealCompare: (surah: number, ayah: number) => void;
   closeMealCompare: () => void;
+  mutashabihatTarget: { surah: number; ayah: number } | null;
+  openMutashabihat: (surah: number, ayah: number) => void;
+  closeMutashabihat: () => void;
+  isWaqfGuideOpen: boolean;
+  openWaqfGuide: () => void;
+  closeWaqfGuide: () => void;
   isBookmarksDrawerOpen: boolean;
   openBookmarksDrawer: () => void;
   closeBookmarksDrawer: () => void;
@@ -1103,6 +1120,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isMealSelectorOpen, setIsMealSelectorOpen] = useState(false);
   const [mealSelectorTarget, setMealSelectorTarget] = useState<'primary' | 'secondary'>('primary');
   const [compareTarget, setCompareTarget] = useState<{ surah: number; ayah: number } | null>(null);
+  const [mutashabihatTarget, setMutashabihatTarget] = useState<{
+    surah: number;
+    ayah: number;
+  } | null>(null);
+  const [isWaqfGuideOpen, setIsWaqfGuideOpen] = useState(false);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [introDismissed, setIntroDismissed] = useState<boolean>(() => readIntroDismissed());
@@ -1934,10 +1956,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSettingsModalOpen(false);
   }, []);
 
-  const openQuickMemorize = useCallback((surah: number, ayah: number, page?: number) => {
-    sfxService.play('click');
-    setQuickMemorizeSeed({ surah, ayah, page, nonce: Date.now() });
-  }, []);
+  const openQuickMemorize = useCallback(
+    (surah: number, ayah: number, page?: number, endAyah?: number, title?: string) => {
+      sfxService.play('click');
+      setQuickMemorizeSeed({ surah, ayah, endAyah, title, page, nonce: Date.now() });
+    },
+    [],
+  );
 
   const closeQuickMemorize = useCallback(() => {
     setQuickMemorizeSeed(null);
@@ -2000,6 +2025,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const closeMealCompare = useCallback(() => {
     setCompareTarget(null);
+  }, []);
+
+  const openMutashabihat = useCallback((surah: number, ayah: number) => {
+    sfxService.play('click');
+    setMutashabihatTarget({ surah, ayah });
+  }, []);
+
+  const closeMutashabihat = useCallback(() => {
+    setMutashabihatTarget(null);
+  }, []);
+
+  const openWaqfGuide = useCallback(() => {
+    sfxService.play('click');
+    setIsWaqfGuideOpen(true);
+  }, []);
+
+  const closeWaqfGuide = useCallback(() => {
+    setIsWaqfGuideOpen(false);
   }, []);
 
   const openBookmarksDrawer = useCallback(() => {
@@ -2281,6 +2324,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       compareTarget,
       openMealCompare,
       closeMealCompare,
+      mutashabihatTarget,
+      openMutashabihat,
+      closeMutashabihat,
+      isWaqfGuideOpen,
+      openWaqfGuide,
+      closeWaqfGuide,
       isBookmarksDrawerOpen,
       openBookmarksDrawer,
       closeBookmarksDrawer,
@@ -2397,6 +2446,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       compareTarget,
       openMealCompare,
       closeMealCompare,
+      mutashabihatTarget,
+      openMutashabihat,
+      closeMutashabihat,
+      isWaqfGuideOpen,
+      openWaqfGuide,
+      closeWaqfGuide,
       isBookmarksDrawerOpen,
       openBookmarksDrawer,
       closeBookmarksDrawer,

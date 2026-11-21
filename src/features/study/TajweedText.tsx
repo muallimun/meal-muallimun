@@ -2,6 +2,7 @@ import React from 'react';
 import { sfxService } from '../../services/sfxService';
 import type { ThemeMode } from '../../types/quran';
 import type { TajweedActiveSelection, TajweedRuleDef, TajweedWord } from '../../types/tajweed';
+import { splitTrailingWaqf, WaqfMarkSpan } from '../../utils/waqfTextUtils';
 import { openTajweedPopover } from './TajweedRulePopover';
 
 interface TajweedTextProps {
@@ -42,6 +43,18 @@ export const TajweedText: React.FC<TajweedTextProps> = ({
         const wordIndex1Based = wordIdx + 1;
         const isKaraokeActive = activeWordIndex === wordIndex1Based;
 
+        // Kelimenin son segmentindeki olası Secâvend vakıf işaretini ayır (harf birleşmesini bozmaz)
+        let trailingWaqf = '';
+        const lastIdx = word.length - 1;
+        if (lastIdx >= 0) {
+          const lastSeg = word[lastIdx];
+          const lastText = typeof lastSeg === 'string' ? lastSeg : lastSeg[0];
+          const split = splitTrailingWaqf(lastText);
+          if (split.waqf) {
+            trailingWaqf = split.waqf;
+          }
+        }
+
         return (
           <React.Fragment key={wordIdx}>
             <span
@@ -49,11 +62,17 @@ export const TajweedText: React.FC<TajweedTextProps> = ({
               className={isKaraokeActive ? 'karaoke-word-active' : undefined}
             >
               {word.map((seg, segIdx) => {
+                const isLast = segIdx === lastIdx && Boolean(trailingWaqf);
+
                 if (typeof seg === 'string') {
-                  return <React.Fragment key={segIdx}>{seg}</React.Fragment>;
+                  const display = isLast ? splitTrailingWaqf(seg).body : seg;
+                  return <React.Fragment key={segIdx}>{display}</React.Fragment>;
                 }
 
-                const [text, code] = seg;
+                const [rawText, code] = seg;
+                const text = isLast ? splitTrailingWaqf(rawText).body : rawText;
+                if (!text) return null;
+
                 const rule = rules[code];
                 if (!rule) {
                   return <React.Fragment key={segIdx}>{text}</React.Fragment>;
@@ -107,6 +126,15 @@ export const TajweedText: React.FC<TajweedTextProps> = ({
                 );
               })}
             </span>
+            {trailingWaqf &&
+              (interactive ? (
+                <WaqfMarkSpan waqf={trailingWaqf} />
+              ) : (
+                <>
+                  {'\u00A0'}
+                  {trailingWaqf}
+                </>
+              ))}
             {wordIdx < words.length - 1 ? ' ' : null}
           </React.Fragment>
         );
@@ -114,3 +142,4 @@ export const TajweedText: React.FC<TajweedTextProps> = ({
     </span>
   );
 };
+

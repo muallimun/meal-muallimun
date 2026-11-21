@@ -22,6 +22,7 @@ import {
   getRangesPageLabel,
   getRangesSignature,
 } from '../../data/curatedAshrPresets';
+import { useRukusData } from '../../hooks/useStudyReferenceData';
 import { memorizationStorage } from '../../services/memorizationStorage';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -90,6 +91,18 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
   const [customRanges, setCustomRanges] = useState<AyahRange[]>([
     { surah: 2, startAyah: 255, endAyah: 255 },
   ]);
+
+  const { getRukusForSurah } = useRukusData(
+    isOpen && (activeTab === 'surah' || activeTab === 'custom'),
+  );
+  const selectedSurahRukus = useMemo(
+    () => getRukusForSurah(selectedSurahNo),
+    [getRukusForSurah, selectedSurahNo],
+  );
+  const draftSurahRukus = useMemo(
+    () => getRukusForSurah(draftSurah),
+    [getRukusForSurah, draftSurah],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1053,6 +1066,70 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                 </div>
               )}
 
+              {/* Rükû (Konu Bölümü) ile Hızlı Seçim */}
+              {selectedSurahMeta && selectedSurahRukus.length > 1 && (
+                <div
+                  className="p-3 rounded-2xl border space-y-2"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="text-[11px] font-extrabold flex items-center gap-1.5"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      <span
+                        className="arabic-title text-sm leading-none"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        ع
+                      </span>
+                      <span>
+                        Rükû (Konu Bölümü) Seç ({selectedSurahRukus.length})
+                      </span>
+                    </span>
+                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                      Tek dokunuşla özel aralığa aktar
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-0.5">
+                    {selectedSurahRukus.map((r) => (
+                      <button
+                        key={r.no}
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setDraftSurah(r.surah);
+                          setDraftStart(r.startAyah);
+                          setDraftEnd(r.endAyah);
+                          setCustomRanges([
+                            {
+                              surah: r.surah,
+                              startAyah: r.startAyah,
+                              endAyah: r.endAyah,
+                            },
+                          ]);
+                          setCustomTitle(
+                            `${selectedSurahMeta.nameTr} · ${r.surahRuku}. Rükû (${r.startAyah}–${r.endAyah})`,
+                          );
+                          setActiveTab('custom');
+                        }}
+                        className="px-2.5 py-1 rounded-lg border text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        {r.surahRuku}. Rükû ({r.startAyah}–{r.endAyah})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-72 overflow-y-auto pr-1">
                 {filteredSurahs.map((s) => {
                   const active = selectedSurahNo === s.no;
@@ -1214,6 +1291,60 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                     />
                   </div>
                 </div>
+                {draftSurahRukus.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <span
+                      className="text-[11px] font-bold flex items-center gap-1"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <span
+                        className="arabic-title text-sm leading-none"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        ع
+                      </span>
+                      <span>Rükû ile hızlı doldur ({draftSurahRukus.length}):</span>
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-0.5">
+                      {draftSurahRukus.map((r) => {
+                        const isSelected =
+                          draftStart === r.startAyah && draftEnd === r.endAyah;
+                        return (
+                          <button
+                            key={r.no}
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              setDraftStart(r.startAyah);
+                              setDraftEnd(r.endAyah);
+                              if (!customTitle.trim()) {
+                                const sName =
+                                  surahMap.get(r.surah)?.nameTr ?? `${r.surah}. Sure`;
+                                setCustomTitle(
+                                  `${sName} · ${r.surahRuku}. Rükû (${r.startAyah}–${r.endAyah})`,
+                                );
+                              }
+                            }}
+                            className="px-2 py-1 rounded-lg border text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                            style={{
+                              backgroundColor: isSelected
+                                ? 'var(--brand-primary-soft)'
+                                : 'var(--bg-surface)',
+                              borderColor: isSelected
+                                ? 'var(--brand-primary)'
+                                : 'var(--border-subtle)',
+                              color: isSelected
+                                ? 'var(--brand-primary-text)'
+                                : 'var(--text-secondary)',
+                            }}
+                          >
+                            {r.surahRuku}. Rükû ({r.startAyah}–{r.endAyah})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={handleAddCustomRange}

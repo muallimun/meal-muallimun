@@ -417,6 +417,7 @@ export interface AppSettings {
   tajweedEnabled: boolean;
   showTajweedLegend: boolean;
   wordSyncEnabled: boolean;
+  showRukuMarkers: boolean;
 }
 
 export interface StudyPool {

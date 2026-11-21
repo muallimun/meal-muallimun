@@ -6,15 +6,17 @@ import {
   FileText,
   Hash,
   Layers,
+  ListOrdered,
   Search,
   X,
 } from 'lucide-react';
+import { useRukusData } from '../../hooks/useStudyReferenceData';
 import { sfxService } from '../../services/sfxService';
 import type { MetaData, SurahMeta } from '../../types/quran';
 import { formatSafeArabicTitle, formatSurahTitle } from '../../utils/arabicUtils';
 import { normalizeTurkish } from '../../utils/poolUtils';
 
-export type LocationPickerTab = 'surah' | 'page' | 'juz' | 'ayah';
+export type LocationPickerTab = 'surah' | 'page' | 'juz' | 'ruku' | 'ayah';
 
 interface LocationPickerModalProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ interface LocationPickerModalProps {
   onSelectSurah: (surahNo: number) => void;
   onSelectPage: (pageNo: number) => void;
   onSelectJuz: (juzNo: number) => void;
+  onSelectRuku?: (surahNo: number, startAyah: number) => void;
   onSelectAyah: (ayahNo: number) => void;
   onClose: () => void;
 }
@@ -48,6 +51,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   onSelectSurah,
   onSelectPage,
   onSelectJuz,
+  onSelectRuku,
   onSelectAyah,
   onClose,
 }) => {
@@ -55,8 +59,14 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const [surahQuery, setSurahQuery] = useState('');
   const [pageDraft, setPageDraft] = useState(String(currentPageNo));
   const [ayahDraft, setAyahDraft] = useState('');
+  const [rukuScope, setRukuScope] = useState<'surah' | 'all'>('surah');
+  const [rukuQuery, setRukuQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const pageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const { allRukus, getRukusForSurah, isLoading: isLoadingRukus } = useRukusData(
+    isOpen && activeTab === 'ruku',
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,6 +74,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     setSurahQuery('');
     setPageDraft(String(currentPageNo));
     setAyahDraft('');
+    setRukuQuery('');
   }, [isOpen, initialTab, currentPageNo]);
 
   useEffect(() => {
@@ -116,6 +127,34 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     return list.filter((n) => String(n).includes(q));
   }, [activeSurahMeta?.ayahCount, ayahDraft]);
 
+  const surahNameMap = useMemo(() => {
+    const map = new Map<number, string>();
+    if (meta) {
+      for (const s of meta.surahs) {
+        map.set(s.no, s.nameTr);
+      }
+    }
+    return map;
+  }, [meta]);
+
+  const currentSurahRukus = useMemo(
+    () => getRukusForSurah(currentSurahNo),
+    [getRukusForSurah, currentSurahNo],
+  );
+
+  const filteredRukus = useMemo(() => {
+    const base = rukuScope === 'surah' ? currentSurahRukus : allRukus;
+    const q = normalizeTurkish(rukuQuery.trim());
+    if (!q) return base;
+    return base.filter((r) => {
+      const sName = surahNameMap.get(r.surah) ?? '';
+      const hay = normalizeTurkish(
+        `${r.no} ${r.surahRuku} ${r.surah} ${sName} ${r.startAyah}-${r.endAyah}`,
+      );
+      return hay.includes(q);
+    });
+  }, [rukuScope, currentSurahRukus, allRukus, rukuQuery, surahNameMap]);
+
   if (!isOpen) return null;
 
   const handlePageSubmit = (e: React.FormEvent) => {
@@ -131,6 +170,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     { id: 'surah', label: 'Sure', icon: BookMarked },
     { id: 'page', label: 'Sayfa', icon: FileText },
     { id: 'juz', label: 'Cüz', icon: Layers },
+    { id: 'ruku', label: 'Rükû', icon: ListOrdered },
     { id: 'ayah', label: 'Ayet', icon: Hash },
   ];
 
@@ -195,13 +235,13 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
           </button>
         </div>
 
-        {/* 4 Sekme: Sure | Sayfa | Cüz | Ayet */}
+        {/* 5 Sekme: Sure | Sayfa | Cüz | Rükû | Ayet */}
         <div
-          className="px-4 py-2.5 border-b shrink-0"
+          className="px-3 sm:px-4 py-2.5 border-b shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div
-            className="grid grid-cols-4 gap-1 p-1 rounded-xl"
+            className="grid grid-cols-5 gap-1 p-1 rounded-xl"
             style={{ backgroundColor: 'var(--bg-surface-soft)' }}
           >
             {tabs.map((tab) => {
@@ -215,14 +255,14 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                     sfxService.play('click');
                     setActiveTab(tab.id);
                   }}
-                  className="min-h-[36px] px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                  className="min-h-[36px] px-1 sm:px-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
                   style={{
                     backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                     color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                     boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                   }}
                 >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <Icon className="w-3.5 h-3.5 shrink-0 hidden sm:block" />
                   <span>{tab.label}</span>
                 </button>
               );
@@ -466,6 +506,183 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {activeTab === 'ruku' && (
+            <div className="space-y-2.5">
+              {/* Kapsam Seçici: Bu Sure / Tüm Kur'an (556) */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div
+                  className="inline-flex items-center p-0.5 rounded-xl border"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setRukuScope('surah');
+                    }}
+                    className="min-h-[32px] px-2.5 rounded-lg text-[11px] font-bold cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: rukuScope === 'surah' ? 'var(--bg-surface)' : 'transparent',
+                      color:
+                        rukuScope === 'surah'
+                          ? 'var(--brand-primary-text)'
+                          : 'var(--text-secondary)',
+                      boxShadow: rukuScope === 'surah' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    }}
+                  >
+                    Bu Sure ({currentSurahRukus.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setRukuScope('all');
+                    }}
+                    className="min-h-[32px] px-2.5 rounded-lg text-[11px] font-bold cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: rukuScope === 'all' ? 'var(--bg-surface)' : 'transparent',
+                      color:
+                        rukuScope === 'all'
+                          ? 'var(--brand-primary-text)'
+                          : 'var(--text-secondary)',
+                      boxShadow: rukuScope === 'all' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    }}
+                  >
+                    Tüm Kur&apos;an ({allRukus.length || 556})
+                  </button>
+                </div>
+
+                <span
+                  className="text-[11px] font-semibold"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Konu Bölümleri (ع)
+                </span>
+              </div>
+
+              <div className="relative">
+                <Search
+                  className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: 'var(--text-muted)' }}
+                />
+                <input
+                  type="text"
+                  value={rukuQuery}
+                  onChange={(e) => setRukuQuery(e.target.value)}
+                  placeholder={
+                    rukuScope === 'surah'
+                      ? 'Rükû veya ayet aralığı ara...'
+                      : 'Sure adı, rükû no (1–556) veya ayet ara...'
+                  }
+                  className="w-full min-h-[38px] pl-9 pr-8 rounded-xl border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/35"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+                {rukuQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setRukuQuery('')}
+                    aria-label="Rükû aramasını temizle"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {isLoadingRukus ? (
+                <p className="text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                  Rükû listesi yükleniyor...
+                </p>
+              ) : filteredRukus.length === 0 ? (
+                <p className="text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                  Eşleşen rükû bölümü bulunamadı.
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {filteredRukus.map((r) => {
+                    const sName = surahNameMap.get(r.surah) ?? `${r.surah}. Sure`;
+                    const isCurrentRuku =
+                      r.surah === currentSurahNo &&
+                      currentAyahNo >= r.startAyah &&
+                      currentAyahNo <= r.endAyah;
+                    return (
+                      <button
+                        key={r.no}
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          if (onSelectRuku) {
+                            onSelectRuku(r.surah, r.startAyah);
+                          } else {
+                            onSelectSurah(r.surah);
+                          }
+                          onClose();
+                        }}
+                        className="w-full min-h-[46px] px-3 py-2 rounded-xl border flex items-center justify-between gap-2.5 text-left transition-colors cursor-pointer"
+                        style={{
+                          backgroundColor: isCurrentRuku
+                            ? 'var(--brand-primary-soft)'
+                            : 'var(--bg-surface)',
+                          borderColor: isCurrentRuku
+                            ? 'var(--brand-primary)'
+                            : 'var(--border-subtle)',
+                        }}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                            style={{
+                              backgroundColor: isCurrentRuku
+                                ? 'var(--brand-primary)'
+                                : 'var(--bg-surface-soft)',
+                              color: isCurrentRuku ? '#FFFFFF' : 'var(--brand-primary-text)',
+                            }}
+                          >
+                            <span className="arabic-title leading-none">ع</span>
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-extrabold truncate">
+                              {rukuScope === 'all' ? `${r.surah}. ${sName} · ` : ''}
+                              {r.surahRuku}. Rükû
+                            </p>
+                            <p
+                              className="text-[11px] tabular-nums truncate"
+                              style={{ color: 'var(--text-muted)' }}
+                            >
+                              {r.startAyah === r.endAyah
+                                ? `${r.startAyah}. Ayet`
+                                : `${r.startAyah}–${r.endAyah}. Ayetler`}{' '}
+                              · {r.ayahCount} Ayet
+                            </p>
+                          </div>
+                        </div>
+
+                        <span
+                          className="px-2 py-0.5 rounded-lg text-[11px] font-extrabold tabular-nums shrink-0 border"
+                          style={{
+                            backgroundColor: 'var(--bg-surface-soft)',
+                            borderColor: 'var(--border-subtle)',
+                            color: 'var(--text-secondary)',
+                          }}
+                        >
+                          #{r.no}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

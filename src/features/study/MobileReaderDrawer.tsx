@@ -60,6 +60,7 @@ interface MobileReaderDrawerProps {
   favoritesCount: number;
   onOpenFavorites: () => void;
   onOpenListeningDrawer: () => void;
+  onOpenWaqfGuide: () => void;
   onOpenSettings: () => void;
 }
 
@@ -92,6 +93,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
   favoritesCount,
   onOpenFavorites,
   onOpenListeningDrawer,
+  onOpenWaqfGuide,
   onOpenSettings,
 }) => {
   useEffect(() => {
@@ -245,7 +247,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                 className="inline-flex items-center gap-0.5 text-[11px] font-bold shrink-0"
                 style={{ color: 'var(--brand-primary-text)' }}
               >
-                <span>Sure / Sayfa / Cüz</span>
+                <span>Sure / Sayfa / Rükû</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </span>
             </button>
@@ -541,6 +543,85 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                       settings.wordSyncEnabled ? 'translate-x-4' : 'translate-x-0'
                     }`}
                   />
+                </span>
+              </button>
+            </div>
+
+            {/* Rükû (ع) İşaretleri + Secâvend Durak Rehberi */}
+            <div
+              className="px-3 py-2.5 rounded-xl border space-y-2"
+              style={{
+                backgroundColor: settings.showRukuMarkers
+                  ? 'var(--brand-primary-soft)'
+                  : 'var(--bg-surface-soft)',
+                borderColor: settings.showRukuMarkers
+                  ? 'var(--brand-primary)'
+                  : 'var(--border-subtle)',
+              }}
+            >
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.showRukuMarkers}
+                onClick={() => {
+                  sfxService.play('click');
+                  onUpdateSettings({ showRukuMarkers: !settings.showRukuMarkers });
+                }}
+                className="w-full flex items-center justify-between gap-2 text-left cursor-pointer"
+              >
+                <div className="min-w-0">
+                  <span
+                    className="text-xs font-extrabold flex items-center gap-1.5"
+                    style={{
+                      color: settings.showRukuMarkers
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-primary)',
+                    }}
+                  >
+                    <span className="arabic-title text-sm leading-none">ع</span>
+                    <span>Rükû (ع) İşaretleri</span>
+                  </span>
+                  <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Konu bölümlerinin sonunda tıklanabilir ع rozetini göster
+                  </span>
+                </div>
+                <span
+                  className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
+                  style={{
+                    backgroundColor: settings.showRukuMarkers
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-strong)',
+                  }}
+                >
+                  <span
+                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                      settings.showRukuMarkers ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  onClose();
+                  onOpenWaqfGuide();
+                }}
+                className="w-full min-h-[34px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <span className="flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Secâvend Durak Rehberi</span>
+                </span>
+                <span className="flex items-center gap-0.5">
+                  <span>8 İşaret</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </button>
             </div>

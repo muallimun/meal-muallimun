@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import {
+  ArrowLeftRight,
   BookMarked,
   BookOpen,
   Bookmark,
@@ -27,8 +28,10 @@ import {
   resolveSpokenMealInfo,
 } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReferenceData';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
+import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
@@ -84,6 +87,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     toggleBookmarkAyah,
     moveHatimBookmark,
     openMealCompare,
+    openMutashabihat,
     openQuickMemorize,
     openQuickResearch,
     openListeningDrawer,
@@ -91,6 +95,9 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     meta,
     audioPrefs,
   } = useAppStore();
+
+  const { getCount: getMutashabihatCount } = useMutashabihatData(true);
+  const { getRukuEndingAt } = useRukusData(settings.showRukuMarkers);
 
   const bookSurahNos = useMemo(() => [bundle.surahMeta.no], [bundle.surahMeta.no]);
   const {
@@ -334,6 +341,22 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               <span>Çalma Listesine Ekle</span>
             </button>
 
+            {getMutashabihatCount(verse.surah, verse.ayah) > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenMenuAyahId(null);
+                  openMutashabihat(verse.surah, verse.ayah);
+                }}
+                className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowLeftRight className="w-4 h-4 text-[var(--brand-accent-text)]" />
+                <span>
+                  Benzer Ayetler ({getMutashabihatCount(verse.surah, verse.ayah)})
+                </span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
@@ -389,7 +412,11 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
       return;
     }
     const target = e.target as HTMLElement | null;
-    if (target?.closest('button, a, [role="button"], input, select, [data-tajweed-rule]')) {
+    if (
+      target?.closest(
+        'button, a, [role="button"], input, select, [data-tajweed-rule], [data-waqf-sign], [data-ruku-badge]',
+      )
+    ) {
       return;
     }
     onToggleMobileImmersive();
@@ -567,6 +594,9 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                       const isSelected = selectedArabicAyahId === verse.id;
                       const isBookmarked = bookmarkedSet.has(verse.id);
                       const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
+                      const rukuEnd = settings.showRukuMarkers
+                        ? getRukuEndingAt(verse.surah, verse.ayah)
+                        : null;
                       const tjWords = settings.tajweedEnabled
                         ? getTjVerseWords(verse.surah, verse.ayah)
                         : null;
@@ -630,6 +660,14 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             >
                               ۩
                             </span>
+                          )}
+                          {rukuEnd && (
+                            <RukuMarkerBadge
+                              ruku={rukuEnd}
+                              surahNameTr={bundle.surahMeta.nameTr}
+                              page={verse.page}
+                              variant="inline"
+                            />
                           )}
                           <span
                             className={`inline-flex items-center justify-center mx-1.5 px-2 py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border ${
@@ -747,6 +785,24 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                       <span>Buradan Ezber Başlat</span>
                     </button>
 
+                    {getMutashabihatCount(selectedArabicVerse.surah, selectedArabicVerse.ayah) >
+                      0 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openMutashabihat(selectedArabicVerse.surah, selectedArabicVerse.ayah)
+                        }
+                        className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--brand-accent-soft)] border border-[var(--brand-accent)]/40 text-[var(--brand-accent-text)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <ArrowLeftRight className="w-3.5 h-3.5" />
+                        <span>
+                          Benzer Ayetler (
+                          {getMutashabihatCount(selectedArabicVerse.surah, selectedArabicVerse.ayah)}
+                          )
+                        </span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => {
@@ -828,6 +884,10 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               {visibleVerses.map((verse) => {
                 const isPlaying = playingAyahId === verse.id;
                 const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
+                const rukuEnd = settings.showRukuMarkers
+                  ? getRukuEndingAt(verse.surah, verse.ayah)
+                  : null;
+                const mutashabihatCount = getMutashabihatCount(verse.surah, verse.ayah);
                 const primaryVerse = getPrimaryVerse(verse);
                 const secondaryVerse = isDual ? getSecondaryVerse(verse) : null;
                 const fnList = settings.showFootnotes
@@ -890,6 +950,33 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             <span className="text-sm leading-none">۩</span>
                             <span>Tilâvet Secdesi</span>
                           </span>
+                        )}
+
+                        {rukuEnd && (
+                          <RukuMarkerBadge
+                            ruku={rukuEnd}
+                            surahNameTr={bundle.surahMeta.nameTr}
+                            page={verse.page}
+                            variant="pill"
+                          />
+                        )}
+
+                        {mutashabihatCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => openMutashabihat(verse.surah, verse.ayah)}
+                            title={`Benzer ayetleri karşılaştır (${mutashabihatCount})`}
+                            className="inline-flex items-center gap-1 h-6 px-2 rounded-lg border text-[11px] font-extrabold whitespace-nowrap cursor-pointer transition-opacity hover:opacity-85"
+                            style={{
+                              backgroundColor: 'var(--brand-accent-soft)',
+                              borderColor: 'rgba(217, 119, 6, 0.38)',
+                              color: 'var(--brand-accent-text)',
+                            }}
+                          >
+                            <ArrowLeftRight className="w-3 h-3 shrink-0" />
+                            <span className="hidden sm:inline">Benzer ({mutashabihatCount})</span>
+                            <span className="sm:hidden tabular-nums">{mutashabihatCount}</span>
+                          </button>
                         )}
 
                         {isPlaying && (
