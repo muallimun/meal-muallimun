@@ -5,7 +5,10 @@ import {
   Headphones,
   Info,
   Play,
+  Shuffle,
   SlidersHorizontal,
+  Star,
+  Target,
   Timer,
   X,
 } from 'lucide-react';
@@ -22,6 +25,7 @@ import type {
   MemorizationPrefs,
   MemorizationUnit,
   PauseMultiplier,
+  ZenSessionLaunchOptions,
 } from '../../types/memorization';
 import { TEACHER_RECITER_IDS } from '../../types/memorization';
 
@@ -30,7 +34,7 @@ interface QuickStartDrawerProps {
   unit: MemorizationUnit | null;
   prefs: MemorizationPrefs;
   onChangePrefs: (patch: Partial<MemorizationPrefs>) => void;
-  onStart: () => void;
+  onStart: (options?: ZenSessionLaunchOptions) => void;
   onClose: () => void;
 }
 
@@ -42,7 +46,12 @@ const METHOD_OPTIONS: Array<{
   {
     id: 'snowball',
     label: 'Kar Topu',
-    desc: 'Önerilen · 5’li küme & zincir bağlama',
+    desc: 'Önerilen · Baştan sona 5’li zincir',
+  },
+  {
+    id: 'reverse_snowball',
+    label: 'Ters Kar Topu',
+    desc: 'Sondan başa zincirleme (sonları korur)',
   },
   {
     id: 'single',
@@ -102,8 +111,11 @@ export const QuickStartDrawer: React.FC<QuickStartDrawerProps> = ({
 
   if (!isOpen || !unit) return null;
 
+  const isChainMethod = prefs.method === 'snowball' || prefs.method === 'reverse_snowball';
   const clusterCount =
     previewSteps.length > 0 ? Math.max(...previewSteps.map((s) => s.totalClusters)) : 1;
+  const hasStarredVerses = unit.starredVerseKeys.length > 0;
+  const canSelfTest = unit.stage === 'fresh' || unit.stage === 'solid';
 
   const updateCustom = (patch: Partial<MemorizationPrefs['customConfig']>) => {
     onChangePrefs({
@@ -173,6 +185,97 @@ export const QuickStartDrawer: React.FC<QuickStartDrawerProps> = ({
 
         {/* Ayarlar Gövdesi */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
+          {/* Hızlı Odak Modları (Zorlanılan Ayetler & Öz-Sınav) */}
+          {(hasStarredVerses || canSelfTest) && (
+            <div className="space-y-2">
+              {hasStarredVerses && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    onStart({ mode: 'starred_only' });
+                  }}
+                  className="w-full min-h-[44px] px-3.5 py-2.5 rounded-2xl border flex items-center justify-between gap-2 text-left cursor-pointer transition-all hover:opacity-95"
+                  style={{
+                    backgroundColor: 'var(--brand-accent-soft)',
+                    borderColor: 'rgba(217, 119, 6, 0.42)',
+                    color: 'var(--brand-accent-text)',
+                  }}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Star className="w-4 h-4 fill-current shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-extrabold truncate">
+                        Sadece Zorlandığım Ayetleri Çalış ({unit.starredVerseKeys.length} ayet)
+                      </p>
+                      <p className="text-[11px] opacity-85 truncate">
+                        Yıldızlı ayetlerde hedefli pekiştirme turu başlatır
+                      </p>
+                    </div>
+                  </div>
+                  <Play className="w-4 h-4 fill-current shrink-0" />
+                </button>
+              )}
+
+              {canSelfTest && (
+                <div
+                  className="p-3 rounded-2xl border space-y-2"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Target
+                      className="w-4 h-4 shrink-0"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <span className="text-xs font-extrabold">
+                      Ezber Kontrolü (Hızlı Öz-Sınav)
+                    </span>
+                  </div>
+                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    Ayetler gizli gelir; okuyup metni açarak kendinizi hızlıca yoklayın.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onStart({ mode: 'self_test_ordered' });
+                      }}
+                      className="min-h-[38px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--brand-primary)',
+                        color: 'var(--brand-primary-text)',
+                      }}
+                    >
+                      <Target className="w-3.5 h-3.5 shrink-0" />
+                      <span>Sıralı Öz-Sınav</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onStart({ mode: 'self_test_shuffled' });
+                      }}
+                      className="min-h-[38px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-strong)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <Shuffle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Karışık Öz-Sınav</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 1. Yöntem */}
           <div className="space-y-2">
             <span
@@ -181,7 +284,7 @@ export const QuickStartDrawer: React.FC<QuickStartDrawerProps> = ({
             >
               Ezber Yöntemi
             </span>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {METHOD_OPTIONS.map((opt) => {
                 const active = prefs.method === opt.id;
                 return (
@@ -315,7 +418,7 @@ export const QuickStartDrawer: React.FC<QuickStartDrawerProps> = ({
                   />
                 </div>
 
-                {prefs.method === 'snowball' && (
+                {isChainMethod && (
                   <>
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs font-bold">
@@ -530,13 +633,13 @@ export const QuickStartDrawer: React.FC<QuickStartDrawerProps> = ({
             <span className="font-extrabold" style={{ color: 'var(--text-primary)' }}>
               {previewSteps.length} adım
             </span>
-            {prefs.method === 'snowball' && clusterCount > 1 ? ` · ${clusterCount} küme` : ''}
+            {isChainMethod && clusterCount > 1 ? ` · ${clusterCount} küme` : ''}
           </div>
           <button
             type="button"
             onClick={() => {
               sfxService.play('click');
-              onStart();
+              onStart({ mode: 'standard' });
             }}
             className="min-h-[44px] px-6 rounded-2xl text-sm font-extrabold text-white flex items-center justify-center gap-2 cursor-pointer shadow-md"
             style={{ backgroundColor: 'var(--brand-primary)' }}

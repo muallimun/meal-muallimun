@@ -15,13 +15,22 @@ import {
 import {
   buildMemorizationUnitFromRanges,
   buildRangesForMushafPage,
+  buildSplitUnitsForPreset,
   CURATED_ASHR_PRESETS,
   CURATED_PRESET_GROUPS,
+  findMatchingUnitInPool,
+  getRangesPageLabel,
+  getRangesSignature,
 } from '../../data/curatedAshrPresets';
 import { memorizationStorage } from '../../services/memorizationStorage';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
-import type { AyahRange, CuratedPresetItem, MemorizationUnit } from '../../types/memorization';
+import type {
+  AyahRange,
+  CuratedPresetGroupId,
+  CuratedPresetItem,
+  MemorizationUnit,
+} from '../../types/memorization';
 import { formatSurahTitle } from '../../utils/arabicUtils';
 import { normalizeTurkish } from '../../utils/textNormalize';
 
@@ -53,9 +62,14 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
 
   // 1. Hazır Seçkiler
   const [presetQuery, setPresetQuery] = useState('');
+  const [presetGroupFilter, setPresetGroupFilter] = useState<'all' | CuratedPresetGroupId>('all');
   const [selectedPresetId, setSelectedPresetId] = useState<string>(CURATED_ASHR_PRESETS[0].id);
-  const [splitLongPreset, setSplitLongPreset] = useState(true);
+  const [splitLongPreset, setSplitLongPreset] = useState(false);
+  const [presetSplitBy, setPresetSplitBy] = useState<'pages' | 'daily'>('pages');
   const [presetChunkSize, setPresetChunkSize] = useState(6);
+  const [existingUnits, setExistingUnits] = useState<MemorizationUnit[]>(() =>
+    memorizationStorage.readUnitsSync(),
+  );
 
   // 2. Sayfa
   const [selectedPage, setSelectedPage] = useState<number>(currentReadingPage);
@@ -81,6 +95,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
     if (!isOpen) return;
     setSelectedPage(currentReadingPage);
     setSelectedJuz(Math.max(1, Math.min(30, Math.ceil(currentReadingPage / 20))));
+    setExistingUnits(memorizationStorage.readUnitsSync());
   }, [isOpen, currentReadingPage]);
 
   useEffect(() => {
@@ -111,17 +126,22 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
   // Hazır Seçki filtreleme
   const filteredPresets = useMemo(() => {
     const q = normalizeTurkish(presetQuery.trim());
-    if (!q) return CURATED_ASHR_PRESETS;
-    return CURATED_ASHR_PRESETS.filter(
-      (p) =>
-        normalizeTurkish(p.title).includes(q) || normalizeTurkish(p.subtitle).includes(q),
-    );
-  }, [presetQuery]);
+    return CURATED_ASHR_PRESETS.filter((p) => {
+      if (presetGroupFilter !== 'all' && p.group !== presetGroupFilter) return false;
+      if (!q) return true;
+      return normalizeTurkish(p.title).includes(q) || normalizeTurkish(p.subtitle).includes(q);
+    });
+  }, [presetQuery, presetGroupFilter]);
 
   const selectedPreset: CuratedPresetItem | null = useMemo(
     () => CURATED_ASHR_PRESETS.find((p) => p.id === selectedPresetId) ?? null,
     [selectedPresetId],
   );
+
+  const selectedPresetExistingUnit = useMemo(() => {
+    if (!selectedPreset || splitLongPreset) return undefined;
+    return findMatchingUnitInPool(existingUnits, selectedPreset.ranges);
+  }, [selectedPreset, splitLongPreset, existingUnits]);
 
   // Sayfa önizlemesi
   const currentReadingPagePreview = useMemo(() => {
@@ -170,28 +190,13 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
   // Seçime göre oluşturulacak önizleme özeti
   const buildTargetUnits = (): MemorizationUnit[] => {
     if (activeTab === 'preset' && selectedPreset) {
-      // Uzun tek-surelik hazır seçkiler (örn. Yâsîn, Mülk, Nebe) istenirse günlük dilimlere bölünebilir
+      // Uzun sureler (>15 ayet) istenirse Mushaf sayfalarına veya günlük dilimlere bölünebilir
       if (
         splitLongPreset &&
         selectedPreset.ranges.length === 1 &&
-        selectedPreset.estimatedAyahs > 12
+        selectedPreset.estimatedAyahs > 15
       ) {
-        const r = selectedPreset.ranges[0];
-        const chunks: MemorizationUnit[] = [];
-        let part = 1;
-        for (let a = r.startAyah; a <= r.endAyah; a += presetChunkSize) {
-          const end = Math.min(r.endAyah, a + presetChunkSize - 1);
-          chunks.push(
-            buildMemorizationUnitFromRanges(meta, {
-              title: `${selectedPreset.title} · Dilim ${part}`,
-              subtitle: `${a}–${end}. Ayetler · ${end - a + 1} Ayet`,
-              sourceType: 'preset',
-              ranges: [{ surah: r.surah, startAyah: a, endAyah: end }],
-            }),
-          );
-          part += 1;
-        }
-        return chunks;
+        return buildSplitUnitsForPreset(meta, selectedPreset, presetSplitBy, presetChunkSize);
       }
 
       return [
@@ -277,16 +282,18 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
       const willSplit =
         splitLongPreset &&
         selectedPreset.ranges.length === 1 &&
-        selectedPreset.estimatedAyahs > 12;
-      const chunkCount = willSplit
-        ? Math.ceil(selectedPreset.estimatedAyahs / presetChunkSize)
+        selectedPreset.estimatedAyahs > 15;
+      const splitCount = willSplit
+        ? buildSplitUnitsForPreset(meta, selectedPreset, presetSplitBy, presetChunkSize).length
         : 1;
       return {
         valid: true,
         title: selectedPreset.title,
         detail: willSplit
-          ? `${chunkCount} günlük dilim · Toplam ${selectedPreset.estimatedAyahs} ayet`
-          : selectedPreset.subtitle,
+          ? `${splitCount} parça (${presetSplitBy === 'pages' ? 'Mushaf sayfasına göre' : `${presetChunkSize}’şar ayet`}) · Toplam ${selectedPreset.estimatedAyahs} ayet`
+          : selectedPresetExistingUnit
+            ? 'Havuzunuzda mevcut · Doğrudan çalışabilirsiniz'
+            : selectedPreset.subtitle,
       };
     }
     if (activeTab === 'page') {
@@ -332,8 +339,11 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
   }, [
     activeTab,
     selectedPreset,
+    selectedPresetExistingUnit,
     splitLongPreset,
+    presetSplitBy,
     presetChunkSize,
+    meta,
     pagePreview,
     selectedPage,
     pageSplit,
@@ -348,15 +358,37 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
   if (!isOpen) return null;
 
   const handleConfirm = async (startImmediately: boolean) => {
+    // Tek parça seçili ve havuzda zaten varsa mükerrer oluşturmadan mevcut birimi kullan
+    if (activeTab === 'preset' && selectedPresetExistingUnit && !splitLongPreset) {
+      sfxService.play('click');
+      onCreated([selectedPresetExistingUnit], startImmediately);
+      onClose();
+      return;
+    }
+
     const units = buildTargetUnits();
     if (units.length === 0) return;
     sfxService.play('click');
-    if (units.length === 1) {
-      await memorizationStorage.upsertUnit(units[0]);
-    } else {
-      await memorizationStorage.addUnitsBatch(units);
+
+    // Mükerrer koruması: havuzda aynı ranges imzasına sahip olanları atla
+    const existing = await memorizationStorage.loadUnits();
+    const existingSigs = new Set(existing.map((u) => getRangesSignature(u.ranges)));
+    const freshUnits = units.filter((u) => !existingSigs.has(getRangesSignature(u.ranges)));
+
+    if (freshUnits.length === 1) {
+      await memorizationStorage.upsertUnit(freshUnits[0]);
+    } else if (freshUnits.length > 1) {
+      await memorizationStorage.addUnitsBatch(freshUnits);
     }
-    onCreated(units, startImmediately);
+
+    const resultUnits =
+      freshUnits.length > 0
+        ? freshUnits
+        : units
+            .map((u) => findMatchingUnitInPool(existing, u.ranges))
+            .filter((u): u is MemorizationUnit => Boolean(u));
+
+    onCreated(resultUnits.length > 0 ? resultUnits : units, startImmediately);
     onClose();
   };
 
@@ -476,9 +508,52 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                 />
               </div>
 
+              {/* 4 Kategori Hızlı Filtre Hapları */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setPresetGroupFilter('all');
+                  }}
+                  className="min-h-[32px] px-2.5 rounded-xl border text-[11px] font-bold cursor-pointer"
+                  style={{
+                    backgroundColor:
+                      presetGroupFilter === 'all' ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
+                    borderColor:
+                      presetGroupFilter === 'all' ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                    color: presetGroupFilter === 'all' ? '#FFFFFF' : 'var(--text-secondary)',
+                  }}
+                >
+                  Tümü ({CURATED_ASHR_PRESETS.length})
+                </button>
+                {CURATED_PRESET_GROUPS.map((g) => {
+                  const count = CURATED_ASHR_PRESETS.filter((p) => p.group === g.id).length;
+                  const active = presetGroupFilter === g.id;
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setPresetGroupFilter(g.id);
+                      }}
+                      className="min-h-[32px] px-2.5 rounded-xl border text-[11px] font-bold cursor-pointer"
+                      style={{
+                        backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface-soft)',
+                        borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                        color: active ? '#FFFFFF' : 'var(--text-secondary)',
+                      }}
+                    >
+                      {g.shortTitle} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
               {selectedPreset &&
                 selectedPreset.ranges.length === 1 &&
-                selectedPreset.estimatedAyahs > 12 && (
+                selectedPreset.estimatedAyahs > 15 && (
                   <div
                     className="p-3.5 rounded-2xl border space-y-2.5"
                     style={{
@@ -491,7 +566,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                         className="text-xs sm:text-sm font-extrabold"
                         style={{ color: 'var(--brand-primary-text)' }}
                       >
-                        Uzun sureyi günlük ezber dilimlerine böl
+                        Uzun sureyi sayfa / günlük dilimlere bölerek ekle
                       </span>
                       <input
                         type="checkbox"
@@ -501,31 +576,74 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                       />
                     </label>
                     {splitLongPreset && (
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                          Dilim boyutu:
-                        </span>
-                        {[5, 6, 7, 8].map((sz) => (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                           <button
-                            key={sz}
                             type="button"
-                            onClick={() => setPresetChunkSize(sz)}
-                            className="px-2.5 py-1 rounded-lg border text-xs font-bold cursor-pointer"
+                            onClick={() => setPresetSplitBy('pages')}
+                            className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
                             style={{
                               backgroundColor:
-                                presetChunkSize === sz
+                                presetSplitBy === 'pages'
                                   ? 'var(--brand-primary)'
                                   : 'var(--bg-surface)',
                               borderColor:
-                                presetChunkSize === sz
+                                presetSplitBy === 'pages'
                                   ? 'var(--brand-primary)'
                                   : 'var(--border-subtle)',
-                              color: presetChunkSize === sz ? '#FFFFFF' : 'var(--text-primary)',
+                              color: presetSplitBy === 'pages' ? '#FFFFFF' : 'var(--text-primary)',
                             }}
                           >
-                            {sz} Ayet
+                            Mushaf Sayfalarına Böl
                           </button>
-                        ))}
+                          <button
+                            type="button"
+                            onClick={() => setPresetSplitBy('daily')}
+                            className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
+                            style={{
+                              backgroundColor:
+                                presetSplitBy === 'daily'
+                                  ? 'var(--brand-primary)'
+                                  : 'var(--bg-surface)',
+                              borderColor:
+                                presetSplitBy === 'daily'
+                                  ? 'var(--brand-primary)'
+                                  : 'var(--border-subtle)',
+                              color: presetSplitBy === 'daily' ? '#FFFFFF' : 'var(--text-primary)',
+                            }}
+                          >
+                            Günlük Dilimlere Böl
+                          </button>
+                        </div>
+
+                        {presetSplitBy === 'daily' && (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                              Dilim boyutu:
+                            </span>
+                            {[5, 6, 7, 8].map((sz) => (
+                              <button
+                                key={sz}
+                                type="button"
+                                onClick={() => setPresetChunkSize(sz)}
+                                className="px-2.5 py-1 rounded-lg border text-xs font-bold cursor-pointer"
+                                style={{
+                                  backgroundColor:
+                                    presetChunkSize === sz
+                                      ? 'var(--brand-primary)'
+                                      : 'var(--bg-surface)',
+                                  borderColor:
+                                    presetChunkSize === sz
+                                      ? 'var(--brand-primary)'
+                                      : 'var(--border-subtle)',
+                                  color: presetChunkSize === sz ? '#FFFFFF' : 'var(--text-primary)',
+                                }}
+                              >
+                                {sz} Ayet
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -545,6 +663,10 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {items.map((item) => {
                         const selected = selectedPresetId === item.id;
+                        const alreadyInPool = Boolean(
+                          findMatchingUnitInPool(existingUnits, item.ranges),
+                        );
+                        const pageLabel = getRangesPageLabel(meta, item.ranges);
                         return (
                           <button
                             key={item.id}
@@ -564,18 +686,32 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                             }}
                           >
                             <div className="min-w-0">
-                              <p
-                                className="text-xs sm:text-sm font-extrabold truncate"
-                                style={{
-                                  color: selected
-                                    ? 'var(--brand-primary-text)'
-                                    : 'var(--text-primary)',
-                                }}
-                              >
-                                {item.title}
-                              </p>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <p
+                                  className="text-xs sm:text-sm font-extrabold truncate"
+                                  style={{
+                                    color: selected
+                                      ? 'var(--brand-primary-text)'
+                                      : 'var(--text-primary)',
+                                  }}
+                                >
+                                  {item.title}
+                                </p>
+                                {alreadyInPool && (
+                                  <span
+                                    className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold shrink-0"
+                                    style={{
+                                      backgroundColor: 'var(--brand-primary-soft)',
+                                      color: 'var(--brand-primary-text)',
+                                    }}
+                                  >
+                                    ✓ Havuzda
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
                                 {item.subtitle}
+                                {pageLabel ? ` · ${pageLabel}` : ''}
                               </p>
                             </div>
                             {selected && (

@@ -1,48 +1,63 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ArrowUpDown,
   BookMarked,
+  CalendarClock,
+  Check,
+  ChevronDown,
+  ChevronUp,
   Clock,
+  Download,
   Headphones,
+  Layers,
   Play,
   Plus,
+  RefreshCw,
   RotateCcw,
   Sparkles,
   Star,
   Trash2,
+  Upload,
+  X,
 } from 'lucide-react';
 import { findReciterById } from '../../config/recitersConfig';
 import {
   buildMemorizationUnitFromRanges,
+  buildSplitUnitsForPreset,
   CURATED_ASHR_PRESETS,
+  CURATED_PRESET_GROUPS,
+  findMatchingUnitInPool,
+  getRangesPageLabel,
+  getRangesSignature,
 } from '../../data/curatedAshrPresets';
-import { memorizationStorage } from '../../services/memorizationStorage';
+import {
+  getReviewScheduleBadge,
+  isUnitDueForReview,
+  memorizationStorage,
+} from '../../services/memorizationStorage';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   ActiveSessionSnapshot,
+  CuratedPresetGroupId,
+  CuratedPresetItem,
   MemorizationPrefs,
   MemorizationUnit,
   RetentionStage,
+  ZenSessionLaunchOptions,
 } from '../../types/memorization';
 import { RETENTION_STAGE_META } from '../../types/memorization';
 import { CreatePoolModal } from './CreatePoolModal';
 import { QuickStartDrawer } from './QuickStartDrawer';
 import { ZenSessionView } from './ZenSessionView';
 
-type StageFilter = 'all' | RetentionStage;
+type StageFilter = 'all' | 'due' | RetentionStage;
 
 const NEXT_STAGE: Record<RetentionStage, RetentionStage> = {
   raw: 'fresh',
   fresh: 'solid',
   solid: 'raw',
 };
-
-const QUICK_STARTER_IDS = [
-  'preset_ayetel_kursi',
-  'preset_amenerrasulu',
-  'preset_surah_mulk',
-  'preset_s112',
-];
 
 export const MemorizationHubPage: React.FC = () => {
   const {
@@ -66,7 +81,34 @@ export const MemorizationHubPage: React.FC = () => {
   const [zenSession, setZenSession] = useState<{
     unitId: string;
     snapshot: ActiveSessionSnapshot | null;
+    launchOptions?: ZenSessionLaunchOptions;
   } | null>(null);
+
+  // Hazır Ezber Listeleri durumu (havuz dolu olsa da kalıcı görünür)
+  const [activePresetGroup, setActivePresetGroup] =
+    useState<CuratedPresetGroupId>('prayer_surahs');
+  const [isPresetSectionOpen, setIsPresetSectionOpen] = useState(true);
+  const [expandedSplitPresetId, setExpandedSplitPresetId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // JSON Yedekleme Modalı
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
+  const [backupFeedback, setBackupFeedback] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const showToast = useCallback((text: string) => {
+    setToastMessage(text);
+  }, []);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = window.setTimeout(() => setToastMessage(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [toastMessage]);
 
   const refreshFromStorage = useCallback(async () => {
     const [u, p, s] = await Promise.all([
@@ -135,10 +177,19 @@ export const MemorizationHubPage: React.FC = () => {
     void memorizationStorage.deleteUnit(unitId);
   }, []);
 
-  const handleQuickAddPreset = async (presetId: string) => {
-    const preset = CURATED_ASHR_PRESETS.find((p) => p.id === presetId);
-    if (!preset) return;
+  // Hazır listeden tekil ekle veya hemen başlat (mükerrer korumalı)
+  const handleAddOrStartPreset = async (preset: CuratedPresetItem, startNow: boolean) => {
     sfxService.play('click');
+    const existing = findMatchingUnitInPool(units, preset.ranges);
+    if (existing) {
+      if (startNow) {
+        setDrawerUnitId(existing.id);
+      } else {
+        showToast(`${preset.title} zaten havuzunuzda mevcut.`);
+      }
+      return;
+    }
+
     const unit = buildMemorizationUnitFromRanges(meta, {
       title: preset.title,
       subtitle: preset.subtitle,
@@ -147,21 +198,144 @@ export const MemorizationHubPage: React.FC = () => {
     });
     const next = await memorizationStorage.upsertUnit(unit);
     setUnits(next);
-    setDrawerUnitId(unit.id);
+    if (startNow) {
+      setDrawerUnitId(unit.id);
+    } else {
+      showToast(`${preset.title} havuza eklendi.`);
+    }
   };
 
+  // Uzun sureyi (>15 ayet) Mushaf sayfalarına veya günlük dilimlere bölerek ekle
+  const handleAddSplitPreset = async (
+    preset: CuratedPresetItem,
+    splitBy: 'pages' | 'daily',
+  ) => {
+    sfxService.play('click');
+    const splitUnits = buildSplitUnitsForPreset(meta, preset, splitBy, 6);
+    const existingSigs = new Set(units.map((u) => getRangesSignature(u.ranges)));
+    const freshUnits = splitUnits.filter((u) => !existingSigs.has(getRangesSignature(u.ranges)));
+
+    if (freshUnits.length === 0) {
+      showToast(`${preset.title} dilimleri zaten havuzunuzda mevcut.`);
+      setExpandedSplitPresetId(null);
+      return;
+    }
+
+    const next = await memorizationStorage.addUnitsBatch(freshUnits);
+    setUnits(next);
+    setExpandedSplitPresetId(null);
+    showToast(`${preset.title} (${freshUnits.length} parça) havuza eklendi.`);
+  };
+
+  // Aktif kategorideki tüm eksik öğeleri tek tıkla ekle
+  const handleBulkAddActiveGroup = async () => {
+    sfxService.play('click');
+    const groupPresets = CURATED_ASHR_PRESETS.filter((p) => p.group === activePresetGroup);
+    const existingSigs = new Set(units.map((u) => getRangesSignature(u.ranges)));
+    const missingPresets = groupPresets.filter(
+      (p) => !existingSigs.has(getRangesSignature(p.ranges)),
+    );
+
+    if (missingPresets.length === 0) {
+      showToast('Bu gruptaki tüm birimler zaten havuzunuzda mevcut.');
+      return;
+    }
+
+    const newUnits = missingPresets.map((p) =>
+      buildMemorizationUnitFromRanges(meta, {
+        title: p.title,
+        subtitle: p.subtitle,
+        sourceType: 'preset',
+        ranges: p.ranges,
+      }),
+    );
+    const next = await memorizationStorage.addUnitsBatch(newUnits);
+    setUnits(next);
+    showToast(`${newUnits.length} birim ezber havuzunuza eklendi.`);
+  };
+
+  // JSON Yedek İndir
+  const handleExportJson = async () => {
+    sfxService.play('click');
+    try {
+      const payload = await memorizationStorage.createBackupPayload();
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `muallimun-ezber-yedek-${dateStamp}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setBackupFeedback({
+        type: 'success',
+        text: `${payload.units.length} ezber birimi ve tercihleriniz JSON olarak indirildi.`,
+      });
+    } catch {
+      setBackupFeedback({
+        type: 'error',
+        text: 'Yedek dosyası oluşturulurken bir hata oluştu.',
+      });
+    }
+  };
+
+  // JSON Yedek Yükle
+  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed: unknown = JSON.parse(text);
+      const result = await memorizationStorage.importBackupPayload(parsed, importMode);
+      await refreshFromStorage();
+      sfxService.play('correct');
+      setBackupFeedback({
+        type: 'success',
+        text:
+          importMode === 'replace'
+            ? `Havuz geri yüklendi: Toplam ${result.totalUnits} birim.`
+            : `${result.importedCount} yeni birim eklendi${
+                result.skippedDuplicates > 0
+                  ? ` (${result.skippedDuplicates} mükerrer atlandı)`
+                  : ''
+              }. Toplam ${result.totalUnits} birim.`,
+      });
+    } catch (err) {
+      setBackupFeedback({
+        type: 'error',
+        text:
+          err instanceof Error
+            ? err.message
+            : 'Seçilen dosya geçerli bir Muallimun ezber yedeği değil.',
+      });
+    }
+  };
+
+  const nowSnapshot = Date.now();
+
+  const dueUnits = useMemo(
+    () => units.filter((u) => isUnitDueForReview(u, nowSnapshot)),
+    [units, nowSnapshot],
+  );
+
   const stageCounts = useMemo(() => {
-    const counts = { all: units.length, raw: 0, fresh: 0, solid: 0 };
+    const counts = { all: units.length, due: dueUnits.length, raw: 0, fresh: 0, solid: 0 };
     for (const u of units) {
       counts[u.stage] += 1;
     }
     return counts;
-  }, [units]);
+  }, [units, dueUnits.length]);
 
   const filteredUnits = useMemo(() => {
     if (stageFilter === 'all') return units;
+    if (stageFilter === 'due') return dueUnits;
     return units.filter((u) => u.stage === stageFilter);
-  }, [units, stageFilter]);
+  }, [units, dueUnits, stageFilter]);
 
   const resumeUnit = useMemo(() => {
     if (!activeSession) return null;
@@ -169,10 +343,11 @@ export const MemorizationHubPage: React.FC = () => {
   }, [activeSession, units]);
 
   const suggestedUnit = useMemo(() => {
+    if (dueUnits.length > 0) return dueUnits[0];
     if (units.length === 0) return null;
     const sorted = [...units].sort((a, b) => (b.lastPracticedAt ?? 0) - (a.lastPracticedAt ?? 0));
     return sorted.find((u) => u.stage !== 'solid') ?? sorted[0];
-  }, [units]);
+  }, [units, dueUnits]);
 
   const drawerUnit = useMemo(
     () => (drawerUnitId ? units.find((u) => u.id === drawerUnitId) ?? null : null),
@@ -184,33 +359,43 @@ export const MemorizationHubPage: React.FC = () => {
     [zenSession, units],
   );
 
-  const quickStarterPresets = useMemo(
-    () => CURATED_ASHR_PRESETS.filter((p) => QUICK_STARTER_IDS.includes(p.id)),
-    [],
+  const activeGroupPresets = useMemo(
+    () => CURATED_ASHR_PRESETS.filter((p) => p.group === activePresetGroup),
+    [activePresetGroup],
   );
+
+  const activeGroupMeta = useMemo(
+    () => CURATED_PRESET_GROUPS.find((g) => g.id === activePresetGroup) ?? CURATED_PRESET_GROUPS[0],
+    [activePresetGroup],
+  );
+
+  const missingCountInActiveGroup = useMemo(() => {
+    const sigs = new Set(units.map((u) => getRangesSignature(u.ranges)));
+    return activeGroupPresets.filter((p) => !sigs.has(getRangesSignature(p.ranges))).length;
+  }, [units, activeGroupPresets]);
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
       {/* Üst Başlık Şeridi */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight flex items-center gap-2">
             <BookMarked className="w-6 h-6 shrink-0" style={{ color: 'var(--brand-primary)' }} />
             <span>Ezber Modu</span>
           </h1>
           <p className="text-xs sm:text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-            Sakin, tekrar odaklı ve kümeli Kar Topu yöntemiyle Kur’an ezber çalışma alanı
+            Sabak–Menzil tekrar takvimi, hazır seçkiler ve odaklanmış çalışma alanı
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => {
               sfxService.play('click');
               openReciterSelector('memorize');
             }}
-            className="min-h-[42px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer max-w-[180px]"
+            className="min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer max-w-[155px] sm:max-w-[180px]"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-subtle)',
@@ -228,9 +413,28 @@ export const MemorizationHubPage: React.FC = () => {
             type="button"
             onClick={() => {
               sfxService.play('click');
+              setBackupFeedback(null);
+              setIsBackupModalOpen(true);
+            }}
+            title="Ezber havuzunu JSON olarak yedekle veya yükle"
+            className="min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            <ArrowUpDown className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+            <span>Yedekle</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
               setIsCreateModalOpen(true);
             }}
-            className="min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shadow-sm shrink-0"
+            className="min-h-[40px] px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shadow-sm shrink-0"
             style={{ backgroundColor: 'var(--brand-primary)' }}
           >
             <Plus className="w-4 h-4 shrink-0" />
@@ -238,6 +442,32 @@ export const MemorizationHubPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Kısa Bilgi Toast Şeridi */}
+      {toastMessage && (
+        <div
+          role="status"
+          className="px-4 py-2.5 rounded-2xl border text-xs sm:text-sm font-bold flex items-center justify-between gap-2"
+          style={{
+            backgroundColor: 'var(--brand-primary-soft)',
+            borderColor: 'var(--brand-primary)',
+            color: 'var(--brand-primary-text)',
+          }}
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <Check className="w-4 h-4 shrink-0" />
+            <span className="truncate">{toastMessage}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            aria-label="Bildirimi kapat"
+            className="p-1 rounded-lg cursor-pointer shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Bugünkü Çalışmam / Kaldığım Yer Sakin Hero Kartı */}
       {resumeUnit && activeSession ? (
@@ -289,7 +519,13 @@ export const MemorizationHubPage: React.FC = () => {
                 type="button"
                 onClick={() => {
                   sfxService.play('click');
-                  setZenSession({ unitId: resumeUnit.id, snapshot: activeSession });
+                  setZenSession({
+                    unitId: resumeUnit.id,
+                    snapshot: activeSession,
+                    launchOptions: activeSession.sessionMode
+                      ? { mode: activeSession.sessionMode }
+                      : undefined,
+                  });
                 }}
                 className="min-h-[42px] px-5 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center gap-2 cursor-pointer shadow-sm"
                 style={{ backgroundColor: 'var(--brand-primary)' }}
@@ -300,7 +536,10 @@ export const MemorizationHubPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-surface-soft)' }}>
+          <div
+            className="h-2 rounded-full overflow-hidden"
+            style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+          >
             <div
               className="h-full rounded-full transition-all"
               style={{
@@ -311,9 +550,7 @@ export const MemorizationHubPage: React.FC = () => {
           </div>
         </section>
       ) : suggestedUnit ? (
-        <section
-          className="surface-card rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-        >
+        <section className="surface-card rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1 min-w-0">
             <span
               className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold uppercase tracking-wider"
@@ -323,7 +560,11 @@ export const MemorizationHubPage: React.FC = () => {
               }}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Bugünkü Çalışmam</span>
+              <span>
+                {isUnitDueForReview(suggestedUnit, nowSnapshot)
+                  ? 'Bugün Tekrar Zamanı'
+                  : 'Bugünkü Çalışmam'}
+              </span>
             </span>
             <h2 className="text-lg sm:text-xl font-extrabold truncate">{suggestedUnit.title}</h2>
             <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
@@ -345,69 +586,89 @@ export const MemorizationHubPage: React.FC = () => {
             <span>Çalışmaya Başla</span>
           </button>
         </section>
-      ) : (
-        /* Boş Havuz: Sıcak ve Davetkâr Başlangıç Kartı */
-        <section className="surface-card rounded-3xl p-6 sm:p-8 text-center space-y-5">
-          <div
-            className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center"
-            style={{
-              backgroundColor: 'var(--brand-primary-soft)',
-              color: 'var(--brand-primary-text)',
-            }}
-          >
-            <BookMarked className="w-7 h-7" />
-          </div>
-          <div className="space-y-1.5 max-w-md mx-auto">
-            <h2 className="text-lg sm:text-xl font-extrabold">İlk Ezber Biriminizi Seçin</h2>
-            <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Aşağıdaki seçkin pasajlardan biriyle hemen başlayabilir veya dilediğiniz sayfa, sure ya da ayet aralığını havuzunuza ekleyebilirsiniz.
-            </p>
-          </div>
+      ) : null}
 
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {quickStarterPresets.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => void handleQuickAddPreset(p.id)}
-                className="min-h-[40px] px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-bold cursor-pointer transition-all hover:border-[var(--brand-primary)]"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                }}
+      {/* Baskısız "Bugün Pekiştirme Tekrarı" Şeridi */}
+      {dueUnits.length > 0 && (
+        <section
+          className="rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          style={{
+            backgroundColor: 'var(--brand-primary-soft)',
+            borderColor: 'rgba(15, 118, 110, 0.3)',
+          }}
+        >
+          <div className="flex items-start gap-2.5 min-w-0">
+            <span
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </span>
+            <div className="min-w-0">
+              <p
+                className="text-xs sm:text-sm font-extrabold"
+                style={{ color: 'var(--brand-primary-text)' }}
               >
-                + {p.title}
-              </button>
-            ))}
+                Bugün Pekiştirme Tekrarı ({dueUnits.length} birim)
+              </p>
+              <p className="text-[11px] sm:text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                {dueUnits
+                  .slice(0, 3)
+                  .map((u) => u.title)
+                  .join(' · ')}
+                {dueUnits.length > 3 ? ` +${dueUnits.length - 3} birim daha` : ''}
+              </p>
+            </div>
           </div>
 
-          <div>
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => {
                 sfxService.play('click');
-                setIsCreateModalOpen(true);
+                setStageFilter((prev) => (prev === 'due' ? 'all' : 'due'));
               }}
-              className="min-h-[44px] px-6 rounded-2xl text-sm font-extrabold text-white inline-flex items-center gap-2 cursor-pointer shadow-sm"
+              className="min-h-[38px] px-3 rounded-xl border text-xs font-extrabold cursor-pointer"
+              style={{
+                backgroundColor:
+                  stageFilter === 'due' ? 'var(--brand-primary)' : 'var(--bg-surface)',
+                borderColor: 'var(--brand-primary)',
+                color: stageFilter === 'due' ? '#FFFFFF' : 'var(--brand-primary-text)',
+              }}
+            >
+              {stageFilter === 'due' ? 'Tümünü Göster' : 'Listeyi Filtrele'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setDrawerUnitId(dueUnits[0].id);
+              }}
+              className="min-h-[38px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer"
               style={{ backgroundColor: 'var(--brand-primary)' }}
             >
-              <Plus className="w-4 h-4" />
-              <span>Tüm Seçkiler, Sayfa &amp; Surelerden Ekle</span>
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Tekrara Başla</span>
             </button>
           </div>
         </section>
       )}
 
-      {/* Aşama Filtre Hapları & Birim Listesi */}
+      {/* Kişisel Ezber Havuzu — Aşama Filtre Hapları & Birim Listesi */}
       {units.length > 0 && (
         <section className="space-y-3.5">
           <div className="flex flex-wrap items-center gap-1.5">
             {(
               [
                 { id: 'all', label: `Tümü (${stageCounts.all})` },
-                { id: 'raw', label: `Ham · Çalışılıyor (${stageCounts.raw})` },
-                { id: 'fresh', label: `Taze · Pekiştir (${stageCounts.fresh})` },
+                ...(dueUnits.length > 0
+                  ? [{ id: 'due' as StageFilter, label: `Bugün Tekrar (${dueUnits.length})` }]
+                  : []),
+                { id: 'raw', label: `Ham (${stageCounts.raw})` },
+                { id: 'fresh', label: `Taze (${stageCounts.fresh})` },
                 { id: 'solid', label: `Sağlam (${stageCounts.solid})` },
               ] as Array<{ id: StageFilter; label: string }>
             ).map((chip) => {
@@ -434,13 +695,17 @@ export const MemorizationHubPage: React.FC = () => {
           </div>
 
           {filteredUnits.length === 0 ? (
-            <div className="surface-card rounded-2xl p-6 text-center text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
-              Bu aşamada henüz ezber birimi bulunmuyor.
+            <div
+              className="surface-card rounded-2xl p-6 text-center text-xs sm:text-sm"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Bu filtrede henüz ezber birimi bulunmuyor.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredUnits.map((u) => {
                 const st = RETENTION_STAGE_META[u.stage];
+                const schedule = getReviewScheduleBadge(u, nowSnapshot);
                 const pageLabel =
                   u.mushafPages.length > 0
                     ? u.mushafPages.length === 1
@@ -488,14 +753,12 @@ export const MemorizationHubPage: React.FC = () => {
                       </div>
 
                       <div
-                        className="flex flex-wrap items-center gap-2 text-[11px] font-semibold tabular-nums"
+                        className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold tabular-nums"
                         style={{ color: 'var(--text-secondary)' }}
                       >
                         <span>{u.verseKeys.length} Ayet</span>
                         {pageLabel && <span>· {pageLabel}</span>}
-                        {u.completedSessions > 0 && (
-                          <span>· {u.completedSessions} oturum</span>
-                        )}
+                        {u.completedSessions > 0 && <span>· {u.completedSessions} oturum</span>}
                         {u.starredVerseKeys.length > 0 && (
                           <span
                             className="inline-flex items-center gap-1"
@@ -506,10 +769,29 @@ export const MemorizationHubPage: React.FC = () => {
                           </span>
                         )}
                       </div>
+
+                      {schedule && (
+                        <div className="pt-0.5">
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold"
+                            style={{
+                              backgroundColor: schedule.isDue
+                                ? 'var(--brand-primary-soft)'
+                                : 'var(--bg-surface-soft)',
+                              color: schedule.isDue
+                                ? 'var(--brand-primary-text)'
+                                : 'var(--text-muted)',
+                            }}
+                          >
+                            <CalendarClock className="w-3 h-3 shrink-0" />
+                            <span>{schedule.label}</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div
-                      className="pt-2.5 border-t flex items-center justify-between gap-2"
+                      className="pt-2.5 border-t flex items-center gap-2"
                       style={{ borderColor: 'var(--border-subtle)' }}
                     >
                       <button
@@ -517,7 +799,7 @@ export const MemorizationHubPage: React.FC = () => {
                         onClick={() => handleDeleteUnit(u.id)}
                         title="Ezber havuzundan kaldır"
                         aria-label={`${u.title} birimini sil`}
-                        className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer hover:text-red-500 transition-colors"
+                        className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer hover:text-red-500 transition-colors shrink-0"
                         style={{
                           backgroundColor: 'var(--bg-surface-soft)',
                           borderColor: 'var(--border-subtle)',
@@ -526,6 +808,30 @@ export const MemorizationHubPage: React.FC = () => {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
+
+                      {u.starredVerseKeys.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setZenSession({
+                              unitId: u.id,
+                              snapshot: null,
+                              launchOptions: { mode: 'starred_only' },
+                            });
+                          }}
+                          title="Sadece zorlandığım ayetleri çalış"
+                          className="min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer shrink-0"
+                          style={{
+                            backgroundColor: 'var(--brand-accent-soft)',
+                            borderColor: 'rgba(217, 119, 6, 0.35)',
+                            color: 'var(--brand-accent-text)',
+                          }}
+                        >
+                          <Star className="w-3.5 h-3.5 fill-current shrink-0" />
+                          <span>{u.starredVerseKeys.length}</span>
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -548,6 +854,429 @@ export const MemorizationHubPage: React.FC = () => {
         </section>
       )}
 
+      {/* ====================================================================
+          KALICI & SADE "HAZIR EZBER LİSTELERİ & SEÇKİLER" BÖLÜMÜ (4 GRUP)
+          Havuz dolu olsa bile kesinlikle kaybolmaz!
+          ==================================================================== */}
+      <section className="surface-card rounded-3xl overflow-hidden">
+        <div
+          className="px-4 py-3.5 sm:px-5 sm:py-4 border-b flex items-center justify-between gap-2"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-base font-extrabold flex items-center gap-2">
+              <Layers className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+              <span className="truncate">Hazır Ezber Listeleri &amp; Seçkiler</span>
+            </h2>
+            <p className="text-[11px] sm:text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              {units.length === 0
+                ? 'Aşağıdaki 4 hazır koleksiyondan tek tıkla ezbere başlayabilir veya havuzunuza ekleyebilirsiniz.'
+                : 'Namaz sureleri, Duhâ–Fîl arası, seçkin aşırlar ve öne çıkan ezber sureleri.'}
+            </p>
+          </div>
+
+          {units.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsPresetSectionOpen((v) => !v);
+              }}
+              aria-expanded={isPresetSectionOpen}
+              className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1 cursor-pointer shrink-0"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <span>{isPresetSectionOpen ? 'Daralt' : 'Göster'}</span>
+              {isPresetSectionOpen ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
+          )}
+        </div>
+
+        {(units.length === 0 || isPresetSectionOpen) && (
+          <div className="p-4 sm:p-5 space-y-4">
+            {/* 4 Kategori Sekmesi + Akıllı Toplu Ekleme */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5">
+                {CURATED_PRESET_GROUPS.map((group) => {
+                  const count = CURATED_ASHR_PRESETS.filter((p) => p.group === group.id).length;
+                  const active = activePresetGroup === group.id;
+                  return (
+                    <button
+                      key={group.id}
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setActivePresetGroup(group.id);
+                        setExpandedSplitPresetId(null);
+                      }}
+                      className="min-h-[38px] px-2.5 sm:px-3 rounded-xl border text-[11px] sm:text-xs font-extrabold cursor-pointer transition-all text-center"
+                      style={{
+                        backgroundColor: active
+                          ? 'var(--brand-primary)'
+                          : 'var(--bg-surface-soft)',
+                        borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                        color: active ? '#FFFFFF' : 'var(--text-secondary)',
+                      }}
+                    >
+                      <span className="truncate">
+                        {group.shortTitle} ({count})
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void handleBulkAddActiveGroup()}
+                disabled={missingCountInActiveGroup === 0}
+                className="min-h-[38px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-60"
+                style={{
+                  backgroundColor:
+                    missingCountInActiveGroup === 0
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface)',
+                  borderColor: 'var(--brand-primary)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                {missingCountInActiveGroup === 0 ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                    <span>Tüm Grup Havuzda</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      Bu Grubun Tamamını Havuza Ekle ({missingCountInActiveGroup})
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <strong style={{ color: 'var(--text-primary)' }}>{activeGroupMeta.title}:</strong>{' '}
+              {activeGroupMeta.description}
+            </p>
+
+            {/* Seçili Kategori Kartları */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {activeGroupPresets.map((preset) => {
+                const matchedUnit = findMatchingUnitInPool(units, preset.ranges);
+                const pageLabel = getRangesPageLabel(meta, preset.ranges);
+                const isLongSurah = preset.ranges.length === 1 && preset.estimatedAyahs > 15;
+                const isSplitMenuOpen = expandedSplitPresetId === preset.id;
+
+                return (
+                  <div
+                    key={preset.id}
+                    className="p-3.5 rounded-2xl border flex flex-col justify-between gap-3"
+                    style={{
+                      backgroundColor: matchedUnit
+                        ? 'var(--brand-primary-soft)'
+                        : 'var(--bg-surface-soft)',
+                      borderColor: matchedUnit
+                        ? 'rgba(15, 118, 110, 0.32)'
+                        : 'var(--border-subtle)',
+                    }}
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-xs sm:text-sm font-extrabold leading-snug">
+                          {preset.title}
+                        </h3>
+                        <span
+                          className="px-2 py-0.5 rounded-lg text-[10px] font-extrabold tabular-nums shrink-0"
+                          style={{
+                            backgroundColor: 'var(--bg-surface)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          {preset.estimatedAyahs} Ayet
+                        </span>
+                      </div>
+                      <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                        {preset.subtitle}
+                        {pageLabel ? ` · ${pageLabel}` : ''}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {matchedUnit ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setDrawerUnitId(matchedUnit.id);
+                          }}
+                          className="w-full min-h-[36px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                          style={{ backgroundColor: 'var(--brand-primary)' }}
+                        >
+                          <Check className="w-3.5 h-3.5 shrink-0" />
+                          <span>Havuzda · Çalış</span>
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => void handleAddOrStartPreset(preset, false)}
+                            className="flex-1 min-h-[36px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1 cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-strong)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            <Plus className="w-3.5 h-3.5 shrink-0" />
+                            <span>Ekle</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleAddOrStartPreset(preset, true)}
+                            className="flex-1 min-h-[36px] px-2.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1 cursor-pointer"
+                            style={{ backgroundColor: 'var(--brand-primary)' }}
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                            <span>Başla</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {isLongSurah && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              setExpandedSplitPresetId((cur) =>
+                                cur === preset.id ? null : preset.id,
+                              );
+                            }}
+                            className="w-full min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center justify-center gap-1 cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--brand-primary-text)',
+                            }}
+                          >
+                            <Layers className="w-3 h-3 shrink-0" />
+                            <span>Sayfa / Günlük Dilimlere Bölerek Ekle</span>
+                          </button>
+
+                          {isSplitMenuOpen && (
+                            <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+                              <button
+                                type="button"
+                                onClick={() => void handleAddSplitPreset(preset, 'pages')}
+                                className="min-h-[32px] px-2 rounded-lg text-[11px] font-extrabold text-white cursor-pointer"
+                                style={{ backgroundColor: 'var(--brand-primary)' }}
+                              >
+                                Sayfalara Böl
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleAddSplitPreset(preset, 'daily')}
+                                className="min-h-[32px] px-2 rounded-lg border text-[11px] font-extrabold cursor-pointer"
+                                style={{
+                                  backgroundColor: 'var(--bg-surface)',
+                                  borderColor: 'var(--brand-primary)',
+                                  color: 'var(--brand-primary-text)',
+                                }}
+                              >
+                                6’şar Ayet Böl
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ====================================================================
+          JSON YEDEKLEME MODALI (DIŞA / İÇE AKTAR)
+          ==================================================================== */}
+      {isBackupModalOpen && (
+        <div
+          className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsBackupModalOpen(false);
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ezber Havuzu JSON Yedekleme"
+        >
+          <div
+            className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border shadow-2xl overflow-hidden"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-strong)',
+            }}
+          >
+            <div
+              className="px-4 py-3.5 sm:px-5 border-b flex items-center justify-between gap-2"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <div className="min-w-0">
+                <h3 className="text-base font-extrabold truncate">Ezber Havuzu Yedekleme</h3>
+                <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                  Birimlerinizi, aşamaları ve tekrar takvimini JSON ile saklayın
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBackupModalOpen(false)}
+                aria-label="Kapat"
+                className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-5 space-y-4">
+              {/* Dışa Aktar */}
+              <div
+                className="p-3.5 rounded-2xl border space-y-2.5"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                <div>
+                  <p className="text-xs sm:text-sm font-extrabold">Yedeği Dışa Aktar</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Mevcut {units.length} ezber birimi, yıldızlı ayetler, Sabak–Menzil takvimi ve çalışma tercihleri tarih damgalı dosya olarak indirilir.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleExportJson()}
+                  className="w-full min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                >
+                  <Download className="w-4 h-4 shrink-0" />
+                  <span>Yedeği İndir (.json)</span>
+                </button>
+              </div>
+
+              {/* İçe Aktar */}
+              <div
+                className="p-3.5 rounded-2xl border space-y-2.5"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                <div>
+                  <p className="text-xs sm:text-sm font-extrabold">Yedekten Geri Yükle</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Daha önce indirdiğiniz `.json` yedeğini mevcut havuzla birleştirebilir veya tamamen geri yükleyebilirsiniz.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setImportMode('merge')}
+                    className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
+                    style={{
+                      backgroundColor:
+                        importMode === 'merge' ? 'var(--brand-primary)' : 'var(--bg-surface)',
+                      borderColor:
+                        importMode === 'merge' ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                      color: importMode === 'merge' ? '#FFFFFF' : 'var(--text-primary)',
+                    }}
+                  >
+                    Mevcutla Birleştir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportMode('replace')}
+                    className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer"
+                    style={{
+                      backgroundColor:
+                        importMode === 'replace' ? 'var(--brand-primary)' : 'var(--bg-surface)',
+                      borderColor:
+                        importMode === 'replace' ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                      color: importMode === 'replace' ? '#FFFFFF' : 'var(--text-primary)',
+                    }}
+                  >
+                    Üzerine Geri Yükle
+                  </button>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={(e) => void handleImportFileChange(e)}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full min-h-[42px] px-4 rounded-xl border text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--brand-primary)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <Upload className="w-4 h-4 shrink-0" />
+                  <span>Yedek Yükle (.json)</span>
+                </button>
+              </div>
+
+              {backupFeedback && (
+                <div
+                  className="p-3 rounded-xl border text-xs font-bold"
+                  style={{
+                    backgroundColor:
+                      backupFeedback.type === 'success'
+                        ? 'var(--brand-primary-soft)'
+                        : 'rgba(239, 68, 68, 0.08)',
+                    borderColor:
+                      backupFeedback.type === 'success'
+                        ? 'var(--brand-primary)'
+                        : 'rgba(239, 68, 68, 0.35)',
+                    color:
+                      backupFeedback.type === 'success' ? 'var(--brand-primary-text)' : '#B91C1C',
+                  }}
+                >
+                  {backupFeedback.text}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modallar & Zen Oturumu */}
       <CreatePoolModal
         isOpen={isCreateModalOpen}
@@ -565,11 +1294,15 @@ export const MemorizationHubPage: React.FC = () => {
         unit={drawerUnit}
         prefs={prefs}
         onChangePrefs={handleChangePrefs}
-        onStart={() => {
+        onStart={(launchOptions) => {
           if (!drawerUnit) return;
           const id = drawerUnit.id;
           setDrawerUnitId(null);
-          setZenSession({ unitId: id, snapshot: null });
+          setZenSession({
+            unitId: id,
+            snapshot: null,
+            launchOptions: launchOptions ?? { mode: 'standard' },
+          });
         }}
         onClose={() => setDrawerUnitId(null)}
       />
@@ -579,6 +1312,7 @@ export const MemorizationHubPage: React.FC = () => {
           unit={zenUnit}
           prefs={prefs}
           initialSnapshot={zenSession?.snapshot ?? null}
+          launchOptions={zenSession?.launchOptions}
           onChangePrefs={handleChangePrefs}
           onUpdateUnit={handleUpdateUnit}
           onExit={() => {

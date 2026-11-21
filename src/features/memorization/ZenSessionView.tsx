@@ -9,23 +9,29 @@ import React, {
 import {
   ArrowLeft,
   BookOpen,
+  Check,
   CheckCircle2,
   Eye,
   EyeOff,
   FastForward,
   Headphones,
   Loader2,
+  Mic,
   PanelLeftClose,
   PanelLeftOpen,
   Pause,
   Play,
+  Repeat,
   RotateCcw,
   Settings2,
   SkipBack,
   SkipForward,
   Sparkles,
+  Square,
   Star,
+  Target,
   Timer,
+  Trash2,
 } from 'lucide-react';
 import { findReciterById } from '../../config/recitersConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
@@ -37,8 +43,9 @@ import {
   generateSessionSteps,
   getVaslOpeningHint,
   splitFirstArabicWord,
+  tokenizeArabicWordsPreserveLayout,
 } from '../../services/memorizationEngine';
-import { memorizationStorage } from '../../services/memorizationStorage';
+import { applySelfEvaluation, memorizationStorage } from '../../services/memorizationStorage';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
@@ -46,12 +53,16 @@ import type {
   MemorizationPrefs,
   MemorizationUnit,
   PauseMultiplier,
-  RetentionStage,
+  SelfEvaluationRating,
+  SessionStep,
   VisibilityMask,
+  ZenSessionLaunchOptions,
+  ZenSessionMode,
 } from '../../types/memorization';
 import {
   parseVerseKey,
   RETENTION_STAGE_META,
+  REVIEW_INTERVAL_DAYS,
   TEACHER_RECITER_IDS,
 } from '../../types/memorization';
 import type { CombinedVerse } from '../../types/quran';
@@ -60,12 +71,14 @@ interface ZenSessionViewProps {
   unit: MemorizationUnit;
   prefs: MemorizationPrefs;
   initialSnapshot: ActiveSessionSnapshot | null;
+  launchOptions?: ZenSessionLaunchOptions;
   onChangePrefs: (patch: Partial<MemorizationPrefs>) => void;
   onUpdateUnit: (updated: MemorizationUnit) => void;
   onExit: () => void;
 }
 
 const ARABIC_INDIC = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+const MAX_RECORDING_SEC = 90;
 
 function toArabicNumeral(n: number): string {
   return String(n)
@@ -80,22 +93,54 @@ function formatClock(sec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+function shuffleStrings(arr: readonly string[]): string[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 const MASK_LABELS: Record<VisibilityMask, string> = {
   open: 'Açık',
   first_word: 'İlk Kelime',
+  word_reveal: 'Kelime Kelime',
   hidden: 'Tam Gizli',
 };
 
 const NEXT_MASK: Record<VisibilityMask, VisibilityMask> = {
   open: 'first_word',
-  first_word: 'hidden',
+  first_word: 'word_reveal',
+  word_reveal: 'hidden',
   hidden: 'open',
 };
+
+const MASK_ORDER: readonly VisibilityMask[] = ['open', 'first_word', 'word_reveal', 'hidden'];
+
+function buildSelfTestSteps(keys: readonly string[], isShuffled: boolean): SessionStep[] {
+  return keys.map((key, idx) => {
+    const { ayah } = parseVerseKey(key);
+    return {
+      index: idx,
+      phase: 'encode',
+      clusterIndex: 0,
+      totalClusters: 1,
+      verseKeys: [key],
+      repeatIndex: 1,
+      totalRepeats: 1,
+      suggestedMask: 'hidden',
+      stepLabel: `${isShuffled ? 'Karışık Öz-Sınav' : 'Sıralı Öz-Sınav'} · ${ayah}. Ayet`,
+      shortLabel: `Öz-Sınav · ${ayah}. Ayet`,
+    };
+  });
+}
 
 export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
   unit,
   prefs,
   initialSnapshot,
+  launchOptions,
   onChangePrefs,
   onUpdateUnit,
   onExit,
@@ -115,23 +160,56 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     memorizationAudioController.getSnapshot,
   );
 
-  // Oturum yapılandırmasını başlangıçta sabitle (kaldığı yerden devam ediliyorsa snapshot'ı koru)
-  const [sessionConfig] = useState(() => ({
-    method: initialSnapshot?.method ?? prefs.method,
-    profile: initialSnapshot?.profile ?? prefs.profile,
-    customConfig: initialSnapshot?.customConfig ?? prefs.customConfig,
-  }));
+  // Oturum yapılandırmasını ve hedef ayet listesini başlangıçta sabitle
+  const [sessionConfig] = useState<{
+    method: MemorizationPrefs['method'];
+    profile: MemorizationPrefs['profile'];
+    customConfig: MemorizationPrefs['customConfig'];
+    mode: ZenSessionMode;
+    sessionVerseKeys: string[];
+  }>(() => {
+    const mode: ZenSessionMode =
+      initialSnapshot?.sessionMode ?? launchOptions?.mode ?? 'standard';
 
-  const steps = useMemo(
-    () =>
-      generateSessionSteps(
-        unit.verseKeys,
-        sessionConfig.method,
-        sessionConfig.profile,
-        sessionConfig.customConfig,
-      ),
-    [unit.verseKeys, sessionConfig],
-  );
+    let sessionVerseKeys: string[];
+    if (initialSnapshot?.overrideVerseKeys && initialSnapshot.overrideVerseKeys.length > 0) {
+      sessionVerseKeys = initialSnapshot.overrideVerseKeys;
+    } else if (mode === 'starred_only') {
+      const starredSet = new Set(unit.starredVerseKeys);
+      const filtered = unit.verseKeys.filter((k) => starredSet.has(k));
+      sessionVerseKeys = filtered.length > 0 ? filtered : [...unit.verseKeys];
+    } else if (mode === 'self_test_shuffled') {
+      sessionVerseKeys = shuffleStrings(unit.verseKeys);
+    } else {
+      sessionVerseKeys = [...unit.verseKeys];
+    }
+
+    return {
+      method: initialSnapshot?.method ?? prefs.method,
+      profile: initialSnapshot?.profile ?? prefs.profile,
+      customConfig: initialSnapshot?.customConfig ?? prefs.customConfig,
+      mode,
+      sessionVerseKeys,
+    };
+  });
+
+  const isSelfTest =
+    sessionConfig.mode === 'self_test_ordered' || sessionConfig.mode === 'self_test_shuffled';
+
+  const steps = useMemo(() => {
+    if (isSelfTest) {
+      return buildSelfTestSteps(
+        sessionConfig.sessionVerseKeys,
+        sessionConfig.mode === 'self_test_shuffled',
+      );
+    }
+    return generateSessionSteps(
+      sessionConfig.sessionVerseKeys,
+      sessionConfig.method,
+      sessionConfig.profile,
+      sessionConfig.customConfig,
+    );
+  }, [isSelfTest, sessionConfig]);
 
   const [stepIndex, setStepIndex] = useState(() => {
     if (initialSnapshot && initialSnapshot.unitId === unit.id) {
@@ -142,13 +220,122 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
   const [completedReps, setCompletedReps] = useState(initialSnapshot?.completedReps ?? 0);
   const [elapsedSec, setElapsedSec] = useState(initialSnapshot?.elapsedSec ?? 0);
   const [mask, setMask] = useState<VisibilityMask>(
-    initialSnapshot?.mask ?? steps[0]?.suggestedMask ?? 'open',
+    initialSnapshot?.mask ?? (isSelfTest ? 'hidden' : steps[0]?.suggestedMask ?? 'open'),
   );
   const [isPeeking, setIsPeeking] = useState(false);
   const [showMealHint, setShowMealHint] = useState(false);
   const [showQuickSettings, setShowQuickSettings] = useState(false);
   const [showDesktopRail, setShowDesktopRail] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
+
+  // Kelime Kelime Açma durumu: her ayet için açık kelime sayısı (varsayılan 1)
+  const [revealedWordCounts, setRevealedWordCounts] = useState<Record<string, number>>({});
+  const peekHoldTimerRef = useRef<number | null>(null);
+  const didLongPressPeekRef = useRef(false);
+
+  // Öz-Sınav puan özeti
+  const [selfTestStats, setSelfTestStats] = useState<{ remembered: number; hard: number }>({
+    remembered: 0,
+    hard: 0,
+  });
+
+  // Oturum sonu 3 butonlu öz-değerlendirme durumu
+  const [selectedSelfEval, setSelectedSelfEval] = useState<SelfEvaluationRating | null>(null);
+  const [scheduledEvalDays, setScheduledEvalDays] = useState<number | null>(null);
+
+  // ============================================================================
+  // Tarayıcı İçi "Sesini Kaydet & Karî ile Kıyasla" Durumu (RAM-only Blob URL)
+  // ============================================================================
+  const canRecordAudio = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof MediaRecorder !== 'undefined' &&
+      Boolean(navigator.mediaDevices?.getUserMedia),
+    [],
+  );
+
+  const [isComparePanelOpen, setIsComparePanelOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSec, setRecordingSec] = useState(0);
+  const [recordedBlobUrl, setRecordedBlobUrl] = useState<string | null>(null);
+  const [recordedDurationSec, setRecordedDurationSec] = useState(0);
+  const [voicePlaybackState, setVoicePlaybackState] = useState<
+    'idle' | 'playing_user' | 'comparing_user' | 'comparing_reciter'
+  >('idle');
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
+  const recordingSecRef = useRef(0);
+  const userAudioRef = useRef<HTMLAudioElement | null>(null);
+  const recordedUrlRef = useRef<string | null>(null);
+
+  const stopRecordingTimer = useCallback(() => {
+    if (recordingTimerRef.current !== null) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  }, []);
+
+  const stopMicTracks = useCallback(() => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((t) => {
+        try {
+          t.stop();
+        } catch {
+          // ignore
+        }
+      });
+      mediaStreamRef.current = null;
+    }
+  }, []);
+
+  const stopUserAudioPlayback = useCallback(() => {
+    if (userAudioRef.current) {
+      try {
+        userAudioRef.current.onended = null;
+        userAudioRef.current.onerror = null;
+        userAudioRef.current.pause();
+        userAudioRef.current.removeAttribute('src');
+        userAudioRef.current.load();
+      } catch {
+        // ignore
+      }
+      userAudioRef.current = null;
+    }
+    setVoicePlaybackState('idle');
+  }, []);
+
+  const clearRecordedVoice = useCallback(() => {
+    stopRecordingTimer();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.onstop = null;
+        mediaRecorderRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+    mediaRecorderRef.current = null;
+    stopMicTracks();
+    stopUserAudioPlayback();
+
+    if (recordedUrlRef.current) {
+      try {
+        URL.revokeObjectURL(recordedUrlRef.current);
+      } catch {
+        // ignore
+      }
+      recordedUrlRef.current = null;
+    }
+    setRecordedBlobUrl(null);
+    setRecordedDurationSec(0);
+    setIsRecording(false);
+    setRecordingSec(0);
+    setRecordingError(null);
+  }, [stopRecordingTimer, stopMicTracks, stopUserAudioPlayback]);
 
   // Veri yükleme (yalnızca bu birimde geçen sureler)
   const uniqueSurahs = useMemo(() => {
@@ -175,15 +362,19 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     [meta],
   );
 
-  // Zen oturum bayrağını ve ses çakışma korumasını yönet
+  // Zen oturum bayrağını, ses çakışma korumasını ve mikrofon/Blob bellek temizliğini yönet
   useEffect(() => {
     setIsMemorizationZenActive(true);
     audioQueueService.pause();
     return () => {
       memorizationAudioController.stop();
+      clearRecordedVoice();
+      if (peekHoldTimerRef.current !== null) {
+        window.clearTimeout(peekHoldTimerRef.current);
+      }
       setIsMemorizationZenActive(false);
     };
-  }, [setIsMemorizationZenActive]);
+  }, [setIsMemorizationZenActive, clearRecordedVoice]);
 
   // Ayet verilerini yükle
   useEffect(() => {
@@ -225,18 +416,22 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
 
   const currentStep = steps[stepIndex] ?? null;
 
-  // Adım değiştikçe otomatik kademeli maske önerisini uygula
+  // Adım değiştiğinde maske önerisini uygula, kelime sayacını ve geçici ses kaydını sıfırla
   useEffect(() => {
+    setRevealedWordCounts({});
+    clearRecordedVoice();
     if (!currentStep) return;
-    if (prefs.autoProgressiveHide) {
+    if (isSelfTest) {
+      setMask('hidden');
+    } else if (prefs.autoProgressiveHide) {
       setMask(currentStep.suggestedMask);
     }
-  }, [stepIndex, currentStep, prefs.autoProgressiveHide]);
+  }, [stepIndex, currentStep, prefs.autoProgressiveHide, isSelfTest, clearRecordedVoice]);
 
   const elapsedSecRef = useRef(elapsedSec);
   elapsedSecRef.current = elapsedSec;
 
-  // Aktif oturum durumunu kalıcı olarak kaydet (sayfa yenilenirse kaldığı yerden devam)
+  // Aktif oturum durumunu kalıcı olarak kaydet
   useEffect(() => {
     if (isFinished || steps.length === 0) return;
     const snap: ActiveSessionSnapshot = {
@@ -251,6 +446,9 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
       completedReps,
       mask,
       updatedAt: Date.now(),
+      sessionMode: sessionConfig.mode,
+      overrideVerseKeys:
+        sessionConfig.mode !== 'standard' ? sessionConfig.sessionVerseKeys : undefined,
     };
     void memorizationStorage.saveActiveSession(snap);
   }, [
@@ -275,11 +473,14 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
 
   const completeSession = useCallback(() => {
     memorizationAudioController.stop();
+    clearRecordedVoice();
     setIsFinished(true);
+    setSelectedSelfEval(null);
+    setScheduledEvalDays(null);
     sfxService.play('correct');
     void memorizationStorage.saveActiveSession(null);
 
-    const addedMinutes = Math.max(1, Math.round(elapsedSec / 60));
+    const addedMinutes = Math.max(1, Math.round(elapsedSecRef.current / 60));
     const updated: MemorizationUnit = {
       ...unit,
       completedSessions: unit.completedSessions + 1,
@@ -287,10 +488,11 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
       lastPracticedAt: Date.now(),
     };
     onUpdateUnit(updated);
-  }, [elapsedSec, unit, onUpdateUnit]);
+  }, [unit, onUpdateUnit, clearRecordedVoice]);
 
   const playStepAtIndex = useCallback(
     (targetIdx: number) => {
+      stopUserAudioPlayback();
       const target = steps[targetIdx];
       if (!target) {
         completeSession();
@@ -301,17 +503,22 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
         return;
       }
 
-      const next = steps[targetIdx + 1] ?? null;
+      const next = isSelfTest ? null : steps[targetIdx + 1] ?? null;
       memorizationAudioController.playStep({
         step: target,
         nextStep: next,
         reciter: activeReciter,
         playbackRate: prefs.playbackRate,
-        listenRepeatPauseEnabled: prefs.listenRepeatPauseEnabled,
+        listenRepeatPauseEnabled: isSelfTest ? false : prefs.listenRepeatPauseEnabled,
         pauseMultiplier: prefs.pauseMultiplier,
         unitTitle: unit.title,
         surahNameLookup,
         onStepComplete: () => {
+          if (isSelfTest) {
+            // Öz-sınavda tek ayet dinletisi bittiğinde kullanıcı değerlendirmesini bekle
+            memorizationAudioController.stop();
+            return;
+          }
           setCompletedReps((r) => r + 1);
           const nextIdx = targetIdx + 1;
           if (nextIdx >= steps.length) {
@@ -342,6 +549,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     },
     [
       steps,
+      isSelfTest,
       activeReciter,
       prefs.playbackRate,
       prefs.listenRepeatPauseEnabled,
@@ -349,6 +557,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
       unit.title,
       surahNameLookup,
       completeSession,
+      stopUserAudioPlayback,
     ],
   );
 
@@ -372,8 +581,8 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
 
   const handleTogglePlay = useCallback(() => {
     if (!currentStep) return;
+    stopUserAudioPlayback();
     if (currentStep.phase === 'checkpoint') {
-      // Kontrol noktasında sonraki adıma geç ve başlat
       const nextIdx = stepIndex + 1;
       if (nextIdx >= steps.length) {
         completeSession();
@@ -395,22 +604,31 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     } else {
       playStepAtIndex(stepIndex);
     }
-  }, [currentStep, stepIndex, steps.length, audioSnap.status, playStepAtIndex, completeSession]);
+  }, [
+    currentStep,
+    stepIndex,
+    steps.length,
+    audioSnap.status,
+    playStepAtIndex,
+    completeSession,
+    stopUserAudioPlayback,
+  ]);
 
   const handleGoPrev = useCallback(() => {
     sfxService.play('click');
     const prevIdx = Math.max(0, stepIndex - 1);
     setStepIndex(prevIdx);
     const wasActive =
-      audioSnap.status === 'playing' ||
-      audioSnap.status === 'loading' ||
-      audioSnap.status === 'waiting_pause';
+      !isSelfTest &&
+      (audioSnap.status === 'playing' ||
+        audioSnap.status === 'loading' ||
+        audioSnap.status === 'waiting_pause');
     if (wasActive && steps[prevIdx]?.phase !== 'checkpoint') {
       playStepAtIndex(prevIdx);
     } else {
       memorizationAudioController.stop();
     }
-  }, [stepIndex, audioSnap.status, steps, playStepAtIndex]);
+  }, [stepIndex, isSelfTest, audioSnap.status, steps, playStepAtIndex]);
 
   const handleGoNext = useCallback(() => {
     sfxService.play('click');
@@ -421,15 +639,16 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     }
     setStepIndex(nextIdx);
     const wasActive =
-      audioSnap.status === 'playing' ||
-      audioSnap.status === 'loading' ||
-      audioSnap.status === 'waiting_pause';
+      !isSelfTest &&
+      (audioSnap.status === 'playing' ||
+        audioSnap.status === 'loading' ||
+        audioSnap.status === 'waiting_pause');
     if (wasActive && steps[nextIdx]?.phase !== 'checkpoint') {
       playStepAtIndex(nextIdx);
     } else {
       memorizationAudioController.stop();
     }
-  }, [stepIndex, steps, audioSnap.status, playStepAtIndex, completeSession]);
+  }, [stepIndex, steps, isSelfTest, audioSnap.status, playStepAtIndex, completeSession]);
 
   const handleReplayStep = useCallback(() => {
     sfxService.play('click');
@@ -442,7 +661,40 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     playStepAtIndex(stepIndex);
   }, [currentStep, steps, stepIndex, playStepAtIndex]);
 
-  // Masaüstü klavye kısayolları (Space, Sol/Sağ ok, H, I, R, M)
+  // Aktif odak ayeti & Vasıl (sonraki ayet) kancası
+  const activeStepKeys = useMemo(() => currentStep?.verseKeys ?? [], [currentStep]);
+  const highlightedVerseKey =
+    audioSnap.activeVerseKey && activeStepKeys.includes(audioSnap.activeVerseKey)
+      ? audioSnap.activeVerseKey
+      : activeStepKeys[0] ?? unit.verseKeys[0] ?? null;
+
+  // Kelime Kelime Açma yardımcısı (+1 kelime açar)
+  const revealNextWordForVerse = useCallback(
+    (verseKey: string) => {
+      const verse = verseMap.get(verseKey);
+      if (!verse) return;
+      const { totalWords } = tokenizeArabicWordsPreserveLayout(verse.ar.t);
+      if (totalWords === 0) return;
+
+      if (mask !== 'word_reveal') {
+        setMask('word_reveal');
+        setRevealedWordCounts((prev) => ({
+          ...prev,
+          [verseKey]: Math.min(totalWords, 1),
+        }));
+        return;
+      }
+
+      setRevealedWordCounts((prev) => {
+        const current = prev[verseKey] ?? 1;
+        const nextVal = Math.min(totalWords, current + 1);
+        return { ...prev, [verseKey]: nextVal };
+      });
+    },
+    [verseMap, mask],
+  );
+
+  // Masaüstü klavye kısayolları (Space, Sol/Sağ ok, H, W, I, R, M)
   const isReciterModalOpenRef = useRef(isReciterSelectorOpen);
   isReciterModalOpenRef.current = isReciterSelectorOpen;
 
@@ -465,6 +717,11 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
       } else if (e.key === 'h' || e.key === 'H') {
         e.preventDefault();
         setMask((m) => NEXT_MASK[m]);
+      } else if (e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
+        if (highlightedVerseKey) {
+          revealNextWordForVerse(highlightedVerseKey);
+        }
       } else if (e.key === 'i' || e.key === 'I') {
         if (!e.repeat) {
           e.preventDefault();
@@ -491,8 +748,205 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [isFinished, handleTogglePlay, handleGoPrev, handleGoNext, handleReplayStep]);
+  }, [
+    isFinished,
+    handleTogglePlay,
+    handleGoPrev,
+    handleGoNext,
+    handleReplayStep,
+    highlightedVerseKey,
+    revealNextWordForVerse,
+  ]);
 
+  // ============================================================================
+  // Mikrofon Kaydı & Karî Kıyaslama Aksiyonları
+  // ============================================================================
+  const stopVoiceRecording = useCallback(() => {
+    stopRecordingTimer();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        stopMicTracks();
+        setIsRecording(false);
+      }
+    } else {
+      stopMicTracks();
+      setIsRecording(false);
+    }
+  }, [stopRecordingTimer, stopMicTracks]);
+
+  const startVoiceRecording = useCallback(async () => {
+    if (!canRecordAudio) {
+      setRecordingError('Tarayıcınız ses kaydını desteklemiyor.');
+      return;
+    }
+
+    sfxService.play('click');
+    setRecordingError(null);
+    memorizationAudioController.pause();
+    audioQueueService.pause();
+    stopUserAudioPlayback();
+
+    if (recordedUrlRef.current) {
+      URL.revokeObjectURL(recordedUrlRef.current);
+      recordedUrlRef.current = null;
+      setRecordedBlobUrl(null);
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const mimeCandidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+      ];
+      const supportedMime = mimeCandidates.find(
+        (m) => typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(m),
+      );
+
+      const recorder = supportedMime
+        ? new MediaRecorder(stream, { mimeType: supportedMime })
+        : new MediaRecorder(stream);
+
+      recordedChunksRef.current = [];
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) {
+          recordedChunksRef.current.push(ev.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        stopRecordingTimer();
+        stopMicTracks();
+        setIsRecording(false);
+        const chunks = recordedChunksRef.current;
+        if (chunks.length > 0) {
+          const blob = new Blob(chunks, {
+            type: recorder.mimeType || 'audio/webm',
+          });
+          const url = URL.createObjectURL(blob);
+          if (recordedUrlRef.current) {
+            URL.revokeObjectURL(recordedUrlRef.current);
+          }
+          recordedUrlRef.current = url;
+          setRecordedBlobUrl(url);
+          setRecordedDurationSec(Math.max(1, recordingSecRef.current));
+        }
+      };
+
+      recorder.onerror = () => {
+        stopRecordingTimer();
+        stopMicTracks();
+        setIsRecording(false);
+        setRecordingError('Kayıt sırasında beklenmedik bir hata oluştu.');
+      };
+
+      recordingSecRef.current = 0;
+      setRecordingSec(0);
+      setIsRecording(true);
+      recorder.start();
+
+      recordingTimerRef.current = window.setInterval(() => {
+        recordingSecRef.current += 1;
+        setRecordingSec(recordingSecRef.current);
+        if (recordingSecRef.current >= MAX_RECORDING_SEC) {
+          stopVoiceRecording();
+        }
+      }, 1000);
+    } catch {
+      stopMicTracks();
+      setIsRecording(false);
+      setRecordingError('Mikrofon izni alınamadı. Tarayıcı izinlerini kontrol edip tekrar deneyin.');
+    }
+  }, [canRecordAudio, stopRecordingTimer, stopMicTracks, stopUserAudioPlayback, stopVoiceRecording]);
+
+  const playUserVoice = useCallback(
+    (followWithReciter: boolean) => {
+      if (!recordedBlobUrl) return;
+      sfxService.play('click');
+
+      if (voicePlaybackState !== 'idle') {
+        stopUserAudioPlayback();
+        memorizationAudioController.stop();
+        return;
+      }
+
+      memorizationAudioController.pause();
+      audioQueueService.pause();
+
+      const audio = new Audio(recordedBlobUrl);
+      userAudioRef.current = audio;
+      setVoicePlaybackState(followWithReciter ? 'comparing_user' : 'playing_user');
+
+      audio.onended = () => {
+        userAudioRef.current = null;
+        if (followWithReciter && highlightedVerseKey) {
+          setVoicePlaybackState('comparing_reciter');
+          const compareStep: SessionStep = {
+            index: stepIndex,
+            phase: 'encode',
+            clusterIndex: currentStep?.clusterIndex ?? 0,
+            totalClusters: currentStep?.totalClusters ?? 1,
+            verseKeys: [highlightedVerseKey],
+            repeatIndex: 1,
+            totalRepeats: 1,
+            suggestedMask: mask,
+            stepLabel: 'Karî Kıyaslama',
+            shortLabel: 'Karî Kıyaslama',
+          };
+          memorizationAudioController.playStep({
+            step: compareStep,
+            nextStep: null,
+            reciter: activeReciter,
+            playbackRate: prefs.playbackRate,
+            listenRepeatPauseEnabled: false,
+            pauseMultiplier: prefs.pauseMultiplier,
+            unitTitle: unit.title,
+            surahNameLookup,
+            onStepComplete: () => {
+              memorizationAudioController.stop();
+              setVoicePlaybackState('idle');
+            },
+          });
+        } else {
+          setVoicePlaybackState('idle');
+        }
+      };
+
+      audio.onerror = () => {
+        userAudioRef.current = null;
+        setVoicePlaybackState('idle');
+        setRecordingError('Ses kaydı oynatılamadı.');
+      };
+
+      audio.play().catch(() => {
+        userAudioRef.current = null;
+        setVoicePlaybackState('idle');
+      });
+    },
+    [
+      recordedBlobUrl,
+      voicePlaybackState,
+      stopUserAudioPlayback,
+      highlightedVerseKey,
+      stepIndex,
+      currentStep,
+      mask,
+      activeReciter,
+      prefs.playbackRate,
+      prefs.pauseMultiplier,
+      unit.title,
+      surahNameLookup,
+    ],
+  );
+
+  // Yıldızlama ve Öz-Sınav yanıtları
   const toggleStarVerse = (verseKey: string) => {
     sfxService.play('click');
     const exists = unit.starredVerseKeys.includes(verseKey);
@@ -502,26 +956,86 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     onUpdateUnit({ ...unit, starredVerseKeys: nextStars });
   };
 
+  const handleSelfTestAnswer = (verseKey: string, remembered: boolean) => {
+    sfxService.play(remembered ? 'correct' : 'click');
+    memorizationAudioController.stop();
+    setCompletedReps((r) => r + 1);
+    setSelfTestStats((prev) => ({
+      remembered: prev.remembered + (remembered ? 1 : 0),
+      hard: prev.hard + (remembered ? 0 : 1),
+    }));
+
+    const isStarred = unit.starredVerseKeys.includes(verseKey);
+    if (!remembered && !isStarred) {
+      onUpdateUnit({ ...unit, starredVerseKeys: [...unit.starredVerseKeys, verseKey] });
+    } else if (remembered && isStarred) {
+      onUpdateUnit({
+        ...unit,
+        starredVerseKeys: unit.starredVerseKeys.filter((k) => k !== verseKey),
+      });
+    }
+
+    const nextIdx = stepIndex + 1;
+    if (nextIdx >= steps.length) {
+      completeSession();
+    } else {
+      setStepIndex(nextIdx);
+    }
+  };
+
+  const handleApplyFinalSelfEval = (rating: SelfEvaluationRating) => {
+    sfxService.play(rating === 'hard' ? 'click' : 'correct');
+    const { updated, scheduledDays } = applySelfEvaluation(unit, rating);
+    onUpdateUnit(updated);
+    setSelectedSelfEval(rating);
+    setScheduledEvalDays(scheduledDays);
+  };
+
+  // Pointer etkileşimi: word_reveal modunda kısa dokunuş +1 kelime açar, basılı tutma (320ms) geçici tüm metni gösterir
+  const handleCardPointerDown = () => {
+    if (mask === 'open') return;
+    didLongPressPeekRef.current = false;
+    if (mask === 'word_reveal') {
+      if (peekHoldTimerRef.current !== null) {
+        window.clearTimeout(peekHoldTimerRef.current);
+      }
+      peekHoldTimerRef.current = window.setTimeout(() => {
+        didLongPressPeekRef.current = true;
+        setIsPeeking(true);
+      }, 320);
+    } else {
+      setIsPeeking(true);
+    }
+  };
+
+  const handleCardPointerEnd = (verseKeyForWordReveal?: string, isCancel = false) => {
+    if (peekHoldTimerRef.current !== null) {
+      window.clearTimeout(peekHoldTimerRef.current);
+      peekHoldTimerRef.current = null;
+    }
+    const wasLongPress = didLongPressPeekRef.current;
+    setIsPeeking(false);
+    didLongPressPeekRef.current = false;
+
+    if (!isCancel && !wasLongPress && mask === 'word_reveal' && verseKeyForWordReveal) {
+      sfxService.play('click');
+      revealNextWordForVerse(verseKeyForWordReveal);
+    }
+  };
+
   const effectiveMask: VisibilityMask = isPeeking ? 'open' : mask;
 
-  // Aktif odak ayeti & Vasıl (sonraki ayet) kancası
-  const activeStepKeys = currentStep?.verseKeys ?? [];
-  const highlightedVerseKey =
-    audioSnap.activeVerseKey && activeStepKeys.includes(audioSnap.activeVerseKey)
-      ? audioSnap.activeVerseKey
-      : activeStepKeys[0] ?? unit.verseKeys[0] ?? null;
-
   const nextVaslVerse = useMemo(() => {
-    if (!highlightedVerseKey) return null;
+    if (isSelfTest || !highlightedVerseKey) return null;
     const idx = unit.verseKeys.indexOf(highlightedVerseKey);
     if (idx < 0 || idx + 1 >= unit.verseKeys.length) return null;
     const nextKey = unit.verseKeys[idx + 1];
     return verseMap.get(nextKey) ?? null;
-  }, [highlightedVerseKey, unit.verseKeys, verseMap]);
+  }, [isSelfTest, highlightedVerseKey, unit.verseKeys, verseMap]);
 
   const vaslHintText = useMemo(() => getVaslOpeningHint(nextVaslVerse), [nextVaslVerse]);
 
-  const renderMaskedArabic = (verse: CombinedVerse) => {
+  const renderMaskedArabic = (verse: CombinedVerse, verseKey: string) => {
     if (effectiveMask === 'open') {
       return <span>{verse.ar.t}</span>;
     }
@@ -538,6 +1052,33 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
               {restText}
             </span>
           )}
+        </>
+      );
+    }
+    if (effectiveMask === 'word_reveal') {
+      const { tokens } = tokenizeArabicWordsPreserveLayout(verse.ar.t);
+      const revealedCount = revealedWordCounts[verseKey] ?? 1;
+      return (
+        <>
+          {tokens.map((tok, idx) => {
+            if (!tok.isWord) {
+              return <React.Fragment key={idx}>{tok.text}</React.Fragment>;
+            }
+            const isVisible = tok.wordIndex < revealedCount;
+            return (
+              <span
+                key={idx}
+                className={
+                  isVisible
+                    ? 'transition-[filter,opacity] duration-150'
+                    : 'blur-md select-none opacity-40 transition-[filter,opacity] duration-150'
+                }
+                aria-hidden={isVisible ? undefined : 'true'}
+              >
+                {tok.text}
+              </span>
+            );
+          })}
         </>
       );
     }
@@ -559,17 +1100,28 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     audioSnap.status === 'loading' ||
     audioSnap.status === 'waiting_pause';
 
+  // Önizleme için bir sonraki 'good' / 'easy' gün hesapları
+  const previewGoodDays =
+    REVIEW_INTERVAL_DAYS[
+      Math.max(0, Math.min(REVIEW_INTERVAL_DAYS.length - 1, (unit.reviewStep ?? 0)))
+    ];
+  const previewEasyDays =
+    REVIEW_INTERVAL_DAYS[
+      Math.max(0, Math.min(REVIEW_INTERVAL_DAYS.length - 1, (unit.reviewStep ?? 0) + 1))
+    ];
+
   // ============================================================================
-  // OTURUM SONU SAKİN ÖZET EKRANI
+  // OTURUM SONU SAKİN ÖZET & SABAK–MENZİL ÖZ-DEĞERLENDİRME EKRANI
   // ============================================================================
   if (isFinished) {
+    const currentStageMeta = RETENTION_STAGE_META[unit.stage];
     return (
       <div
         className="fixed inset-0 z-[75] flex items-center justify-center p-4 overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-canvas)' }}
       >
         <div
-          className="w-full max-w-lg rounded-3xl border p-6 sm:p-8 shadow-xl space-y-6 my-auto"
+          className="w-full max-w-lg rounded-3xl border p-5 sm:p-7 shadow-xl space-y-5 my-auto"
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderColor: 'var(--border-subtle)',
@@ -593,7 +1145,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-3 gap-2">
             <div
               className="p-3 rounded-2xl border text-center"
               style={{
@@ -601,7 +1153,9 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                 borderColor: 'var(--border-subtle)',
               }}
             >
-              <p className="text-lg font-extrabold tabular-nums">{unit.verseKeys.length}</p>
+              <p className="text-lg font-extrabold tabular-nums">
+                {sessionConfig.sessionVerseKeys.length}
+              </p>
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                 Çalışılan Ayet
               </p>
@@ -614,10 +1168,12 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
               }}
             >
               <p className="text-lg font-extrabold tabular-nums">
-                {Math.max(1, completedReps)}
+                {isSelfTest
+                  ? `${selfTestStats.remembered}/${sessionConfig.sessionVerseKeys.length}`
+                  : Math.max(1, completedReps)}
               </p>
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                Tamamlanan Adım
+                {isSelfTest ? 'Hatırlanan' : 'Tamamlanan Adım'}
               </p>
             </div>
             <div
@@ -660,42 +1216,94 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
             </div>
           )}
 
-          {/* Pekiştirme Aşaması Güncelleme */}
-          <div className="space-y-2">
-            <p className="text-xs font-extrabold text-center" style={{ color: 'var(--text-secondary)' }}>
-              Bu birimin mevcut durumunu nasıl hissediyorsunuz?
-            </p>
+          {/* Sabak · Sabkî · Menzil 3 Butonlu Öz-Değerlendirme */}
+          <div className="space-y-2.5">
+            <div className="text-center space-y-0.5">
+              <p className="text-xs sm:text-sm font-extrabold">
+                Bu bölümü nasıl hatırladınız?
+              </p>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                Seçiminize göre bir sonraki pekiştirme tekrar gününüz otomatik planlanır
+              </p>
+            </div>
+
             <div className="grid grid-cols-3 gap-2">
-              {(['raw', 'fresh', 'solid'] as RetentionStage[]).map((stageId) => {
-                const metaInfo = RETENTION_STAGE_META[stageId];
-                const active = unit.stage === stageId;
+              {(
+                [
+                  {
+                    id: 'hard' as SelfEvaluationRating,
+                    label: 'Zorlandım',
+                    sub: 'Yarın tekrar (+1 gün)',
+                    accentBg: 'var(--brand-accent-soft)',
+                    accentBorder: 'rgba(217, 119, 6, 0.45)',
+                    accentColor: 'var(--brand-accent-text)',
+                  },
+                  {
+                    id: 'good' as SelfEvaluationRating,
+                    label: 'İyiydi',
+                    sub: `${previewGoodDays} gün sonra`,
+                    accentBg: 'rgba(14, 165, 233, 0.14)',
+                    accentBorder: 'rgba(14, 165, 233, 0.45)',
+                    accentColor: '#0369A1',
+                  },
+                  {
+                    id: 'easy' as SelfEvaluationRating,
+                    label: 'Su Gibi',
+                    sub: `${previewEasyDays} gün sonra`,
+                    accentBg: 'var(--brand-primary-soft)',
+                    accentBorder: 'var(--brand-primary)',
+                    accentColor: 'var(--brand-primary-text)',
+                  },
+                ] as const
+              ).map((opt) => {
+                const active = selectedSelfEval === opt.id;
                 return (
                   <button
-                    key={stageId}
+                    key={opt.id}
                     type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      onUpdateUnit({ ...unit, stage: stageId });
-                    }}
-                    className="p-2.5 rounded-2xl border text-center cursor-pointer transition-all"
+                    onClick={() => handleApplyFinalSelfEval(opt.id)}
+                    className="p-2.5 sm:p-3 rounded-2xl border text-center cursor-pointer transition-all"
                     style={{
-                      backgroundColor: active ? metaInfo.badgeBg : 'var(--bg-surface-soft)',
-                      borderColor: active ? metaInfo.badgeBorder : 'var(--border-subtle)',
-                      color: active ? metaInfo.badgeColor : 'var(--text-primary)',
+                      backgroundColor: active ? opt.accentBg : 'var(--bg-surface-soft)',
+                      borderColor: active ? opt.accentBorder : 'var(--border-subtle)',
+                      color: active ? opt.accentColor : 'var(--text-primary)',
                     }}
                   >
-                    <p className="text-xs sm:text-sm font-extrabold">{metaInfo.shortLabel}</p>
-                    <p className="text-[10px] opacity-80 mt-0.5 line-clamp-1">
-                      {stageId === 'raw'
-                        ? 'Çalışılıyor'
-                        : stageId === 'fresh'
-                          ? 'Pekiştirme'
-                          : 'Muhafaza'}
-                    </p>
+                    <p className="text-xs sm:text-sm font-extrabold">{opt.label}</p>
+                    <p className="text-[10px] opacity-80 mt-0.5 leading-tight">{opt.sub}</p>
                   </button>
                 );
               })}
             </div>
+
+            {selectedSelfEval && scheduledEvalDays !== null && (
+              <div
+                className="px-3.5 py-2.5 rounded-xl border text-xs font-bold flex items-center justify-between gap-2"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  borderColor: 'rgba(15, 118, 110, 0.3)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span className="truncate">
+                    {scheduledEvalDays === 1
+                      ? 'Yarın için pekiştirme tekrarı planlandı'
+                      : `${scheduledEvalDays} gün sonrası için tekrar planlandı`}
+                  </span>
+                </span>
+                <span
+                  className="px-2 py-0.5 rounded-md text-[10px] font-extrabold shrink-0"
+                  style={{
+                    backgroundColor: currentStageMeta.badgeBg,
+                    color: currentStageMeta.badgeColor,
+                  }}
+                >
+                  {currentStageMeta.shortLabel}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
@@ -706,6 +1314,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                 setStepIndex(0);
                 setCompletedReps(0);
                 setElapsedSec(0);
+                setSelfTestStats({ remembered: 0, hard: 0 });
                 setIsFinished(false);
               }}
               className="flex-1 min-h-[44px] px-4 rounded-2xl border text-sm font-bold flex items-center justify-center gap-2 cursor-pointer"
@@ -745,21 +1354,22 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     >
       {/* Üst Sakin Bar */}
       <header
-        className="h-14 px-3 sm:px-5 border-b flex items-center justify-between gap-2 shrink-0"
+        className="h-14 px-2.5 sm:px-5 border-b flex items-center justify-between gap-1.5 sm:gap-2 shrink-0"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
         }}
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <button
             type="button"
             onClick={() => {
               sfxService.play('click');
               memorizationAudioController.stop();
+              clearRecordedVoice();
               onExit();
             }}
-            className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+            className="min-h-[36px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1 cursor-pointer shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
@@ -796,46 +1406,48 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Görünüm Değiştirici: Odak Kartı <-> Mushaf */}
-          <div
-            className="p-0.5 rounded-xl border inline-flex items-center"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              borderColor: 'var(--border-subtle)',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                onChangePrefs({ viewMode: 'focus' });
-              }}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors"
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Görünüm Değiştirici: Odak Kartı <-> Mushaf (Öz-sınavda sade odak) */}
+          {!isSelfTest && (
+            <div
+              className="p-0.5 rounded-xl border inline-flex items-center"
               style={{
-                backgroundColor:
-                  prefs.viewMode === 'focus' ? 'var(--brand-primary)' : 'transparent',
-                color: prefs.viewMode === 'focus' ? '#FFFFFF' : 'var(--text-secondary)',
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
               }}
             >
-              Odak
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                onChangePrefs({ viewMode: 'mushaf' });
-              }}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors"
-              style={{
-                backgroundColor:
-                  prefs.viewMode === 'mushaf' ? 'var(--brand-primary)' : 'transparent',
-                color: prefs.viewMode === 'mushaf' ? '#FFFFFF' : 'var(--text-secondary)',
-              }}
-            >
-              Mushaf
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  onChangePrefs({ viewMode: 'focus' });
+                }}
+                className="px-2 sm:px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors"
+                style={{
+                  backgroundColor:
+                    prefs.viewMode === 'focus' ? 'var(--brand-primary)' : 'transparent',
+                  color: prefs.viewMode === 'focus' ? '#FFFFFF' : 'var(--text-secondary)',
+                }}
+              >
+                Odak
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  onChangePrefs({ viewMode: 'mushaf' });
+                }}
+                className="px-2 sm:px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors"
+                style={{
+                  backgroundColor:
+                    prefs.viewMode === 'mushaf' ? 'var(--brand-primary)' : 'transparent',
+                  color: prefs.viewMode === 'mushaf' ? '#FFFFFF' : 'var(--text-secondary)',
+                }}
+              >
+                Mushaf
+              </button>
+            </div>
+          )}
 
           {/* Kurrâ Seçici Hapı */}
           <button
@@ -844,7 +1456,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
               sfxService.play('click');
               openReciterSelector('memorize');
             }}
-            className="hidden sm:inline-flex min-h-[36px] max-w-[165px] px-2.5 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer"
+            className="hidden sm:inline-flex min-h-[36px] max-w-[150px] px-2.5 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
@@ -852,8 +1464,27 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
             }}
             title={`Aktif Kurrâ: ${activeReciter.label}`}
           >
-            <Headphones className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+            <Headphones
+              className="w-3.5 h-3.5 shrink-0"
+              style={{ color: 'var(--brand-primary-text)' }}
+            />
             <span className="truncate">{activeReciter.shortLabel}</span>
+          </button>
+
+          {/* Oturumu Bitir & Değerlendir */}
+          <button
+            type="button"
+            onClick={() => completeSession()}
+            title="Oturumu bitir ve tekrar takvimini güncelle"
+            className="min-h-[36px] px-2 sm:px-2.5 rounded-xl border text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+            style={{
+              backgroundColor: 'var(--brand-primary-soft)',
+              borderColor: 'rgba(15, 118, 110, 0.3)',
+              color: 'var(--brand-primary-text)',
+            }}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden xs:inline sm:inline">Bitir</span>
           </button>
 
           {/* Hızlı Ayarlar */}
@@ -940,81 +1571,82 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
               ))}
             </div>
 
-            {/* Otomatik Kademeli Gizle */}
-            <label className="inline-flex items-center gap-1.5 font-bold cursor-pointer">
-              <input
-                type="checkbox"
-                checked={prefs.autoProgressiveHide}
-                onChange={(e) => onChangePrefs({ autoProgressiveHide: e.target.checked })}
-                className="accent-[var(--brand-primary)]"
-              />
-              <span>Otomatik Kademeli Gizle</span>
-            </label>
-
-            {/* Vasıl Kancası */}
-            <label className="inline-flex items-center gap-1.5 font-bold cursor-pointer">
-              <input
-                type="checkbox"
-                checked={prefs.showVaslHook}
-                onChange={(e) => onChangePrefs({ showVaslHook: e.target.checked })}
-                className="accent-[var(--brand-primary)]"
-              />
-              <span>Vasıl Geçiş İpucu</span>
-            </label>
-
-            {/* Dinle & Tekrar Et Boşluğu */}
-            {!isTeacherReciter ? (
-              <div className="flex items-center gap-1.5">
+            {!isSelfTest && (
+              <>
                 <label className="inline-flex items-center gap-1.5 font-bold cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={prefs.listenRepeatPauseEnabled}
-                    onChange={(e) =>
-                      onChangePrefs({ listenRepeatPauseEnabled: e.target.checked })
-                    }
+                    checked={prefs.autoProgressiveHide}
+                    onChange={(e) => onChangePrefs({ autoProgressiveHide: e.target.checked })}
                     className="accent-[var(--brand-primary)]"
                   />
-                  <span>Tekrar Boşluğu</span>
+                  <span>Otomatik Kademeli Gizle</span>
                 </label>
-                {prefs.listenRepeatPauseEnabled &&
-                  ([0.8, 1, 1.2] as PauseMultiplier[]).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => onChangePrefs({ pauseMultiplier: m })}
-                      className="px-2 py-0.5 rounded-lg border font-bold tabular-nums cursor-pointer"
-                      style={{
-                        backgroundColor:
-                          prefs.pauseMultiplier === m
-                            ? 'var(--brand-accent)'
-                            : 'var(--bg-surface)',
-                        borderColor:
-                          prefs.pauseMultiplier === m
-                            ? 'var(--brand-accent)'
-                            : 'var(--border-subtle)',
-                        color: prefs.pauseMultiplier === m ? '#FFFFFF' : 'var(--text-primary)',
-                      }}
-                    >
-                      {m.toFixed(1)}x
-                    </button>
-                  ))}
-              </div>
-            ) : (
-              <span
-                className="px-2.5 py-1 rounded-lg font-semibold"
-                style={{
-                  backgroundColor: 'var(--brand-primary-soft)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                Muallim kaydında doğal tekrar boşluğu aktif
-              </span>
+
+                <label className="inline-flex items-center gap-1.5 font-bold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={prefs.showVaslHook}
+                    onChange={(e) => onChangePrefs({ showVaslHook: e.target.checked })}
+                    className="accent-[var(--brand-primary)]"
+                  />
+                  <span>Vasıl Geçiş İpucu</span>
+                </label>
+
+                {!isTeacherReciter ? (
+                  <div className="flex items-center gap-1.5">
+                    <label className="inline-flex items-center gap-1.5 font-bold cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={prefs.listenRepeatPauseEnabled}
+                        onChange={(e) =>
+                          onChangePrefs({ listenRepeatPauseEnabled: e.target.checked })
+                        }
+                        className="accent-[var(--brand-primary)]"
+                      />
+                      <span>Tekrar Boşluğu</span>
+                    </label>
+                    {prefs.listenRepeatPauseEnabled &&
+                      ([0.8, 1, 1.2] as PauseMultiplier[]).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => onChangePrefs({ pauseMultiplier: m })}
+                          className="px-2 py-0.5 rounded-lg border font-bold tabular-nums cursor-pointer"
+                          style={{
+                            backgroundColor:
+                              prefs.pauseMultiplier === m
+                                ? 'var(--brand-accent)'
+                                : 'var(--bg-surface)',
+                            borderColor:
+                              prefs.pauseMultiplier === m
+                                ? 'var(--brand-accent)'
+                                : 'var(--border-subtle)',
+                            color: prefs.pauseMultiplier === m ? '#FFFFFF' : 'var(--text-primary)',
+                          }}
+                        >
+                          {m.toFixed(1)}x
+                        </button>
+                      ))}
+                  </div>
+                ) : (
+                  <span
+                    className="px-2.5 py-1 rounded-lg font-semibold"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    Muallim kaydında doğal tekrar boşluğu aktif
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>
       )}
 
-      {/* Ana 2 Sütunlu Gövde (Masaüstünde sol açılır/kapanır adım listesi + ferah merkez sahne) */}
+      {/* Ana 2 Sütunlu Gövde */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Masaüstü Sol Adım / Küme Rayı */}
         {showDesktopRail && (
@@ -1029,10 +1661,16 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
               className="px-4 py-3 border-b flex items-center justify-between"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
-              <span className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                Oturum Akışı
+              <span
+                className="text-xs font-extrabold uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {isSelfTest ? 'Öz-Sınav Ayetleri' : 'Oturum Akışı'}
               </span>
-              <span className="text-xs font-bold tabular-nums" style={{ color: 'var(--brand-primary-text)' }}>
+              <span
+                className="text-xs font-bold tabular-nums"
+                style={{ color: 'var(--brand-primary-text)' }}
+              >
                 {formatClock(elapsedSec)}
               </span>
             </div>
@@ -1047,7 +1685,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                     onClick={() => {
                       sfxService.play('click');
                       setStepIndex(s.index);
-                      if (s.phase !== 'checkpoint' && isPlayingOrLoading) {
+                      if (!isSelfTest && s.phase !== 'checkpoint' && isPlayingOrLoading) {
                         playStepAtIndex(s.index);
                       } else {
                         memorizationAudioController.stop();
@@ -1055,9 +1693,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                     }}
                     className="w-full px-3 py-2 rounded-xl text-left text-xs transition-all cursor-pointer flex items-center gap-2 border"
                     style={{
-                      backgroundColor: isCurrent
-                        ? 'var(--brand-primary-soft)'
-                        : 'transparent',
+                      backgroundColor: isCurrent ? 'var(--brand-primary-soft)' : 'transparent',
                       borderColor: isCurrent ? 'var(--brand-primary)' : 'transparent',
                       color: isCurrent
                         ? 'var(--brand-primary-text)'
@@ -1072,9 +1708,11 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                     <span className={`truncate ${isCurrent ? 'font-extrabold' : 'font-semibold'}`}>
                       {s.stepLabel}
                     </span>
-                    <span className="ml-auto text-[10px] tabular-nums opacity-75 shrink-0">
-                      {s.repeatIndex}/{s.totalRepeats}
-                    </span>
+                    {!isSelfTest && (
+                      <span className="ml-auto text-[10px] tabular-nums opacity-75 shrink-0">
+                        {s.repeatIndex}/{s.totalRepeats}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -1087,7 +1725,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
               }}
             >
               Kısayollar: <strong>Boşluk</strong> Oynat · <strong>H</strong> Maske ·{' '}
-              <strong>I</strong> Basılı Tut Göster · <strong>R</strong> Tekrar ·{' '}
+              <strong>W</strong> +1 Kelime · <strong>I</strong> Göster · <strong>R</strong> Tekrar ·{' '}
               <strong>M</strong> Meal
             </div>
           </aside>
@@ -1096,10 +1734,51 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
         {/* Merkez Çalışma Sahnesi */}
         <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6">
           <div className="max-w-3xl mx-auto space-y-4 pb-6">
-            {/* Aktif Adım Bilgi & Maske Seçici Şeridi */}
+            {/* Özel Mod Rozeti (Zorlanılan Ayetler veya Öz-Sınav) */}
+            {sessionConfig.mode !== 'standard' && (
+              <div
+                className="px-3.5 py-2 rounded-2xl border text-xs font-extrabold flex items-center justify-between gap-2"
+                style={{
+                  backgroundColor:
+                    sessionConfig.mode === 'starred_only'
+                      ? 'var(--brand-accent-soft)'
+                      : 'var(--brand-primary-soft)',
+                  borderColor:
+                    sessionConfig.mode === 'starred_only'
+                      ? 'rgba(217, 119, 6, 0.35)'
+                      : 'rgba(15, 118, 110, 0.3)',
+                  color:
+                    sessionConfig.mode === 'starred_only'
+                      ? 'var(--brand-accent-text)'
+                      : 'var(--brand-primary-text)',
+                }}
+              >
+                <span className="flex items-center gap-1.5 min-w-0">
+                  {sessionConfig.mode === 'starred_only' ? (
+                    <Star className="w-3.5 h-3.5 fill-current shrink-0" />
+                  ) : (
+                    <Target className="w-3.5 h-3.5 shrink-0" />
+                  )}
+                  <span className="truncate">
+                    {sessionConfig.mode === 'starred_only'
+                      ? `Zorlanılan Ayetler Odak Turu (${sessionConfig.sessionVerseKeys.length} ayet)`
+                      : sessionConfig.mode === 'self_test_shuffled'
+                        ? 'Ezber Kontrolü · Karışık Öz-Sınav'
+                        : 'Ezber Kontrolü · Sıralı Öz-Sınav'}
+                  </span>
+                </span>
+                {isSelfTest && (
+                  <span className="tabular-nums shrink-0">
+                    ✓ {selfTestStats.remembered} · ★ {selfTestStats.hard}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Aktif Adım Bilgi & 4 Kademeli Maske Seçici Şeridi */}
             {currentStep && (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span
                     className="px-3 py-1 rounded-xl text-xs font-extrabold"
                     style={{
@@ -1129,15 +1808,15 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                   )}
                 </div>
 
-                {/* 3 Kademeli Maske Hapları */}
+                {/* 4 Kademeli Maske Hapları (360px taşmasız flex-wrap) */}
                 <div
-                  className="p-0.5 rounded-xl border inline-flex items-center gap-0.5"
+                  className="p-0.5 rounded-xl border flex flex-wrap items-center gap-0.5 max-w-full"
                   style={{
                     backgroundColor: 'var(--bg-surface)',
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  {(['open', 'first_word', 'hidden'] as VisibilityMask[]).map((mId) => {
+                  {MASK_ORDER.map((mId) => {
                     const active = mask === mId;
                     return (
                       <button
@@ -1146,8 +1825,11 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                         onClick={() => {
                           sfxService.play('click');
                           setMask(mId);
+                          if (mId === 'word_reveal') {
+                            setRevealedWordCounts({});
+                          }
                         }}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors"
+                        className="px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors whitespace-nowrap"
                         style={{
                           backgroundColor: active ? 'var(--brand-primary)' : 'transparent',
                           color: active ? '#FFFFFF' : 'var(--text-secondary)',
@@ -1176,7 +1858,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                     style={{ color: 'var(--brand-accent-text)' }}
                   >
                     <Timer className="w-4 h-4 animate-pulse" />
-                    <span>Şimdi Ezberden Tekrarla...</span>
+                    <span>Şimdi ezberden tekrar sırası sizde</span>
                   </span>
                   <div className="flex items-center gap-2">
                     <span
@@ -1257,7 +1939,10 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                 </div>
                 <div className="space-y-1.5">
                   <h2 className="text-lg sm:text-xl font-extrabold">{currentStep.stepLabel}</h2>
-                  <p className="text-xs sm:text-sm max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
+                  <p
+                    className="text-xs sm:text-sm max-w-md mx-auto"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
                     Bu kümedeki ayetleri zihninizden baştan sona bir kez gözden geçirin. Hazır hissediyorsanız bir sonraki adıma geçebilir veya bu kümeyi tekrarlayabilirsiniz.
                   </p>
                 </div>
@@ -1316,8 +2001,8 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                   Ayetler hazırlanıyor...
                 </p>
               </div>
-            ) : prefs.viewMode === 'focus' ? (
-              /* ODAK KARTI GÖRÜNÜMÜ */
+            ) : isSelfTest || prefs.viewMode === 'focus' ? (
+              /* ODAK KARTI & ÖZ-SINAV GÖRÜNÜMÜ */
               <div className="space-y-3">
                 {activeStepKeys.map((key) => {
                   const verse = verseMap.get(key);
@@ -1325,17 +2010,19 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                   const isActiveAudio = audioSnap.activeVerseKey === key;
                   const isStarred = unit.starredVerseKeys.includes(key);
                   const mealVerse = showMealHint ? getPrimaryVerse(verse) : null;
+                  const { totalWords } = tokenizeArabicWordsPreserveLayout(verse.ar.t);
+                  const revealedCount = revealedWordCounts[key] ?? 1;
+                  const canRevealMore =
+                    mask === 'hidden' || (mask === 'word_reveal' && revealedCount < totalWords);
 
                   return (
                     <div
                       key={key}
-                      onPointerDown={() => {
-                        if (mask !== 'open') setIsPeeking(true);
-                      }}
-                      onPointerUp={() => setIsPeeking(false)}
-                      onPointerLeave={() => setIsPeeking(false)}
-                      onPointerCancel={() => setIsPeeking(false)}
-                      className="rounded-3xl border p-5 sm:p-7 transition-all select-none touch-manipulation"
+                      onPointerDown={handleCardPointerDown}
+                      onPointerUp={() => handleCardPointerEnd(key, false)}
+                      onPointerLeave={() => handleCardPointerEnd(undefined, true)}
+                      onPointerCancel={() => handleCardPointerEnd(undefined, true)}
+                      className="rounded-3xl border p-4 sm:p-7 transition-all select-none touch-manipulation"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: isActiveAudio
@@ -1346,7 +2033,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                           : 'var(--shadow-card)',
                       }}
                     >
-                      <div className="flex items-center justify-between gap-2 mb-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                         <span
                           className="px-2.5 py-1 rounded-xl text-xs font-extrabold tabular-nums"
                           style={{
@@ -1359,8 +2046,30 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                           {surahNameLookup(verse.surah)} · {verse.ayah}. Ayet
                         </span>
 
-                        <div className="flex items-center gap-1.5">
-                          {mask !== 'open' && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {canRevealMore && (
+                            <button
+                              type="button"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onPointerUp={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                sfxService.play('click');
+                                revealNextWordForVerse(key);
+                              }}
+                              className="min-h-[30px] px-2.5 rounded-xl border text-[11px] font-extrabold cursor-pointer"
+                              style={{
+                                backgroundColor: 'var(--brand-primary-soft)',
+                                borderColor: 'rgba(15, 118, 110, 0.3)',
+                                color: 'var(--brand-primary-text)',
+                              }}
+                            >
+                              +1 Kelime Aç
+                              {mask === 'word_reveal' ? ` (${revealedCount}/${totalWords})` : ''}
+                            </button>
+                          )}
+
+                          {mask !== 'open' && !canRevealMore && (
                             <span
                               className="text-[11px] font-semibold px-2 py-0.5 rounded-lg"
                               style={{
@@ -1368,18 +2077,22 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                                 color: 'var(--text-muted)',
                               }}
                             >
-                              {isPeeking ? 'Gösteriliyor' : 'Görmek için basılı tut'}
+                              {isPeeking ? 'Gösteriliyor' : 'Basılı tut: Tamamını gör'}
                             </span>
                           )}
+
                           <button
                             type="button"
                             onPointerDown={(e) => e.stopPropagation()}
+                            onPointerUp={(e) => e.stopPropagation()}
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleStarVerse(key);
                             }}
                             title={
-                              isStarred ? 'Zorlandığım ayetlerden çıkar' : 'Zorlandığım ayet olarak işaretle'
+                              isStarred
+                                ? 'Zorlandığım ayetlerden çıkar'
+                                : 'Zorlandığım ayet olarak işaretle'
                             }
                             aria-label="Zorlandığım ayet işaretle"
                             className="w-8 h-8 rounded-xl border flex items-center justify-center cursor-pointer"
@@ -1397,6 +2110,15 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                           </button>
                         </div>
                       </div>
+
+                      {mask === 'word_reveal' && (
+                        <p
+                          className="text-[11px] mb-2 font-medium"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          Sıradaki kelimeyi açmak için ayete dokunun · Tamamını görmek için basılı tutun
+                        </p>
+                      )}
 
                       {audioSnap.isBesmele && isActiveAudio && (
                         <p
@@ -1421,7 +2143,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                           color: 'var(--text-primary)',
                         }}
                       >
-                        {renderMaskedArabic(verse)}
+                        {renderMaskedArabic(verse, key)}
                         <span
                           className="inline-flex items-center justify-center mx-2 px-2 py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border"
                           style={{
@@ -1437,6 +2159,74 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                           ﴿{toArabicNumeral(verse.ayah)}﴾
                         </span>
                       </p>
+
+                      {/* Öz-Sınav Alt Değerlendirme Butonları */}
+                      {isSelfTest && (
+                        <div
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onPointerUp={(e) => e.stopPropagation()}
+                          className="mt-5 pt-4 border-t space-y-2.5"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              sfxService.play('click');
+                              setMask((m) => (m === 'open' ? 'hidden' : 'open'));
+                            }}
+                            className="w-full min-h-[42px] px-4 rounded-xl border text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface-soft)',
+                              borderColor: 'var(--border-strong)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {mask === 'open' ? (
+                              <>
+                                <EyeOff className="w-4 h-4" />
+                                <span>Metni Tekrar Gizle</span>
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="w-4 h-4" />
+                                <span>Metni Aç &amp; Kontrol Et</span>
+                              </>
+                            )}
+                          </button>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelfTestAnswer(key, false);
+                              }}
+                              className="min-h-[44px] px-3 rounded-xl border text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
+                              style={{
+                                backgroundColor: 'var(--brand-accent-soft)',
+                                borderColor: 'rgba(217, 119, 6, 0.4)',
+                                color: 'var(--brand-accent-text)',
+                              }}
+                            >
+                              <Star className="w-4 h-4 fill-current shrink-0" />
+                              <span>Zorlandım (Yıldızla)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelfTestAnswer(key, true);
+                              }}
+                              className="min-h-[44px] px-3 rounded-xl text-xs sm:text-sm font-extrabold text-white flex items-center justify-center gap-1.5 cursor-pointer"
+                              style={{ backgroundColor: 'var(--brand-primary)' }}
+                            >
+                              <Check className="w-4 h-4 shrink-0" />
+                              <span>Hatırladım</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {showMealHint && mealVerse?.t && (
                         <div
@@ -1464,27 +2254,54 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
             ) : (
               /* MUSHAF GÖRÜNÜMÜ (SATIR MİZANPAJINI BOZMAYAN MASKELEME) */
               <div
-                onPointerDown={() => {
-                  if (mask !== 'open') setIsPeeking(true);
-                }}
-                onPointerUp={() => setIsPeeking(false)}
-                onPointerLeave={() => setIsPeeking(false)}
-                onPointerCancel={() => setIsPeeking(false)}
+                onPointerDown={handleCardPointerDown}
+                onPointerUp={() => handleCardPointerEnd(highlightedVerseKey ?? undefined, false)}
+                onPointerLeave={() => handleCardPointerEnd(undefined, true)}
+                onPointerCancel={() => handleCardPointerEnd(undefined, true)}
                 className="rounded-3xl border-2 p-5 sm:p-8 shadow-sm select-none touch-manipulation space-y-4"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-strong)',
                 }}
               >
-                <div className="flex items-center justify-between text-xs pb-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div
+                  className="flex flex-wrap items-center justify-between gap-2 text-xs pb-2 border-b"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
                   <span className="font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
                     Mushaf Görünümü · {unit.title}
                   </span>
-                  {mask !== 'open' && (
-                    <span style={{ color: 'var(--text-muted)' }}>
-                      {isPeeking ? 'Açık gösteriliyor' : 'Görmek için basılı tutun'}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {(mask === 'word_reveal' || mask === 'hidden') && highlightedVerseKey && (
+                      <button
+                        type="button"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onPointerUp={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          sfxService.play('click');
+                          revealNextWordForVerse(highlightedVerseKey);
+                        }}
+                        className="px-2.5 py-1 rounded-lg border text-[11px] font-extrabold cursor-pointer"
+                        style={{
+                          backgroundColor: 'var(--brand-primary-soft)',
+                          borderColor: 'rgba(15, 118, 110, 0.3)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        +1 Kelime Aç
+                      </button>
+                    )}
+                    {mask !== 'open' && (
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        {isPeeking
+                          ? 'Açık gösteriliyor'
+                          : mask === 'word_reveal'
+                            ? 'Dokun: +1 kelime · Basılı tut: Gör'
+                            : 'Görmek için basılı tutun'}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div
@@ -1514,7 +2331,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                           opacity: inStep ? 1 : 0.42,
                         }}
                       >
-                        {inStep ? renderMaskedArabic(verse) : verse.ar.t}
+                        {inStep ? renderMaskedArabic(verse, key) : verse.ar.t}
                         <span
                           className="inline-flex items-center justify-center mx-1.5 px-2 py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border"
                           style={{
@@ -1545,7 +2362,10 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                     >
                       Aktif Ayet Meal İpucu · {primaryMeal.shortLabel}
                     </p>
-                    <p className="turkish-reading text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <p
+                      className="turkish-reading text-sm"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
                       {getPrimaryVerse(verseMap.get(highlightedVerseKey)!)?.t ?? ''}
                     </p>
                   </div>
@@ -1580,13 +2400,190 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                   </span>
                 </div>
               )}
+
+            {/* Tarayıcı İçi "Sesini Kaydet & Karî ile Kıyasla" Paneli (RAM-only) */}
+            {canRecordAudio && currentStep?.phase !== 'checkpoint' && (
+              <div
+                className="rounded-2xl border overflow-hidden"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: isComparePanelOpen || isRecording || recordedBlobUrl
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
+                }}
+              >
+                <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsComparePanelOpen((v) => !v);
+                    }}
+                    className="flex items-center gap-2 text-left min-w-0 cursor-pointer flex-1"
+                  >
+                    <span
+                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: isRecording
+                          ? 'rgba(239, 68, 68, 0.14)'
+                          : 'var(--brand-primary-soft)',
+                        color: isRecording ? '#DC2626' : 'var(--brand-primary-text)',
+                      }}
+                    >
+                      <Mic className={`w-4 h-4 ${isRecording ? 'animate-pulse' : ''}`} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-extrabold truncate">
+                        Sesimi Kaydet &amp; Karî ile Kıyasla
+                      </p>
+                      <p
+                        className="text-[11px] truncate"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {isRecording
+                          ? `Kaydediliyor · ${formatClock(recordingSec)} / 1:30`
+                          : recordedBlobUrl
+                            ? `Geçici kayıt hazır (${formatClock(recordedDurationSec)}) · Sadece cihaz belleğinde`
+                            : 'Sunucuya gönderilmez; okuyuşunuzu seçili karî ile anında kıyaslayın'}
+                      </p>
+                    </div>
+                  </button>
+
+                  {!isComparePanelOpen && !isRecording && !recordedBlobUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsComparePanelOpen(true);
+                        void startVoiceRecording();
+                      }}
+                      className="min-h-[34px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                      style={{ backgroundColor: 'var(--brand-primary)' }}
+                    >
+                      <Mic className="w-3.5 h-3.5" />
+                      <span>Kaydet</span>
+                    </button>
+                  )}
+                </div>
+
+                {(isComparePanelOpen || isRecording || recordedBlobUrl) && (
+                  <div
+                    className="px-3.5 pb-3 pt-2 border-t space-y-2.5"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    {recordingError && (
+                      <p className="text-xs font-semibold text-red-600">{recordingError}</p>
+                    )}
+
+                    {isRecording ? (
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs font-extrabold text-red-600 tabular-nums">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
+                          <span>Kayıt sürüyor · {formatClock(recordingSec)} / 1:30</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={stopVoiceRecording}
+                          className="min-h-[38px] px-4 rounded-xl bg-red-600 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Square className="w-3.5 h-3.5 fill-current" />
+                          <span>Durdur</span>
+                        </button>
+                      </div>
+                    ) : recordedBlobUrl ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => playUserVoice(false)}
+                          className="flex-1 min-w-[120px] min-h-[38px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                          style={{
+                            backgroundColor:
+                              voicePlaybackState === 'playing_user'
+                                ? 'var(--brand-primary)'
+                                : 'var(--bg-surface)',
+                            borderColor: 'var(--brand-primary)',
+                            color:
+                              voicePlaybackState === 'playing_user'
+                                ? '#FFFFFF'
+                                : 'var(--brand-primary-text)',
+                          }}
+                        >
+                          {voicePlaybackState === 'playing_user' ? (
+                            <>
+                              <Square className="w-3.5 h-3.5 fill-current shrink-0" />
+                              <span>Durdur</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                              <span>Kendi Sesim</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => playUserVoice(true)}
+                          className="flex-1 min-w-[155px] min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                          style={{ backgroundColor: 'var(--brand-primary)' }}
+                        >
+                          <Repeat className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">
+                            {voicePlaybackState === 'comparing_user'
+                              ? '1/2 Kendi Sesiniz...'
+                              : voicePlaybackState === 'comparing_reciter'
+                                ? '2/2 Karî Okuyor...'
+                                : 'Karî ile Peş Peşe Kıyasla'}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            clearRecordedVoice();
+                          }}
+                          title="Kaydı sil ve yeniden kaydet"
+                          aria-label="Kaydı sil"
+                          className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1 cursor-pointer text-red-500"
+                          style={{
+                            backgroundColor: 'var(--bg-surface)',
+                            borderColor: 'var(--border-subtle)',
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>Sil</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                          Aktif ayeti okuyun, ardından seçili karî ile peş peşe dinleyin.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void startVoiceRecording()}
+                          className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                          style={{ backgroundColor: 'var(--brand-primary)' }}
+                        >
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Kaydet</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </main>
       </div>
 
       {/* Başparmak Erişimli Alt Kontrol Çubuğu (Mobil & Masaüstü) */}
       <footer
-        className="px-3 sm:px-5 py-2.5 border-t shrink-0"
+        className="px-2.5 sm:px-5 py-2.5 border-t shrink-0"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
@@ -1601,7 +2598,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
               sfxService.play('click');
               setMask((m) => NEXT_MASK[m]);
             }}
-            className="min-h-[46px] px-1.5 rounded-2xl border flex flex-col items-center justify-center gap-0.5 cursor-pointer"
+            className="min-h-[46px] px-1 rounded-2xl border flex flex-col items-center justify-center gap-0.5 cursor-pointer"
             style={{
               backgroundColor:
                 mask !== 'open' ? 'var(--brand-primary-soft)' : 'var(--bg-surface-soft)',
@@ -1620,7 +2617,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
             type="button"
             disabled={stepIndex <= 0}
             onClick={handleGoPrev}
-            className="min-h-[46px] px-1.5 rounded-2xl border flex flex-col items-center justify-center gap-0.5 cursor-pointer disabled:opacity-35"
+            className="min-h-[46px] px-1 rounded-2xl border flex flex-col items-center justify-center gap-0.5 cursor-pointer disabled:opacity-35"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
@@ -1652,7 +2649,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
           <button
             type="button"
             onClick={handleGoNext}
-            className="min-h-[46px] px-1.5 rounded-2xl border flex flex-col items-center justify-center gap-0.5 cursor-pointer"
+            className="min-h-[46px] px-1 rounded-2xl border flex flex-col items-center justify-center gap-0.5 cursor-pointer"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
@@ -1672,7 +2669,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
               sfxService.play('click');
               setShowMealHint((v) => !v);
             }}
-            className="min-h-[46px] px-1.5 rounded-2xl border flex flex-col items-center justify-center gap-0.5 cursor-pointer"
+            className="min-h-[46px] px-1 rounded-2xl border flex flex-col items-center justify-center gap-0.5 cursor-pointer"
             style={{
               backgroundColor: showMealHint
                 ? 'var(--brand-accent-soft)'

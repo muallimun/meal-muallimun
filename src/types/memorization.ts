@@ -2,15 +2,31 @@ export type UnitSourceType = 'preset' | 'page' | 'surah' | 'custom';
 
 export type RetentionStage = 'raw' | 'fresh' | 'solid';
 
-export type MemorizationMethod = 'snowball' | 'single' | 'block';
+export type MemorizationMethod = 'snowball' | 'reverse_snowball' | 'single' | 'block';
 
 export type IntensityProfile = 'fast' | 'balanced' | 'deep' | 'custom';
 
-export type VisibilityMask = 'open' | 'first_word' | 'hidden';
+export type VisibilityMask = 'open' | 'first_word' | 'word_reveal' | 'hidden';
 
 export type PauseMultiplier = 0.8 | 1 | 1.2;
 
 export type ZenViewMode = 'focus' | 'mushaf';
+
+export type CuratedPresetGroupId =
+  | 'prayer_surahs'
+  | 'duha_to_fil'
+  | 'selected_ashrs'
+  | 'featured_surahs';
+
+export type SelfEvaluationRating = 'hard' | 'good' | 'easy';
+
+export type ZenSessionMode =
+  | 'standard'
+  | 'starred_only'
+  | 'self_test_ordered'
+  | 'self_test_shuffled';
+
+export const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30] as const;
 
 export interface AyahRange {
   surah: number;
@@ -34,6 +50,12 @@ export interface MemorizationUnit {
   starredVerseKeys: string[];
   createdAt: number;
   lastPracticedAt: number | null;
+  /** Sabak–Sabkî–Menzil aralıklı tekrar basamağı (0..5 -> 1, 3, 7, 14, 30 gün) */
+  reviewStep: number;
+  /** Bir sonraki önerilen pekiştirme tekrarı zamanı (ms timestamp) */
+  nextReviewAt: number | null;
+  /** Son oturum sonu öz-değerlendirmesi */
+  lastSelfEval?: SelfEvaluationRating;
 }
 
 export interface CustomIntensityConfig {
@@ -94,6 +116,12 @@ export interface ActiveSessionSnapshot {
   completedReps: number;
   mask: VisibilityMask;
   updatedAt: number;
+  sessionMode?: ZenSessionMode;
+  overrideVerseKeys?: string[];
+}
+
+export interface ZenSessionLaunchOptions {
+  mode: ZenSessionMode;
 }
 
 export interface QuickMemorizeSeed {
@@ -111,11 +139,19 @@ export interface MemorizeLaunchTarget {
 
 export interface CuratedPresetItem {
   id: string;
-  group: 'ashr' | 'popular_surahs' | 'prayer_surahs';
+  group: CuratedPresetGroupId;
   title: string;
   subtitle: string;
   ranges: AyahRange[];
   estimatedAyahs: number;
+}
+
+export interface MemorizationBackupPayload {
+  app: 'muallimun-memorization';
+  version: 2;
+  exportedAt: string;
+  units: MemorizationUnit[];
+  prefs: MemorizationPrefs;
 }
 
 export const RETENTION_STAGE_META: Record<

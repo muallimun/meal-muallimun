@@ -179,13 +179,105 @@ export function generateSessionSteps(
     return steps;
   }
 
-  // Varsayılan ve ana yöntem: Pencere Sınırlı / Kümeli Kar Topu (snowball)
+  // Pencere Sınırlı Kümeler (Kar Topu & Ters Kar Topu)
   const clusters: string[][] = [];
   for (let i = 0; i < verseKeys.length; i += cfg.windowSize) {
     clusters.push(verseKeys.slice(i, i + cfg.windowSize));
   }
   const totalClusters = clusters.length;
 
+  // Ters Kar Topu: Sondan başa zincirleme (5 -> 4 + 4-5 -> 3 + 3-5 -> 2 + 2-5 -> 1 + 1-5)
+  if (method === 'reverse_snowball') {
+    clusters.forEach((chunk, clusterIdx) => {
+      const clusterNo = clusterIdx + 1;
+      const clusterPrefix = totalClusters > 1 ? `Küme ${clusterNo} · ` : '';
+
+      for (let i = chunk.length - 1; i >= 0; i -= 1) {
+        const currentKey = chunk[i];
+        const { ayah } = parseVerseKey(currentKey);
+
+        // 1) Yeni ayet tekil kodlama ve hatırlama tekrarları
+        for (let rep = 1; rep <= cfg.newAyahReps; rep += 1) {
+          const { label, mask } = maskForEncodeRepeat(rep, cfg.newAyahReps);
+          pushStep({
+            phase: 'encode',
+            clusterIndex: clusterIdx,
+            totalClusters,
+            verseKeys: [currentKey],
+            repeatIndex: rep,
+            totalRepeats: cfg.newAyahReps,
+            suggestedMask: mask,
+            stepLabel: `${label} · ${ayah}. Ayet`,
+            shortLabel: `Ters Kar Topu · ${clusterPrefix}${ayah}. Ayet · Tekrar ${rep}/${cfg.newAyahReps}`,
+          });
+        }
+
+        // 2) Sondan bir önceki ayetten itibaren bu ayetten küme sonuna kadar zincir (k..n)
+        if (i < chunk.length - 1) {
+          const chainKeys = chunk.slice(i);
+          const chainRange = formatShortAyahRange(chainKeys);
+          for (let cRep = 1; cRep <= cfg.chainReps; cRep += 1) {
+            pushStep({
+              phase: 'link',
+              clusterIndex: clusterIdx,
+              totalClusters,
+              verseKeys: chainKeys,
+              repeatIndex: cRep,
+              totalRepeats: cfg.chainReps,
+              suggestedMask: maskForChainRepeat(cRep, cfg.chainReps),
+              stepLabel: `Sondan Zincir (${chainRange})`,
+              shortLabel: `Ters Kar Topu · ${clusterPrefix}Zincir ${chainRange} · Tekrar ${cRep}/${cfg.chainReps}`,
+            });
+          }
+        }
+      }
+
+      // 3) Küme sonu Kontrol Noktası
+      if (chunk.length > 1 || totalClusters > 1) {
+        const chunkRange = formatShortAyahRange(chunk);
+        pushStep({
+          phase: 'checkpoint',
+          clusterIndex: clusterIdx,
+          totalClusters,
+          verseKeys: [...chunk],
+          repeatIndex: 1,
+          totalRepeats: 1,
+          suggestedMask: 'first_word',
+          stepLabel:
+            totalClusters > 1
+              ? `Küme ${clusterNo} Kontrol Noktası (${chunkRange})`
+              : `Bölüm Kontrol Noktası (${chunkRange})`,
+          shortLabel:
+            totalClusters > 1
+              ? `Kontrol · Küme ${clusterNo}/${totalClusters}`
+              : `Kontrol Noktası · ${chunkRange}`,
+        });
+      }
+    });
+
+    if (totalClusters > 1) {
+      const finalRounds = cfg.chainReps >= 2 ? 2 : 1;
+      const allKeys = [...verseKeys];
+      const allRange = formatShortAyahRange(allKeys);
+      for (let fRep = 1; fRep <= finalRounds; fRep += 1) {
+        pushStep({
+          phase: 'final_flow',
+          clusterIndex: totalClusters - 1,
+          totalClusters,
+          verseKeys: allKeys,
+          repeatIndex: fRep,
+          totalRepeats: finalRounds,
+          suggestedMask: fRep === 1 ? 'first_word' : 'hidden',
+          stepLabel: `Final Akıcılık Turu (${allRange})`,
+          shortLabel: `Final Akıcılık · Tur ${fRep}/${finalRounds}`,
+        });
+      }
+    }
+
+    return steps;
+  }
+
+  // Varsayılan ve ana yöntem: Pencere Sınırlı / Kümeli Kar Topu (snowball)
   clusters.forEach((chunk, clusterIdx) => {
     const clusterNo = clusterIdx + 1;
     const clusterPrefix = totalClusters > 1 ? `Küme ${clusterNo} · ` : '';
@@ -313,6 +405,41 @@ export function splitFirstArabicWord(verse: CombinedVerse): {
     firstWord: firstToken,
     restText: restToken,
   };
+}
+
+export interface ArabicWordToken {
+  text: string;
+  isWord: boolean;
+  /** 0-tabanlı kelime sırası (boşluk parçaları için -1) */
+  wordIndex: number;
+}
+
+/**
+ * "Kelime Kelime" (`word_reveal`) maskesi için Arapça ayeti boşlukları ve mizanpajı
+ * kesinlikle bozmadan kelime ve boşluk parçalarına ayırır.
+ */
+export function tokenizeArabicWordsPreserveLayout(text: string): {
+  tokens: ArabicWordToken[];
+  totalWords: number;
+} {
+  const raw = (text ?? '').trim();
+  if (!raw) return { tokens: [], totalWords: 0 };
+
+  const parts = raw.split(/(\s+)/);
+  const tokens: ArabicWordToken[] = [];
+  let wordCounter = 0;
+
+  for (const part of parts) {
+    if (!part) continue;
+    if (/^\s+$/.test(part)) {
+      tokens.push({ text: part, isWord: false, wordIndex: -1 });
+    } else {
+      tokens.push({ text: part, isWord: true, wordIndex: wordCounter });
+      wordCounter += 1;
+    }
+  }
+
+  return { tokens, totalWords: wordCounter };
 }
 
 /**
