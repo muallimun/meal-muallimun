@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { resolveSpokenMealInfo } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
@@ -41,6 +42,7 @@ import type {
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
+import { TajweedText } from './TajweedText';
 import { WordMealGrid } from './WordMealGrid';
 
 interface DraggableVerseInspectorProps {
@@ -113,6 +115,11 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
     getPrimaryVerse,
     getSecondaryVerse,
   } = useActiveMeals(activeSurahNos);
+
+  const { rules: tjRules, getVerseWords: getTjVerseWords } = useTajweedData(
+    activeSurahNos,
+    isOpen && settings.tajweedEnabled,
+  );
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
@@ -533,18 +540,30 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
         </div>
 
         {/* Arapça Ayet Özeti */}
-        <div
-          dir="rtl"
-          className="arabic-text rounded-xl px-3 py-2.5 text-right leading-[2.1] border"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-            fontSize: `${Math.min(26, Math.max(20, settings.arabicFontSize - 4))}px`,
-            color: 'var(--text-primary)',
-          }}
-        >
-          {verse.ar.t}
-        </div>
+        {(() => {
+          const tjWords = settings.tajweedEnabled
+            ? getTjVerseWords(verse.surah, verse.ayah)
+            : null;
+          const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
+          return (
+            <div
+              dir="rtl"
+              className={`${useVerseTajweed ? 'arabic-tajweed' : 'arabic-text'} rounded-xl px-3 py-2.5 text-right leading-[2.1] border`}
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+                fontSize: `${Math.min(26, Math.max(20, settings.arabicFontSize - 4))}px`,
+                color: 'var(--text-primary)',
+              }}
+            >
+              {useVerseTajweed ? (
+                <TajweedText words={tjWords!} rules={tjRules} theme={settings.theme} />
+              ) : (
+                verse.ar.t
+              )}
+            </div>
+          );
+        })()}
 
         {/* Seçili Meal(ler) */}
         <div

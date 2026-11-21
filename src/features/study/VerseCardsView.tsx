@@ -8,6 +8,7 @@ import {
   X,
 } from 'lucide-react';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { useTajweedData } from '../../hooks/useTajweedData';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import type { SurahExtraInfo } from '../../types/fihrist';
@@ -22,6 +23,7 @@ import type {
 } from '../../types/quran';
 import { formatSafeArabicTitle } from '../../utils/arabicUtils';
 import { formatNumberTr, normalizeTurkish } from '../../utils/poolUtils';
+import { TajweedText } from './TajweedText';
 import { VerseCard } from './VerseCard';
 
 interface VerseCardsViewProps {
@@ -77,6 +79,12 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
     getPrimaryVerse,
     getSecondaryVerse,
   } = useActiveMeals(surahNos);
+
+  const {
+    rules: tjRules,
+    besmele: tjBesmele,
+    getVerseWords: getTjVerseWords,
+  } = useTajweedData(surahNos, settings.tajweedEnabled);
 
   const [isFilterBarOpen, setIsFilterBarOpen] = useState(false);
   const [isWordMenuOpen, setIsWordMenuOpen] = useState(false);
@@ -567,13 +575,17 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
             style={{ borderColor: 'var(--border-subtle)' }}
           >
             <p
-              className="arabic-text leading-tight"
+              className={`${settings.tajweedEnabled && tjBesmele ? 'arabic-tajweed' : 'arabic-text'} leading-tight`}
               style={{
                 fontSize: `${Math.max(20, Math.min(28, settings.arabicFontSize - 2))}px`,
                 color: 'var(--brand-primary-text)',
               }}
             >
-              {besmele.ar}
+              {settings.tajweedEnabled && tjBesmele ? (
+                <TajweedText words={tjBesmele} rules={tjRules} theme={settings.theme} />
+              ) : (
+                besmele.ar
+              )}
             </p>
           </div>
         )}
@@ -643,6 +655,8 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                   primaryVerse={getPrimaryVerse(verse)}
                   secondaryVerse={isDual ? getSecondaryVerse(verse) : null}
                   isLoadingExtra={isLoadingExtra}
+                  tajweedWords={getTjVerseWords(verse.surah, verse.ayah)}
+                  tajweedRules={tjRules}
                   onToggleBookmark={onToggleBookmark}
                   onPlayFromHere={onPlayFromVerse}
                   onPlayMealFromHere={onPlayMealFromVerse}

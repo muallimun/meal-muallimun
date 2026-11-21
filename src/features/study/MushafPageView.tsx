@@ -27,7 +27,9 @@ import {
 import { BOOKMARK_COLOR_STYLES } from '../../components/PageBookmarksDrawer';
 import { resolveSpokenMealInfo } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
+import { TajweedText } from './TajweedText';
 import {
   SAJDAH_AYAH_IDS,
   toArabicIndicDigits,
@@ -424,6 +426,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     getSecondaryVerse,
   } = useActiveMeals(visibleSurahNos);
 
+  const {
+    rules: tjRules,
+    besmele: tjBesmele,
+    getVerseWords: getTjVerseWords,
+  } = useTajweedData(visibleSurahNos, settings.tajweedEnabled);
+
   const selectedVerse =
     allVisibleVerses.find((v) => v.id === selectedVerseId) ?? allVisibleVerses[0] ?? null;
 
@@ -644,7 +652,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       return;
     }
     const target = e.target as HTMLElement | null;
-    if (target?.closest('button, a, [role="button"], input, select')) {
+    if (target?.closest('button, a, [role="button"], input, select, [data-tajweed-rule]')) {
       return;
     }
     onToggleMobileImmersive();
@@ -1004,118 +1012,143 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
                     {segment.showBesmele && (
                       <p
-                        className="arabic-text text-center py-0.5"
+                        className={`${settings.tajweedEnabled && tjBesmele ? 'arabic-tajweed' : 'arabic-text'} text-center py-0.5`}
                         style={{
                           fontSize: `${Math.max(20, settings.arabicFontSize - 2)}px`,
                           color: 'var(--brand-primary-text)',
                         }}
                       >
-                        {besmele.ar}
+                        {settings.tajweedEnabled && tjBesmele ? (
+                          <TajweedText words={tjBesmele} rules={tjRules} theme={settings.theme} />
+                        ) : (
+                          besmele.ar
+                        )}
                       </p>
                     )}
 
                     {/* Kesintisiz Mushaf Ayet Akışı */}
-                    <div
-                      dir="rtl"
-                      className="arabic-text"
-                      style={{
-                        fontSize: `${settings.arabicFontSize}px`,
-                        lineHeight: 2.28,
-                        textAlign: 'justify',
-                        textAlignLast: 'center',
-                      }}
-                    >
-                      {segment.verses.map((verse) => {
-                        const isSelected = selectedVerse?.id === verse.id;
-                        const isPlaying = playingAyahId === verse.id;
-                        const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
-                        const highlightSajdah = isSajdah && settings.highlightSajdah;
-                        const hasDigitsAtEnd = ENDS_WITH_ARABIC_NUMERAL.test(verse.ar.t);
+                    {(() => {
+                      const hasTajweedOnSegment =
+                        settings.tajweedEnabled &&
+                        segment.verses.some((v) =>
+                          Boolean(getTjVerseWords(v.surah, v.ayah)?.length),
+                        );
+                      return (
+                        <div
+                          dir="rtl"
+                          className={hasTajweedOnSegment ? 'arabic-tajweed' : 'arabic-text'}
+                          style={{
+                            fontSize: `${settings.arabicFontSize}px`,
+                            lineHeight: 2.28,
+                            textAlign: 'justify',
+                            textAlignLast: 'center',
+                          }}
+                        >
+                          {segment.verses.map((verse) => {
+                            const isSelected = selectedVerse?.id === verse.id;
+                            const isPlaying = playingAyahId === verse.id;
+                            const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
+                            const highlightSajdah = isSajdah && settings.highlightSajdah;
+                            const hasDigitsAtEnd = ENDS_WITH_ARABIC_NUMERAL.test(verse.ar.t);
+                            const tjWords = settings.tajweedEnabled
+                              ? getTjVerseWords(verse.surah, verse.ayah)
+                              : null;
+                            const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
 
-                        const highlightBg = isPlaying
-                          ? 'rgba(13, 148, 136, 0.24)'
-                          : isSelected
-                            ? 'rgba(217, 119, 6, 0.18)'
-                            : highlightSajdah
-                              ? 'rgba(217, 119, 6, 0.10)'
-                              : 'transparent';
+                            const highlightBg = isPlaying
+                              ? 'rgba(13, 148, 136, 0.24)'
+                              : isSelected
+                                ? 'rgba(217, 119, 6, 0.18)'
+                                : highlightSajdah
+                                  ? 'rgba(217, 119, 6, 0.10)'
+                                  : 'transparent';
 
-                        return (
-                          <span
-                            key={verse.id}
-                            id={`mushaf-ayah-${verse.id}`}
-                            data-ayah-id={verse.id}
-                            onClick={() => {
-                              sfxService.play('click');
-                              onSelectVerse(verse);
-                              if (isDoubleMeal) {
-                                syncLeftMealToVerse(verse.id);
-                              }
-                              setIsVerseDrawerOpen(true);
-                            }}
-                            role="button"
-                            tabIndex={0}
-                            title={
-                              highlightSajdah
-                                ? `Tilâvet Secdesi Ayeti — ${segment.surahMeta.nameTr} ${verse.ayah}. Ayet`
-                                : `${segment.surahMeta.nameTr} ${verse.ayah}. Ayet`
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                sfxService.play('click');
-                                onSelectVerse(verse);
-                                if (isDoubleMeal) {
-                                  syncLeftMealToVerse(verse.id);
-                                }
-                                setIsVerseDrawerOpen(true);
-                              }
-                            }}
-                            className={`inline rounded-lg px-1 py-0.5 transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
-                              highlightSajdah
-                                ? 'underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
-                                : ''
-                            }`}
-                            style={{ backgroundColor: highlightBg }}
-                          >
-                            {verse.ar.t}
-                            {highlightSajdah && (
+                            return (
                               <span
-                                title="Tilâvet Secdesi Ayeti"
-                                aria-label="Tilâvet Secdesi Ayeti"
-                                className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-md border text-[0.64em] font-extrabold align-middle leading-none select-none"
-                                style={{
-                                  backgroundColor: 'var(--brand-accent-soft)',
-                                  borderColor: 'rgba(217, 119, 6, 0.5)',
-                                  color: 'var(--brand-accent-text)',
+                                key={verse.id}
+                                id={`mushaf-ayah-${verse.id}`}
+                                data-ayah-id={verse.id}
+                                onClick={() => {
+                                  sfxService.play('click');
+                                  onSelectVerse(verse);
+                                  if (isDoubleMeal) {
+                                    syncLeftMealToVerse(verse.id);
+                                  }
+                                  setIsVerseDrawerOpen(true);
                                 }}
-                              >
-                                ۩
-                              </span>
-                            )}
-                            {!hasDigitsAtEnd && (
-                              <span
-                                className="inline-block mx-1.5 text-[0.76em] select-none align-middle"
-                                style={{
-                                  color: isPlaying
-                                    ? 'var(--brand-primary-text)'
-                                    : isSelected || highlightSajdah
-                                      ? 'var(--brand-accent-text)'
-                                      : 'var(--brand-primary-text)',
-                                }}
+                                role="button"
+                                tabIndex={0}
                                 title={
                                   highlightSajdah
-                                    ? `Tilâvet Secdesi · ${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
-                                    : `${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
+                                    ? `Tilâvet Secdesi Ayeti — ${segment.surahMeta.nameTr} ${verse.ayah}. Ayet`
+                                    : `${segment.surahMeta.nameTr} ${verse.ayah}. Ayet`
                                 }
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    sfxService.play('click');
+                                    onSelectVerse(verse);
+                                    if (isDoubleMeal) {
+                                      syncLeftMealToVerse(verse.id);
+                                    }
+                                    setIsVerseDrawerOpen(true);
+                                  }
+                                }}
+                                className={`inline rounded-lg px-1 py-0.5 transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
+                                  highlightSajdah
+                                    ? 'underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
+                                    : ''
+                                }`}
+                                style={{ backgroundColor: highlightBg }}
                               >
-                                ﴿{toArabicIndicDigits(verse.ayah)}﴾
+                                {useVerseTajweed ? (
+                                  <TajweedText
+                                    words={tjWords!}
+                                    rules={tjRules}
+                                    theme={settings.theme}
+                                  />
+                                ) : (
+                                  verse.ar.t
+                                )}
+                                {highlightSajdah && (
+                                  <span
+                                    title="Tilâvet Secdesi Ayeti"
+                                    aria-label="Tilâvet Secdesi Ayeti"
+                                    className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-md border text-[0.64em] font-extrabold align-middle leading-none select-none"
+                                    style={{
+                                      backgroundColor: 'var(--brand-accent-soft)',
+                                      borderColor: 'rgba(217, 119, 6, 0.5)',
+                                      color: 'var(--brand-accent-text)',
+                                    }}
+                                  >
+                                    ۩
+                                  </span>
+                                )}
+                                {(useVerseTajweed || !hasDigitsAtEnd) && (
+                                  <span
+                                    className="inline-block mx-1.5 text-[0.76em] select-none align-middle"
+                                    style={{
+                                      color: isPlaying
+                                        ? 'var(--brand-primary-text)'
+                                        : isSelected || highlightSajdah
+                                          ? 'var(--brand-accent-text)'
+                                          : 'var(--brand-primary-text)',
+                                    }}
+                                    title={
+                                      highlightSajdah
+                                        ? `Tilâvet Secdesi · ${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
+                                        : `${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
+                                    }
+                                  >
+                                    ﴿{toArabicIndicDigits(verse.ayah)}﴾
+                                  </span>
+                                )}{' '}
                               </span>
-                            )}{' '}
-                          </span>
-                        );
-                      })}
-                    </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

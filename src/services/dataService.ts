@@ -38,6 +38,7 @@ import type {
   SurahExtraInfo,
   SurahInfoExtrasFile,
 } from '../types/fihrist';
+import type { TajweedMetaFile, TajweedSurahFile } from '../types/tajweed';
 
 export type DataSourceMode = 'local' | 'remote' | 'demo';
 
@@ -772,6 +773,14 @@ export async function getBazerganTimeline(): Promise<BazerganTimelineFile> {
   }
 }
 
+export async function getTajweedMeta(): Promise<TajweedMetaFile> {
+  return fetchJsonWithFallback<TajweedMetaFile>('tj/meta.json');
+}
+
+export async function getTajweedSurah(surahNo: number): Promise<TajweedSurahFile> {
+  return fetchJsonWithFallback<TajweedSurahFile>(`tj/s${padSurahNo(surahNo)}.json`);
+}
+
 export const dataService = {
   getManifest,
   getMeta,
@@ -796,6 +805,8 @@ export const dataService = {
   getSurahInfoExtras,
   getSurahInfoExtrasMap,
   getBazerganTimeline,
+  getTajweedMeta,
+  getTajweedSurah,
   enableDemoMode,
   disableDemoMode,
   isDemoMode,

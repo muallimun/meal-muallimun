@@ -34,6 +34,8 @@ import type {
   WordMealMode,
 } from '../../types/quran';
 import type { SurahExtraInfo } from '../../types/fihrist';
+import type { TajweedRuleDef, TajweedWord } from '../../types/tajweed';
+import { TajweedText } from './TajweedText';
 import { WordMealGrid } from './WordMealGrid';
 
 interface VerseCardProps {
@@ -52,6 +54,8 @@ interface VerseCardProps {
   primaryVerse?: MealVerse | null;
   secondaryVerse?: MealVerse | null;
   isLoadingExtra?: boolean;
+  tajweedWords?: TajweedWord[] | null;
+  tajweedRules?: Record<string, TajweedRuleDef>;
   onToggleBookmark: (ayahId: number) => void;
   onPlayFromHere: (verse: CombinedVerse) => void;
   onPlayMealFromHere: (verse: CombinedVerse) => void;
@@ -74,6 +78,8 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   primaryVerse,
   secondaryVerse,
   isLoadingExtra = false,
+  tajweedWords = null,
+  tajweedRules,
   onToggleBookmark,
   onPlayFromHere,
   onPlayMealFromHere,
@@ -728,29 +734,44 @@ export const VerseCard: React.FC<VerseCardProps> = ({
       {/* Arapça Metin (Sadece Meal veya Odaklı Sesli Meal modunda gizlenir) */}
       {!mealAudioFocusOnly && contentMode !== 'meal_only' && (
         <div className={contentMode === 'ar_only' ? '' : 'mb-4'}>
-          <p
-            className="arabic-text text-right break-words"
-            style={{
-              fontSize: `${settings.arabicFontSize}px`,
-              color: 'var(--text-primary)',
-            }}
-          >
-            {verse.ar.t}
-            {highlightSajdah && (
-              <span
-                title="Tilâvet Secdesi Ayeti"
-                aria-label="Tilâvet Secdesi Ayeti"
-                className="inline-flex items-center justify-center mx-1.5 px-1.5 py-0.5 rounded-md border text-[0.62em] font-extrabold align-middle leading-none select-none"
+          {(() => {
+            const useTajweed =
+              settings.tajweedEnabled &&
+              Boolean(tajweedWords && tajweedWords.length > 0 && tajweedRules);
+            return (
+              <p
+                className={`${useTajweed ? 'arabic-tajweed' : 'arabic-text'} text-right break-words`}
                 style={{
-                  backgroundColor: 'var(--brand-accent-soft)',
-                  borderColor: 'rgba(217, 119, 6, 0.5)',
-                  color: 'var(--brand-accent-text)',
+                  fontSize: `${settings.arabicFontSize}px`,
+                  color: 'var(--text-primary)',
                 }}
               >
-                ۩
-              </span>
-            )}
-          </p>
+                {useTajweed ? (
+                  <TajweedText
+                    words={tajweedWords!}
+                    rules={tajweedRules!}
+                    theme={settings.theme}
+                  />
+                ) : (
+                  verse.ar.t
+                )}
+                {highlightSajdah && (
+                  <span
+                    title="Tilâvet Secdesi Ayeti"
+                    aria-label="Tilâvet Secdesi Ayeti"
+                    className="inline-flex items-center justify-center mx-1.5 px-1.5 py-0.5 rounded-md border text-[0.62em] font-extrabold align-middle leading-none select-none"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      borderColor: 'rgba(217, 119, 6, 0.5)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                  >
+                    ۩
+                  </span>
+                )}
+              </p>
+            );
+          })()}
         </div>
       )}
 

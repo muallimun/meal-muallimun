@@ -822,6 +822,28 @@ export const SettingsModal: React.FC = () => {
               />
 
               <ToggleRow
+                title="Renkli Tecvit (Etkileşimli Tecvit Rehberi)"
+                description="Arapça ayetleri tecvit kurallarına göre renklendirir; renkli harflere dokunarak kuralın Türkçe açıklamasını gösterir. Harf birleşmelerini korumak için Uthmani OpenType yazı tipi kullanılır."
+                checked={settings.tajweedEnabled}
+                onToggle={() => {
+                  sfxService.play('click');
+                  updateSettings({ tajweedEnabled: !settings.tajweedEnabled });
+                }}
+              />
+
+              {settings.tajweedEnabled && (
+                <ToggleRow
+                  title="Tecvit Renk Anahtarı Şeridini Göster"
+                  description="Okuma alanının üstünde tek satırlık özet renk anahtarını (Medler, Gunne, İdgam, İklâb, Kalkale) gösterir."
+                  checked={settings.showTajweedLegend}
+                  onToggle={() => {
+                    sfxService.play('click');
+                    updateSettings({ showTajweedLegend: !settings.showTajweedLegend });
+                  }}
+                />
+              )}
+
+              <ToggleRow
                 title="Tilâvet Secdesi İşaretlerini Vurgula"
                 description="Secde ayetlerinde özel ۩ Tilâvet Secdesi işaretini belirgin göster."
                 checked={settings.highlightSajdah}

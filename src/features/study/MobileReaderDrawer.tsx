@@ -15,6 +15,7 @@ import {
   Plus,
   Search,
   Settings,
+  Sparkles,
   Star,
   Sun,
   Trophy,
@@ -411,6 +412,82 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Renkli Tecvit (Etkileşimli Dokun-Öğren) */}
+            <div
+              className="px-3 py-2.5 rounded-xl border space-y-2"
+              style={{
+                backgroundColor: settings.tajweedEnabled
+                  ? 'var(--brand-primary-soft)'
+                  : 'var(--bg-surface-soft)',
+                borderColor: settings.tajweedEnabled
+                  ? 'var(--brand-primary)'
+                  : 'var(--border-subtle)',
+              }}
+            >
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.tajweedEnabled}
+                onClick={() => {
+                  sfxService.play('click');
+                  onUpdateSettings({ tajweedEnabled: !settings.tajweedEnabled });
+                }}
+                className="w-full flex items-center justify-between gap-2 text-left cursor-pointer"
+              >
+                <div className="min-w-0">
+                  <span
+                    className="text-xs font-extrabold flex items-center gap-1.5"
+                    style={{
+                      color: settings.tajweedEnabled
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-primary)',
+                    }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                    <span>Renkli Tecvit</span>
+                  </span>
+                  <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Renkli harflere dokunarak tecvit kuralını gör
+                  </span>
+                </div>
+                <span
+                  className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
+                  style={{
+                    backgroundColor: settings.tajweedEnabled
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-strong)',
+                  }}
+                >
+                  <span
+                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                      settings.tajweedEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </span>
+              </button>
+
+              {settings.tajweedEnabled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    onUpdateSettings({ showTajweedLegend: !settings.showTajweedLegend });
+                  }}
+                  className="w-full min-h-[32px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: settings.showTajweedLegend
+                      ? 'var(--brand-primary-text)'
+                      : 'var(--text-secondary)',
+                  }}
+                >
+                  <span>Renk Anahtarı Şeridi</span>
+                  <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
+                </button>
+              )}
+            </div>
 
             {/* Hızlı Font Boyutu */}
             <div className="grid grid-cols-2 gap-2">

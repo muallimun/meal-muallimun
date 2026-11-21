@@ -410,6 +410,8 @@ export interface AppSettings {
   showFootnotes: boolean;
   highlightSajdah: boolean;
   keepScreenAwake: boolean;
+  tajweedEnabled: boolean;
+  showTajweedLegend: boolean;
 }
 
 export interface StudyPool {

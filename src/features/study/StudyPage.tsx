@@ -26,6 +26,7 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Star,
   Trophy,
   Type,
@@ -58,12 +59,17 @@ import type {
 } from '../../types/quran';
 import { formatSurahTitle } from '../../utils/arabicUtils';
 import { buildSurahQuestionCountMap, getSurahMap } from '../../utils/poolUtils';
+import { useTajweedData } from '../../hooks/useTajweedData';
 import { BookModeView } from './BookModeView';
 import { LocationPickerModal, type LocationPickerTab } from './LocationPickerModal';
 import { MobileReaderDrawer } from './MobileReaderDrawer';
 import { MushafPageView } from './MushafPageView';
 import { SurahInfoModal } from './SurahInfoModal';
+import { TajweedLegendBar } from './TajweedLegendBar';
+import { TajweedRulePopoverHost } from './TajweedRulePopover';
 import { VerseCardsView } from './VerseCardsView';
+
+const EMPTY_TAJWEED_SURAH_NOS: readonly number[] = [];
 
 export const StudyPage: React.FC = () => {
   const {
@@ -99,6 +105,12 @@ export const StudyPage: React.FC = () => {
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
+  );
+
+  // Yalnızca Renkli Tecvit açıkken meta.json (renk anahtarı) tembel olarak yüklenir
+  const { rules: tajweedMetaRules, isLoading: isLoadingTajweedMeta } = useTajweedData(
+    EMPTY_TAJWEED_SURAH_NOS,
+    settings.tajweedEnabled,
   );
 
   const pageBounds = useMemo(
@@ -1099,6 +1111,79 @@ export const StudyPage: React.FC = () => {
               </div>
             )}
 
+            {/* 2b. Renkli Tecvit (Etkileşimli Dokun-Öğren) */}
+            <div
+              className="pt-3 border-t space-y-2"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.tajweedEnabled}
+                onClick={() => {
+                  sfxService.play('click');
+                  updateSettings({ tajweedEnabled: !settings.tajweedEnabled });
+                }}
+                className="w-full flex items-center justify-between gap-2 text-left cursor-pointer group"
+              >
+                <div className="min-w-0">
+                  <span
+                    className="text-xs font-extrabold flex items-center gap-1.5"
+                    style={{
+                      color: settings.tajweedEnabled
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-primary)',
+                    }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                    <span>Renkli Tecvit</span>
+                  </span>
+                  <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Renkli harflere dokunarak kuralları öğren
+                  </span>
+                </div>
+                <span
+                  className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
+                  style={{
+                    backgroundColor: settings.tajweedEnabled
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-strong)',
+                  }}
+                >
+                  <span
+                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                      settings.tajweedEnabled ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </span>
+              </button>
+
+              {settings.tajweedEnabled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    updateSettings({ showTajweedLegend: !settings.showTajweedLegend });
+                  }}
+                  className="w-full h-8 px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: settings.showTajweedLegend
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface-soft)',
+                    borderColor: settings.showTajweedLegend
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-subtle)',
+                    color: settings.showTajweedLegend
+                      ? 'var(--brand-primary-text)'
+                      : 'var(--text-secondary)',
+                  }}
+                >
+                  <span>Renk Anahtarı Şeridi</span>
+                  <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
+                </button>
+              )}
+            </div>
+
             {/* 3. Hızlı Yazı Boyutu (Arapça & Meal) */}
             <div
               className="pt-3 border-t space-y-2"
@@ -1229,6 +1314,11 @@ export const StudyPage: React.FC = () => {
                   </option>
                 ))}
               </select>
+              {settings.tajweedEnabled && (
+                <p className="text-[10px] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                  Tecvit açıkken harf birleşmeleri için Uthmani OpenType hattı kullanılır.
+                </p>
+              )}
             </div>
 
             {/* 5. Hızlı Tema Seçici (Açık / Krem / Gece) */}
@@ -1608,6 +1698,18 @@ export const StudyPage: React.FC = () => {
       {/* ====================================================================
           B. Ana İçerik Alanı (Mushaf / Ayet Kartları / Kitap Modu)
           ==================================================================== */}
+      {settings.tajweedEnabled &&
+        settings.showTajweedLegend &&
+        !isMobileReaderImmersive &&
+        !viewError && (
+          <TajweedLegendBar
+            rules={tajweedMetaRules}
+            theme={settings.theme}
+            isLoading={isLoadingTajweedMeta}
+            onDismiss={() => updateSettings({ showTajweedLegend: false })}
+          />
+        )}
+
       {viewError ? (
         <div className="surface-card rounded-2xl p-6 sm:p-8 text-center max-w-lg mx-auto">
           <div
@@ -1908,6 +2010,8 @@ export const StudyPage: React.FC = () => {
         besmele={meta?.besmele}
         onStartAudioFromActive={(v) => handlePlayFromVerse(v, false)}
       />
+
+      <TajweedRulePopoverHost theme={settings.theme} enabled={settings.tajweedEnabled} />
     </div>
   );
 };

@@ -94,6 +94,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showFootnotes: true,
   highlightSajdah: true,
   keepScreenAwake: true,
+  tajweedEnabled: false,
+  showTajweedLegend: true,
 };
 
 export const DEFAULT_STUDY_POOL: StudyPool = {
@@ -448,6 +450,14 @@ function hydrateState(): PersistedAppState {
         typeof rawSettings.keepScreenAwake === 'boolean'
           ? rawSettings.keepScreenAwake
           : DEFAULT_SETTINGS.keepScreenAwake,
+      tajweedEnabled:
+        typeof rawSettings.tajweedEnabled === 'boolean'
+          ? rawSettings.tajweedEnabled
+          : DEFAULT_SETTINGS.tajweedEnabled,
+      showTajweedLegend:
+        typeof rawSettings.showTajweedLegend === 'boolean'
+          ? rawSettings.showTajweedLegend
+          : DEFAULT_SETTINGS.showTajweedLegend,
     };
 
     const rawPool = parsed.studyPool;

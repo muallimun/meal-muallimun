@@ -23,7 +23,9 @@ import {
 } from 'lucide-react';
 import { resolveSpokenMealInfo } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
+import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
+import { TajweedText } from './TajweedText';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -95,6 +97,12 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     getPrimaryVerse,
     getSecondaryVerse,
   } = useActiveMeals(bookSurahNos);
+
+  const {
+    rules: tjRules,
+    besmele: tjBesmele,
+    getVerseWords: getTjVerseWords,
+  } = useTajweedData(bookSurahNos, settings.tajweedEnabled);
 
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [selectedArabicAyahId, setSelectedArabicAyahId] = useState<number | null>(null);
@@ -377,7 +385,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
       return;
     }
     const target = e.target as HTMLElement | null;
-    if (target?.closest('button, a, [role="button"], input, select')) {
+    if (target?.closest('button, a, [role="button"], input, select, [data-tajweed-rule]')) {
       return;
     }
     onToggleMobileImmersive();
@@ -493,10 +501,14 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]/70">
               {bookMode !== 'meal_only' && (
                 <p
-                  className="arabic-text text-center text-[var(--text-primary)]"
+                  className={`${settings.tajweedEnabled && tjBesmele ? 'arabic-tajweed' : 'arabic-text'} text-center text-[var(--text-primary)]`}
                   style={{ fontSize: `${Math.max(22, settings.arabicFontSize - 2)}px` }}
                 >
-                  {besmeleAr}
+                  {settings.tajweedEnabled && tjBesmele ? (
+                    <TajweedText words={tjBesmele} rules={tjRules} theme={settings.theme} />
+                  ) : (
+                    besmeleAr
+                  )}
                 </p>
               )}
               {bookMode === 'meal_only' && (
@@ -527,79 +539,98 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           ) : bookMode === 'ar_only' ? (
             /* 1. SADECE ARAPÇA KİTAP AKIŞI */
             <div className="space-y-5">
-              <div
-                dir="rtl"
-                className={`arabic-text text-justify text-[var(--text-primary)] leading-[2.35] ${
-                  isDoubleBookLayout ? 'lg:columns-2 lg:gap-10' : ''
-                }`}
-                style={{ fontSize: `${settings.arabicFontSize}px` }}
-              >
-                {visibleVerses.map((verse) => {
-                  const isPlaying = playingAyahId === verse.id;
-                  const isSelected = selectedArabicAyahId === verse.id;
-                  const isBookmarked = bookmarkedSet.has(verse.id);
-                  const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
-                  return (
-                    <span
-                      key={verse.id}
-                      id={`book-ayah-${verse.id}`}
-                      role="button"
-                      tabIndex={0}
-                      title={
-                        isSajdah
-                          ? `Tilâvet Secdesi Ayeti — ${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`
-                          : `${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`
-                      }
-                      onClick={() => {
-                        sfxService.play('click');
-                        setSelectedArabicAyahId((prev) => (prev === verse.id ? null : verse.id));
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setSelectedArabicAyahId((prev) => (prev === verse.id ? null : verse.id));
-                        }
-                      }}
-                      className={`inline rounded-xl px-1.5 py-0.5 transition-colors cursor-pointer ${
-                        isPlaying
-                          ? 'bg-[var(--brand-primary)]/18 ring-2 ring-[var(--brand-primary)]/60 text-[var(--text-primary)]'
-                          : isSelected
-                            ? 'bg-[var(--brand-accent-soft)] ring-1 ring-[var(--brand-accent)]/50'
-                            : isSajdah
-                              ? 'bg-amber-500/12 underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
-                              : 'hover:bg-[var(--bg-surface-soft)]'
-                      }`}
-                    >
-                      {verse.ar.t}
-                      {isSajdah && (
+              {(() => {
+                const hasTajweedInBook =
+                  settings.tajweedEnabled &&
+                  visibleVerses.some((v) => Boolean(getTjVerseWords(v.surah, v.ayah)?.length));
+                return (
+                  <div
+                    dir="rtl"
+                    className={`${hasTajweedInBook ? 'arabic-tajweed' : 'arabic-text'} text-justify text-[var(--text-primary)] leading-[2.35] ${
+                      isDoubleBookLayout ? 'lg:columns-2 lg:gap-10' : ''
+                    }`}
+                    style={{ fontSize: `${settings.arabicFontSize}px` }}
+                  >
+                    {visibleVerses.map((verse) => {
+                      const isPlaying = playingAyahId === verse.id;
+                      const isSelected = selectedArabicAyahId === verse.id;
+                      const isBookmarked = bookmarkedSet.has(verse.id);
+                      const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
+                      const tjWords = settings.tajweedEnabled
+                        ? getTjVerseWords(verse.surah, verse.ayah)
+                        : null;
+                      const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
+                      return (
                         <span
-                          title="Tilâvet Secdesi Ayeti"
-                          aria-label="Tilâvet Secdesi Ayeti"
-                          className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
-                          style={{
-                            backgroundColor: 'var(--brand-accent-soft)',
-                            borderColor: 'rgba(217, 119, 6, 0.5)',
-                            color: 'var(--brand-accent-text)',
+                          key={verse.id}
+                          id={`book-ayah-${verse.id}`}
+                          role="button"
+                          tabIndex={0}
+                          title={
+                            isSajdah
+                              ? `Tilâvet Secdesi Ayeti — ${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`
+                              : `${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`
+                          }
+                          onClick={() => {
+                            sfxService.play('click');
+                            setSelectedArabicAyahId((prev) =>
+                              prev === verse.id ? null : verse.id,
+                            );
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedArabicAyahId((prev) =>
+                                prev === verse.id ? null : verse.id,
+                              );
+                            }
+                          }}
+                          className={`inline rounded-xl px-1.5 py-0.5 transition-colors cursor-pointer ${
+                            isPlaying
+                              ? 'bg-[var(--brand-primary)]/18 ring-2 ring-[var(--brand-primary)]/60 text-[var(--text-primary)]'
+                              : isSelected
+                                ? 'bg-[var(--brand-accent-soft)] ring-1 ring-[var(--brand-accent)]/50'
+                                : isSajdah
+                                  ? 'bg-amber-500/12 underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
+                                  : 'hover:bg-[var(--bg-surface-soft)]'
+                          }`}
                         >
-                          ۩
+                          {useVerseTajweed ? (
+                            <TajweedText words={tjWords!} rules={tjRules} theme={settings.theme} />
+                          ) : (
+                            verse.ar.t
+                          )}
+                          {isSajdah && (
+                            <span
+                              title="Tilâvet Secdesi Ayeti"
+                              aria-label="Tilâvet Secdesi Ayeti"
+                              className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
+                              style={{
+                                backgroundColor: 'var(--brand-accent-soft)',
+                                borderColor: 'rgba(217, 119, 6, 0.5)',
+                                color: 'var(--brand-accent-text)',
+                              }}
+                            >
+                              ۩
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex items-center justify-center mx-1.5 px-2 py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border ${
+                              isPlaying
+                                ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]'
+                                : isBookmarked || isSajdah
+                                  ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border-[var(--brand-accent)]/60'
+                                  : 'bg-[var(--bg-surface-soft)] text-[var(--brand-primary-text)] border-[var(--border-strong)]'
+                            }`}
+                          >
+                            ﴿{toArabicNumeral(verse.ayah)}﴾
+                          </span>{' '}
                         </span>
-                      )}
-                      <span
-                        className={`inline-flex items-center justify-center mx-1.5 px-2 py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border ${
-                          isPlaying
-                            ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]'
-                            : isBookmarked || isSajdah
-                              ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border-[var(--brand-accent)]/60'
-                              : 'bg-[var(--bg-surface-soft)] text-[var(--brand-primary-text)] border-[var(--border-strong)]'
-                        }`}
-                      >
-                        ﴿{toArabicNumeral(verse.ayah)}﴾
-                      </span>{' '}
-                    </span>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Seçili Arapça Ayet İşlem Çubuğu */}
               {selectedArabicVerse && (
@@ -865,29 +896,44 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     </div>
 
                     {/* Arapça Ayet (Yalnızca interleaved modda) */}
-                    {bookMode === 'interleaved' && (
-                      <p
-                        dir="rtl"
-                        className="arabic-text text-right text-[var(--text-primary)] mb-3.5"
-                        style={{ fontSize: `${settings.arabicFontSize}px` }}
-                      >
-                        {verse.ar.t}
-                        {isSajdah && (
-                          <span
-                            title="Tilâvet Secdesi Ayeti"
-                            aria-label="Tilâvet Secdesi Ayeti"
-                            className="inline-flex items-center justify-center mx-1.5 px-1.5 py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
-                            style={{
-                              backgroundColor: 'var(--brand-accent-soft)',
-                              borderColor: 'rgba(217, 119, 6, 0.5)',
-                              color: 'var(--brand-accent-text)',
-                            }}
+                    {bookMode === 'interleaved' &&
+                      (() => {
+                        const tjWords = settings.tajweedEnabled
+                          ? getTjVerseWords(verse.surah, verse.ayah)
+                          : null;
+                        const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
+                        return (
+                          <p
+                            dir="rtl"
+                            className={`${useVerseTajweed ? 'arabic-tajweed' : 'arabic-text'} text-right text-[var(--text-primary)] mb-3.5`}
+                            style={{ fontSize: `${settings.arabicFontSize}px` }}
                           >
-                            ۩
-                          </span>
-                        )}
-                      </p>
-                    )}
+                            {useVerseTajweed ? (
+                              <TajweedText
+                                words={tjWords!}
+                                rules={tjRules}
+                                theme={settings.theme}
+                              />
+                            ) : (
+                              verse.ar.t
+                            )}
+                            {isSajdah && (
+                              <span
+                                title="Tilâvet Secdesi Ayeti"
+                                aria-label="Tilâvet Secdesi Ayeti"
+                                className="inline-flex items-center justify-center mx-1.5 px-1.5 py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
+                                style={{
+                                  backgroundColor: 'var(--brand-accent-soft)',
+                                  borderColor: 'rgba(217, 119, 6, 0.5)',
+                                  color: 'var(--brand-accent-text)',
+                                }}
+                              >
+                                ۩
+                              </span>
+                            )}
+                          </p>
+                        );
+                      })()}
 
                     {/* Türkçe Meal Bloğu */}
                     <div className="space-y-2.5">
