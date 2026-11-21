@@ -353,8 +353,8 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               </div>
             </div>
 
-            {/* Kelime Meali */}
-            {settings.wordByWordEnabled && (
+            {/* Kelime Meali (Yalnızca Kartlar Modunda) */}
+            {settings.wordByWordEnabled && viewMode === 'cards' && (
               <div className="space-y-1">
                 <span
                   className="text-[11px] font-bold flex items-center gap-1"
@@ -370,7 +370,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                   {(
                     [
                       { id: 'off', label: 'Kapalı' },
-                      { id: 'visible', label: 'Kartlar' },
+                      { id: 'visible', label: 'Açık' },
                       { id: 'quiz', label: 'Kendini Dene' },
                     ] as { id: WordMealMode; label: string }[]
                   ).map((opt) => {

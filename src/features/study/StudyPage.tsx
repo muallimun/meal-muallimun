@@ -15,21 +15,23 @@ import {
   Columns2,
   Eye,
   Headphones,
-  Languages,
   LayoutList,
   Menu,
   Minus,
   MonitorPlay,
+  Palette,
   Pause,
   Plus,
   RefreshCw,
   SlidersHorizontal,
   Star,
   Trophy,
+  Type,
   X,
 } from 'lucide-react';
 import { PresentationModeOverlay } from '../../components/PresentationModeOverlay';
 import { VerseShareModal } from '../../components/VerseShareModal';
+import { ARABIC_FONTS } from '../../config/assetsConfig';
 import { findMealById } from '../../config/mealsConfig';
 import { audioQueueService } from '../../services/audioQueueService';
 import {
@@ -49,7 +51,7 @@ import type {
   StudyViewMode,
   SurahBundle,
   SurahMeta,
-  WordMealMode,
+  ThemeMode,
 } from '../../types/quran';
 import { formatSurahTitle } from '../../utils/arabicUtils';
 import { buildSurahQuestionCountMap, getSurahMap } from '../../utils/poolUtils';
@@ -804,7 +806,7 @@ export const StudyPage: React.FC = () => {
                 setIsViewPopoverOpen((v) => !v);
               }}
               aria-expanded={isViewPopoverOpen}
-              title="Kelime Meali ve Yazı Boyutu Ayarları"
+              title="Yazı Boyutu, Arapça Yazı Tipi ve Tema Ayarları"
               className="h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors"
               style={{
                 backgroundColor: isViewPopoverOpen
@@ -821,63 +823,13 @@ export const StudyPage: React.FC = () => {
 
             {isViewPopoverOpen && (
               <div
-                className="absolute right-0 top-10 z-40 w-[290px] rounded-2xl border shadow-2xl p-3.5 space-y-3"
+                className="absolute right-0 top-10 z-40 w-[296px] rounded-2xl border shadow-2xl p-3.5 space-y-3.5"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-strong)',
                 }}
               >
-                {/* Kelime Meali */}
-                {settings.wordByWordEnabled && (
-                  <div className="space-y-1.5">
-                    <span
-                      className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      <Languages className="w-3.5 h-3.5" />
-                      <span>Kelime Meali</span>
-                    </span>
-                    <div
-                      className="grid grid-cols-3 gap-1 p-1 rounded-xl"
-                      style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-                    >
-                      {(
-                        [
-                          { id: 'off', label: 'Kapalı' },
-                          { id: 'visible', label: 'Kartlar' },
-                          { id: 'quiz', label: 'Kendini Dene' },
-                        ] as { id: WordMealMode; label: string }[]
-                      ).map((opt) => {
-                        const active = studyPrefs.wordMode === opt.id;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => {
-                              sfxService.play('click');
-                              updateStudyPrefs({ wordMode: opt.id });
-                            }}
-                            className="h-8 px-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
-                            style={{
-                              backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                              color:
-                                active && opt.id === 'quiz'
-                                  ? 'var(--brand-accent-text)'
-                                  : active
-                                    ? 'var(--brand-primary-text)'
-                                    : 'var(--text-secondary)',
-                              boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Hızlı Font Boyutu (Arapça & Meal) */}
+                {/* Hızlı Yazı Boyutu (Arapça & Meal) */}
                 <div className="space-y-2">
                   <span
                     className="block text-[11px] font-extrabold uppercase tracking-wider"
@@ -891,11 +843,12 @@ export const StudyPage: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          sfxService.play('click');
                           updateSettings({
                             arabicFontSize: Math.max(20, settings.arabicFontSize - 2),
-                          })
-                        }
+                          });
+                        }}
                         aria-label="Arapça yazı boyutunu küçült"
                         className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
                         style={{
@@ -907,11 +860,12 @@ export const StudyPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          sfxService.play('click');
                           updateSettings({
                             arabicFontSize: Math.min(44, settings.arabicFontSize + 2),
-                          })
-                        }
+                          });
+                        }}
                         aria-label="Arapça yazı boyutunu büyült"
                         className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
                         style={{
@@ -929,11 +883,12 @@ export const StudyPage: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          sfxService.play('click');
                           updateSettings({
                             turkishFontSize: Math.max(14, settings.turkishFontSize - 1),
-                          })
-                        }
+                          });
+                        }}
                         aria-label="Meal yazı boyutunu küçült"
                         className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
                         style={{
@@ -945,11 +900,12 @@ export const StudyPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          sfxService.play('click');
                           updateSettings({
                             turkishFontSize: Math.min(24, settings.turkishFontSize + 1),
-                          })
-                        }
+                          });
+                        }}
                         aria-label="Meal yazı boyutunu büyült"
                         className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
                         style={{
@@ -963,12 +919,100 @@ export const StudyPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Kitap Modu Sütun Düzeni + Yıldızlı Ayetler Kısayolu */}
+                {/* Hızlı Arapça Yazı Tipi Seçimi */}
                 <div
-                  className="pt-2 border-t flex items-center justify-between gap-2"
+                  className="pt-3 border-t space-y-1.5"
                   style={{ borderColor: 'var(--border-subtle)' }}
                 >
-                  {viewMode === 'book' && (
+                  <label
+                    htmlFor="quick-arabic-font-select"
+                    className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <Type className="w-3.5 h-3.5" />
+                    <span>Arapça Yazı Tipi</span>
+                  </label>
+                  <select
+                    id="quick-arabic-font-select"
+                    value={settings.arabicFont}
+                    onChange={(e) => {
+                      sfxService.play('click');
+                      updateSettings({ arabicFont: e.target.value });
+                    }}
+                    className="w-full h-9 px-2.5 rounded-xl border text-xs font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-600/40"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {ARABIC_FONTS.map((font) => (
+                      <option key={font.id} value={font.label}>
+                        {font.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Hızlı Tema Seçici (Açık / Krem / Gece) */}
+                <div
+                  className="pt-3 border-t space-y-1.5"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
+                  <span
+                    className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <Palette className="w-3.5 h-3.5" />
+                    <span>Tema</span>
+                  </span>
+                  <div
+                    className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                    style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                  >
+                    {(
+                      [
+                        { id: 'light', label: 'Açık', swatch: '#FFFFFF' },
+                        { id: 'cream', label: 'Krem', swatch: '#FAF6EE' },
+                        { id: 'dark', label: 'Gece', swatch: '#0B1314' },
+                      ] as { id: ThemeMode; label: string; swatch: string }[]
+                    ).map((opt) => {
+                      const active = settings.theme === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            updateSettings({ theme: opt.id });
+                          }}
+                          className="h-8 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                            color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                            boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                          }}
+                        >
+                          <span
+                            className="w-3 h-3 rounded-full border shrink-0"
+                            style={{
+                              backgroundColor: opt.swatch,
+                              borderColor: 'var(--border-strong)',
+                            }}
+                          />
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Kitap Modu Sütun Düzeni */}
+                {viewMode === 'book' && (
+                  <div
+                    className="pt-3 border-t"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -977,7 +1021,7 @@ export const StudyPage: React.FC = () => {
                           pageLayout: studyPrefs.pageLayout === 'single' ? 'double_mushaf' : 'single',
                         });
                       }}
-                      className="flex-1 h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -987,26 +1031,8 @@ export const StudyPage: React.FC = () => {
                       <Columns2 className="w-3.5 h-3.5" />
                       <span>{studyPrefs.pageLayout === 'single' ? 'Çift Sütun' : 'Tek Sütun'}</span>
                     </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setIsViewPopoverOpen(false);
-                      setIsFavoritesDrawerOpen(true);
-                    }}
-                    className="flex-1 h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                      color: 'var(--brand-accent-text)',
-                    }}
-                  >
-                    <Star className="w-3.5 h-3.5" />
-                    <span>Yıldızlı ({bookmarkedItems.length})</span>
-                  </button>
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1288,6 +1314,7 @@ export const StudyPage: React.FC = () => {
           jumpToAyahNo={jumpToAyahNo}
           jumpNonce={jumpNonce}
           onToggleBookmark={toggleBookmarkAyah}
+          onChangeWordMode={(mode) => updateStudyPrefs({ wordMode: mode })}
           onPlayFromVerse={(v) => handlePlayFromVerse(v, false)}
           onPlayMealFromVerse={handlePlayMealFromVerse}
           onShareVerse={handleShareVerse}

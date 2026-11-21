@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  Languages,
   Search,
   X,
 } from 'lucide-react';
@@ -34,6 +35,7 @@ interface VerseCardsViewProps {
   jumpToAyahNo: number | null;
   jumpNonce: number;
   onToggleBookmark: (ayahId: number) => void;
+  onChangeWordMode: (mode: WordMealMode) => void;
   onPlayFromVerse: (verse: CombinedVerse) => void;
   onPlayMealFromVerse: (verse: CombinedVerse) => void;
   onShareVerse: (verse: CombinedVerse, surahMeta: SurahMeta) => void;
@@ -57,6 +59,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   jumpToAyahNo,
   jumpNonce,
   onToggleBookmark,
+  onChangeWordMode,
   onPlayFromVerse,
   onPlayMealFromVerse,
   onShareVerse,
@@ -359,7 +362,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto">
+          <div className="flex flex-wrap items-center gap-1.5">
             {(
               [
                 { id: 'all', label: `Tümü (${counts.all})` },
@@ -378,7 +381,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                     setFilterMode(chip.id);
                     setVisibleCount(BATCH_SIZE);
                   }}
-                  className="min-h-[34px] px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap shrink-0 tabular-nums"
+                  className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap shrink-0 tabular-nums"
                   style={{
                     backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface)',
                     borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
@@ -391,6 +394,82 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
             })}
           </div>
         </div>
+
+        {/* Satır 3: Kelime Meali & Kendini Dene (Yalnızca Kartlar Modunda) */}
+        {settings.wordByWordEnabled && (
+          <div
+            className="px-4 py-2 sm:px-5 border-t flex flex-wrap items-center justify-between gap-2"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className="text-xs font-bold flex items-center gap-1.5 whitespace-nowrap"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <Languages className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                <span>Kelime Meali:</span>
+              </span>
+              <div
+                role="group"
+                aria-label="Kelime meali görünümü"
+                className="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl border"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                {(
+                  [
+                    { id: 'off', label: 'Kapalı' },
+                    { id: 'visible', label: 'Açık' },
+                    { id: 'quiz', label: 'Kendini Dene' },
+                  ] as { id: WordMealMode; label: string }[]
+                ).map((opt) => {
+                  const active = wordMode === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onChangeWordMode(opt.id);
+                      }}
+                      className="min-h-[30px] px-2.5 sm:px-3 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                      style={{
+                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                        color:
+                          active && opt.id === 'quiz'
+                            ? 'var(--brand-accent-text)'
+                            : active
+                              ? 'var(--brand-primary-text)'
+                              : 'var(--text-secondary)',
+                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {wordMode === 'quiz' && (
+              <span
+                className="text-[11px] sm:text-xs font-semibold px-2.5 py-1 rounded-lg border"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                Türkçe anlamı görmek için kelimelere dokunun
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 4. Ayet Kartları Listesi + Sayfa Geçiş Ayırıcıları */}

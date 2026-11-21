@@ -499,8 +499,8 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         </div>
       )}
 
-      {/* Etkileşimli Kelime-Kelime Meal */}
-      {!mealAudioFocusOnly && contentMode !== 'meal_only' && showWordGrid && verse.words.length > 0 && (
+      {/* Etkileşimli Kelime-Kelime Meal (Sadece Meal modunda da Kelime Meali açıldığında görünür) */}
+      {!mealAudioFocusOnly && showWordGrid && verse.words.length > 0 && (
         <div
           className="mb-4 p-3.5 rounded-xl border"
           style={{
