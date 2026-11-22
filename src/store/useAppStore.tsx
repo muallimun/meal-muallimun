@@ -976,7 +976,11 @@ interface AppContextValue {
   openQuickResearch: (surah: number, startAyah: number, endAyah?: number, page?: number) => void;
   closeQuickResearch: () => void;
   memorizeLaunchTarget: MemorizeLaunchTarget | null;
-  navigateToMemorizeUnit: (unitId: string, autoStart?: boolean) => void;
+  navigateToMemorizeUnit: (
+    unitId?: string,
+    autoStart?: boolean,
+    openHubTab?: 'pool' | 'classical' | 'hifz_map',
+  ) => void;
   clearMemorizeLaunchTarget: () => void;
   isSidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
@@ -2148,13 +2152,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setQuickMemorizeSeed(null);
   }, []);
 
-  const navigateToMemorizeUnit = useCallback((unitId: string, autoStart = true) => {
-    sfxService.play('click');
-    setIsExamActive(false);
-    setMemorizeLaunchTarget({ unitId, autoStart, nonce: Date.now() });
-    setActiveTabState('memorize');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  const navigateToMemorizeUnit = useCallback(
+    (unitId?: string, autoStart = true, openHubTab?: 'pool' | 'classical' | 'hifz_map') => {
+      sfxService.play('click');
+      setIsExamActive(false);
+      setMemorizeLaunchTarget({ unitId, autoStart, openHubTab, nonce: Date.now() });
+      setActiveTabState('memorize');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [],
+  );
 
   const clearMemorizeLaunchTarget = useCallback(() => {
     setMemorizeLaunchTarget(null);

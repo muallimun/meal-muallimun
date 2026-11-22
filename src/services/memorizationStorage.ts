@@ -2,6 +2,9 @@ import { getRangesSignature } from '../data/curatedAshrPresets';
 import type {
   ActiveSessionSnapshot,
   AyahRange,
+  ClassicalHifzLogEntry,
+  ClassicalHifzPlan,
+  Juz30HifzMode,
   MemorizationBackupPayload,
   MemorizationPrefs,
   MemorizationUnit,
@@ -23,6 +26,7 @@ const LS_TIMESTAMPS_KEY = 'muallimun_memorization_v1_timestamps';
 const KEY_UNITS = 'units';
 const KEY_PREFS = 'prefs';
 const KEY_ACTIVE_SESSION = 'active_session';
+const KEY_CLASSICAL_PLAN = 'classical_plan';
 
 interface IdbEnvelope<T> {
   __envelopeV1: true;
@@ -458,6 +462,114 @@ export function sanitizeActiveSession(raw: unknown): ActiveSessionSnapshot | nul
   };
 }
 
+export function sanitizeClassicalPlan(raw: unknown): ClassicalHifzPlan | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const p = raw as Partial<ClassicalHifzPlan>;
+
+  const juz30Mode: Juz30HifzMode =
+    p.juz30Mode === 'short_surahs_pre_has' ||
+    p.juz30Mode === 'juz30_pre_has' ||
+    p.juz30Mode === 'full_from_604'
+      ? p.juz30Mode
+      : 'short_surahs_pre_has';
+
+  const weeklyTargetDays: 5 | 6 | 7 =
+    p.weeklyTargetDays === 5 || p.weeklyTargetDays === 6 || p.weeklyTargetDays === 7
+      ? p.weeklyTargetDays
+      : 6;
+
+  const maxRound = juz30Mode === 'full_from_604' ? 24 : 20;
+  const currentRound =
+    typeof p.currentRound === 'number' && Number.isFinite(p.currentRound)
+      ? Math.max(1, Math.min(maxRound, Math.trunc(p.currentRound)))
+      : 1;
+
+  const maxJuz = juz30Mode === 'juz30_pre_has' ? 29 : 30;
+  const currentJuz =
+    typeof p.currentJuz === 'number' && Number.isFinite(p.currentJuz)
+      ? Math.max(1, Math.min(maxJuz, Math.trunc(p.currentJuz)))
+      : 1;
+
+  const hasSet = new Set<number>();
+  if (Array.isArray(p.hasPages)) {
+    for (const item of p.hasPages) {
+      const n = Math.trunc(Number(item));
+      if (Number.isFinite(n) && n >= 1 && n <= 604) {
+        hasSet.add(n);
+      }
+    }
+  }
+  const hasPages = Array.from(hasSet).sort((a, b) => a - b);
+
+  const recentLogs: ClassicalHifzLogEntry[] = [];
+  if (Array.isArray(p.recentLogs)) {
+    for (const entry of p.recentLogs) {
+      if (!entry || typeof entry !== 'object') continue;
+      const e = entry as Partial<ClassicalHifzLogEntry>;
+      const page = Math.trunc(Number(e.mushafPage));
+      const round = Math.trunc(Number(e.round));
+      const juz = Math.trunc(Number(e.juz));
+      if (
+        !Number.isFinite(page) ||
+        page < 1 ||
+        page > 604 ||
+        !Number.isFinite(round) ||
+        round < 1 ||
+        round > 24 ||
+        !Number.isFinite(juz) ||
+        juz < 1 ||
+        juz > 30
+      ) {
+        continue;
+      }
+      recentLogs.push({
+        id:
+          typeof e.id === 'string' && e.id.trim()
+            ? e.id.trim()
+            : `chl_${page}_${recentLogs.length}`,
+        round,
+        juz,
+        mushafPage: page,
+        completedAt:
+          typeof e.completedAt === 'number' && Number.isFinite(e.completedAt)
+            ? e.completedAt
+            : Date.now(),
+      });
+      if (recentLogs.length >= 60) break;
+    }
+  }
+
+  const now = Date.now();
+  const startedAt =
+    typeof p.startedAt === 'number' && Number.isFinite(p.startedAt) && p.startedAt > 0
+      ? p.startedAt
+      : now;
+  const updatedAt =
+    typeof p.updatedAt === 'number' && Number.isFinite(p.updatedAt) && p.updatedAt > 0
+      ? p.updatedAt
+      : startedAt;
+  const completedAt =
+    typeof p.completedAt === 'number' && Number.isFinite(p.completedAt) && p.completedAt > 0
+      ? p.completedAt
+      : hasPages.length >= 604
+        ? updatedAt
+        : null;
+
+  return {
+    version: 1,
+    isActive: typeof p.isActive === 'boolean' ? p.isActive : true,
+    juz30Mode,
+    weeklyTargetDays,
+    currentRound,
+    currentJuz,
+    hasPages,
+    startedAt,
+    updatedAt,
+    completedAt,
+    recentLogs,
+  };
+}
+
 // ============================================================================
 // Sabak · Sabkî · Menzil Aralıklı Tekrar Takvimi (1 – 3 – 7 – 14 – 30 gün)
 // ============================================================================
@@ -643,6 +755,10 @@ export function readPrefsSync(): MemorizationPrefs {
 
 export function readActiveSessionSync(): ActiveSessionSnapshot | null {
   return sanitizeActiveSession(lsGet<unknown>(KEY_ACTIVE_SESSION));
+}
+
+export function readClassicalPlanSync(): ClassicalHifzPlan | null {
+  return sanitizeClassicalPlan(lsGet<unknown>(KEY_CLASSICAL_PLAN));
 }
 
 async function writeUnitsInternal(units: MemorizationUnit[]): Promise<MemorizationUnit[]> {
@@ -838,6 +954,66 @@ export async function saveActiveSession(
   notifyListeners();
 }
 
+export async function loadClassicalPlan(): Promise<ClassicalHifzPlan | null> {
+  const rawIdb = await idbGet<unknown>(KEY_CLASSICAL_PLAN);
+  const unwrapped = unwrapIdbRecord<unknown>(rawIdb);
+  const lsUpdatedAt = readLsTimestamps()[KEY_CLASSICAL_PLAN] ?? 0;
+
+  if (lsUpdatedAt > unwrapped.updatedAt) {
+    const fromLs = readClassicalPlanSync();
+    if (fromLs) {
+      const healEnvelope: IdbEnvelope<ClassicalHifzPlan> = {
+        __envelopeV1: true,
+        updatedAt: lsUpdatedAt,
+        data: fromLs,
+      };
+      await idbSet(KEY_CLASSICAL_PLAN, healEnvelope);
+    } else {
+      await idbSet(KEY_CLASSICAL_PLAN, null);
+    }
+    return fromLs;
+  }
+
+  if (unwrapped.hasValue) {
+    const clean = sanitizeClassicalPlan(unwrapped.data);
+    lsSet(KEY_CLASSICAL_PLAN, clean);
+    if (unwrapped.updatedAt > 0) {
+      writeLsTimestamp(KEY_CLASSICAL_PLAN, unwrapped.updatedAt);
+    }
+    return clean;
+  }
+
+  const fromLs = readClassicalPlanSync();
+  if (fromLs) {
+    const ts = lsUpdatedAt > 0 ? lsUpdatedAt : Date.now();
+    const seedEnvelope: IdbEnvelope<ClassicalHifzPlan> = {
+      __envelopeV1: true,
+      updatedAt: ts,
+      data: fromLs,
+    };
+    await idbSet(KEY_CLASSICAL_PLAN, seedEnvelope);
+  }
+  return fromLs;
+}
+
+export async function saveClassicalPlan(plan: ClassicalHifzPlan | null): Promise<void> {
+  const clean = plan ? sanitizeClassicalPlan(plan) : null;
+  const now = Date.now();
+  lsSet(KEY_CLASSICAL_PLAN, clean);
+  writeLsTimestamp(KEY_CLASSICAL_PLAN, now);
+  if (clean) {
+    const envelope: IdbEnvelope<ClassicalHifzPlan> = {
+      __envelopeV1: true,
+      updatedAt: now,
+      data: clean,
+    };
+    await idbSet(KEY_CLASSICAL_PLAN, envelope);
+  } else {
+    await idbSet(KEY_CLASSICAL_PLAN, null);
+  }
+  notifyListeners();
+}
+
 // ============================================================================
 // JSON Yedekleme (Ön Doğrulama / Dışa Aktar / İçe Aktar)
 // ============================================================================
@@ -848,6 +1024,8 @@ export interface MemorizationBackupValidationResult {
   units: MemorizationUnit[];
   prefs: MemorizationPrefs | null;
   activeSession: ActiveSessionSnapshot | null;
+  classicalPlan: ClassicalHifzPlan | null;
+  hasClassicalPlanField: boolean;
   unitsCount: number;
   hasPrefs: boolean;
   hasActiveSession: boolean;
@@ -866,6 +1044,8 @@ export function validateMemorizationBackupPayload(
       units: [],
       prefs: null,
       activeSession: null,
+      classicalPlan: null,
+      hasClassicalPlanField: false,
       unitsCount: 0,
       hasPrefs: false,
       hasActiveSession: false,
@@ -880,6 +1060,8 @@ export function validateMemorizationBackupPayload(
       units: [],
       prefs: null,
       activeSession: null,
+      classicalPlan: null,
+      hasClassicalPlanField: false,
       unitsCount: 0,
       hasPrefs: false,
       hasActiveSession: false,
@@ -894,6 +1076,8 @@ export function validateMemorizationBackupPayload(
       units: [],
       prefs: null,
       activeSession: null,
+      classicalPlan: null,
+      hasClassicalPlanField: false,
       unitsCount: 0,
       hasPrefs: false,
       hasActiveSession: false,
@@ -910,11 +1094,19 @@ export function validateMemorizationBackupPayload(
       ? sanitizeActiveSession(record.activeSession)
       : null;
 
+  const hasClassicalPlanField = 'classicalPlan' in record;
+  const classicalPlan =
+    record.classicalPlan !== undefined && record.classicalPlan !== null
+      ? sanitizeClassicalPlan(record.classicalPlan)
+      : null;
+
   return {
     valid: true,
     units: incomingUnits,
     prefs,
     activeSession,
+    classicalPlan,
+    hasClassicalPlanField,
     unitsCount: incomingUnits.length,
     hasPrefs: prefs !== null,
     hasActiveSession: activeSession !== null,
@@ -922,10 +1114,11 @@ export function validateMemorizationBackupPayload(
 }
 
 export async function createBackupPayload(): Promise<MemorizationBackupPayload> {
-  const [units, prefs, activeSession] = await Promise.all([
+  const [units, prefs, activeSession, classicalPlan] = await Promise.all([
     loadUnits(),
     loadPrefs(),
     loadActiveSession(),
+    loadClassicalPlan(),
   ]);
   return {
     app: 'muallimun-memorization',
@@ -934,6 +1127,7 @@ export async function createBackupPayload(): Promise<MemorizationBackupPayload> 
     units,
     prefs,
     activeSession,
+    classicalPlan,
   };
 }
 
@@ -958,6 +1152,9 @@ export async function importBackupPayload(
     if (mode === 'replace') {
       await writeUnitsInternal(validation.units);
       await saveActiveSession(validation.activeSession);
+      if (validation.hasClassicalPlanField) {
+        await saveClassicalPlan(validation.classicalPlan);
+      }
       return {
         importedCount: validation.units.length,
         skippedDuplicates: 0,
@@ -987,6 +1184,26 @@ export async function importBackupPayload(
     const merged = [...toAdd, ...existing];
     await writeUnitsInternal(merged);
 
+    if (validation.classicalPlan) {
+      const currentPlan = await loadClassicalPlan();
+      if (!currentPlan) {
+        await saveClassicalPlan(validation.classicalPlan);
+      } else {
+        const mergedHas = Array.from(
+          new Set([...currentPlan.hasPages, ...validation.classicalPlan.hasPages]),
+        ).sort((a, b) => a - b);
+        const preferred =
+          validation.classicalPlan.updatedAt > currentPlan.updatedAt
+            ? validation.classicalPlan
+            : currentPlan;
+        await saveClassicalPlan({
+          ...preferred,
+          hasPages: mergedHas,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
     return {
       importedCount: toAdd.length,
       skippedDuplicates,
@@ -1000,6 +1217,7 @@ export const memorizationStorage = {
   readUnitsSync,
   readPrefsSync,
   readActiveSessionSync,
+  readClassicalPlanSync,
   loadUnits,
   saveUnits,
   upsertUnit,
@@ -1009,7 +1227,10 @@ export const memorizationStorage = {
   savePrefs,
   loadActiveSession,
   saveActiveSession,
+  loadClassicalPlan,
+  saveClassicalPlan,
   sanitizeActiveSession,
+  sanitizeClassicalPlan,
   validateBackupPayload: validateMemorizationBackupPayload,
   createBackupPayload,
   importBackupPayload,

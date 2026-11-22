@@ -69,13 +69,14 @@ const QUICKSTART_ROUTES: QuickStartRouteItem[] = [
   {
     id: 'hifz_student',
     title: 'Hafızlık & Ezber Öğrencisi',
-    audience: 'Ayet · Sayfa · Cüz Ezber Atölyesi',
+    audience: 'Ayet · Sayfa · Klasik 30 Cüz Ham–Has',
     description:
-      'Sistematik tekrar döngüleri (aralıklı tekrar), perdeleme ile hafıza yoklama, ayet başı geçiş (rabt) testi, mikrofonla kendi sesini kaydetme ve 604 sayfalık hıfz haritasıyla çalışın.',
+      'Geleneksel 20 tur Ham–Has (30 cüz dönüşümlü) hafızlık takibi, aralıklı tekrar döngüleri, perdeleme ile hafıza yoklama, ayet başı geçiş (rabt) testi, mikrofonla kendi sesini kaydetme ve 604 sayfalık hıfz haritasıyla çalışın.',
     ctaLabel: 'Ezber Atölyesini Aç',
     targetTab: 'memorize',
     icon: Brain,
-    keywords: 'ezber hafızlık zen oturum tekrar rabt mikrofon ses kaydı hıfz haritası perdeleme',
+    keywords:
+      'ezber hafızlık klasik 20 tur ham has 30 cüz zen oturum tekrar rabt mikrofon ses kaydı hıfz haritası perdeleme',
   },
   {
     id: 'teacher_classroom',

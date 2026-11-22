@@ -7,13 +7,15 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { sfxService } from '../../services/sfxService';
-import type { MemorizationUnit } from '../../types/memorization';
+import type { ClassicalHifzPlan, MemorizationUnit } from '../../types/memorization';
 import { parseVerseKey } from '../../types/memorization';
 import type { MetaData } from '../../types/quran';
+import { resolveCurrentTurnLesson } from '../../utils/classicalHifzUtils';
 
 interface HifzMapViewProps {
   units: MemorizationUnit[];
   meta: MetaData;
+  classicalPlan?: ClassicalHifzPlan | null;
   onSelectSurah: (surahNo: number) => void;
 }
 
@@ -24,6 +26,7 @@ const TOTAL_QURAN_AYAHS = 6236;
 export const HifzMapView: React.FC<HifzMapViewProps> = ({
   units,
   meta,
+  classicalPlan,
   onSelectSurah,
 }) => {
   const [selectedJuz, setSelectedJuz] = useState<number | 'all'>('all');
@@ -46,6 +49,28 @@ export const HifzMapView: React.FC<HifzMapViewProps> = ({
           if (!memorizedBySurah.has(surah)) memorizedBySurah.set(surah, new Set());
           memorizedBySurah.get(surah)!.add(ayah);
         } else {
+          allWorkingKeys.add(key);
+          if (!workingBySurah.has(surah)) workingBySurah.set(surah, new Set());
+          workingBySurah.get(surah)!.add(ayah);
+        }
+      }
+    }
+
+    // Klasik Hafızlık (30 Cüz) Has sayfalarını "ezberlenen", aktif Ham sayfasını "çalışılan" olarak birleştir
+    if (classicalPlan?.isActive) {
+      const hasPageSet = new Set(classicalPlan.hasPages);
+      const activeHamPage = resolveCurrentTurnLesson(classicalPlan).hamPage;
+      for (const row of meta.verseIndex) {
+        const surah = row[1];
+        const ayah = row[2];
+        const page = row[4];
+        if (hasPageSet.has(page)) {
+          const key = `${surah}:${ayah}`;
+          allMemorizedKeys.add(key);
+          if (!memorizedBySurah.has(surah)) memorizedBySurah.set(surah, new Set());
+          memorizedBySurah.get(surah)!.add(ayah);
+        } else if (activeHamPage && page === activeHamPage) {
+          const key = `${surah}:${ayah}`;
           allWorkingKeys.add(key);
           if (!workingBySurah.has(surah)) workingBySurah.set(surah, new Set());
           workingBySurah.get(surah)!.add(ayah);
@@ -113,7 +138,7 @@ export const HifzMapView: React.FC<HifzMapViewProps> = ({
       totalWorkingAyahs,
       overallPct,
     };
-  }, [units, meta.surahs]);
+  }, [units, meta.surahs, meta.verseIndex, classicalPlan]);
 
   const filteredSurahs = useMemo(() => {
     const q = searchQuery.trim().toLocaleLowerCase('tr-TR');

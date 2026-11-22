@@ -137,9 +137,37 @@ export interface QuickMemorizeSeed {
   nonce: number;
 }
 
+export type Juz30HifzMode =
+  | 'short_surahs_pre_has' // Önerilen: 601-604 (Asr-Nâs) baştan Has sayılır; 30. cüz 600->581 arası 20 sayfada diğer cüzlerle tam eşzamanlı yürür
+  | 'juz30_pre_has' // 30. cüzün tamamı (581-604) önceden ezberlenmiş Has sayılır; döngü 1..29. cüzlerde yürür
+  | 'full_from_604'; // 604. sayfadan geriye 24 sayfanın tamamı sırayla alınır
+
+export interface ClassicalHifzLogEntry {
+  id: string;
+  round: number; // 1..24
+  juz: number; // 1..30
+  mushafPage: number; // 1..604 (Has'a terfi eden Ham sayfası)
+  completedAt: number; // ms timestamp
+}
+
+export interface ClassicalHifzPlan {
+  version: 1;
+  isActive: boolean;
+  juz30Mode: Juz30HifzMode;
+  weeklyTargetDays: 5 | 6 | 7;
+  currentRound: number; // 1..24 (aktif tur)
+  currentJuz: number; // 1..30 (aktif cüz)
+  hasPages: number[]; // Sağlam (Has) tamamlanmış Mushaf sayfaları (1..604, sıralı ve tekil)
+  startedAt: number;
+  updatedAt: number;
+  completedAt?: number | null;
+  recentLogs: ClassicalHifzLogEntry[]; // Son 60 ders kaydı (Geri Al ve geçmiş takibi için)
+}
+
 export interface MemorizeLaunchTarget {
-  unitId: string;
+  unitId?: string;
   autoStart: boolean;
+  openHubTab?: 'pool' | 'classical' | 'hifz_map';
   nonce: number;
 }
 
@@ -159,6 +187,7 @@ export interface MemorizationBackupPayload {
   units: MemorizationUnit[];
   prefs: MemorizationPrefs;
   activeSession?: ActiveSessionSnapshot | null;
+  classicalPlan?: ClassicalHifzPlan | null;
 }
 
 export const RETENTION_STAGE_META: Record<

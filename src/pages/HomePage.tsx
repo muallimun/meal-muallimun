@@ -41,10 +41,19 @@ import { dataService, resolvePlaylistItemStartLocation } from '../services/dataS
 import { isUnitDueForReview, memorizationStorage } from '../services/memorizationStorage';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
-import type { ActiveSessionSnapshot, MemorizationUnit } from '../types/memorization';
+import type {
+  ActiveSessionSnapshot,
+  ClassicalHifzPlan,
+  MemorizationUnit,
+} from '../types/memorization';
 import { RETENTION_STAGE_META } from '../types/memorization';
 import type { AudioPlaylistItem, SurahMeta } from '../types/quran';
 import { formatSafeArabicTitle } from '../utils/arabicUtils';
+import {
+  computeClassicalStats,
+  resolveCurrentTurnLesson,
+  TOTAL_MUSHAF_PAGES,
+} from '../utils/classicalHifzUtils';
 import {
   buildSurahQuestionCountMap,
   formatNumberTr,
@@ -113,6 +122,7 @@ export const HomePage: React.FC = () => {
     setActiveTab,
     navigateToStudy,
     navigateToExam,
+    navigateToMemorizeUnit,
     openPoolModal,
     openSettingsModal,
     openUserGuide,
@@ -132,24 +142,37 @@ export const HomePage: React.FC = () => {
   const [memActiveSession, setMemActiveSession] = useState<ActiveSessionSnapshot | null>(() =>
     memorizationStorage.readActiveSessionSync(),
   );
+  const [classicalPlan, setClassicalPlan] = useState<ClassicalHifzPlan | null>(() =>
+    memorizationStorage.readClassicalPlanSync(),
+  );
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       memorizationStorage.loadUnits(),
       memorizationStorage.loadActiveSession(),
+      memorizationStorage.loadClassicalPlan(),
     ])
-      .then(([units, session]) => {
+      .then(([units, session, plan]) => {
         if (!cancelled) {
           setMemUnits(units);
           setMemActiveSession(session);
+          setClassicalPlan(plan);
         }
       })
       .catch(() => {
         // Senkron önbellek zaten yüklü
       });
+    const unsubscribe = memorizationStorage.subscribe(() => {
+      if (!cancelled) {
+        setMemUnits(memorizationStorage.readUnitsSync());
+        setMemActiveSession(memorizationStorage.readActiveSessionSync());
+        setClassicalPlan(memorizationStorage.readClassicalPlanSync());
+      }
+    });
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, []);
 
@@ -219,6 +242,26 @@ export const HomePage: React.FC = () => {
         hasProgress: true,
         dueAyahCount,
         dueUnitCount: dueUnits.length,
+        openClassicalTab: false,
+      };
+    }
+
+    if (classicalPlan?.isActive) {
+      const lesson = resolveCurrentTurnLesson(classicalPlan);
+      const stats = computeClassicalStats(classicalPlan);
+      return {
+        title: lesson.isAllCompleted
+          ? 'Klasik Hafızlık · 604 Sayfa Tamamlandı'
+          : `Klasik Hafızlık · ${lesson.round}. Tur · ${lesson.juz}. Cüz (Sayfa ${lesson.hamPage})`,
+        detail: `Has: ${stats.hasCount}/${TOTAL_MUSHAF_PAGES} Sayfa (%${stats.percent})${
+          lesson.juzHasPages.length > 0
+            ? ` · ${lesson.juz}. Cüzde ${lesson.juzHasPages.length} Has sayfa`
+            : ''
+        }`,
+        hasProgress: true,
+        dueAyahCount,
+        dueUnitCount: dueUnits.length,
+        openClassicalTab: true,
       };
     }
 
@@ -236,17 +279,19 @@ export const HomePage: React.FC = () => {
         hasProgress: true,
         dueAyahCount,
         dueUnitCount: dueUnits.length,
+        openClassicalTab: false,
       };
     }
 
     return {
       title: 'Ezber Çalışması',
-      detail: 'Rükû veya sure bazlı ezber başlatın',
+      detail: 'Klasik 30 Cüz hafızlık veya sure/rükû bazlı ezber başlatın',
       hasProgress: false,
       dueAyahCount: 0,
       dueUnitCount: 0,
+      openClassicalTab: false,
     };
-  }, [memActiveSession, memUnits]);
+  }, [memActiveSession, memUnits, classicalPlan]);
 
   const activeReciter = useMemo(
     () => findReciterById(audioPrefs.arabicReciterId, manifest),
@@ -1268,7 +1313,11 @@ export const HomePage: React.FC = () => {
                   type="button"
                   onClick={() => {
                     sfxService.play('click');
-                    setActiveTab('memorize');
+                    if (memorizationSummary.openClassicalTab) {
+                      navigateToMemorizeUnit(undefined, false, 'classical');
+                    } else {
+                      setActiveTab('memorize');
+                    }
                   }}
                   className="min-h-[36px] px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
                   style={{

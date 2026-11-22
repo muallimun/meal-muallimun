@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Compass,
   Download,
   Headphones,
   HelpCircle,
@@ -43,14 +44,22 @@ import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   ActiveSessionSnapshot,
+  ClassicalHifzPlan,
   CuratedPresetGroupId,
   CuratedPresetItem,
   MemorizationPrefs,
   MemorizationUnit,
   RetentionStage,
   ZenSessionLaunchOptions,
+  ZenSessionMode,
 } from '../../types/memorization';
 import { RETENTION_STAGE_META } from '../../types/memorization';
+import {
+  advanceClassicalLesson,
+  computeClassicalStats,
+  resolveCurrentTurnLesson,
+} from '../../utils/classicalHifzUtils';
+import { ClassicalHifzView } from './ClassicalHifzView';
 import { CreatePoolModal } from './CreatePoolModal';
 import { HifzMapView } from './HifzMapView';
 import { QuickStartDrawer } from './QuickStartDrawer';
@@ -58,7 +67,7 @@ import { RabtQuizModal } from './RabtQuizModal';
 import { ZenSessionView } from './ZenSessionView';
 
 type StageFilter = 'all' | 'due' | RetentionStage;
-type HubViewTab = 'pool' | 'hifz_map';
+type HubViewTab = 'pool' | 'classical' | 'hifz_map';
 
 const NEXT_STAGE: Record<RetentionStage, RetentionStage> = {
   raw: 'fresh',
@@ -82,14 +91,22 @@ export const MemorizationHubPage: React.FC = () => {
   const [activeSession, setActiveSession] = useState<ActiveSessionSnapshot | null>(() =>
     memorizationStorage.readActiveSessionSync(),
   );
+  const [classicalPlan, setClassicalPlan] = useState<ClassicalHifzPlan | null>(() =>
+    memorizationStorage.readClassicalPlanSync(),
+  );
 
   const [hubView, setHubView] = useState<HubViewTab>('pool');
   const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [drawerUnitId, setDrawerUnitId] = useState<string | null>(null);
   const [rabtQuizUnitId, setRabtQuizUnitId] = useState<string | null>(null);
+  const [adHocRabtUnit, setAdHocRabtUnit] = useState<MemorizationUnit | null>(null);
+  const [pendingHamCompletePage, setPendingHamCompletePage] = useState<number | null>(null);
   const [zenSession, setZenSession] = useState<{
-    unitId: string;
+    unitId?: string;
+    adHocUnit?: MemorizationUnit;
+    adHocContext?: { mushafPage?: number; isTodayHam?: boolean };
+    completed?: boolean;
     snapshot: ActiveSessionSnapshot | null;
     launchOptions?: ZenSessionLaunchOptions;
   } | null>(null);
@@ -121,14 +138,16 @@ export const MemorizationHubPage: React.FC = () => {
   }, [toastMessage]);
 
   const refreshFromStorage = useCallback(async () => {
-    const [u, p, s] = await Promise.all([
+    const [u, p, s, c] = await Promise.all([
       memorizationStorage.loadUnits(),
       memorizationStorage.loadPrefs(),
       memorizationStorage.loadActiveSession(),
+      memorizationStorage.loadClassicalPlan(),
     ]);
     setUnits(u);
     setPrefs(p);
     setActiveSession(s);
+    setClassicalPlan(c);
   }, []);
 
   useEffect(() => {
@@ -137,12 +156,20 @@ export const MemorizationHubPage: React.FC = () => {
       setUnits(memorizationStorage.readUnitsSync());
       setPrefs(memorizationStorage.readPrefsSync());
       setActiveSession(memorizationStorage.readActiveSessionSync());
+      setClassicalPlan(memorizationStorage.readClassicalPlanSync());
     });
   }, [refreshFromStorage]);
 
-  // Okuma ekranındaki "Buradan Ezber Başlat" akışından gelen doğrudan açılış hedefini işle
+  // Okuma ekranından veya Ana Sayfa'dan gelen doğrudan açılış hedefini işle
   useEffect(() => {
     if (!memorizeLaunchTarget) return;
+    if (memorizeLaunchTarget.openHubTab) {
+      setHubView(memorizeLaunchTarget.openHubTab);
+    }
+    if (!memorizeLaunchTarget.unitId) {
+      clearMemorizeLaunchTarget();
+      return;
+    }
     const latestUnits = memorizationStorage.readUnitsSync();
     setUnits(latestUnits);
     const targetUnit = latestUnits.find((u) => u.id === memorizeLaunchTarget.unitId);
@@ -175,6 +202,47 @@ export const MemorizationHubPage: React.FC = () => {
       return next;
     });
   }, []);
+
+  const handleChangeClassicalPlan = useCallback((nextPlan: ClassicalHifzPlan | null) => {
+    setClassicalPlan(nextPlan);
+    void memorizationStorage.saveClassicalPlan(nextPlan);
+  }, []);
+
+  const handleStartZenAdHoc = useCallback(
+    (
+      unit: MemorizationUnit,
+      mode: ZenSessionMode,
+      context: { mushafPage?: number; isTodayHam?: boolean },
+    ) => {
+      setPendingHamCompletePage(null);
+      setZenSession({
+        adHocUnit: unit,
+        adHocContext: context,
+        completed: false,
+        snapshot: null,
+        launchOptions: { mode },
+      });
+    },
+    [],
+  );
+
+  const handleStartRabtAdHoc = useCallback((unit: MemorizationUnit) => {
+    setRabtQuizUnitId(null);
+    setAdHocRabtUnit(unit);
+  }, []);
+
+  const handleConfirmPendingHamComplete = useCallback(() => {
+    if (!classicalPlan?.isActive || pendingHamCompletePage === null) {
+      setPendingHamCompletePage(null);
+      return;
+    }
+    const completedPage = pendingHamCompletePage;
+    const nextPlan = advanceClassicalLesson(classicalPlan);
+    handleChangeClassicalPlan(nextPlan);
+    setPendingHamCompletePage(null);
+    sfxService.play('correct');
+    showToast(`Sayfa ${completedPage} Has olarak işlendi ve yeni derse geçildi.`);
+  }, [classicalPlan, pendingHamCompletePage, handleChangeClassicalPlan, showToast]);
 
   const handleUpdateUnit = useCallback((updated: MemorizationUnit) => {
     setUnits((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
@@ -339,8 +407,10 @@ export const MemorizationHubPage: React.FC = () => {
   );
 
   const rabtQuizUnit = useMemo(
-    () => (rabtQuizUnitId ? units.find((u) => u.id === rabtQuizUnitId) ?? null : null),
-    [rabtQuizUnitId, units],
+    () =>
+      adHocRabtUnit ??
+      (rabtQuizUnitId ? units.find((u) => u.id === rabtQuizUnitId) ?? null : null),
+    [adHocRabtUnit, rabtQuizUnitId, units],
   );
 
   // Hıfz Haritası'ndan bir sure seçildiğinde havuzda varsa aç, yoksa yeni sure birimi oluşturup başlat
@@ -408,10 +478,19 @@ export const MemorizationHubPage: React.FC = () => {
     [drawerUnitId, units],
   );
 
-  const zenUnit = useMemo(
-    () => (zenSession ? units.find((u) => u.id === zenSession.unitId) ?? null : null),
-    [zenSession, units],
-  );
+  const zenUnit = useMemo(() => {
+    if (!zenSession) return null;
+    if (zenSession.adHocUnit) return zenSession.adHocUnit;
+    return zenSession.unitId ? units.find((u) => u.id === zenSession.unitId) ?? null : null;
+  }, [zenSession, units]);
+
+  const classicalTabBadge = useMemo(() => {
+    if (!classicalPlan?.isActive) return null;
+    const lesson = resolveCurrentTurnLesson(classicalPlan);
+    const stats = computeClassicalStats(classicalPlan);
+    if (lesson.isAllCompleted) return '%100';
+    return `T${lesson.round}·C${lesson.juz} · %${stats.percent}`;
+  }, [classicalPlan]);
 
   const activeGroupPresets = useMemo(
     () => CURATED_ASHR_PRESETS.filter((p) => p.group === activePresetGroup),
@@ -541,7 +620,7 @@ export const MemorizationHubPage: React.FC = () => {
         </div>
       )}
 
-      {/* Ana Görünüm Geçişi: Ezber Havuzum | Hıfz Haritam (114 Sure) */}
+      {/* Ana Görünüm Geçişi: Ezber Havuzum | Klasik Hafızlık (30 Cüz) | Sure Haritası (114 Sure) */}
       <div
         className="inline-flex items-center p-1 rounded-2xl border gap-1 max-w-full overflow-x-auto no-scrollbar"
         style={{
@@ -582,6 +661,36 @@ export const MemorizationHubPage: React.FC = () => {
         <button
           type="button"
           role="tab"
+          aria-selected={hubView === 'classical'}
+          onClick={() => {
+            sfxService.play('click');
+            setHubView('classical');
+          }}
+          className="min-h-[38px] px-3.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+          style={{
+            backgroundColor: hubView === 'classical' ? 'var(--brand-primary)' : 'transparent',
+            color: hubView === 'classical' ? '#FFFFFF' : 'var(--text-secondary)',
+          }}
+        >
+          <Compass className="w-4 h-4 shrink-0" />
+          <span>Klasik Hafızlık (30 Cüz)</span>
+          {classicalTabBadge && (
+            <span
+              className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+              style={{
+                backgroundColor:
+                  hubView === 'classical' ? 'rgba(255,255,255,0.22)' : 'var(--brand-primary-soft)',
+                color: hubView === 'classical' ? '#FFFFFF' : 'var(--brand-primary-text)',
+              }}
+            >
+              {classicalTabBadge}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          role="tab"
           aria-selected={hubView === 'hifz_map'}
           onClick={() => {
             sfxService.play('click');
@@ -594,14 +703,74 @@ export const MemorizationHubPage: React.FC = () => {
           }}
         >
           <MapIcon className="w-4 h-4 shrink-0" />
-          <span>Hıfz Haritam (114 Sure)</span>
+          <span>Sure Haritası (114 Sure)</span>
         </button>
       </div>
 
-      {hubView === 'hifz_map' && meta ? (
+      {/* Zen Oturumu Sonrası Bugünkü Ham Dersini Has Olarak İşaretleme İsteğe Bağlı Önerisi */}
+      {pendingHamCompletePage !== null &&
+        classicalPlan?.isActive &&
+        !classicalPlan.hasPages.includes(pendingHamCompletePage) && (
+          <div
+            role="region"
+            aria-label="Ham dersini Has olarak işaretle"
+            className="rounded-2xl border-2 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--brand-primary)',
+            }}
+          >
+            <div className="space-y-0.5 min-w-0">
+              <p className="text-sm font-extrabold" style={{ color: 'var(--text-primary)' }}>
+                Bugünkü Ham dersini (Sayfa {pendingHamCompletePage}) tamamladınız
+              </p>
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                Bu sayfayı Has olarak işaretleyip sıradaki derse geçmek ister misiniz?
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleConfirmPendingHamComplete}
+                className="min-h-[40px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+                style={{ backgroundColor: 'var(--brand-primary)' }}
+              >
+                <Check className="w-4 h-4 shrink-0" />
+                <span>Evet, Has Olarak İşaretle ve İlerle</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setPendingHamCompletePage(null);
+                }}
+                className="min-h-[40px] px-3 rounded-xl border text-xs font-bold cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                Şimdilik Kalsın
+              </button>
+            </div>
+          </div>
+        )}
+
+      {hubView === 'classical' ? (
+        <ClassicalHifzView
+          plan={classicalPlan}
+          meta={meta}
+          onChangePlan={handleChangeClassicalPlan}
+          onStartZenAdHoc={handleStartZenAdHoc}
+          onStartRabtAdHoc={handleStartRabtAdHoc}
+          onToast={showToast}
+        />
+      ) : hubView === 'hifz_map' && meta ? (
         <HifzMapView
           units={units}
           meta={meta}
+          classicalPlan={classicalPlan}
           onSelectSurah={(surahNo) => void handleSelectSurahFromMap(surahNo)}
         />
       ) : (
@@ -1470,7 +1639,10 @@ export const MemorizationHubPage: React.FC = () => {
       <RabtQuizModal
         isOpen={Boolean(rabtQuizUnit)}
         unit={rabtQuizUnit}
-        onClose={() => setRabtQuizUnitId(null)}
+        onClose={() => {
+          setRabtQuizUnitId(null);
+          setAdHocRabtUnit(null);
+        }}
       />
 
       {zenUnit && (
@@ -1479,9 +1651,32 @@ export const MemorizationHubPage: React.FC = () => {
           prefs={prefs}
           initialSnapshot={zenSession?.snapshot ?? null}
           launchOptions={zenSession?.launchOptions}
+          isAdHoc={Boolean(zenSession?.adHocUnit)}
           onChangePrefs={handleChangePrefs}
-          onUpdateUnit={handleUpdateUnit}
+          onSessionComplete={() => {
+            setZenSession((prev) => (prev ? { ...prev, completed: true } : prev));
+          }}
+          onUpdateUnit={(updated) => {
+            if (zenSession?.adHocUnit) {
+              setZenSession((prev) => (prev ? { ...prev, adHocUnit: updated } : prev));
+            } else {
+              handleUpdateUnit(updated);
+            }
+          }}
           onExit={() => {
+            const completedHamPage =
+              zenSession?.adHocContext?.isTodayHam &&
+              zenSession.completed &&
+              typeof zenSession.adHocContext.mushafPage === 'number'
+                ? zenSession.adHocContext.mushafPage
+                : null;
+            if (
+              completedHamPage !== null &&
+              classicalPlan?.isActive &&
+              !classicalPlan.hasPages.includes(completedHamPage)
+            ) {
+              setPendingHamCompletePage(completedHamPage);
+            }
             setZenSession(null);
             setActiveSession(memorizationStorage.readActiveSessionSync());
           }}

@@ -75,6 +75,8 @@ interface ZenSessionViewProps {
   prefs: MemorizationPrefs;
   initialSnapshot: ActiveSessionSnapshot | null;
   launchOptions?: ZenSessionLaunchOptions;
+  isAdHoc?: boolean;
+  onSessionComplete?: () => void;
   onChangePrefs: (patch: Partial<MemorizationPrefs>) => void;
   onUpdateUnit: (updated: MemorizationUnit) => void;
   onExit: () => void;
@@ -144,6 +146,8 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
   prefs,
   initialSnapshot,
   launchOptions,
+  isAdHoc = false,
+  onSessionComplete,
   onChangePrefs,
   onUpdateUnit,
   onExit,
@@ -481,8 +485,11 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
       overrideVerseKeys:
         sessionConfig.mode !== 'standard' ? sessionConfig.sessionVerseKeys : undefined,
     };
-    void memorizationStorage.saveActiveSession(snap);
+    if (!isAdHoc) {
+      void memorizationStorage.saveActiveSession(snap);
+    }
   }, [
+    isAdHoc,
     isFinished,
     unit.id,
     unit.title,
@@ -509,7 +516,9 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     setSelectedSelfEval(null);
     setScheduledEvalDays(null);
     sfxService.play('correct');
-    void memorizationStorage.saveActiveSession(null);
+    if (!isAdHoc) {
+      void memorizationStorage.saveActiveSession(null);
+    }
 
     const addedMinutes = Math.max(1, Math.round(elapsedSecRef.current / 60));
     const updated: MemorizationUnit = {
@@ -519,7 +528,8 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
       lastPracticedAt: Date.now(),
     };
     onUpdateUnit(updated);
-  }, [unit, onUpdateUnit, clearRecordedVoice]);
+    onSessionComplete?.();
+  }, [unit, isAdHoc, onUpdateUnit, onSessionComplete, clearRecordedVoice]);
 
   const playStepAtIndex = useCallback(
     (targetIdx: number) => {
