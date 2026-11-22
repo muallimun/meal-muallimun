@@ -279,6 +279,8 @@ export interface GameHudUpdate {
   statusMessage: string;
   featuredSurah?: EnrichedGameSurah | null;
   featuredNote?: string;
+  roundContextTitle?: string;
+  roundContextHint?: string;
 }
 
 export interface GameComponentProps {

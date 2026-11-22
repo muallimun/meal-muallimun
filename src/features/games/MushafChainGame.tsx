@@ -9,6 +9,7 @@ import {
   shuffleArray,
 } from './gameTypes';
 import { SPECIAL_SURAH_FAMILIES } from './surahSpecialGroups';
+import { StagePromptBanner } from './StagePromptBanner';
 
 type ChainRoundKind = 'neighbors' | 'train';
 
@@ -311,9 +312,9 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
   };
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col justify-between gap-2.5 overflow-hidden relative">
+    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-3.5 sm:gap-5 relative">
       {/* Başlık */}
-      <div className="shrink-0 space-y-1.5">
+      <div className="shrink-0 space-y-2">
         {headerLabel && (
           <div
             className={`rounded-xl px-3 py-1.5 flex items-center justify-between border ${
@@ -330,86 +331,94 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-2 px-0.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-400/20 text-amber-200 border border-amber-300/30 shrink-0">
-              {round.kind === 'neighbors' ? 'Komşu Sureler' : 'Mushaf Treni'}
-            </span>
-            <span className="text-xs sm:text-sm font-bold text-white/95 truncate">
-              {round.promptTitle}
-            </span>
-          </div>
-          {!headerLabel && (
-            <span className="text-xs font-extrabold tabular-nums text-amber-200 shrink-0">
-              Tur {roundNumber}
-              {totalRoundsLabel ? `/${totalRoundsLabel}` : ''}
-            </span>
-          )}
-        </div>
+        <StagePromptBanner
+          compact={Boolean(headerLabel)}
+          badgeIcon={<Sparkles className="w-3.5 h-3.5" />}
+          badgeLabel={round.kind === 'neighbors' ? 'Komşu Sureler' : 'Mushaf Treni'}
+          prompt={round.promptTitle}
+          progressBadge={
+            !headerLabel
+              ? `Tur ${roundNumber}${totalRoundsLabel ? `/${totalRoundsLabel}` : ''}`
+              : undefined
+          }
+        />
       </div>
 
       {/* Orta Alan: Hedef Yuvalar */}
       {isFinished ? (
-        <div className="flex-1 min-h-0 rounded-2xl border border-emerald-300/35 bg-emerald-950/35 flex flex-col items-center justify-center gap-2 p-4 text-center text-white">
-          <CheckCircle2 className="w-8 h-8 text-amber-300" />
-          <p className="text-base font-extrabold">Tüm Turlar Tamamlandı</p>
-          <p className="text-xs text-white/75">Diğer oyuncunun tamamlaması bekleniyor...</p>
+        <div className="rounded-2xl border border-emerald-300/35 bg-emerald-950/35 flex flex-col items-center justify-center gap-2 p-6 text-center text-white">
+          <CheckCircle2 className="w-9 h-9 text-amber-300" />
+          <p className="text-lg font-extrabold">Tüm Turlar Tamamlandı</p>
+          <p className="text-sm text-white/80">Diğer oyuncunun tamamlaması bekleniyor...</p>
         </div>
       ) : round.kind === 'neighbors' && round.centerSurah ? (
-        <div className="flex-1 min-h-0 flex flex-col justify-center">
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 items-stretch">
-            {renderSlotButton({
-              boardId,
-              slotIndex: 0,
-              label: 'Önceki Sure',
-              icon: <ArrowLeft className="w-3.5 h-3.5" />,
-              placed: slots[0],
-              isWrong: wrongSlots.includes(0),
-              isCleared: cleared,
-              isHighlighted: selectedSurahNo !== null && !slots[0],
-              onClick: () => handleSlotTap(0),
-            })}
-
+        <div className="w-full max-w-3xl mx-auto">
+          {/* Mobilde (<sm): Üstte tam genişlik Merkez Sure, altta 2 geniş sütunda Önceki/Sonraki yuva; sm+: klasik 3 sütun */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3.5 items-stretch">
             {/* Merkez Sabit 3B Zümrüt Sure Kartı */}
-            <div className="game-bevel-emerald rounded-2xl p-2 sm:p-3.5 flex flex-col items-center justify-center text-center gap-1">
-              <span className="text-[10px] sm:text-xs font-extrabold tabular-nums px-2 py-0.5 rounded bg-amber-400 text-amber-950">
+            <div className="col-span-2 sm:col-span-1 sm:order-2 game-bevel-emerald rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center text-center gap-1 min-h-[106px] sm:min-h-[144px]">
+              <span className="text-xs font-extrabold tabular-nums px-2.5 py-0.5 rounded bg-amber-400 text-amber-950">
                 {round.centerSurah.no}. Sure
               </span>
-              <span dir="rtl" className="font-arabic text-xl sm:text-2xl leading-tight text-amber-200">
+              <span
+                dir="rtl"
+                lang="ar"
+                className="font-arabic text-2xl sm:text-3xl lg:text-[32px] leading-tight text-amber-200"
+              >
                 {round.centerSurah.nameAr}
               </span>
-              <span className="text-xs sm:text-base font-extrabold leading-tight text-white">
+              <span className="text-base sm:text-lg lg:text-xl font-extrabold leading-tight text-white">
                 {round.centerSurah.shortNameTr}
               </span>
               {round.centerSurah.mukattaa && (
-                <span dir="rtl" className="font-arabic text-xs sm:text-sm font-bold text-amber-300">
+                <span
+                  dir="rtl"
+                  lang="ar"
+                  className="font-arabic text-base sm:text-lg font-bold text-amber-300"
+                >
                   {round.centerSurah.mukattaa.arabic}
                 </span>
               )}
             </div>
 
-            {renderSlotButton({
-              boardId,
-              slotIndex: 1,
-              label: 'Sonraki Sure',
-              icon: <ArrowRight className="w-3.5 h-3.5" />,
-              placed: slots[1],
-              isWrong: wrongSlots.includes(1),
-              isCleared: cleared,
-              isHighlighted: selectedSurahNo !== null && !slots[1],
-              onClick: () => handleSlotTap(1),
-            })}
+            <div className="sm:order-1 flex">
+              {renderSlotButton({
+                boardId,
+                slotIndex: 0,
+                label: 'Önceki Sure',
+                icon: <ArrowLeft className="w-4 h-4" />,
+                placed: slots[0],
+                isWrong: wrongSlots.includes(0),
+                isCleared: cleared,
+                isHighlighted: selectedSurahNo !== null && !slots[0],
+                onClick: () => handleSlotTap(0),
+              })}
+            </div>
+
+            <div className="sm:order-3 flex">
+              {renderSlotButton({
+                boardId,
+                slotIndex: 1,
+                label: 'Sonraki Sure',
+                icon: <ArrowRight className="w-4 h-4" />,
+                placed: slots[1],
+                isWrong: wrongSlots.includes(1),
+                isCleared: cleared,
+                isHighlighted: selectedSurahNo !== null && !slots[1],
+                onClick: () => handleSlotTap(1),
+              })}
+            </div>
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex flex-col justify-center">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+        <div className="w-full max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             {slots.map((placed, idx) =>
               renderSlotButton({
                 boardId,
                 slotIndex: idx,
                 label: `${idx + 1}. Sıra`,
-                icon: <Sparkles className="w-3 h-3" />,
+                icon: <Sparkles className="w-3.5 h-3.5" />,
                 placed,
                 isWrong: wrongSlots.includes(idx),
                 isCleared: cleared,
@@ -423,15 +432,15 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
 
       {/* Alt 3B Parşömen Aday Kartlar Havuzu */}
       {!isFinished && (
-        <div className="shrink-0 rounded-2xl bg-black/18 border border-white/15 p-2 sm:p-3 space-y-1.5">
-          <div className="text-[11px] font-semibold text-white/80 px-0.5">
+        <div className="shrink-0 w-full max-w-4xl mx-auto rounded-2xl bg-black/20 border border-white/15 p-2.5 sm:p-3.5 space-y-2">
+          <div className="text-xs sm:text-sm font-semibold text-white/90 px-0.5 text-center sm:text-left">
             {selectedSurahNo !== null
               ? 'Şimdi yukarıdaki altın çerçeveli hedef yuvaya dokunun'
-              : 'Parşömen sure kartını sürükleyin veya dokunup yuvaya yerleştirin'}
+              : 'Sure kartını sürükleyin veya dokunup yuvaya yerleştirin'}
           </div>
 
           <div
-            className={`grid gap-2 ${
+            className={`grid gap-2 sm:gap-2.5 ${
               round.candidates.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'
             }`}
           >
@@ -458,23 +467,24 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
                     opacity: isUsed ? 0.3 : isDraggingThis ? 0.45 : 1,
                   }}
                   className={`${
-                    isSelected ? 'game-bevel-amber' : 'game-bevel-parchment'
-                  } min-h-[54px] sm:min-h-[64px] rounded-xl px-2 py-1.5 flex items-center justify-between gap-1 cursor-grab active:cursor-grabbing select-none transition-opacity relative`}
+                    isSelected ? 'game-bevel-amber ring-2 ring-amber-300' : 'game-bevel-parchment'
+                  } min-h-[62px] sm:min-h-[72px] rounded-xl px-2.5 py-2 flex items-center justify-between gap-1.5 cursor-grab active:cursor-grabbing select-none transition-opacity relative`}
                 >
                   <div className="flex flex-col items-center gap-0.5 shrink-0">
-                    <span className="text-[9px] font-black tabular-nums text-slate-500">
+                    <span className="text-[10px] font-black tabular-nums text-slate-600">
                       #{cIdx + 1}
                     </span>
-                    <GripVertical className="w-3 h-3 text-slate-400" />
+                    <GripVertical className="w-3.5 h-3.5 text-slate-400" />
                   </div>
                   <div className="flex-1 min-w-0 text-center">
                     <div
                       dir="rtl"
-                      className="font-arabic text-base sm:text-lg leading-tight text-teal-900 truncate"
+                      lang="ar"
+                      className="font-arabic text-xl sm:text-2xl lg:text-[26px] leading-tight text-teal-900 truncate"
                     >
                       {cand.nameAr}
                     </div>
-                    <div className="text-xs font-extrabold text-slate-800 truncate">
+                    <div className="text-sm sm:text-base lg:text-[17px] font-bold text-slate-900 truncate leading-tight">
                       {cand.shortNameTr}
                     </div>
                   </div>
@@ -547,10 +557,10 @@ function renderSlotButton(params: {
       type="button"
       data-chain-slot={`${boardId}:${slotIndex}`}
       onClick={onClick}
-      className={`min-h-[96px] sm:min-h-[120px] rounded-2xl px-2 py-2.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all ${slotSurface}`}
+      className={`w-full min-h-[102px] sm:min-h-[136px] rounded-2xl px-2.5 py-3 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all ${slotSurface}`}
     >
       <span
-        className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-extrabold ${
+        className={`inline-flex items-center gap-1 text-sm sm:text-base font-bold ${
           placed && !isCleared && !isWrong ? 'text-teal-800' : ''
         }`}
       >
@@ -562,27 +572,28 @@ function renderSlotButton(params: {
         <>
           <span
             dir="rtl"
-            className={`font-arabic text-lg sm:text-xl leading-tight ${
+            lang="ar"
+            className={`font-arabic text-xl sm:text-2xl lg:text-[26px] leading-tight ${
               isCleared ? 'text-amber-200' : isWrong ? 'text-white' : 'text-teal-900'
             }`}
           >
             {placed.nameAr}
           </span>
           <span
-            className={`text-xs sm:text-sm font-extrabold leading-tight line-clamp-1 ${
+            className={`text-sm sm:text-base lg:text-[17px] font-bold leading-tight break-words ${
               isCleared || isWrong ? 'text-white' : 'text-slate-900'
             }`}
           >
             {placed.shortNameTr}
           </span>
           {isCleared && (
-            <span className="text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded bg-amber-400 text-amber-950">
+            <span className="text-xs font-black tabular-nums px-2 py-0.5 rounded bg-amber-400 text-amber-950">
               {placed.no}. Sure
             </span>
           )}
         </>
       ) : (
-        <span className="text-[11px] font-medium opacity-80">
+        <span className="text-xs sm:text-sm font-medium opacity-85">
           {isHighlighted ? 'Buraya bırak' : 'Altın yuva'}
         </span>
       )}
@@ -760,6 +771,12 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
         : 'Komşu sureleri altın yuvalara sürükle veya dokunup yerleştir.',
       featuredSurah,
       featuredNote,
+      roundContextTitle:
+        singleRound.kind === 'neighbors' ? 'Komşu Sureler Turu' : 'Mushaf Treni Sıralaması',
+      roundContextHint:
+        singleRound.kind === 'neighbors'
+          ? 'Merkezdeki surenin Mushaf tertibinde hemen öncesinde ve hemen sonrasında gelen sureleri yerleştirin.'
+          : '4 sureyi Fâtiha’dan Nâs’a doğru Mushaf sırasına göre 1. sıradan 4. sıraya dizin.',
     });
   }, [
     combo,
@@ -777,6 +794,7 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
     p2Idx,
     p2Score,
     score,
+    singleRound.kind,
     singleRoundIdx,
     tempo,
   ]);
@@ -824,6 +842,8 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
       setSingleRound(
         generateChainRound(nextIdx, tierId, tierSurahs, allSurahsMap, usedSingleRef.current),
       );
+      setFeaturedSurah(null);
+      setFeaturedNote(undefined);
     },
     [
       allSurahsMap,
@@ -975,7 +995,7 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col">
       <ChainBoard
         boardId="single"
         round={singleRound}

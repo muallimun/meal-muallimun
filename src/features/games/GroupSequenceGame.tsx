@@ -4,7 +4,6 @@ import {
   Check,
   GripVertical,
   ListOrdered,
-  Sparkles,
 } from 'lucide-react';
 import { gameAudioService } from './gameAudioService';
 import type { EnrichedGameSurah, GameComponentProps } from './gameTypes';
@@ -20,6 +19,7 @@ import {
   SURAH_GROUP_BY_ID,
   explainWhyNotInGroup,
 } from './surahSpecialGroups';
+import { StagePromptBanner } from './StagePromptBanner';
 
 interface SequenceRoundData {
   id: string;
@@ -290,6 +290,8 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
     setInlineHint(null);
     setRoundCompleted(false);
     setDragState(null);
+    setFeaturedSurah(null);
+    setFeaturedNote(undefined);
   }, [
     allSurahsMap,
     elapsedSec,
@@ -459,6 +461,8 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
       statusMessage,
       featuredSurah,
       featuredNote,
+      roundContextTitle: round.group.title,
+      roundContextHint: round.group.description,
     });
   }, [
     activePlayer,
@@ -473,7 +477,9 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
     p1Score,
     p2Score,
     placedSurahs.length,
+    round.group.description,
     round.group.shortLabel,
+    round.group.title,
     round.hasDistractors,
     round.orderedTargets.length,
     roundCompleted,
@@ -481,133 +487,119 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
   ]);
 
   const slotCount = round.orderedTargets.length;
-  // Mobil 360px uyumlu sıkışmasız ızgara (7 surelik grupta bile 3/4 kolonlu sarılabilir düzen)
+  // Mobil 360px uyumlu sıkışmasız ızgara
   const slotGridClass =
-    slotCount <= 3
-      ? 'grid-cols-3'
-      : slotCount === 4
-        ? 'grid-cols-2 sm:grid-cols-4'
-        : slotCount === 5
-          ? 'grid-cols-3 sm:grid-cols-5'
-          : 'grid-cols-3 sm:grid-cols-4';
+    slotCount <= 2
+      ? 'grid-cols-2'
+      : slotCount === 3
+        ? 'grid-cols-3'
+        : slotCount === 4
+          ? 'grid-cols-2 sm:grid-cols-4'
+          : slotCount === 5
+            ? 'grid-cols-3 sm:grid-cols-5'
+            : 'grid-cols-3 sm:grid-cols-4';
 
+  // Mobilde her zaman 2 kolon (360px taşmasını sıfırlar), tablet/masaüstünde 3–4 kolon
   const candGridClass =
-    round.candidates.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-4';
+    round.candidates.length <= 4
+      ? 'grid-cols-2 sm:grid-cols-4'
+      : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4';
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col justify-between gap-2 sm:gap-3 overflow-hidden relative">
-      {/* Üst Grup Başlık Şeridi */}
-      <div className="shrink-0 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-400 text-amber-950 shrink-0">
-            <ListOrdered className="w-3.5 h-3.5" />
-            <span>{round.group.shortLabel}</span>
-          </span>
-          <span dir="rtl" className="font-arabic text-sm sm:text-base text-amber-200 shrink-0">
-            {round.group.arabicTitle}
-          </span>
-          {round.hasDistractors && (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-white/12 text-amber-200 shrink-0">
-              <Sparkles className="w-3 h-3" />
-              <span>+2 Çeldirici</span>
-            </span>
-          )}
-        </div>
-
-        <span className="text-xs font-extrabold tabular-nums text-amber-200 shrink-0">
-          {tempo === 'calm' ? `Tur ${roundIdx + 1}/${TOTAL_CALM_ROUNDS}` : `Tur ${roundIdx + 1}`}
-        </span>
-      </div>
+    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-3.5 sm:gap-5 relative">
+      {/* Üst Grup Başlık & Soru Banner'ı */}
+      <StagePromptBanner
+        badgeIcon={<ListOrdered className="w-3.5 h-3.5" />}
+        badgeLabel={round.group.shortLabel}
+        arabicAccent={round.group.arabicTitle}
+        distractorBadge={round.hasDistractors ? '+2 Çeldirici' : undefined}
+        prompt={
+          round.isSubset
+            ? `${round.group.title} (5 surelik seçki) — Mushaf sırasına dizin`
+            : `${round.group.title} — Baştan sona Mushaf sırasına dizin`
+        }
+        secondaryBadge={`${placedSurahs.length}/${slotCount}`}
+        progressBadge={
+          tempo === 'calm' ? `Tur ${roundIdx + 1}/${TOTAL_CALM_ROUNDS}` : `Tur ${roundIdx + 1}`
+        }
+      />
 
       {/* ÜST BÖLGE: 1 -> N Altın Mushaf Sıralama Yuvaları */}
-      <div className="flex-1 min-h-0 flex flex-col justify-center gap-1.5 overflow-hidden">
-        <div className="flex items-center justify-between text-[11px] text-white/85 px-0.5">
-          <span className="truncate font-semibold">
-            {round.isSubset
-              ? `${round.group.title} (5 surelik seçki) — Mushaf sırasına dizin:`
-              : `${round.group.title} — Baştan sona Mushaf sırasına dizin:`}
-          </span>
-          <span className="tabular-nums font-extrabold text-amber-200 shrink-0">
-            {placedSurahs.length}/{slotCount}
-          </span>
-        </div>
+      <div className={`grid ${slotGridClass} gap-2 sm:gap-2.5`}>
+        {round.orderedTargets.map((_, idx) => {
+          const placed = placedSurahs[idx] ?? null;
+          const isNextSlot = !roundCompleted && idx === placedSurahs.length;
 
-        <div className={`grid ${slotGridClass} gap-1.5 sm:gap-2`}>
-          {round.orderedTargets.map((_, idx) => {
-            const placed = placedSurahs[idx] ?? null;
-            const isNextSlot = !roundCompleted && idx === placedSurahs.length;
-
-            return (
-              <div
-                key={`slot-${idx}`}
-                data-seq-slot={isNextSlot ? 'next' : undefined}
-                className={`min-h-[62px] sm:min-h-[82px] rounded-xl sm:rounded-2xl px-2 py-1.5 flex flex-col items-center justify-center text-center transition-all ${
-                  placed
-                    ? 'game-bevel-emerald game-pop'
-                    : isNextSlot
-                      ? 'bg-amber-400/20 border-2 border-dashed border-amber-300 text-amber-100'
-                      : 'bg-black/20 border border-dashed border-white/25 text-white/60'
-                }`}
-              >
-                {placed ? (
-                  <>
-                    <div className="flex items-center gap-1">
-                      <Check className="w-3 h-3 text-amber-300" strokeWidth={3} />
-                      <span className="text-[10px] font-black tabular-nums px-1.5 py-0.2 rounded bg-amber-400 text-amber-950">
-                        {placed.no}. Sure
-                      </span>
-                    </div>
-                    <div
-                      dir="rtl"
-                      className="font-arabic text-sm sm:text-base text-amber-200 leading-tight line-clamp-1"
-                    >
-                      {placed.nameAr}
-                    </div>
-                    <div className="text-[11px] sm:text-xs font-extrabold text-white line-clamp-1">
-                      {placed.shortNameTr}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-[10px] sm:text-xs font-black tabular-nums">
-                      {idx + 1}. Sıra
+          return (
+            <div
+              key={`slot-${idx}`}
+              data-seq-slot={isNextSlot ? 'next' : undefined}
+              className={`min-h-[78px] sm:min-h-[100px] rounded-xl sm:rounded-2xl px-2 py-2 flex flex-col items-center justify-center text-center transition-all ${
+                placed
+                  ? 'game-bevel-emerald game-pop'
+                  : isNextSlot
+                    ? 'bg-amber-400/22 border-2 border-dashed border-amber-300 text-amber-100'
+                    : 'bg-black/22 border border-dashed border-white/25 text-white/65'
+              }`}
+            >
+              {placed ? (
+                <>
+                  <div className="flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5 text-amber-300" strokeWidth={3} />
+                    <span className="text-[11px] sm:text-xs font-black tabular-nums px-1.5 py-0.5 rounded-md bg-amber-400 text-amber-950">
+                      {placed.no}. Sure
                     </span>
-                    <span className="text-[10px] opacity-80">
-                      {isNextSlot ? 'Sıradaki' : '—'}
-                    </span>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  </div>
+                  <div
+                    dir="rtl"
+                    className="font-arabic text-lg sm:text-xl lg:text-2xl text-amber-200 leading-snug line-clamp-1 mt-0.5"
+                  >
+                    {placed.nameAr}
+                  </div>
+                  <div className="text-xs sm:text-sm lg:text-base font-extrabold text-white leading-tight line-clamp-1">
+                    {placed.shortNameTr}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm sm:text-base font-extrabold tabular-nums">
+                    {idx + 1}. Sıra
+                  </span>
+                  <span className="text-xs font-semibold opacity-85 mt-0.5">
+                    {isNextSlot ? 'Sıradaki' : '—'}
+                  </span>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Tur Tamamlandı veya İpucu Şeridi */}
       {roundCompleted ? (
-        <div className="shrink-0 rounded-2xl bg-black/25 border border-amber-300/45 px-3.5 py-2 flex items-center justify-between gap-2 text-white">
-          <div className="text-xs sm:text-sm font-bold truncate">
-            Tebrikler! {round.group.shortLabel} dizilimi tamamlandı.
+        <div className="shrink-0 rounded-2xl bg-black/25 border border-amber-300/45 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-white">
+          <div className="text-sm sm:text-base font-bold text-center sm:text-left">
+            Tebrikler! {round.group.shortLabel} dizilimi eksiksiz tamamlandı.
           </div>
           <button
             type="button"
             onClick={handleNextRound}
-            className="h-9 px-3.5 rounded-xl font-extrabold text-xs inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+            className="w-full sm:w-auto h-10 px-4 rounded-xl font-extrabold text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
             style={{ backgroundColor: '#D97706', color: '#FFFFFF' }}
           >
             <span>Sonraki Grup</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       ) : inlineHint ? (
-        <div className="shrink-0 rounded-xl bg-red-950/75 border border-red-400/50 px-3 py-1.5 text-center text-xs font-bold text-red-100">
+        <div className="shrink-0 rounded-xl bg-red-950/80 border border-red-400/55 px-3.5 py-2 text-center text-xs sm:text-sm font-bold text-red-100">
           {inlineHint}
         </div>
       ) : null}
 
       {/* ALT BÖLGE: #1..#N Numaralı 3B Parşömen Aday Kartları */}
-      <div className="shrink-0 rounded-2xl bg-black/18 border border-white/15 p-2 sm:p-2.5">
-        <div className={`grid ${candGridClass} gap-1.5 sm:gap-2`}>
+      <div className="shrink-0 rounded-2xl bg-black/20 border border-white/15 p-2.5 sm:p-3">
+        <div className={`grid ${candGridClass} gap-2 sm:gap-2.5`}>
           {round.candidates.map((cand, idx) => {
             const isPlaced = placedNos.has(cand.no);
             const isWrongNow = wrongCardNo === cand.no;
@@ -632,7 +624,7 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
                   touchAction: 'none',
                   opacity: isPlaced ? 0.25 : isRevealedDistractor ? 0.45 : isDraggingThis ? 0.45 : 1,
                 }}
-                className={`min-h-[50px] sm:min-h-[58px] rounded-xl px-2 py-1 flex items-center justify-between gap-1 cursor-pointer select-none transition-opacity ${
+                className={`min-h-[62px] sm:min-h-[70px] rounded-xl px-2.5 py-2 flex items-center justify-between gap-1.5 cursor-pointer select-none transition-opacity ${
                   isWrongNow
                     ? 'bg-red-800 border-2 border-red-400 border-b-4 border-b-red-950 text-white game-shake'
                     : 'game-bevel-parchment hover:brightness-[1.02]'
@@ -640,27 +632,27 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
               >
                 <div className="flex flex-col items-center shrink-0">
                   <span
-                    className={`text-[9px] font-black tabular-nums ${
-                      isWrongNow ? 'text-white' : 'text-slate-500'
+                    className={`text-[11px] font-black tabular-nums ${
+                      isWrongNow ? 'text-white' : 'text-slate-600'
                     }`}
                   >
                     #{idx + 1}
                   </span>
                   <GripVertical
-                    className={`w-3 h-3 ${isWrongNow ? 'text-white/70' : 'text-slate-400'}`}
+                    className={`w-3.5 h-3.5 ${isWrongNow ? 'text-white/70' : 'text-slate-500'}`}
                   />
                 </div>
                 <div className="flex-1 min-w-0 text-center">
                   <div
                     dir="rtl"
-                    className={`font-arabic text-sm sm:text-base leading-tight truncate ${
+                    className={`font-arabic text-xl sm:text-2xl lg:text-[26px] leading-snug truncate ${
                       isWrongNow ? 'text-amber-200' : 'text-teal-900'
                     }`}
                   >
                     {cand.nameAr}
                   </div>
                   <div
-                    className={`text-[11px] sm:text-xs font-extrabold truncate ${
+                    className={`text-sm sm:text-base lg:text-[17px] font-bold truncate ${
                       isWrongNow ? 'text-white' : 'text-slate-900'
                     }`}
                   >
@@ -676,18 +668,18 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
       {/* Sürüklenen Kart Hayaleti */}
       {dragState && dragOriginRef.current?.moved && (
         <div
-          className="fixed z-[80] pointer-events-none game-bevel-amber rounded-xl px-3 py-2 text-center shadow-2xl"
+          className="fixed z-[80] pointer-events-none game-bevel-amber rounded-xl px-3.5 py-2.5 text-center shadow-2xl"
           style={{
             left: dragState.x,
             top: dragState.y,
             transform: 'translate(-50%, -65%) scale(1.05)',
-            minWidth: 112,
+            minWidth: 124,
           }}
         >
-          <div dir="rtl" className="font-arabic text-lg leading-tight text-teal-950">
+          <div dir="rtl" className="font-arabic text-xl leading-tight text-teal-950">
             {dragState.surah.nameAr}
           </div>
-          <div className="text-xs font-extrabold text-amber-950">
+          <div className="text-sm font-extrabold text-amber-950">
             {dragState.surah.shortNameTr}
           </div>
         </div>

@@ -283,15 +283,15 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               sfxService.play('click');
               setIsPrintModalOpen(true);
             }}
-            className="min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-colors whitespace-nowrap"
+            className="min-h-[38px] px-3.5 rounded-xl border-2 text-xs font-extrabold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-all hover:brightness-[0.98] active:scale-[0.98] whitespace-nowrap shadow-xs"
             style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-strong)',
-              color: 'var(--text-primary)',
+              backgroundColor: 'var(--brand-accent-soft)',
+              borderColor: 'var(--brand-accent)',
+              color: 'var(--brand-accent-text)',
             }}
           >
-            <Printer className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-            <span>A4 Sınav Hazırla</span>
+            <Printer className="w-4 h-4 shrink-0" />
+            <span>A4 Yazılı Sınav Hazırla</span>
           </button>
 
           <button
@@ -877,6 +877,58 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </>
               )}
+            </button>
+          </section>
+
+          {/* Kağıt Üzerinde A4 Sınav & Yaprak Test Stüdyosu Kartı */}
+          <section
+            aria-label="Yazdırılabilir A4 Sınav ve Yaprak Test Stüdyosu"
+            className="rounded-2xl border-2 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'rgba(217, 119, 6, 0.42)',
+              boxShadow: 'var(--shadow-card)',
+            }}
+          >
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  borderColor: 'rgba(217, 119, 6, 0.3)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                <Printer className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h3
+                  className="text-sm sm:text-[15px] font-extrabold tracking-tight leading-snug"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  Yazdırılabilir A4 Sınav &amp; Yaprak Test (PDF)
+                </h3>
+                <p
+                  className="text-xs leading-snug mt-0.5"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  Seçili sure kapsamından optik kodlamalı, cevap anahtarlı ve baskıya hazır A4 sınav kağıdı oluşturun.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsPrintModalOpen(true);
+              }}
+              className="w-full sm:w-auto min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer transition-transform active:scale-[0.98] whitespace-nowrap"
+              style={{ backgroundColor: 'var(--brand-accent)' }}
+            >
+              <Printer className="w-4 h-4 shrink-0" />
+              <span>A4 Sınav Oluştur</span>
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </button>
           </section>
         </div>

@@ -16,6 +16,7 @@ import {
   formatClock,
   shuffleArray,
 } from './gameTypes';
+import { StagePromptBanner } from './StagePromptBanner';
 
 type CompassTaskKind = 'dial' | 'scale';
 
@@ -255,6 +256,12 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
       statusMessage,
       featuredSurah,
       featuredNote,
+      roundContextTitle:
+        round.kind === 'dial' ? 'Mushaf Konum Kadranı (1–114)' : 'Ayet Sayısı Tartısı',
+      roundContextHint:
+        round.kind === 'dial'
+          ? '1. Fâtiha ile 114. Nâs arasındaki Mushaf cetvelinde hedef surenin sırasını tahmin edip kilitleyin. Tam isabet 100 puandır.'
+          : 'İki sureyi karşılaştırın ve ayet sayısı bakımından daha uzun olan sureyi seçin.',
     });
   }, [
     combo,
@@ -297,6 +304,8 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
     setDuelDialStep('p1');
     setDialRevealed(null);
     setScaleRevealed(null);
+    setFeaturedSurah(null);
+    setFeaturedNote(undefined);
   }, [
     elapsedSec,
     finishGame,
@@ -433,172 +442,172 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
   const toPercent = (n: number) => `${((n - 1) / 113) * 100}%`;
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col justify-between gap-2.5 sm:gap-3 overflow-hidden">
+    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-3.5 sm:gap-5">
       {/* Üst Görev Başlığı */}
-      <div className="shrink-0 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-400/20 text-amber-200 border border-amber-300/35 shrink-0">
-            {round.kind === 'dial' ? (
-              <>
-                <Compass className="w-3.5 h-3.5" />
-                <span>Konum Kadranı (1–114)</span>
-              </>
-            ) : (
-              <>
-                <Scale className="w-3.5 h-3.5" />
-                <span>Ayet Sayısı Tartısı</span>
-              </>
-            )}
-          </span>
-          <span className="text-xs sm:text-sm font-bold text-white/95 truncate">
-            {round.kind === 'dial'
-              ? 'Bu sure Mushaf’ta kaçıncı sıradadır?'
-              : 'Hangi sure ayet sayısı bakımından daha uzundur?'}
-          </span>
-        </div>
-
-        <span className="text-xs font-extrabold tabular-nums text-amber-200 shrink-0">
-          {tempo === 'calm' ? `Görev ${roundIdx + 1}/${TOTAL_CALM_ROUNDS}` : `Görev ${roundIdx + 1}`}
-        </span>
-      </div>
+      <StagePromptBanner
+        badgeIcon={
+          round.kind === 'dial' ? (
+            <Compass className="w-3.5 h-3.5" />
+          ) : (
+            <Scale className="w-3.5 h-3.5" />
+          )
+        }
+        badgeLabel={round.kind === 'dial' ? 'Konum Kadranı (1–114)' : 'Ayet Sayısı Tartısı'}
+        prompt={
+          round.kind === 'dial'
+            ? 'Bu sure Mushaf’ta kaçıncı sıradadır?'
+            : 'Hangi sure ayet sayısı bakımından daha uzundur?'
+        }
+        progressBadge={
+          tempo === 'calm' ? `Görev ${roundIdx + 1}/${TOTAL_CALM_ROUNDS}` : `Görev ${roundIdx + 1}`
+        }
+      />
 
       {/* GÖREV A: MUSHAF KONUM KADRANI (1–114) */}
       {round.kind === 'dial' ? (
-        <div className="flex-1 min-h-0 flex flex-col justify-center gap-3 sm:gap-4 max-w-2xl w-full mx-auto">
+        <div className="flex flex-col justify-center gap-3.5 sm:gap-4 max-w-2xl w-full mx-auto">
           {/* Hedef Sure 3B Zümrüt Kartı */}
-          <div className="game-bevel-emerald rounded-2xl p-3.5 sm:p-5 text-center space-y-1.5">
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-white/12 text-amber-200">
+          <div className="game-bevel-emerald rounded-2xl p-4 sm:p-5 text-center space-y-1.5">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <span className="text-xs font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded bg-white/14 text-amber-200">
                 {round.targetSurah.type} · {round.targetSurah.ayahCount} Ayet
               </span>
               {round.targetSurah.mukattaa && (
                 <span
                   dir="rtl"
-                  className="font-arabic text-sm font-bold px-2 py-0.5 rounded bg-amber-400/20 text-amber-200"
+                  lang="ar"
+                  className="font-arabic text-lg font-bold px-2.5 py-0.5 rounded bg-amber-400/20 text-[#FDE68A]"
                 >
                   {round.targetSurah.mukattaa.arabic}
                 </span>
               )}
             </div>
-            <div dir="rtl" className="font-arabic text-2xl sm:text-3xl text-amber-200 leading-tight">
+            <div
+              dir="rtl"
+              lang="ar"
+              className="font-arabic text-3xl sm:text-4xl text-amber-200 leading-tight"
+            >
               {round.targetSurah.nameAr}
             </div>
-            <div className="text-lg sm:text-2xl font-black text-white tracking-tight">
+            <div className="text-xl sm:text-2xl lg:text-[26px] font-black text-white tracking-tight">
               {round.targetSurah.nameTr}
             </div>
-            <div className="text-xs sm:text-sm font-semibold text-teal-100">
+            <div className="text-sm sm:text-base font-medium text-teal-100">
               Anlamı: “{round.targetSurah.meaningTr}”
             </div>
           </div>
 
-          {/* Altın / Parşömen Mushaf Cetveli & Pusula İbresi */}
-          <div className="game-bevel-parchment rounded-2xl p-3 sm:p-4 space-y-3">
+          {/* Altın / Parşömen Mushaf Cetveli & Büyük Dokunmatik Pusula İbresi */}
+          <div className="game-bevel-parchment rounded-2xl p-3.5 sm:p-4 space-y-3.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-extrabold text-slate-600">1. Fâtiha</span>
-              <div className="inline-flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={Boolean(dialRevealed) || dialValue <= 1}
-                  onClick={() => {
-                    gameAudioService.playFlip();
-                    setDialValue((v) => Math.max(1, v - 1));
-                  }}
-                  aria-label="Bir azalt"
-                  className="w-8 h-8 rounded-lg border border-amber-800/25 bg-white/75 inline-flex items-center justify-center text-slate-800 cursor-pointer disabled:opacity-40"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="px-3 py-1 rounded-xl bg-teal-800 text-amber-200 text-sm sm:text-base font-black tabular-nums min-w-[92px] text-center">
-                  {dialRevealed ? `Gerçek: ${dialRevealed.trueNo}.` : `${dialValue}. Sure`}
-                </span>
-                <button
-                  type="button"
-                  disabled={Boolean(dialRevealed) || dialValue >= 114}
-                  onClick={() => {
-                    gameAudioService.playFlip();
-                    setDialValue((v) => Math.min(114, v + 1));
-                  }}
-                  aria-label="Bir artır"
-                  className="w-8 h-8 rounded-lg border border-amber-800/25 bg-white/75 inline-flex items-center justify-center text-slate-800 cursor-pointer disabled:opacity-40"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <span className="text-[11px] font-extrabold text-slate-600">114. Nâs</span>
+              <span className="text-xs sm:text-sm font-extrabold text-slate-700">1. Fâtiha</span>
+              <span className="px-3.5 py-1 rounded-xl bg-teal-800 text-amber-200 text-base sm:text-lg font-black tabular-nums min-w-[112px] text-center shadow-xs">
+                {dialRevealed ? `Gerçek: ${dialRevealed.trueNo}.` : `${dialValue}. Sure`}
+              </span>
+              <span className="text-xs sm:text-sm font-extrabold text-slate-700">114. Nâs</span>
             </div>
 
-            {/* Görsel Cetvel Çubuğu + İbre İşaretçileri */}
-            <div className="relative pt-5 pb-4 px-1">
-              {/* Çeyrek / Cüz Çentikleri */}
-              <div className="h-3 rounded-full bg-teal-950/15 border border-amber-900/20 relative overflow-visible">
-                {[1, 30, 57, 78, 114].map((mark) => (
-                  <div
-                    key={mark}
-                    style={{ left: toPercent(mark) }}
-                    className="absolute top-0 bottom-0 w-px bg-amber-900/35"
-                  >
-                    <span className="absolute top-4 -translate-x-1/2 text-[9px] font-bold tabular-nums text-slate-500">
-                      {mark}
-                    </span>
-                  </div>
-                ))}
+            {/* Kaydırıcı Satırı: Solda -1, Ortada Büyük Tutamaçlı Cetvel, Sağda +1 */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                disabled={Boolean(dialRevealed) || dialValue <= 1}
+                onClick={() => {
+                  gameAudioService.playFlip();
+                  setDialValue((v) => Math.max(1, v - 1));
+                }}
+                aria-label="Bir azalt (-1)"
+                className="w-11 h-11 rounded-xl border-2 border-amber-800/30 bg-white/85 inline-flex items-center justify-center gap-0.5 text-slate-900 font-black text-xs sm:text-sm cursor-pointer disabled:opacity-40 shrink-0 active:scale-95 transition-transform"
+              >
+                <Minus className="w-3.5 h-3.5" strokeWidth={3} />
+                <span>1</span>
+              </button>
 
-                {/* Aktif / Kilitli Oyuncu İbresi */}
-                {!dialRevealed ? (
-                  <div
-                    style={{ left: toPercent(dialValue) }}
-                    className="absolute -top-4 -translate-x-1/2 flex flex-col items-center pointer-events-none"
-                  >
-                    <span className="px-1.5 py-0.5 rounded bg-amber-600 text-white text-[10px] font-black tabular-nums shadow">
-                      {isDuel ? (duelDialStep === 'p1' ? 'P1' : 'P2') : dialValue}
-                    </span>
-                    <div className="w-3 h-3 rotate-45 bg-amber-600 -mt-1.5 border border-white" />
-                  </div>
-                ) : (
-                  <>
-                    {/* Oyuncu 1 İğnesi */}
+              {/* Görsel Cetvel Çubuğu + Büyük Dokunmatik Tutamaç (w-9 h-9) */}
+              <div className="flex-1 min-w-0 relative pt-4 pb-5 px-2">
+                <div className="h-3.5 rounded-full bg-teal-950/18 border border-amber-900/25 relative overflow-visible">
+                  {[1, 30, 57, 78, 114].map((mark) => (
                     <div
-                      style={{ left: toPercent(dialRevealed.p1Guess) }}
-                      className="absolute -top-4 -translate-x-1/2 flex flex-col items-center z-10"
+                      key={mark}
+                      style={{ left: toPercent(mark) }}
+                      className="absolute top-0 bottom-0 w-px bg-amber-900/35"
                     >
-                      <span className="px-1.5 py-0.5 rounded bg-teal-700 text-white text-[9px] font-black tabular-nums shadow whitespace-nowrap">
-                        {isDuel ? 'P1' : 'Tahmin'}: {dialRevealed.p1Guess}
+                      <span className="absolute top-5 -translate-x-1/2 text-[10px] sm:text-xs font-bold tabular-nums text-slate-600">
+                        {mark}
                       </span>
                     </div>
+                  ))}
 
-                    {/* Oyuncu 2 İğnesi */}
-                    {dialRevealed.p2Guess !== undefined && (
+                  {/* Aktif / Kilitli Büyük Dokunmatik İbre Tutamacı (w-9 h-9) */}
+                  {!dialRevealed ? (
+                    <div
+                      style={{ left: toPercent(dialValue) }}
+                      className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-amber-600 border-[3px] border-white shadow-lg flex items-center justify-center text-white text-[11px] font-black tabular-nums">
+                        {isDuel ? (duelDialStep === 'p1' ? 'P1' : 'P2') : dialValue}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Oyuncu 1 İğnesi */}
                       <div
-                        style={{ left: toPercent(dialRevealed.p2Guess) }}
-                        className="absolute top-4 -translate-x-1/2 flex flex-col items-center z-10"
+                        style={{ left: toPercent(dialRevealed.p1Guess) }}
+                        className="absolute -top-5 -translate-x-1/2 flex flex-col items-center z-10"
                       >
-                        <span className="px-1.5 py-0.5 rounded bg-amber-600 text-white text-[9px] font-black tabular-nums shadow whitespace-nowrap">
-                          P2: {dialRevealed.p2Guess}
+                        <span className="px-2 py-0.5 rounded bg-teal-700 text-white text-[10px] sm:text-xs font-black tabular-nums shadow whitespace-nowrap">
+                          {isDuel ? 'P1' : 'Tahmin'}: {dialRevealed.p1Guess}
                         </span>
                       </div>
-                    )}
 
-                    {/* Gerçek Konum Altın Zümrüt İğnesi */}
-                    <div
-                      style={{ left: toPercent(dialRevealed.trueNo) }}
-                      className="absolute -top-1 -bottom-1 -translate-x-1/2 w-2.5 rounded-full bg-emerald-600 ring-2 ring-white shadow-md z-20"
-                    />
-                  </>
+                      {/* Oyuncu 2 İğnesi */}
+                      {dialRevealed.p2Guess !== undefined && (
+                        <div
+                          style={{ left: toPercent(dialRevealed.p2Guess) }}
+                          className="absolute top-5 -translate-x-1/2 flex flex-col items-center z-10"
+                        >
+                          <span className="px-2 py-0.5 rounded bg-amber-600 text-white text-[10px] sm:text-xs font-black tabular-nums shadow whitespace-nowrap">
+                            P2: {dialRevealed.p2Guess}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Gerçek Konum Altın Zümrüt İğnesi */}
+                      <div
+                        style={{ left: toPercent(dialRevealed.trueNo) }}
+                        className="absolute -top-1.5 -bottom-1.5 -translate-x-1/2 w-3 rounded-full bg-emerald-600 ring-2 ring-white shadow-md z-20"
+                      />
+                    </>
+                  )}
+                </div>
+
+                {/* Geniş Dokunmatik Kaydırma Sürgüsü */}
+                {!dialRevealed && (
+                  <input
+                    type="range"
+                    min={1}
+                    max={114}
+                    value={dialValue}
+                    onChange={(e) => setDialValue(Number(e.target.value))}
+                    aria-label="Sure sıra numarası tahmini (1-114)"
+                    className="absolute inset-x-0 top-0 w-full h-12 opacity-0 cursor-pointer z-30"
+                  />
                 )}
               </div>
 
-              {/* Kaydırma Sürgüsü */}
-              {!dialRevealed && (
-                <input
-                  type="range"
-                  min={1}
-                  max={114}
-                  value={dialValue}
-                  onChange={(e) => setDialValue(Number(e.target.value))}
-                  aria-label="Sure sıra numarası tahmini (1-114)"
-                  className="absolute inset-x-0 top-3 w-full h-8 opacity-0 cursor-pointer z-30"
-                />
-              )}
+              <button
+                type="button"
+                disabled={Boolean(dialRevealed) || dialValue >= 114}
+                onClick={() => {
+                  gameAudioService.playFlip();
+                  setDialValue((v) => Math.min(114, v + 1));
+                }}
+                aria-label="Bir artır (+1)"
+                className="w-11 h-11 rounded-xl border-2 border-amber-800/30 bg-white/85 inline-flex items-center justify-center gap-0.5 text-slate-900 font-black text-xs sm:text-sm cursor-pointer disabled:opacity-40 shrink-0 active:scale-95 transition-transform"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={3} />
+                <span>1</span>
+              </button>
             </div>
 
             {/* Aksiyon veya Sonuç Şeridi */}
@@ -606,7 +615,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
               <button
                 type="button"
                 onClick={handleLockDial}
-                className="w-full min-h-[44px] rounded-xl font-extrabold text-sm inline-flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
+                className="w-full min-h-[46px] rounded-xl font-extrabold text-sm sm:text-base inline-flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95"
                 style={{ backgroundColor: '#0F766E', color: '#FFFFFF' }}
               >
                 <Lock className="w-4 h-4" />
@@ -617,14 +626,14 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                 </span>
               </button>
             ) : (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1">
-                <div className="text-xs sm:text-sm font-extrabold text-teal-900">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
+                <div className="text-sm sm:text-base font-extrabold text-teal-900 text-center sm:text-left">
                   {dialRevealed.headline}
                 </div>
                 <button
                   type="button"
                   onClick={advanceToNextRound}
-                  className="w-full sm:w-auto min-h-[42px] px-4 rounded-xl font-extrabold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto min-h-[44px] px-5 rounded-xl font-extrabold text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer"
                   style={{ backgroundColor: '#D97706', color: '#FFFFFF' }}
                 >
                   <span>Sonraki Görev</span>
@@ -637,8 +646,8 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
       ) : (
         /* GÖREV B: AYET SAYISI TARTISI (HANGİSİ DAHA UZUN?) */
         round.scalePair && (
-          <div className="flex-1 min-h-0 flex flex-col justify-center gap-3 max-w-2xl w-full mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-2.5 sm:gap-3 items-stretch">
+          <div className="flex flex-col justify-center gap-3.5 max-w-2xl w-full mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-2.5 sm:gap-3.5 items-stretch">
               {round.scalePair.map((surah, idx) => {
                 const revealed = Boolean(scaleRevealed);
                 const isWinner = scaleRevealed?.longerNo === surah.no;
@@ -664,23 +673,23 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                       type="button"
                       disabled={revealed}
                       onClick={() => handlePickScale(surah)}
-                      className={`rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between gap-2 text-center cursor-pointer transition-all min-h-[140px] sm:min-h-[210px] ${cardClass}`}
+                      className={`rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-2 text-center cursor-pointer transition-all min-h-[148px] sm:min-h-[220px] ${cardClass}`}
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span
-                          className={`text-[10px] font-black px-2 py-0.5 rounded ${
+                          className={`text-xs font-black px-2 py-0.5 rounded ${
                             revealed && isWinner
                               ? 'bg-white/15 text-amber-200'
                               : isPickedWrong
                                 ? 'bg-white/15 text-white'
-                                : 'bg-amber-900/10 text-slate-600'
+                                : 'bg-amber-900/10 text-slate-700'
                           }`}
                         >
                           #{idx + 1} · {surah.type}
                         </span>
                         {revealed && isWinner && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-400 text-amber-950 text-[10px] font-black">
-                            <Check className="w-3 h-3" strokeWidth={3} />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-400 text-amber-950 text-xs font-black">
+                            <Check className="w-3.5 h-3.5" strokeWidth={3} />
                             Daha Uzun
                           </span>
                         )}
@@ -689,7 +698,8 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                       <div className="space-y-1">
                         <div
                           dir="rtl"
-                          className={`font-arabic text-2xl sm:text-3xl leading-tight ${
+                          lang="ar"
+                          className={`font-arabic text-3xl sm:text-4xl leading-tight ${
                             revealed && (isWinner || isPickedWrong)
                               ? 'text-amber-200'
                               : 'text-teal-900'
@@ -698,7 +708,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                           {surah.nameAr}
                         </div>
                         <div
-                          className={`text-base sm:text-xl font-black ${
+                          className={`text-lg sm:text-xl lg:text-2xl font-black ${
                             revealed && (isWinner || isPickedWrong)
                               ? 'text-white'
                               : 'text-slate-900'
@@ -707,7 +717,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                           {surah.no}. {surah.shortNameTr}
                         </div>
                         <div
-                          className={`text-xs font-semibold ${
+                          className={`text-xs sm:text-sm lg:text-[15px] font-medium ${
                             revealed && (isWinner || isPickedWrong)
                               ? 'text-teal-100'
                               : 'text-slate-600'
@@ -718,11 +728,11 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                       </div>
 
                       {revealed ? (
-                        <div className="space-y-1 pt-1">
-                          <div className="text-lg sm:text-2xl font-black tabular-nums">
+                        <div className="space-y-1.5 pt-1">
+                          <div className="text-xl sm:text-2xl font-black tabular-nums">
                             {surah.ayahCount} Ayet
                           </div>
-                          <div className="h-2 rounded-full bg-black/15 overflow-hidden">
+                          <div className="h-2.5 rounded-full bg-black/15 overflow-hidden">
                             <div
                               style={{ width: barWidth }}
                               className={`h-full rounded-full transition-all duration-500 ${
@@ -732,7 +742,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                           </div>
                         </div>
                       ) : (
-                        <div className="text-xs font-bold text-teal-800 pt-1">
+                        <div className="text-xs sm:text-sm font-bold text-teal-800 pt-1">
                           Daha uzun olanı seç
                         </div>
                       )}
@@ -740,7 +750,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
 
                     {idx === 0 && (
                       <div className="hidden sm:flex items-center justify-center">
-                        <div className="w-11 h-11 rounded-full bg-amber-400/20 border border-amber-300/45 text-amber-200 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-amber-400/20 border border-amber-300/45 text-amber-200 flex items-center justify-center">
                           <Scale className="w-5 h-5" />
                         </div>
                       </div>
@@ -751,8 +761,8 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
             </div>
 
             {scaleRevealed && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 rounded-2xl bg-black/20 border border-white/15 px-3.5 py-2.5 text-white">
-                <div className="text-xs sm:text-sm font-bold">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 rounded-2xl bg-black/25 border border-amber-300/40 px-4 py-3 text-white">
+                <div className="text-sm sm:text-base font-bold text-center sm:text-left">
                   {scaleRevealed.isCorrect
                     ? 'Doğru! Ayet tartısında uzun sureyi buldunuz (+50p).'
                     : 'Diğer sure ayet sayısı bakımından daha uzundur.'}
@@ -760,7 +770,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                 <button
                   type="button"
                   onClick={advanceToNextRound}
-                  className="w-full sm:w-auto min-h-[40px] px-4 rounded-xl font-extrabold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                  className="w-full sm:w-auto min-h-[42px] px-5 rounded-xl font-extrabold text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                   style={{ backgroundColor: '#D97706', color: '#FFFFFF' }}
                 >
                   <span>Sonraki Görev</span>

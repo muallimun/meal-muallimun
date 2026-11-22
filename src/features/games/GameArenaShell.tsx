@@ -12,6 +12,8 @@ import {
   Lightbulb,
   ListOrdered,
   Moon,
+  PanelRightClose,
+  PanelRightOpen,
   RotateCcw,
   Search,
   Shuffle,
@@ -105,6 +107,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
 
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isModesOpen, setIsModesOpen] = useState(false);
+  const [isSidePanelHidden, setIsSidePanelHidden] = useState(false);
   const [isMobileNoteSheetOpen, setIsMobileNoteSheetOpen] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [audioLoadingSurah, setAudioLoadingSurah] = useState<number | null>(null);
@@ -210,12 +213,12 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   const modeLabel = playerMode === 'duel' ? '2 Oyuncu' : 'Tek Oyuncu';
   const tempoLabel = tempo === 'timed' ? 'Zaman Yarışı' : 'Sakin Mod';
 
-  // Dairesel SVG geri sayım halkası hesabı
+  // Dairesel SVG geri sayım halkası hesabı (kompakt konsol için)
   const hasTurnRing =
     typeof hud.turnRemainingSec === 'number' &&
     typeof hud.turnDurationSec === 'number' &&
     hud.turnDurationSec > 0;
-  const ringRadius = 21;
+  const ringRadius = 15;
   const ringCircumference = 2 * Math.PI * ringRadius;
   const ringRatio = hasTurnRing
     ? Math.max(0, Math.min(1, (hud.turnRemainingSec ?? 0) / (hud.turnDurationSec ?? 1)))
@@ -229,19 +232,30 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   const renderInfoNoteBody = (compact?: boolean) => {
     if (!featuredSurah) {
       return (
-        <div className="space-y-2.5">
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            {tierMeta.tipText}
+        <div className="space-y-3">
+          {hud.roundContextTitle && (
+            <div
+              className="text-base font-extrabold leading-snug"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {hud.roundContextTitle}
+            </div>
+          )}
+          <p
+            className="text-sm xl:text-[15px] leading-relaxed font-medium"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {hud.roundContextHint || tierMeta.tipText}
           </p>
           <div
-            className="rounded-xl border p-2.5 text-[11px] leading-relaxed"
+            className="rounded-xl border p-3 text-xs sm:text-[13.5px] leading-relaxed font-medium"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
-              color: 'var(--text-muted)',
+              color: 'var(--text-secondary)',
             }}
           >
-            Bir sureyi eşleştirdiğinizde veya çözdüğünüzde künyesi, komşu sureleri ve ilk ayet tilaveti burada belirir.
+            İlk doğru hamlenizde ilgili surenin Arapça adı, Türkçe anlamı, komşu sureleri ve 1. ayet tilaveti burada açılır.
           </div>
         </div>
       );
@@ -250,13 +264,13 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
     const specialSummary = getSurahSpecialSummaryText(featuredSurah.no);
 
     return (
-      <div className={compact ? 'space-y-2' : 'space-y-2.5'}>
-        {/* Sure Başlığı ve Anlamı */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
+      <div className={compact ? 'space-y-2.5' : 'space-y-3'}>
+        {/* Sure Başlığı ve Anlamı (Yüksek Okunabilirlik) */}
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span
-                className="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums"
+                className="px-2 py-0.5 rounded-md text-xs font-extrabold tabular-nums"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
                   color: 'var(--brand-primary-text)',
@@ -265,20 +279,24 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                 {featuredSurah.no}. Sure
               </span>
               <span
-                className="text-sm font-extrabold truncate"
+                className="text-[17px] xl:text-[18px] font-extrabold leading-tight break-words"
                 style={{ color: 'var(--text-primary)' }}
               >
                 {featuredSurah.nameTr}
               </span>
             </div>
-            <div className="text-xs font-semibold mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+            <div
+              className="text-sm xl:text-[15px] font-semibold leading-snug"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               Anlamı: “{featuredSurah.meaningTr}”
             </div>
           </div>
 
           <span
             dir="rtl"
-            className="font-arabic text-xl leading-none shrink-0 pt-0.5"
+            lang="ar"
+            className="font-arabic text-[24px] xl:text-[28px] leading-none shrink-0 pt-0.5"
             style={{ color: 'var(--brand-primary-text)' }}
           >
             {featuredSurah.nameAr}
@@ -287,7 +305,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
 
         {hud.featuredNote && (
           <div
-            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg"
+            className="text-[13.5px] xl:text-sm font-bold leading-snug px-3 py-2 rounded-xl"
             style={{
               backgroundColor: 'var(--brand-accent-soft)',
               color: 'var(--brand-accent-text)',
@@ -299,21 +317,21 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
 
         {/* Vurgulu KÜNYE & ÖZELLİK Kutusu */}
         <div
-          className="rounded-xl border p-2.5 space-y-1.5"
+          className="rounded-xl border p-3 space-y-2"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
           }}
         >
           <div
-            className="text-[10px] font-extrabold uppercase tracking-wider"
+            className="text-xs font-extrabold uppercase tracking-wider"
             style={{ color: 'var(--text-muted)' }}
           >
             KÜNYE &amp; ÖZELLİK
           </div>
 
           <div
-            className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold"
+            className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm xl:text-[15px] font-bold"
             style={{ color: 'var(--text-primary)' }}
           >
             <span>{featuredSurah.ayahCount} Ayet</span>
@@ -324,7 +342,10 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
           </div>
 
           {/* Komşu Sureler */}
-          <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          <div
+            className="text-sm xl:text-[14.5px] leading-snug"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             Komşular:{' '}
             <strong style={{ color: 'var(--text-primary)' }}>
               {prevNeighbor ? `${prevNeighbor.no}. ${prevNeighbor.shortNameTr}` : 'Başlangıç'}
@@ -338,7 +359,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
           {/* Ulûmu'l-Kur'ân Özel Grup Bilgisi */}
           {specialSummary && (
             <div
-              className="text-[11px] font-semibold pt-1 border-t"
+              className="text-[13.5px] xl:text-sm font-bold pt-2 border-t leading-snug"
               style={{
                 borderColor: 'var(--border-subtle)',
                 color: 'var(--brand-accent-text)',
@@ -388,20 +409,50 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               </h1>
               <span
                 dir="rtl"
-                className="font-arabic text-base font-semibold shrink-0"
+                lang="ar"
+                className="font-arabic text-xl font-bold leading-none shrink-0"
                 style={{ color: 'var(--brand-primary-text)' }}
               >
                 {gameMeta.arabicTitle}
               </span>
             </div>
-            <div className="text-[11px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-xs font-medium truncate" style={{ color: 'var(--text-muted)' }}>
               {focusGroupTitle ? `Odak: ${focusGroupTitle}` : tierMeta.title} · {modeLabel} · {tempoLabel}
             </div>
           </div>
         </div>
 
-        {/* Sağ: Yuvarlak İkon Butonlar + Hap Aksiyon Butonları */}
+        {/* Sağ: Yuvarlak İkon Butonlar + Yan Panel Gizle/Göster + Hap Aksiyon Butonları */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Akıllı Tahta Tam Ekran Modu: Yan Paneli Gizle / Göster (Sadece lg+) */}
+          {!isSummaryOpen && (
+            <button
+              type="button"
+              onClick={() => setIsSidePanelHidden((prev) => !prev)}
+              title={isSidePanelHidden ? 'Yan Paneli Göster' : 'Yan Paneli Gizle (Tam Genişlik Masa)'}
+              aria-label={isSidePanelHidden ? 'Yan Paneli Göster' : 'Yan Paneli Gizle'}
+              aria-pressed={isSidePanelHidden}
+              className="w-9 h-9 rounded-full border inline-flex items-center justify-center cursor-pointer transition-colors"
+              style={{
+                backgroundColor: isSidePanelHidden
+                  ? 'var(--brand-primary-soft)'
+                  : 'var(--bg-surface-soft)',
+                borderColor: isSidePanelHidden
+                  ? 'var(--brand-primary)'
+                  : 'var(--border-subtle)',
+                color: isSidePanelHidden
+                  ? 'var(--brand-primary-text)'
+                  : 'var(--text-secondary)',
+              }}
+            >
+              {isSidePanelHidden ? (
+                <PanelRightOpen className="w-4 h-4" />
+              ) : (
+                <PanelRightClose className="w-4 h-4" />
+              )}
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setIsHelpOpen(true)}
@@ -498,7 +549,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
       </header>
 
       {/* ================================================================= */}
-      {/* MOBİL (< lg) İNCE ÜST BAR (h-11) + KOMPAKT SKOR ŞERİDİ (h-10)     */}
+      {/* MOBİL (< lg) İNCE ÜST BAR (h-11) + KOMPAKT SKOR ŞERİDİ (h-9)      */}
       {/* ================================================================= */}
       <header
         className="flex lg:hidden shrink-0 h-11 px-2 border-b items-center justify-between gap-1.5"
@@ -529,7 +580,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               {gameMeta.shortTitle}
             </div>
             <div
-              className="text-[10px] font-medium truncate"
+              className="text-[11px] font-medium truncate"
               style={{ color: 'var(--text-muted)' }}
             >
               {focusGroupTitle || tierMeta.shortTitle}
@@ -593,10 +644,10 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
         </div>
       </header>
 
-      {/* Mobil Tek Satır Kompakt Skor & Tur Şeridi (h-10) */}
+      {/* Mobil Tek Satır Kompakt Skor · Seri · Süre · Tur Şeridi (h-9) */}
       {!isSummaryOpen && (
         <div
-          className="flex lg:hidden shrink-0 h-10 px-2 border-b items-center justify-between gap-1.5"
+          className="flex lg:hidden shrink-0 h-9 px-2 border-b items-center justify-between gap-1.5"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
@@ -604,7 +655,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
         >
           {/* Sol: Skorlar */}
           {playerMode === 'single' ? (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 min-w-0">
               <span
                 className="px-2 py-0.5 rounded-md text-xs font-extrabold tabular-nums inline-flex items-center gap-1"
                 style={{
@@ -629,9 +680,9 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
               <span
-                className="px-2 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border"
+                className="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border"
                 style={{
                   backgroundColor:
                     hud.activeTurn === 'p1' ? 'rgba(13, 148, 136, 0.14)' : 'var(--bg-surface)',
@@ -643,7 +694,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                 1.O: {hud.p1Score}p
               </span>
               <span
-                className="px-2 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border"
+                className="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border"
                 style={{
                   backgroundColor:
                     hud.activeTurn === 'p2' ? 'rgba(217, 119, 6, 0.14)' : 'var(--bg-surface)',
@@ -659,7 +710,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
 
           {/* Orta: Sayaç */}
           <div
-            className="px-2 py-0.5 rounded-full text-[11px] font-extrabold tabular-nums inline-flex items-center gap-1 border"
+            className="px-2 py-0.5 rounded-full text-[11px] font-extrabold tabular-nums inline-flex items-center gap-1 border shrink-0"
             style={{
               backgroundColor:
                 hud.timerUrgent || ringUrgent
@@ -674,9 +725,9 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
             <span>{hasTurnRing ? `${hud.turnRemainingSec}s` : hud.timerText}</span>
           </div>
 
-          {/* Sağ: Hamle / İlerleme */}
+          {/* Sağ: Tur / İlerleme */}
           <span
-            className="text-[11px] font-bold tabular-nums shrink-0"
+            className="text-[11px] font-extrabold tabular-nums shrink-0"
             style={{ color: 'var(--text-secondary)' }}
           >
             {hud.progressLabel || `Hamle: ${hud.movesCount}`}
@@ -690,97 +741,108 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
       {isSummaryOpen ? (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">{children}</div>
       ) : (
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_350px] gap-0 lg:gap-4 p-2 lg:p-4 overflow-hidden">
-          {/* SOL SÜTUN — Zümrüt Çuha Oyun Masası */}
-          <section className="game-emerald-table rounded-2xl p-2 sm:p-3 lg:p-4 flex flex-col min-h-0 overflow-hidden relative">
+        <div
+          className={`flex-1 min-h-0 grid grid-cols-1 ${
+            isSidePanelHidden
+              ? 'lg:grid-cols-1 gap-0'
+              : 'lg:grid-cols-[1fr_272px] xl:grid-cols-[1fr_290px] gap-0 lg:gap-3.5'
+          } p-2 lg:p-3.5 overflow-hidden`}
+        >
+          {/* SOL SÜTUN — Zümrüt Çuha Oyun Masası (Mobilde yumuşak dikey kaydırma emniyeti) */}
+          <section className="game-emerald-table rounded-2xl p-2.5 sm:p-3 lg:p-4 flex flex-col min-h-0 overflow-y-auto overscroll-contain lg:overflow-hidden relative">
             {children}
           </section>
 
-          {/* SAĞ SÜTUN (Masaüstü lg+) — Skor, Sayaç ve Canlı Bilgi Notu Paneli */}
-          <aside className="hidden lg:flex flex-col gap-3 min-h-0 overflow-hidden">
-            {/* A) Oyuncu Skor Kartı (Tek Oyuncu veya 2 Oyuncu) */}
-            {playerMode === 'single' ? (
+          {/* SAĞ SÜTUN (Masaüstü lg+) — Daraltılmış Birleşik Konsol + Geniş Bilgi Notu */}
+          {!isSidePanelHidden && (
+            <aside className="hidden lg:flex flex-col gap-3 min-h-0 overflow-hidden">
+              {/* A) BİRLEŞİK SKOR, SÜRE & TUR KONSOLU */}
               <div
-                className="shrink-0 rounded-2xl border p-3.5 space-y-2.5"
+                className="shrink-0 rounded-2xl border p-3 space-y-2.5"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
                 }}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-white"
-                      style={{ backgroundColor: '#0F766E' }}
-                    >
-                      <User className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-extrabold" style={{ color: 'var(--text-primary)' }}>
-                        Tek Oyuncu
+                {playerMode === 'single' ? (
+                  /* Tek Oyuncu Kompakt Üst Satır */
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0"
+                        style={{ backgroundColor: '#0F766E' }}
+                      >
+                        <User className="w-4 h-4" />
                       </div>
-                      <div className="flex items-center gap-0.5 mt-0.5" aria-label="Yıldız hedefi">
-                        {[1, 2, 3].map((n) => (
-                          <Star
-                            key={n}
-                            className="w-3.5 h-3.5"
-                            style={{
-                              color: n <= liveStarPreview ? '#D97706' : 'var(--border-strong)',
-                            }}
-                            fill={n <= liveStarPreview ? 'currentColor' : 'none'}
-                          />
-                        ))}
-                        <span className="text-[10px] font-semibold ml-1" style={{ color: 'var(--text-muted)' }}>
-                          Hedef
-                        </span>
+                      <div className="min-w-0">
+                        <div
+                          className="text-xs font-extrabold truncate"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          Tek Oyuncu
+                        </div>
+                        <div className="flex items-center gap-0.5 mt-0.5" aria-label="Yıldız hedefi">
+                          {[1, 2, 3].map((n) => (
+                            <Star
+                              key={n}
+                              className="w-3.5 h-3.5"
+                              style={{
+                                color: n <= liveStarPreview ? '#D97706' : 'var(--border-strong)',
+                              }}
+                              fill={n <= liveStarPreview ? 'currentColor' : 'none'}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div
-                    className="text-2xl font-black tabular-nums"
-                    style={{ color: 'var(--brand-primary-text)' }}
-                  >
-                    {hud.p1Score}p
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between pt-2 border-t text-xs" style={{ borderColor: 'var(--border-subtle)' }}>
-                  <span className="inline-flex items-center gap-1 font-bold" style={{ color: '#D97706' }}>
-                    <Flame className="w-3.5 h-3.5" />
-                    <span>Seri: {hud.combo}x</span>
-                  </span>
-                  <span className="font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                    {hud.progressLabel}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="shrink-0 space-y-2">
-                {/* 1. Kart: 1. Oyuncu (Zümrüt vurgu) */}
-                <div
-                  className="rounded-2xl border-2 px-3.5 py-2.5 flex items-center justify-between gap-2 transition-all"
-                  style={{
-                    backgroundColor:
-                      hud.activeTurn === 'p1'
-                        ? 'var(--brand-primary-soft)'
-                        : 'var(--bg-surface)',
-                    borderColor:
-                      hud.activeTurn === 'p1' ? '#0D9488' : 'var(--border-subtle)',
-                  }}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-white"
-                      style={{ backgroundColor: '#0F766E' }}
-                    >
-                      <User className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-extrabold truncate" style={{ color: 'var(--text-primary)' }}>
-                        1. Oyuncu
+                    <div className="text-right shrink-0">
+                      <div
+                        className="text-2xl font-black tabular-nums leading-none"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        {hud.p1Score}p
                       </div>
                       <div
-                        className="text-[11px] font-bold"
+                        className="text-[11px] font-bold inline-flex items-center gap-0.5 mt-0.5"
+                        style={{ color: '#D97706' }}
+                      >
+                        <Flame className="w-3 h-3" />
+                        <span>Seri {hud.combo}x</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* 2 Oyuncu Kompakt Yan Yana Skor Şeridi */
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div
+                      className="rounded-xl border-2 px-2.5 py-2 transition-all"
+                      style={{
+                        backgroundColor:
+                          hud.activeTurn === 'p1'
+                            ? 'var(--brand-primary-soft)'
+                            : 'var(--bg-surface-soft)',
+                        borderColor:
+                          hud.activeTurn === 'p1' ? '#0D9488' : 'var(--border-subtle)',
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          className="text-[11px] font-extrabold truncate"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        >
+                          1. Oyuncu
+                        </span>
+                        <User className="w-3 h-3 shrink-0" style={{ color: '#0F766E' }} />
+                      </div>
+                      <div
+                        className="text-lg font-black tabular-nums leading-tight mt-0.5"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {hud.p1Score}p
+                      </div>
+                      <div
+                        className="text-[10px] font-bold"
                         style={{
                           color:
                             hud.activeTurn === 'p1' || hud.activeTurn === 'both'
@@ -795,40 +857,35 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                             : 'Bekliyor'}
                       </div>
                     </div>
-                  </div>
-                  <div
-                    className="text-xl font-black tabular-nums shrink-0"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {hud.p1Score}p
-                  </div>
-                </div>
 
-                {/* 2. Kart: 2. Oyuncu (Kehribar vurgu) */}
-                <div
-                  className="rounded-2xl border-2 px-3.5 py-2.5 flex items-center justify-between gap-2 transition-all"
-                  style={{
-                    backgroundColor:
-                      hud.activeTurn === 'p2'
-                        ? 'var(--brand-accent-soft)'
-                        : 'var(--bg-surface)',
-                    borderColor:
-                      hud.activeTurn === 'p2' ? '#D97706' : 'var(--border-subtle)',
-                  }}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-white"
-                      style={{ backgroundColor: '#D97706' }}
+                      className="rounded-xl border-2 px-2.5 py-2 transition-all"
+                      style={{
+                        backgroundColor:
+                          hud.activeTurn === 'p2'
+                            ? 'var(--brand-accent-soft)'
+                            : 'var(--bg-surface-soft)',
+                        borderColor:
+                          hud.activeTurn === 'p2' ? '#D97706' : 'var(--border-subtle)',
+                      }}
                     >
-                      <Users className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-extrabold truncate" style={{ color: 'var(--text-primary)' }}>
-                        2. Oyuncu
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          className="text-[11px] font-extrabold truncate"
+                          style={{ color: 'var(--brand-accent-text)' }}
+                        >
+                          2. Oyuncu
+                        </span>
+                        <Users className="w-3 h-3 shrink-0" style={{ color: '#D97706' }} />
                       </div>
                       <div
-                        className="text-[11px] font-bold"
+                        className="text-lg font-black tabular-nums leading-tight mt-0.5"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {hud.p2Score}p
+                      </div>
+                      <div
+                        className="text-[10px] font-bold"
                         style={{
                           color:
                             hud.activeTurn === 'p2' || hud.activeTurn === 'both'
@@ -844,172 +901,164 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div
-                    className="text-xl font-black tabular-nums shrink-0"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {hud.p2Score}p
+                )}
+
+                {/* Kompakt Süre + Tur/Hamle Şeridi (İsteğe bağlı dairesel tur halkası dahil) */}
+                <div
+                  className="flex items-center gap-2 pt-2 border-t"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
+                  {hasTurnRing && (
+                    <div className="relative w-9 h-9 shrink-0 flex items-center justify-center">
+                      <svg className="w-9 h-9 -rotate-90" viewBox="0 0 38 38" aria-hidden="true">
+                        <circle
+                          cx="19"
+                          cy="19"
+                          r={ringRadius}
+                          fill="none"
+                          stroke="var(--border-subtle)"
+                          strokeWidth="3.5"
+                        />
+                        <circle
+                          cx="19"
+                          cy="19"
+                          r={ringRadius}
+                          fill="none"
+                          stroke={ringUrgent ? '#DC2626' : '#0D9488'}
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeDasharray={ringCircumference}
+                          strokeDashoffset={ringDashOffset}
+                          style={{ transition: 'stroke-dashoffset 280ms linear' }}
+                        />
+                      </svg>
+                      <span
+                        className="absolute text-[10px] font-extrabold tabular-nums"
+                        style={{ color: ringUrgent ? '#DC2626' : 'var(--text-primary)' }}
+                      >
+                        {hud.turnRemainingSec}s
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex-1 grid grid-cols-2 gap-1.5 min-w-0">
+                    <div
+                      className="rounded-lg border px-2 py-1"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <div
+                        className="text-[11px] font-semibold inline-flex items-center gap-1 leading-none"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <Clock className="w-3 h-3" />
+                        <span>Süre</span>
+                      </div>
+                      <div
+                        className="text-sm font-extrabold tabular-nums mt-0.5 leading-tight"
+                        style={{ color: hud.timerUrgent ? '#DC2626' : 'var(--text-primary)' }}
+                      >
+                        {hud.timerText || formatClock(hud.elapsedSec)}
+                      </div>
+                    </div>
+
+                    <div
+                      className="rounded-lg border px-2 py-1"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <div
+                        className="text-[11px] font-semibold inline-flex items-center gap-1 leading-none"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <Shuffle className="w-3 h-3" />
+                        <span>Tur</span>
+                      </div>
+                      <div
+                        className="text-sm font-extrabold tabular-nums truncate mt-0.5 leading-tight"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {hud.progressLabel || `${hud.movesCount} Hamle`}
+                      </div>
+                    </div>
                   </div>
+                </div>
+
+                {/* Yüksek Kontrastlı Yönlendirme Şeridi (13.5px–14px) */}
+                <div
+                  className="rounded-xl px-3 py-2 text-[13.5px] xl:text-sm font-bold leading-snug"
+                  style={{
+                    backgroundColor:
+                      hud.activeTurn === 'p2'
+                        ? 'var(--brand-accent-soft)'
+                        : 'var(--brand-primary-soft)',
+                    color:
+                      hud.activeTurn === 'p2'
+                        ? 'var(--brand-accent-text)'
+                        : 'var(--brand-primary-text)',
+                  }}
+                >
+                  {hud.statusMessage}
                 </div>
               </div>
-            )}
 
-            {/* B) Dairesel Tur Sayacı + Süre/Hamle Kutuları + Durum Şeridi */}
-            <div
-              className="shrink-0 rounded-2xl border p-3 space-y-2.5"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              <div className="flex items-center gap-3">
-                {/* SVG Dairesel Geri Sayım Halkası */}
-                <div className="relative w-13 h-13 shrink-0 flex items-center justify-center">
-                  <svg className="w-13 h-13 -rotate-90" viewBox="0 0 52 52" aria-hidden="true">
-                    <circle
-                      cx="26"
-                      cy="26"
-                      r={ringRadius}
-                      fill="none"
-                      stroke="var(--border-subtle)"
-                      strokeWidth="4"
-                    />
-                    <circle
-                      cx="26"
-                      cy="26"
-                      r={ringRadius}
-                      fill="none"
-                      stroke={ringUrgent ? '#DC2626' : '#0D9488'}
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      strokeDasharray={ringCircumference}
-                      strokeDashoffset={ringDashOffset}
-                      style={{ transition: 'stroke-dashoffset 280ms linear' }}
-                    />
-                  </svg>
-                  <span
-                    className="absolute text-xs font-extrabold tabular-nums"
-                    style={{ color: ringUrgent ? '#DC2626' : 'var(--text-primary)' }}
-                  >
-                    {hasTurnRing ? `${hud.turnRemainingSec}s` : '∞'}
-                  </span>
-                </div>
-
-                {/* Süre & Hamle Kutucukları */}
-                <div className="flex-1 grid grid-cols-2 gap-2">
-                  <div
-                    className="rounded-xl border px-2.5 py-1.5"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <div
-                      className="text-[10px] font-semibold inline-flex items-center gap-1"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      <Clock className="w-3 h-3" />
-                      <span>Süre</span>
-                    </div>
-                    <div
-                      className="text-sm font-extrabold tabular-nums"
-                      style={{ color: hud.timerUrgent ? '#DC2626' : 'var(--text-primary)' }}
-                    >
-                      {hud.timerText || formatClock(hud.elapsedSec)}
-                    </div>
-                  </div>
-
-                  <div
-                    className="rounded-xl border px-2.5 py-1.5"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <div
-                      className="text-[10px] font-semibold inline-flex items-center gap-1"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      <Shuffle className="w-3 h-3" />
-                      <span>Hamle</span>
-                    </div>
-                    <div
-                      className="text-xs font-extrabold tabular-nums truncate mt-0.5"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {hud.movesCount} · {hud.progressLabel}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Yönlendirme Şeridi */}
+              {/* B) GENİŞLETİLMİŞ CANLI "💡 Bilgi Notu" & "🔊 Dinle" ÖĞRENME KARTI */}
               <div
-                className="rounded-xl px-3 py-2 text-xs font-bold leading-snug"
+                className="flex-1 min-h-0 rounded-2xl border p-3.5 flex flex-col gap-3 overflow-hidden"
                 style={{
-                  backgroundColor:
-                    hud.activeTurn === 'p2'
-                      ? 'var(--brand-accent-soft)'
-                      : 'var(--brand-primary-soft)',
-                  color:
-                    hud.activeTurn === 'p2'
-                      ? 'var(--brand-accent-text)'
-                      : 'var(--brand-primary-text)',
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
                 }}
               >
-                {hud.statusMessage}
-              </div>
-            </div>
+                <div className="shrink-0 flex items-center justify-between gap-2">
+                  <div
+                    className="inline-flex items-center gap-1.5 text-sm font-extrabold"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <Lightbulb className="w-4 h-4 shrink-0" style={{ color: '#D97706' }} />
+                    <span>Bilgi Notu</span>
+                  </div>
 
-            {/* C) Canlı "💡 Bilgi Notu" & "🔊 Dinle" Öğrenme Kartı */}
-            <div
-              className="flex-1 min-h-0 rounded-2xl border p-3.5 flex flex-col gap-2.5 overflow-hidden"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              <div className="shrink-0 flex items-center justify-between gap-2">
-                <div className="inline-flex items-center gap-1.5 text-xs font-extrabold" style={{ color: 'var(--text-primary)' }}>
-                  <Lightbulb className="w-4 h-4" style={{ color: '#D97706' }} />
-                  <span>Bilgi Notu</span>
+                  {featuredSurah && (
+                    <button
+                      type="button"
+                      onClick={handleToggleListen}
+                      disabled={audioLoadingSurah === featuredSurah.no}
+                      className="h-8 px-3 rounded-full text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-90 shrink-0"
+                      style={{
+                        backgroundColor: isAudioPlaying
+                          ? '#D97706'
+                          : 'var(--brand-primary)',
+                        color: '#FFFFFF',
+                      }}
+                    >
+                      {isAudioPlaying ? (
+                        <>
+                          <Square className="w-3 h-3" fill="currentColor" />
+                          <span>Durdur</span>
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="w-3.5 h-3.5" />
+                          <span>
+                            {audioLoadingSurah === featuredSurah.no ? 'Yükleniyor...' : 'Dinle'}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
 
-                {featuredSurah && (
-                  <button
-                    type="button"
-                    onClick={handleToggleListen}
-                    disabled={audioLoadingSurah === featuredSurah.no}
-                    className="h-7 px-2.5 rounded-full text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-90"
-                    style={{
-                      backgroundColor: isAudioPlaying
-                        ? '#D97706'
-                        : 'var(--brand-primary)',
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    {isAudioPlaying ? (
-                      <>
-                        <Square className="w-3 h-3" fill="currentColor" />
-                        <span>Durdur</span>
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 className="w-3.5 h-3.5" />
-                        <span>
-                          {audioLoadingSurah === featuredSurah.no ? 'Yükleniyor...' : 'Dinle'}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                )}
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin pr-0.5">
+                  {renderInfoNoteBody(false)}
+                </div>
               </div>
-
-              <div className="flex-1 min-h-0 overflow-y-auto pr-0.5">
-                {renderInfoNoteBody(false)}
-              </div>
-            </div>
-          </aside>
+            </aside>
+          )}
         </div>
       )}
 
@@ -1036,7 +1085,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
             >
               {featuredSurah
                 ? `${featuredSurah.no}. ${featuredSurah.shortNameTr} · ${featuredSurah.meaningTr} · ${featuredSurah.ayahCount} Ayet`
-                : hud.statusMessage}
+                : hud.roundContextTitle || hud.statusMessage}
             </span>
           </button>
 
@@ -1045,7 +1094,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               <button
                 type="button"
                 onClick={handleToggleListen}
-                className="h-7 px-2 rounded-full text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                className="h-7 px-2.5 rounded-full text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer"
                 style={{
                   backgroundColor: isAudioPlaying ? '#D97706' : 'var(--brand-primary)',
                   color: '#FFFFFF',
@@ -1062,7 +1111,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
             <button
               type="button"
               onClick={() => setIsMobileNoteSheetOpen(true)}
-              className="h-7 px-2 rounded-lg border text-[11px] font-bold inline-flex items-center gap-0.5 cursor-pointer"
+              className="h-7 px-2 rounded-lg border text-xs font-bold inline-flex items-center gap-0.5 cursor-pointer"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -1091,7 +1140,10 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-1.5 text-sm font-extrabold" style={{ color: 'var(--text-primary)' }}>
+              <div
+                className="inline-flex items-center gap-1.5 text-base font-extrabold"
+                style={{ color: 'var(--text-primary)' }}
+              >
                 <Lightbulb className="w-4 h-4" style={{ color: '#D97706' }} />
                 <span>Bilgi Notu</span>
               </div>
@@ -1172,7 +1224,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               {gameMeta.howToPlay}
             </p>
             <div
-              className="rounded-xl border p-3 text-xs space-y-1"
+              className="rounded-xl border p-3 text-xs space-y-1.5"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -1200,7 +1252,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
         </div>
       )}
 
-      {/* "Modlar" Hızlı Kademe / Rakip / Tempo Değiştirici Modalı */}
+      {/* "Modlar" Hızlı Kademe / Oyuncu / Tempo Değiştirici Modalı */}
       {isModesOpen && (
         <div
           className="fixed inset-0 z-[75] bg-black/50 flex items-center justify-center p-4"
@@ -1251,7 +1303,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                       onChangeConfig({ playerMode: item.id });
                       setIsModesOpen(false);
                     }}
-                    className="inline-flex min-h-[40px] px-3 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer"
+                    className="inline-flex min-h-[42px] px-3 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer"
                     style={{
                       backgroundColor:
                         playerMode === item.id
@@ -1291,7 +1343,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                       onChangeConfig({ tempo: item.id });
                       setIsModesOpen(false);
                     }}
-                    className="min-h-[40px] px-3 rounded-xl border text-xs font-bold cursor-pointer"
+                    className="min-h-[42px] px-3 rounded-xl border text-xs font-bold cursor-pointer"
                     style={{
                       backgroundColor:
                         tempo === item.id ? 'var(--brand-accent-soft)' : 'var(--bg-surface-soft)',
@@ -1327,7 +1379,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                       borderColor: tierId === t.id ? 'var(--brand-primary)' : 'var(--border-subtle)',
                     }}
                   >
-                    <div className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
                       Kademe {t.order}
                     </div>
                     <div className="text-xs font-extrabold" style={{ color: 'var(--text-primary)' }}>

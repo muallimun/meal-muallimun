@@ -8,6 +8,7 @@ import {
   formatClock,
   shuffleArray,
 } from './gameTypes';
+import { StagePromptBanner } from './StagePromptBanner';
 
 interface SpeedFactCard {
   surahNo: number;
@@ -192,8 +193,8 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
   };
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
-      <div className="shrink-0 space-y-1">
+    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-3 sm:gap-4">
+      <div className="shrink-0 space-y-2">
         {headerLabel && (
           <div
             className={`rounded-xl px-3 py-1.5 flex items-center justify-between border ${
@@ -210,28 +211,25 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
           </div>
         )}
 
-        <div className="flex items-center justify-between text-[11px] sm:text-xs px-0.5 text-white/85">
-          <span>Sol sütundan sureyi, sağ sütundan künyesini seçin.</span>
-          <span className="inline-flex items-center gap-1 font-extrabold tabular-nums text-amber-200 shrink-0">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>
-              Dalga {waveNumber}
-              {totalWavesLabel && !headerLabel ? `/${totalWavesLabel}` : ''}
-            </span>
-          </span>
-        </div>
+        <StagePromptBanner
+          compact={Boolean(headerLabel)}
+          badgeIcon={<Sparkles className="w-3.5 h-3.5" />}
+          badgeLabel="Künye Eşleştir"
+          prompt="Sol sütundan sureyi, sağ sütundan doğru anlam veya künyesini seçin"
+          progressBadge={`Dalga ${waveNumber}${totalWavesLabel && !headerLabel ? `/${totalWavesLabel}` : ''}`}
+        />
       </div>
 
       {isFinished ? (
-        <div className="flex-1 min-h-0 rounded-2xl border border-emerald-300/35 bg-emerald-950/35 flex flex-col items-center justify-center gap-2 p-4 text-center text-white">
-          <CheckCircle2 className="w-8 h-8 text-amber-300" />
-          <p className="text-base font-extrabold">Tüm Dalgalar Tamamlandı</p>
-          <p className="text-xs text-white/75">Diğer oyuncunun tamamlaması bekleniyor...</p>
+        <div className="rounded-2xl border border-emerald-300/35 bg-emerald-950/35 flex flex-col items-center justify-center gap-2 p-6 text-center text-white">
+          <CheckCircle2 className="w-9 h-9 text-amber-300" />
+          <p className="text-lg font-extrabold">Tüm Dalgalar Tamamlandı</p>
+          <p className="text-sm text-white/80">Diğer oyuncunun tamamlaması bekleniyor...</p>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 sm:gap-3.5">
           {/* Sol Sütun: 3B Parşömen / Zümrüt Sure Kartları */}
-          <div className="min-h-0 flex flex-col gap-2">
+          <div className="min-h-0 flex flex-col gap-2 sm:gap-2.5">
             {wave.leftSurahs.map((surah, idx) => {
               const isMatched = matchedNos.includes(surah.no);
               const isSelected = selectedLeft === surah.no;
@@ -243,7 +241,7 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                 : isMatched
                   ? 'game-bevel-emerald opacity-80'
                   : isSelected
-                    ? 'game-bevel-amber'
+                    ? 'game-bevel-amber ring-2 ring-amber-300'
                     : 'game-bevel-parchment';
 
               return (
@@ -252,13 +250,13 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                   type="button"
                   disabled={isMatched}
                   onClick={() => handleLeftTap(surah.no)}
-                  className={`flex-1 min-h-[54px] rounded-xl sm:rounded-2xl px-2.5 sm:px-3 py-1.5 flex flex-col justify-between cursor-pointer transition-all select-none ${cardStyle} ${
+                  className={`flex-1 min-h-[64px] sm:min-h-[76px] rounded-xl sm:rounded-2xl px-2.5 sm:px-3.5 py-2 flex flex-col justify-between cursor-pointer transition-all select-none ${cardStyle} ${
                     isPop ? 'game-pop' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1 w-full">
                     <span
-                      className={`text-[9px] font-black tabular-nums px-1.5 py-0.5 rounded ${
+                      className={`text-[10px] sm:text-xs font-black tabular-nums px-1.5 py-0.5 rounded ${
                         isMatched
                           ? 'bg-white/15 text-amber-200'
                           : 'bg-amber-900/10 text-slate-600'
@@ -268,7 +266,7 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                     </span>
                     {isMatched && (
                       <span
-                        className={`inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded ${
+                        className={`inline-flex items-center gap-1 text-[10px] font-black px-1.5 py-0.5 rounded ${
                           ownerTag === 'P2'
                             ? 'bg-amber-400 text-amber-950'
                             : ownerTag === 'P1'
@@ -276,23 +274,24 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                               : 'bg-emerald-400/25 text-emerald-200'
                         }`}
                       >
-                        <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                        <Check className="w-3 h-3" strokeWidth={3} />
                         {ownerTag ? <span>{ownerTag}</span> : null}
                       </span>
                     )}
                   </div>
 
-                  <div className="flex-1 flex flex-col items-center justify-center text-center">
+                  <div className="flex-1 flex flex-col items-center justify-center text-center py-0.5">
                     <span
                       dir="rtl"
-                      className={`font-arabic text-lg sm:text-2xl leading-tight ${
+                      lang="ar"
+                      className={`font-arabic text-xl sm:text-2xl lg:text-[26px] leading-tight ${
                         isMatched || isWrong ? 'text-amber-200' : 'text-teal-900'
                       }`}
                     >
                       {surah.nameAr}
                     </span>
                     <span
-                      className={`text-xs sm:text-sm font-extrabold leading-tight line-clamp-1 ${
+                      className={`text-sm sm:text-base lg:text-[17px] font-bold leading-tight line-clamp-1 ${
                         isMatched || isWrong ? 'text-white' : 'text-slate-900'
                       }`}
                     >
@@ -305,7 +304,7 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
           </div>
 
           {/* Sağ Sütun: 3B Parşömen / Zümrüt Künye & Mukattaa Kartları */}
-          <div className="min-h-0 flex flex-col gap-2">
+          <div className="min-h-0 flex flex-col gap-2 sm:gap-2.5">
             {wave.rightFacts.map((fact) => {
               const isMatched = matchedNos.includes(fact.surahNo);
               const isSelected = selectedRight === fact.surahNo;
@@ -317,7 +316,7 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                 : isMatched
                   ? 'game-bevel-emerald opacity-80'
                   : isSelected
-                    ? 'game-bevel-amber'
+                    ? 'game-bevel-amber ring-2 ring-amber-300'
                     : 'game-bevel-parchment';
 
               return (
@@ -326,13 +325,13 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                   type="button"
                   disabled={isMatched}
                   onClick={() => handleRightTap(fact.surahNo)}
-                  className={`flex-1 min-h-[54px] rounded-xl sm:rounded-2xl px-2.5 sm:px-3 py-1.5 flex flex-col justify-between cursor-pointer transition-all select-none ${cardStyle} ${
+                  className={`flex-1 min-h-[64px] sm:min-h-[76px] rounded-xl sm:rounded-2xl px-2.5 sm:px-3.5 py-2 flex flex-col justify-between cursor-pointer transition-all select-none ${cardStyle} ${
                     isPop ? 'game-pop' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1 w-full">
                     <span
-                      className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded truncate ${
+                      className={`text-[10px] sm:text-xs font-extrabold uppercase px-1.5 py-0.5 rounded truncate ${
                         isMatched
                           ? 'bg-white/15 text-amber-200'
                           : 'bg-teal-800/12 text-teal-900'
@@ -343,7 +342,8 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                     {fact.arabicText && (
                       <span
                         dir="rtl"
-                        className={`font-arabic text-sm sm:text-base font-bold leading-none shrink-0 ${
+                        lang="ar"
+                        className={`font-arabic text-base sm:text-xl font-bold leading-none shrink-0 ${
                           isMatched || isWrong ? 'text-amber-300' : 'text-amber-800'
                         }`}
                       >
@@ -352,9 +352,9 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                     )}
                   </div>
 
-                  <div className="flex-1 flex items-center justify-center text-center">
+                  <div className="flex-1 flex items-center justify-center text-center py-0.5">
                     <span
-                      className={`text-[11px] sm:text-xs font-bold leading-snug line-clamp-2 ${
+                      className={`text-[13px] sm:text-base lg:text-[16px] font-bold leading-snug line-clamp-2 ${
                         isMatched || isWrong ? 'text-white' : 'text-slate-900'
                       }`}
                     >
@@ -539,6 +539,9 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
         : 'Sol sütundan sureyi, sağ sütundan doğru künyesini seç.',
       featuredSurah,
       featuredNote,
+      roundContextTitle: `Künye Eşleştir · Dalga ${waveIdx + 1}`,
+      roundContextHint:
+        'Soldaki sure adlarını sağdaki Türkçe anlamı, ayet sayısı veya Mukattaa künyesiyle seri biçimde eşleştirin.',
     });
   }, [
     combo,
@@ -607,6 +610,8 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
 
     setWaveIdx(nextWaveIdx);
     setSingleWave(buildSpeedWave(nextWaveIdx, tierId, tierSurahs, pairCount));
+    setFeaturedSurah(null);
+    setFeaturedNote(undefined);
   }, [
     correctCount,
     elapsedSec,
@@ -755,7 +760,7 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   }
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col">
       <SpeedBoard
         wave={singleWave}
         waveNumber={waveIdx + 1}

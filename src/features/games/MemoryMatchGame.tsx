@@ -8,6 +8,7 @@ import {
   formatClock,
   shuffleArray,
 } from './gameTypes';
+import { StagePromptBanner } from './StagePromptBanner';
 
 interface MemoryCardItem {
   id: string;
@@ -382,6 +383,9 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
       statusMessage,
       featuredSurah,
       featuredNote,
+      roundContextTitle: 'Hafıza Eşleştirme',
+      roundContextHint:
+        'Aynı surenin Arapça/Türkçe kartı ile anlam veya özel grup kartını eşleştirin. Her doğru eşleşme sure künyesini ve tilavetini açar.',
     });
   }, [
     activePlayer,
@@ -522,21 +526,25 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
 
   const gridClasses =
     pairCount <= 6
-      ? 'grid-cols-3 grid-rows-4 sm:grid-cols-4 sm:grid-rows-3 gap-2 sm:gap-3'
-      : 'grid-cols-4 grid-rows-4 gap-2 sm:gap-3';
+      ? 'grid-cols-3 sm:grid-cols-4 sm:grid-rows-3 gap-2 sm:gap-3'
+      : 'grid-cols-3 sm:grid-cols-4 sm:grid-rows-4 gap-2 sm:gap-3';
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
-      {/* Açılış Gözlem Şeridi */}
-      {isPreview && (
-        <div className="shrink-0 rounded-xl px-3 py-1.5 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold bg-amber-100/95 text-amber-950 border border-amber-300 shadow-sm">
-          <Eye className="w-4 h-4 shrink-0" />
-          <span>Kartları Gözlemleyin...</span>
-          <span className="tabular-nums px-1.5 py-0.5 rounded bg-amber-900/15">
-            {previewLeft} sn
-          </span>
-        </div>
-      )}
+    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-2.5 sm:gap-3.5">
+      {/* Zümrüt Masa Üst Görev Başlığı */}
+      <StagePromptBanner
+        compact
+        badgeIcon={isPreview ? <Eye className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+        badgeLabel={isPreview ? `Gözlem (${previewLeft} sn)` : 'Hafızanı Yokla'}
+        prompt={
+          isPreview
+            ? 'Kartların yerini aklınızda tutun, birazdan kapanacaklar...'
+            : isDuel
+              ? `${activePlayer === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} sırada — iki kart çevirip sureyi künyesiyle eşleştirin`
+              : 'İki kart çevirerek sureyi anlamı veya özel grup künyesiyle eşleştirin'
+        }
+        progressBadge={`${matchedPairIds.length}/${deck.length / 2} Eşleşme`}
+      />
 
       {/* 3B Kalınlıklı Numaralı Kart Izgarası */}
       <div className={`flex-1 min-h-0 grid ${gridClasses}`}>
@@ -555,7 +563,7 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
               onClick={() => handleCardTap(card)}
               disabled={isPreview || isMatched}
               aria-label={isFlipped ? `${card.surah.nameTr}` : `Kart #${card.slotNo}`}
-              className={`game-card-perspective w-full h-full min-h-0 cursor-pointer select-none focus:outline-none ${
+              className={`game-card-perspective w-full h-full min-h-[92px] sm:min-h-0 cursor-pointer select-none focus:outline-none ${
                 isWrong ? 'game-shake' : ''
               }`}
             >
@@ -575,14 +583,14 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
                       <circle cx="12" cy="12" r="2.1" />
                     </svg>
                   </div>
-                  <span className="text-sm sm:text-lg font-black tabular-nums tracking-tight text-slate-700">
+                  <span className="text-base sm:text-xl font-black tabular-nums tracking-tight text-slate-700">
                     #{card.slotNo}
                   </span>
                 </div>
 
-                {/* AÇIK / EŞLEŞMİŞ YÜZ — Koyu Zümrüt 3B Kart + İkon Kutusu + Etiketler */}
+                {/* AÇIK / EŞLEŞMİŞ YÜZ — Koyu Zümrüt 3B Kart + Yüksek Okunabilirlik Tipografi */}
                 <div
-                  className={`game-card-face game-card-face-front rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5 flex flex-col justify-between text-left overflow-hidden ${
+                  className={`game-card-face game-card-face-front rounded-xl sm:rounded-2xl p-2 sm:p-3 flex flex-col justify-between text-left overflow-hidden ${
                     isWrong
                       ? 'bg-red-800 border-2 border-red-400 border-b-4 border-b-red-950 text-white'
                       : 'game-bevel-emerald'
@@ -591,12 +599,12 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
                   {/* Üst Etiket Satırı: Tip + (2 Oyuncu modunda P1/P2) + Onay */}
                   <div className="flex items-center justify-between gap-1 shrink-0">
                     <div className="flex items-center gap-1 min-w-0">
-                      <span className="text-[8px] sm:text-[9px] font-extrabold tracking-wide uppercase px-1.5 py-0.5 rounded bg-white/12 text-amber-200 truncate">
-                        {card.side === 'surah' ? 'SURE · عربي' : card.clueTag}
+                      <span className="text-[9px] sm:text-[10px] font-extrabold tracking-wide uppercase px-1.5 py-0.5 rounded bg-white/14 text-amber-200 truncate">
+                        {card.side === 'surah' ? 'SURE' : card.clueTag}
                       </span>
                       {ownerBadge && (
                         <span
-                          className={`text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shrink-0 ${
+                          className={`text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded shrink-0 ${
                             owner === 'p2'
                               ? 'bg-amber-400 text-amber-950'
                               : 'bg-teal-200 text-teal-950'
@@ -613,9 +621,9 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
                     )}
                   </div>
 
-                  {/* Orta Gövde: Sol İkon Kutusu + Sağ Yüksek Kontrast Tipografi */}
-                  <div className="flex-1 min-h-0 flex items-center gap-1.5 sm:gap-2.5 py-0.5">
-                    <div className="hidden sm:flex w-8 h-8 rounded-lg bg-white/10 border border-white/15 items-center justify-center shrink-0 text-amber-300">
+                  {/* Orta Gövde: Sol İkon Kutusu (lg+) + Yüksek Kontrast Tipografi */}
+                  <div className="flex-1 min-h-0 flex items-center gap-2 py-0.5">
+                    <div className="hidden lg:flex w-8 h-8 rounded-lg bg-white/10 border border-white/15 items-center justify-center shrink-0 text-amber-300">
                       {card.side === 'surah' ? (
                         <BookOpen className="w-4 h-4" />
                       ) : (
@@ -628,11 +636,12 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
                         <>
                           <div
                             dir="rtl"
-                            className="font-arabic text-base sm:text-xl leading-tight text-amber-200 line-clamp-1"
+                            lang="ar"
+                            className="font-arabic text-xl sm:text-2xl lg:text-[26px] leading-tight text-amber-200 truncate"
                           >
                             {card.surah.nameAr}
                           </div>
-                          <div className="text-[11px] sm:text-sm font-extrabold leading-tight text-white line-clamp-1">
+                          <div className="text-xs sm:text-sm lg:text-[16px] font-extrabold leading-tight text-white line-clamp-2">
                             {card.surah.no}. {card.surah.shortNameTr}
                           </div>
                         </>
@@ -641,12 +650,13 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
                           {card.clueArabic && (
                             <div
                               dir="rtl"
-                              className="font-arabic text-sm sm:text-base font-bold leading-none text-amber-300 mb-0.5"
+                              lang="ar"
+                              className="font-arabic text-base sm:text-xl font-bold leading-none text-amber-300 mb-0.5"
                             >
                               {card.clueArabic}
                             </div>
                           )}
-                          <div className="text-[10px] sm:text-xs font-bold leading-snug text-white line-clamp-3">
+                          <div className="text-xs sm:text-sm lg:text-[15px] font-bold leading-snug text-white line-clamp-2 sm:line-clamp-3">
                             {card.clueTitle}
                           </div>
                         </>

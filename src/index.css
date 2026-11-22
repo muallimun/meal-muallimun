@@ -220,6 +220,13 @@
   text-rendering: optimizeLegibility;
 }
 
+/* Oyun kartları, başlıklar ve Arapça ibareler için yüksek okunaklılıklı Scheherazade New */
+.font-arabic {
+  font-family: "Scheherazade New", "Amiri Quran", serif;
+  font-feature-settings: "liga" 1, "calt" 1, "mark" 1, "mkmk" 1;
+  text-rendering: optimizeLegibility;
+}
+
 /* Faz 2: Sıfır Kaymalı (Zero Layout Shift) Kelime Bazlı Karaoke Vurgusu (Kehribar / Altın İmleç) */
 .karaoke-word-active {
   background-color: rgba(245, 158, 11, 0.22);
