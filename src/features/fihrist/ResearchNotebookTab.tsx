@@ -614,223 +614,250 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
         <PersonalVerseNotesPanel />
       ) : (
         <>
-          {/* ====================================================================
-              MOBİL (< lg) KOMPAKT ÜST KONU SEÇİCİ ŞERİDİ (Ekranı kaplamaz!)
-              ==================================================================== */}
-          <div className="lg:hidden space-y-2.5">
-        <div className="surface-card rounded-2xl p-2.5 flex items-center gap-1.5">
-          {topics.length > 0 ? (
-            <select
-              aria-label="Araştırma konusu seçin"
-              value={activeTopic?.id ?? ''}
-              onChange={(e) => {
-                sfxService.play('click');
-                setSelectedTopicId(e.target.value);
-                setIsEditingMeta(false);
-                setConfirmDeleteId(null);
-              }}
-              className="flex-1 min-w-0 min-h-[38px] px-2.5 rounded-xl border text-xs font-extrabold outline-none focus:border-[var(--brand-primary)]"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              {topics.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.title} ({t.items.length} pasaj)
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span
-              className="flex-1 min-w-0 px-2 text-xs font-bold truncate"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Henüz araştırma başlığı yok
-            </span>
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setIsNewTopicFormOpen((v) => !v);
-            }}
-            className="min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
-            style={{ backgroundColor: 'var(--brand-primary)' }}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Yeni</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setBackupFeedback(null);
-              setIsBackupModalOpen(true);
-            }}
-            title="JSON Yedekle / İçe Aktar"
-            aria-label="JSON Yedekle veya İçe Aktar"
-            className="w-9 h-[38px] rounded-xl border flex items-center justify-center shrink-0 cursor-pointer"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            <ArrowUpDown className="w-4 h-4" />
-          </button>
-        </div>
-
-        {isNewTopicFormOpen && renderNewTopicForm()}
-      </div>
-
-      {/* ====================================================================
-          ANA 2 SÜTUN: MASAÜSTÜ SOL KONU LİSTESİ + SAĞ ÇALIŞMA MASASI
-          ==================================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* MASAÜSTÜ (lg+) SOL SÜTUN: KİŞİSEL KONULARIM */}
-        <aside className="hidden lg:block lg:col-span-4 surface-card rounded-2xl overflow-hidden lg:sticky lg:top-16">
-          <div
-            className="px-3.5 py-3 border-b flex items-center justify-between gap-2"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              borderColor: 'var(--border-subtle)',
-            }}
-          >
-            <div className="min-w-0">
-              <h3 className="text-xs sm:text-sm font-extrabold truncate">
-                Araştırma Başlıklarım ({topics.length})
-              </h3>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setBackupFeedback(null);
-                  setIsBackupModalOpen(true);
-                }}
-                title="JSON Yedekle / İçe Aktar"
-                className="min-h-[32px] px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                <ArrowUpDown className="w-3.5 h-3.5" />
-                <span>Yedekle</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setIsNewTopicFormOpen((v) => !v);
-                }}
-                className="min-h-[32px] px-2.5 rounded-lg text-[11px] font-extrabold text-white inline-flex items-center gap-1 cursor-pointer"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Yeni</span>
-              </button>
-            </div>
-          </div>
-
-          {isNewTopicFormOpen && (
-            <div className="p-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-              {renderNewTopicForm()}
-            </div>
-          )}
-
           {topics.length === 0 ? (
-            <div className="p-6 text-center space-y-3">
-              <NotebookPen
-                className="w-9 h-9 mx-auto opacity-55"
-                style={{ color: 'var(--brand-primary-text)' }}
-              />
-              <div className="space-y-1">
-                <p className="text-sm font-extrabold">Araştırma Defteriniz Henüz Boş</p>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                  Kendi konu başlığınızı oluşturabilir, okurken ayetleri tek dokunuşla deftere
-                  ekleyebilir veya hazır fihristten konu kopyalayabilirsiniz.
+            <section className="surface-card rounded-2xl p-6 sm:p-10 text-center space-y-4">
+              <div
+                className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <NotebookPen className="w-7 h-7" />
+              </div>
+              <div className="space-y-1.5 max-w-lg mx-auto">
+                <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
+                  Kişisel Araştırma Defteriniz Henüz Boş
+                </h3>
+                <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  Kendi araştırma başlığınızı oluşturarak ayet ve pasajları toplayabilir, notlar
+                  alabilir veya Konu Fihristi&apos;ndeki hazır başlıkları tek tıkla defterinize
+                  aktarabilirsiniz.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setIsNewTopicFormOpen(true);
-                }}
-                className="min-h-[40px] px-4 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
-              >
-                <FolderPlus className="w-4 h-4" />
-                <span>İlk Araştırma Konumu Oluştur</span>
-              </button>
-            </div>
-          ) : (
-            <div
-              className="divide-y max-h-[65dvh] overflow-y-auto scrollbar-thin"
-              style={{ borderColor: 'var(--border-subtle)' }}
-            >
-              {topics.map((topic) => {
-                const isSelected = activeTopic?.id === topic.id;
-                const totalAyahs = countEntriesAyahs(topic.items);
 
-                return (
+              {isNewTopicFormOpen ? (
+                <div className="max-w-lg mx-auto text-left pt-1">{renderNewTopicForm()}</div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
                   <button
-                    key={topic.id}
                     type="button"
                     onClick={() => {
                       sfxService.play('click');
-                      setSelectedTopicId(topic.id);
+                      setIsNewTopicFormOpen(true);
+                    }}
+                    className="min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    <span>İlk Araştırma Başlığımı Oluştur</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setBackupFeedback(null);
+                      setIsBackupModalOpen(true);
+                    }}
+                    className="min-h-[42px] px-4 rounded-xl border text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-strong)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <ArrowUpDown
+                      className="w-4 h-4 shrink-0"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <span>Yedekten Yükle / Yedekle</span>
+                  </button>
+                </div>
+              )}
+            </section>
+          ) : (
+            <>
+              {/* ====================================================================
+                  MOBİL (< lg) KOMPAKT ÜST KONU SEÇİCİ ŞERİDİ (Ekranı kaplamaz!)
+                  ==================================================================== */}
+              <div className="lg:hidden space-y-2.5">
+                <div className="surface-card rounded-2xl p-2.5 flex items-center gap-1.5">
+                  <select
+                    aria-label="Araştırma konusu seçin"
+                    value={activeTopic?.id ?? ''}
+                    onChange={(e) => {
+                      sfxService.play('click');
+                      setSelectedTopicId(e.target.value);
                       setIsEditingMeta(false);
                       setConfirmDeleteId(null);
                     }}
-                    className="w-full px-3.5 py-3 text-left flex items-center justify-between gap-2.5 transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)]"
+                    className="flex-1 min-w-0 min-h-[38px] px-2.5 rounded-xl border text-xs font-extrabold outline-none focus:border-[var(--brand-primary)]"
                     style={{
-                      backgroundColor: isSelected ? 'var(--brand-primary-soft)' : 'transparent',
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {topics.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title} ({t.items.length} pasaj)
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsNewTopicFormOpen((v) => !v);
+                    }}
+                    className="min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Yeni</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setBackupFeedback(null);
+                      setIsBackupModalOpen(true);
+                    }}
+                    title="JSON Yedekle / İçe Aktar"
+                    aria-label="JSON Yedekle veya İçe Aktar"
+                    className="w-9 h-[38px] rounded-xl border flex items-center justify-center shrink-0 cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    <ArrowUpDown className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {isNewTopicFormOpen && renderNewTopicForm()}
+              </div>
+
+              {/* ====================================================================
+                  ANA 2 SÜTUN: MASAÜSTÜ SOL KONU LİSTESİ + SAĞ ÇALIŞMA MASASI
+                  ==================================================================== */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                {/* MASAÜSTÜ (lg+) SOL SÜTUN: KİŞİSEL KONULARIM */}
+                <aside className="hidden lg:block lg:col-span-4 surface-card rounded-2xl overflow-hidden lg:sticky lg:top-16">
+                  <div
+                    className="px-3.5 py-3 border-b flex items-center justify-between gap-2"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
                     }}
                   >
                     <div className="min-w-0">
-                      <p
-                        className="text-xs sm:text-sm font-extrabold truncate"
+                      <h3 className="text-xs sm:text-sm font-extrabold truncate">
+                        Araştırma Başlıklarım ({topics.length})
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setBackupFeedback(null);
+                          setIsBackupModalOpen(true);
+                        }}
+                        title="JSON Yedekle / İçe Aktar"
+                        className="min-h-[32px] px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
                         style={{
-                          color: isSelected
-                            ? 'var(--brand-primary-text)'
-                            : 'var(--text-primary)',
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-secondary)',
                         }}
                       >
-                        {topic.title}
-                      </p>
-                      <p
-                        className="text-[11px] tabular-nums mt-0.5 truncate"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        {topic.items.length} pasaj · {totalAyahs} ayet
-                      </p>
-                    </div>
-                    <ChevronRight
-                      className="w-4 h-4 shrink-0 opacity-60"
-                      style={{
-                        color: isSelected ? 'var(--brand-primary-text)' : 'var(--text-muted)',
-                      }}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </aside>
+                        <ArrowUpDown className="w-3.5 h-3.5" />
+                        <span>Yedekle</span>
+                      </button>
 
-        {/* SAĞ SÜTUN: SEÇİLİ ARAŞTIRMA KONUSU */}
-        <section className="lg:col-span-8 space-y-3.5 min-w-0">
-          {activeTopic ? (
-            <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setIsNewTopicFormOpen((v) => !v);
+                        }}
+                        className="min-h-[32px] px-2.5 rounded-lg text-[11px] font-extrabold text-white inline-flex items-center gap-1 cursor-pointer"
+                        style={{ backgroundColor: 'var(--brand-primary)' }}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Yeni</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {isNewTopicFormOpen && (
+                    <div className="p-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                      {renderNewTopicForm()}
+                    </div>
+                  )}
+
+                  <div
+                    className="divide-y max-h-[65dvh] overflow-y-auto scrollbar-thin"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    {topics.map((topic) => {
+                      const isSelected = activeTopic?.id === topic.id;
+                      const totalAyahs = countEntriesAyahs(topic.items);
+
+                      return (
+                        <button
+                          key={topic.id}
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setSelectedTopicId(topic.id);
+                            setIsEditingMeta(false);
+                            setConfirmDeleteId(null);
+                          }}
+                          className="w-full px-3.5 py-3 text-left flex items-center justify-between gap-2.5 transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)]"
+                          style={{
+                            backgroundColor: isSelected ? 'var(--brand-primary-soft)' : 'transparent',
+                          }}
+                        >
+                          <div className="min-w-0">
+                            <p
+                              className="text-xs sm:text-sm font-extrabold truncate"
+                              style={{
+                                color: isSelected
+                                  ? 'var(--brand-primary-text)'
+                                  : 'var(--text-primary)',
+                              }}
+                            >
+                              {topic.title}
+                            </p>
+                            <p
+                              className="text-[11px] tabular-nums mt-0.5 truncate"
+                              style={{ color: 'var(--text-muted)' }}
+                            >
+                              {topic.items.length} pasaj · {totalAyahs} ayet
+                            </p>
+                          </div>
+                          <ChevronRight
+                            className="w-4 h-4 shrink-0 opacity-60"
+                            style={{
+                              color: isSelected ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                            }}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </aside>
+
+                {/* SAĞ SÜTUN: SEÇİLİ ARAŞTIRMA KONUSU */}
+                <section className="lg:col-span-8 space-y-3.5 min-w-0">
+                  {activeTopic && (
+                    <>
               {/* Konu Üst Kartı */}
               <div className="surface-card rounded-2xl p-4 sm:p-5 space-y-3.5">
                 {isEditingMeta ? (
@@ -1400,35 +1427,11 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                 defaultPrintMode={defaultPrintMode}
               />
             </>
-          ) : (
-            <div className="surface-card rounded-2xl p-8 text-center space-y-3">
-              <NotebookPen
-                className="w-10 h-10 mx-auto opacity-55"
-                style={{ color: 'var(--brand-primary-text)' }}
-              />
-              <div className="space-y-1">
-                <p className="text-sm font-extrabold">Kişisel Araştırma Defteriniz Boş</p>
-                <p className="text-xs max-w-md mx-auto" style={{ color: 'var(--text-muted)' }}>
-                  İlk konu başlığınızı oluşturarak ayet ve pasajları toplayabilir, notlar alabilir
-                  veya Konu Fihristi&apos;nden istediğiniz başlığı tek tıkla kopyalayabilirsiniz.
-                </p>
+                  )}
+                </section>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setIsNewTopicFormOpen(true);
-                }}
-                className="min-h-[40px] px-4 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
-              >
-                <FolderPlus className="w-4 h-4" />
-                <span>İlk Araştırma Başlığımı Oluştur</span>
-              </button>
-            </div>
+            </>
           )}
-        </section>
-      </div>
 
       {/* ====================================================================
           JSON YEDEKLEME & GERİ YÜKLEME MODALI

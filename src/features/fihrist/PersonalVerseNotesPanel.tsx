@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useSyncExternalStore } from 'react';
 import {
+  ArrowRight,
   BookOpen,
   Edit3,
+  HardDrive,
   Pin,
   Printer,
   Search,
@@ -39,7 +41,14 @@ function formatShortDate(iso: string): string {
 }
 
 export const PersonalVerseNotesPanel: React.FC = () => {
-  const { meta, navigateToStudy, openVerseNoteModal, openQuickResearch } = useAppStore();
+  const {
+    meta,
+    setActiveTab,
+    navigateToStudy,
+    openVerseNoteModal,
+    openQuickResearch,
+    openSettingsModal,
+  } = useAppStore();
   const allNotes = useSyncExternalStore(
     verseNotesStorage.subscribe,
     verseNotesStorage.getSnapshot,
@@ -110,6 +119,66 @@ export const PersonalVerseNotesPanel: React.FC = () => {
       page: note.page,
     });
   };
+
+  if (allNotes.length === 0) {
+    return (
+      <section className="surface-card rounded-2xl p-6 sm:p-10 text-center space-y-4">
+        <div
+          className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center"
+          style={{
+            backgroundColor: 'var(--brand-primary-soft)',
+            color: 'var(--brand-primary-text)',
+          }}
+        >
+          <StickyNote className="w-7 h-7" />
+        </div>
+        <div className="space-y-1.5 max-w-lg mx-auto">
+          <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
+            Henüz Kişisel Ayet Notunuz Yok
+          </h3>
+          <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Mushaf, Kitap veya Ayet Kartları görünümlerinde herhangi bir ayetin menüsünden{' '}
+            <strong>Kişisel Not Ekle</strong> seçeneğiyle renkli ve etiketli tefekkür notlarınızı
+            kaydedebilirsiniz.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setActiveTab('reader');
+            }}
+            className="min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer"
+            style={{ backgroundColor: 'var(--brand-primary)' }}
+          >
+            <BookOpen className="w-4 h-4 shrink-0" />
+            <span>Okuma Ekranına Git</span>
+            <ArrowRight className="w-4 h-4 shrink-0" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              openSettingsModal();
+            }}
+            className="min-h-[42px] px-4 rounded-xl border text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-strong)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            <HardDrive
+              className="w-4 h-4 shrink-0"
+              style={{ color: 'var(--brand-primary-text)' }}
+            />
+            <span>Yedekten Geri Yükle</span>
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div className="space-y-3.5">
@@ -286,30 +355,7 @@ export const PersonalVerseNotesPanel: React.FC = () => {
       </section>
 
       {/* Not Listesi */}
-      {allNotes.length === 0 ? (
-        <section
-          className="surface-card rounded-2xl p-8 text-center space-y-3 border-dashed"
-          style={{ borderColor: 'var(--border-strong)' }}
-        >
-          <div
-            className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center"
-            style={{
-              backgroundColor: 'var(--brand-primary-soft)',
-              color: 'var(--brand-primary-text)',
-            }}
-          >
-            <StickyNote className="w-6 h-6" />
-          </div>
-          <div className="space-y-1 max-w-md mx-auto">
-            <h3 className="text-sm sm:text-base font-extrabold">Henüz kişisel ayet notunuz yok</h3>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Mushaf, Kitap veya Ayet Kartları görünümlerinde herhangi bir ayetin menüsünden{' '}
-              <strong>Kişisel Not Ekle</strong> seçeneğiyle tefekkür ve ders notlarınızı
-              kaydedebilirsiniz.
-            </p>
-          </div>
-        </section>
-      ) : filteredNotes.length === 0 ? (
+      {filteredNotes.length === 0 ? (
         <section className="surface-card rounded-2xl p-6 text-center space-y-2">
           <p className="text-sm font-bold">Aramanızla eşleşen ayet notu bulunamadı.</p>
           <button

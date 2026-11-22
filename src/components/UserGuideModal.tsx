@@ -9,7 +9,6 @@ import {
   Compass,
   Copy,
   Database,
-  ExternalLink,
   FileText,
   GraduationCap,
   HelpCircle,
@@ -335,6 +334,7 @@ export const UserGuideModal: React.FC = () => {
     closeUserGuide,
     setActiveTab,
     openSettingsModal,
+    openIntroSplash,
     navigateToMemorizeUnit,
     openHatimModal,
     navigateToFihrist,
@@ -737,41 +737,6 @@ export const UserGuideModal: React.FC = () => {
                   );
                 })}
               </div>
-
-              {/* Ekosistem Bilgilendirmesi */}
-              {!isSearching && (
-                <div
-                  className="p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    borderColor: 'var(--border-subtle)',
-                  }}
-                >
-                  <div className="min-w-0">
-                    <p className="text-xs font-extrabold">
-                      Kur&apos;an Kelimeleri Öğrenme Asistanı
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      Kur&apos;an kelimelerini sıklık sırasına ve surelere göre etkileşimli kartlarla
-                      çalışmak için kardeş platformumuzu ziyaret edebilirsiniz.
-                    </p>
-                  </div>
-                  <a
-                    href="https://kelime.muallimun.net"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="min-h-[38px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 shrink-0 hover:opacity-90"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-strong)',
-                      color: 'var(--brand-primary-text)',
-                    }}
-                  >
-                    <span>kelime.muallimun.net</span>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  </a>
-                </div>
-              )}
             </section>
           )}
 
@@ -1080,6 +1045,23 @@ export const UserGuideModal: React.FC = () => {
             <span>kuran.muallimun.net · Kullanım Rehberi</span>
           </span>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                closeUserGuide();
+                openIntroSplash();
+              }}
+              className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 touch-manipulation"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-accent-text)' }} />
+              <span>Platform Tanıtımı</span>
+            </button>
             <button
               type="button"
               onClick={() => {

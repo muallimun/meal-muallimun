@@ -6,11 +6,8 @@ import {
   Bookmark,
   ChevronDown,
   Compass,
-  ExternalLink,
-  Flame,
   HelpCircle,
   Home,
-  Layers,
   Maximize2,
   MessageSquareHeart,
   Minimize2,
@@ -19,27 +16,22 @@ import {
   Search,
   Settings,
   Sparkles,
-  Star,
   Trophy,
   WifiOff,
   X,
 } from 'lucide-react';
-import { MEALS_CATALOG } from '../config/mealsConfig';
-import { RECITERS_CATALOG } from '../config/recitersConfig';
 import { Z_LAYERS } from '../config/zLayers';
 import { audioQueueService } from '../services/audioQueueService';
 import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
-import { formatNumberTr } from '../utils/poolUtils';
 import {
   applyPwaUpdate,
   isPwaUpdateAvailable,
   subscribePwaUpdate,
 } from '../utils/pwaUtils';
 import { BrandMark } from './BrandMark';
-import { PwaInstallControl } from './PwaInstallControl';
 
 interface NavItemConfig {
   id: NavTab;
@@ -73,11 +65,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     setActiveTab,
     gamification,
     studyPrefs,
-    studyPool,
-    setStudyPool,
     studyProgress,
-    poolStats,
-    openPoolModal,
     openSettingsModal,
     openUserGuide,
     openFeedbackModal,
@@ -324,149 +312,27 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 </button>
               );
             })}
-
-            {/* Hızlı Çalışma Havuzu Özeti */}
-            <div
-              className="mt-5 pt-4 border-t"
-              style={{ borderColor: 'var(--border-subtle)' }}
-            >
-              <div className="px-2 mb-1.5 flex items-center justify-between">
-                <span
-                  className="text-[11px] font-semibold"
-                  style={{
-                    color: studyPool.isCustomized
-                      ? 'var(--text-muted)'
-                      : 'var(--brand-accent-text)',
-                  }}
-                >
-                  {studyPool.isCustomized
-                    ? 'Aktif Çalışma Havuzu'
-                    : `Önerilen Başlangıç Havuzu (${formatNumberTr(poolStats.surahCount)} Sure)`}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={openPoolModal}
-                className="w-full text-left p-3 rounded-xl border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                }}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="flex items-center gap-1.5 text-xs font-bold">
-                    <Layers
-                      className="w-3.5 h-3.5 shrink-0"
-                      style={{ color: 'var(--brand-primary-text)' }}
-                    />
-                    <span>Havuzu Yönet</span>
-                  </span>
-                  <span
-                    className="text-[11px] font-semibold"
-                    style={{ color: 'var(--brand-primary-text)' }}
-                  >
-                    Değiştir
-                  </span>
-                </div>
-                <p
-                  className="text-[11px] tabular-nums leading-relaxed"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  {formatNumberTr(poolStats.surahCount)} Sure ·{' '}
-                  {formatNumberTr(poolStats.ayahCount)} Ayet ·{' '}
-                  {formatNumberTr(poolStats.questionCount)} Soru
-                </p>
-              </button>
-
-              {!studyPool.isCustomized && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    setStudyPool({
-                      selectedSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
-                      selectedJuzs: [],
-                    });
-                  }}
-                  className="mt-1.5 w-full min-h-[34px] px-2.5 py-1.5 rounded-xl border text-[11px] font-extrabold text-center transition-colors cursor-pointer hover:opacity-90"
-                  style={{
-                    backgroundColor: 'var(--brand-primary-soft)',
-                    borderColor: 'var(--brand-primary)',
-                    color: 'var(--brand-primary-text)',
-                  }}
-                >
-                  Tüm Kur&apos;an&apos;a Genişlet (114 Sure)
-                </button>
-              )}
-            </div>
           </nav>
 
-          {/* Alt Kurulum, Rehber, Ekosistem & Ayarlar Tetikleyicisi */}
+          {/* Alt Tek Sade Satır: İletişim & Geri Bildirim */}
           <div
-            className="p-3 border-t shrink-0 space-y-2"
+            className="mt-auto p-3 border-t shrink-0"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <PwaInstallControl variant="sidebar" />
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                openUserGuide('quickstart');
-              }}
-              className="w-full min-h-[40px] px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-bold transition-colors cursor-pointer hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                color: 'var(--brand-primary-text)',
-              }}
-            >
-              <HelpCircle className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Kullanım Kılavuzu</span>
-            </button>
-            <a
-              href="https://kelime.muallimun.net"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full min-h-[40px] px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold transition-colors hover:opacity-90"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-secondary)',
-              }}
-              title="Kur'an Kelimeleri Öğrenme Asistanı"
-            >
-              <span className="truncate">Kelime Asistanı</span>
-              <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-75" />
-            </a>
             <button
               type="button"
               onClick={() => {
                 sfxService.play('click');
                 openFeedbackModal();
               }}
-              className="w-full min-h-[40px] px-3 py-2 rounded-xl border flex items-center gap-2.5 text-xs font-bold transition-colors cursor-pointer hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-secondary)',
-              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-semibold transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+              style={{ color: 'var(--text-secondary)' }}
             >
               <MessageSquareHeart
                 className="w-4 h-4 shrink-0"
                 style={{ color: 'var(--brand-primary-text)' }}
               />
               <span className="truncate">İletişim &amp; Geri Bildirim</span>
-            </button>
-            <button
-              type="button"
-              onClick={openSettingsModal}
-              className="w-full min-h-[40px] px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-bold transition-colors cursor-pointer hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              <Settings className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Görünüm ve Ayarlar</span>
             </button>
           </div>
         </aside>
@@ -706,16 +572,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <Search className="w-4 h-4 shrink-0" />
               </button>
 
-              {/* 2. Sayfa Ayraçlarım — İkon + Mini Köşe Sayaç */}
+              {/* 2. Sayfa Ayraçlarım & Hatim — İkon + Mini Köşe Sayaç */}
               <button
                 type="button"
                 onClick={openBookmarksDrawer}
                 title={
                   bookmarkCount > 0
-                    ? `Sayfa Ayraçlarım (${bookmarkCount})`
-                    : 'Sayfa Ayraçlarım'
+                    ? `Sayfa Ayraçlarım & Hatim (${bookmarkCount})`
+                    : 'Sayfa Ayraçlarım & Hatim'
                 }
-                aria-label="Sayfa Ayraçlarım"
+                aria-label="Sayfa Ayraçlarım ve Hatim"
                 className="relative min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
                 style={{
                   backgroundColor:
@@ -741,40 +607,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 )}
               </button>
 
-              {/* 3. Günlük Seri & Puan — Okuma ekranında odak için gizli; diğer sekmelerde kompakt */}
-              {!isReaderTab && (
-                <>
-                  <div
-                    className="hidden sm:flex h-10 px-2 rounded-xl items-center gap-1 text-xs font-bold tabular-nums"
-                    style={{
-                      backgroundColor: 'var(--brand-accent-soft)',
-                      color: 'var(--brand-accent-text)',
-                    }}
-                    title="Günlük çalışma seriniz"
-                  >
-                    <Flame className="w-3.5 h-3.5 shrink-0" />
-                    <span className="whitespace-nowrap">
-                      {formatNumberTr(gamification.streakDays)}
-                    </span>
-                  </div>
-
-                  <div
-                    className="h-10 px-2 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
-                    style={{
-                      backgroundColor: 'var(--brand-primary-soft)',
-                      color: 'var(--brand-primary-text)',
-                    }}
-                    title="Toplam puanınız"
-                  >
-                    <Star className="w-3.5 h-3.5 shrink-0" />
-                    <span className="whitespace-nowrap">
-                      {formatNumberTr(gamification.totalXp)}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              {/* 4. Genel Tam Ekran İkonu */}
+              {/* 3. Genel Tam Ekran İkonu */}
               <button
                 type="button"
                 onClick={handleToggleFullscreen}
@@ -998,34 +831,34 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             className={`${contentWidthClass} mx-auto px-4 py-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs`}
           >
             <p style={{ color: 'var(--text-muted)' }}>
-              © {currentYear} kuran.muallimun.net — Muallimun Kur&apos;an &amp; Meal Eğitim Platformu
+              © {currentYear} kuran.muallimun.net — Muallimun Kur&apos;an &amp; Meal
             </p>
-            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1.5">
-              <p style={{ color: 'var(--text-muted)' }}>
-                {MEALS_CATALOG.length} Meal &amp; Tefsir · {RECITERS_CATALOG.length} Kurrâ · Fihrist, Ezber, Sınav &amp; Oyunlar
-              </p>
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-2.5 gap-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  openUserGuide('quickstart');
+                }}
+                className="font-semibold hover:underline cursor-pointer"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Kullanım Rehberi
+              </button>
+              <span aria-hidden="true" style={{ color: 'var(--text-muted)' }}>
+                ·
+              </span>
               <button
                 type="button"
                 onClick={() => {
                   sfxService.play('click');
                   openFeedbackModal();
                 }}
-                className="inline-flex items-center gap-1 font-bold hover:underline cursor-pointer"
+                className="font-semibold hover:underline cursor-pointer"
                 style={{ color: 'var(--brand-primary-text)' }}
               >
-                <MessageSquareHeart className="w-3.5 h-3.5 shrink-0" />
-                <span>İletişim &amp; Geri Bildirim</span>
+                İletişim &amp; Geri Bildirim
               </button>
-              <a
-                href="https://kelime.muallimun.net"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-bold hover:underline"
-                style={{ color: 'var(--brand-primary-text)' }}
-              >
-                <span>kelime.muallimun.net</span>
-                <ExternalLink className="w-3 h-3 shrink-0" />
-              </a>
             </div>
           </div>
         </footer>

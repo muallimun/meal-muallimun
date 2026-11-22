@@ -16,6 +16,8 @@ import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 
+const PWA_BANNER_DISMISSED_KEY = 'muallimun_pwa_banner_dismissed_v1';
+
 interface PwaInstallControlProps {
   variant: 'banner' | 'sidebar' | 'settings';
 }
@@ -24,9 +26,26 @@ export const PwaInstallControl: React.FC<PwaInstallControlProps> = ({ variant })
   const { isOnline, canInstallPwa, isPwaInstalled, isIosDevice, promptPwaInstall } =
     useAppStore();
 
-  const [dismissedBanner, setDismissedBanner] = useState(false);
+  const [dismissedBanner, setDismissedBanner] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.localStorage.getItem(PWA_BANNER_DISMISSED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [showIosGuide, setShowIosGuide] = useState(false);
   const [showManualHint, setShowManualHint] = useState(false);
+
+  const handleDismissBanner = () => {
+    sfxService.play('click');
+    setDismissedBanner(true);
+    try {
+      window.localStorage.setItem(PWA_BANNER_DISMISSED_KEY, '1');
+    } catch {
+      // Depolama kısıtlamasını sessizce geç
+    }
+  };
 
   useBackButtonGuard('ios_install_guide', showIosGuide, () => setShowIosGuide(false));
 
@@ -279,7 +298,7 @@ export const PwaInstallControl: React.FC<PwaInstallControlProps> = ({ variant })
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDismissedBanner(true)}
+                  onClick={handleDismissBanner}
                   aria-label="Kurulum önerisini kapat"
                   className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center cursor-pointer"
                   style={{ color: 'var(--text-muted)' }}

@@ -3,7 +3,6 @@ import {
   BookOpen,
   Clock,
   Compass,
-  ExternalLink,
   FolderKanban,
   Grid2x2,
   Layers,
@@ -193,22 +192,6 @@ export const GamesHubTab: React.FC = () => {
             <BookOpen className="w-4 h-4 shrink-0" />
             <span>Sure Grupları Atlası (15 Aile)</span>
           </button>
-
-          <a
-            href="https://kelime.muallimun.net"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Kur'an Kelimeleri Öğrenme Asistanı"
-            className="min-h-[46px] px-3.5 py-2 rounded-xl border text-xs sm:text-[13px] font-extrabold inline-flex items-center gap-1.5 transition-colors hover:opacity-90"
-            style={{
-              backgroundColor: 'var(--brand-primary-soft)',
-              borderColor: 'var(--brand-primary)',
-              color: 'var(--brand-primary-text)',
-            }}
-          >
-            <span>Kelime Asistanı</span>
-            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-          </a>
 
           <div
             className="rounded-xl border px-3.5 py-2 flex items-center gap-2.5"
