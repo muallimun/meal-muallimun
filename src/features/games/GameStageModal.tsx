@@ -15,17 +15,22 @@ import type {
   GameTierId,
 } from './gameTypes';
 import { resolveTierSurahs } from './gameTypes';
+import { GroupSequenceGame } from './GroupSequenceGame';
 import { MemoryMatchGame } from './MemoryMatchGame';
 import { MushafChainGame } from './MushafChainGame';
 import { MushafCompassGame } from './MushafCompassGame';
 import { SpeedMatchGame } from './SpeedMatchGame';
 import { SurahDetectiveGame } from './SurahDetectiveGame';
+import { SurahFamiliesGame } from './SurahFamiliesGame';
+import type { SurahGroupId } from './surahSpecialGroups';
+import { SURAH_GROUP_BY_ID } from './surahSpecialGroups';
 
 interface GameStageModalProps {
   gameId: GameId;
   initialTierId: GameTierId;
   initialTempo: GameTempo;
   initialPlayerMode: GamePlayerMode;
+  focusGroupId?: SurahGroupId | null;
   allSurahs: EnrichedGameSurah[];
   activePoolSurahNos: number[];
   onProgressUpdated: (nextMap: GameProgressMap) => void;
@@ -58,6 +63,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
   initialTierId,
   initialTempo,
   initialPlayerMode,
+  focusGroupId = null,
   allSurahs,
   activePoolSurahNos,
   onProgressUpdated,
@@ -170,7 +176,8 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
     [awardGameXp, onProgressUpdated],
   );
 
-  const stageKey = `${gameId}-${currentTierId}-${currentTempo}-${currentPlayerMode}-${runNonce}`;
+  const focusGroupTitle = focusGroupId ? SURAH_GROUP_BY_ID[focusGroupId]?.title ?? null : null;
+  const stageKey = `${gameId}-${currentTierId}-${currentTempo}-${currentPlayerMode}-${focusGroupId ?? 'all'}-${runNonce}`;
 
   return (
     <GameArenaShell
@@ -178,6 +185,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
       tierId={currentTierId}
       tempo={currentTempo}
       playerMode={currentPlayerMode}
+      focusGroupTitle={focusGroupTitle}
       isMuted={isMuted}
       isSummaryOpen={Boolean(result)}
       hud={hud}
@@ -251,6 +259,32 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
               tierId={currentTierId}
               tempo={currentTempo}
               playerMode={currentPlayerMode}
+              tierSurahs={tierSurahs}
+              allSurahsMap={allSurahsMap}
+              onHudUpdate={setHud}
+              onComplete={handleComplete}
+            />
+          )}
+          {gameId === 'families' && (
+            <SurahFamiliesGame
+              key={stageKey}
+              tierId={currentTierId}
+              tempo={currentTempo}
+              playerMode={currentPlayerMode}
+              focusGroupId={focusGroupId}
+              tierSurahs={tierSurahs}
+              allSurahsMap={allSurahsMap}
+              onHudUpdate={setHud}
+              onComplete={handleComplete}
+            />
+          )}
+          {gameId === 'group_seq' && (
+            <GroupSequenceGame
+              key={stageKey}
+              tierId={currentTierId}
+              tempo={currentTempo}
+              playerMode={currentPlayerMode}
+              focusGroupId={focusGroupId}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
               onHudUpdate={setHud}

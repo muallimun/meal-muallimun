@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  BookOpen,
   Bot,
   Clock,
   Compass,
+  FolderKanban,
   Grid2x2,
   Layers,
+  ListOrdered,
   Play,
   Search,
   Sparkles,
@@ -37,9 +40,11 @@ import {
   GAME_TIERS,
   buildEnrichedGameSurahs,
 } from './gameTypes';
+import { SurahGroupsAtlasModal } from './SurahGroupsAtlasModal';
+import type { SurahGroupId } from './surahSpecialGroups';
 
-const MAX_TIER_STARS = GAME_DEFINITIONS.length * 3; // 15 yıldız / kademe
-const MAX_TOTAL_STARS = GAME_TIERS.length * MAX_TIER_STARS; // 90 yıldız toplam
+const MAX_TIER_STARS = GAME_DEFINITIONS.length * 3; // 21 yıldız / kademe
+const MAX_TOTAL_STARS = GAME_TIERS.length * MAX_TIER_STARS; // 126 yıldız toplam
 
 export const GamesHubTab: React.FC = () => {
   const { meta, poolStats } = useAppStore();
@@ -52,6 +57,8 @@ export const GamesHubTab: React.FC = () => {
   const [playerMode, setPlayerMode] = useState<GamePlayerMode>('ai');
   const [progressMap, setProgressMap] = useState<GameProgressMap>(() => loadGameProgress());
   const [activeGameId, setActiveGameId] = useState<GameId | null>(null);
+  const [activeFocusGroupId, setActiveFocusGroupId] = useState<SurahGroupId | null>(null);
+  const [isAtlasOpen, setIsAtlasOpen] = useState<boolean>(false);
 
   useEffect(() => {
     let alive = true;
@@ -89,7 +96,7 @@ export const GamesHubTab: React.FC = () => {
   const totalEarnedStars = useMemo(() => getTotalEarnedGameStars(progressMap), [progressMap]);
   const activeTierMeta = GAME_TIERS.find((t) => t.id === selectedTier) ?? GAME_TIERS[0];
 
-  const handleLaunchGame = (gameId: GameId) => {
+  const handleLaunchGame = (gameId: GameId, focusGroupId: SurahGroupId | null = null) => {
     if (enrichedSurahs.length === 0) return;
     sfxService.play('click');
     audioQueueService.pause();
@@ -98,7 +105,17 @@ export const GamesHubTab: React.FC = () => {
         ? 'ai'
         : playerMode;
     setPlayerMode(effectiveMode);
+    setActiveFocusGroupId(focusGroupId);
     setActiveGameId(gameId);
+  };
+
+  const handleLaunchFromAtlas = (
+    groupId: SurahGroupId,
+    targetGameId: Extract<GameId, 'families' | 'group_seq'>,
+  ) => {
+    setIsAtlasOpen(false);
+    setSelectedTier('kademe_4');
+    handleLaunchGame(targetGameId, groupId);
   };
 
   const renderGameIcon = (id: GameId) => {
@@ -111,6 +128,10 @@ export const GamesHubTab: React.FC = () => {
         return <Zap className="w-5 h-5" />;
       case 'compass':
         return <Compass className="w-5 h-5" />;
+      case 'families':
+        return <FolderKanban className="w-5 h-5" />;
+      case 'group_seq':
+        return <ListOrdered className="w-5 h-5" />;
       case 'detective':
       default:
         return <Search className="w-5 h-5" />;
@@ -118,7 +139,7 @@ export const GamesHubTab: React.FC = () => {
   };
 
   const renderGameAccent = (id: GameId) => {
-    if (id === 'chain' || id === 'compass') {
+    if (id === 'chain' || id === 'compass' || id === 'group_seq') {
       return {
         soft: 'var(--brand-accent-soft)',
         text: 'var(--brand-accent-text)',
@@ -141,49 +162,69 @@ export const GamesHubTab: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      {/* Üst Başlık ve İlerleme Özeti */}
+      {/* Üst Başlık, Atlas Butonu ve İlerleme Özeti */}
       <section
-        className="rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        className="rounded-2xl border p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
         }}
       >
-        <div className="space-y-1">
+        <div className="space-y-1 min-w-0">
           <div className="inline-flex items-center gap-1.5 text-xs font-bold" style={{ color: 'var(--brand-primary-text)' }}>
             <Compass className="w-4 h-4" />
             <span>Kur’ân &amp; Mushaf Eğitsel Oyunlar Atölyesi</span>
           </div>
           <h2 className="text-lg sm:text-xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            5 Zümrüt Masa Oyunu ile Sureleri Uygulayarak Pekiştirin
+            7 Zümrüt Masa Oyunu ile Sureleri Uygulayarak Pekiştirin
           </h2>
           <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Tek başına, Yapay Zekâya karşı veya Akıllı Tahtada 2 oyunculu — canlı Bilgi Notu ve tilavet desteğiyle.
+            Tek başına, Yapay Zekâya karşı veya Akıllı Tahtada 2 oyunculu — 15 özel sure grubu, canlı Bilgi Notu ve tilavet desteğiyle.
           </p>
         </div>
 
-        <div
-          className="shrink-0 rounded-xl border px-3.5 py-2.5 flex items-center gap-2.5 self-start sm:self-auto"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center"
+        <div className="shrink-0 flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
+          <button
+            type="button"
+            disabled={isLoadingExtras || enrichedSurahs.length === 0}
+            onClick={() => {
+              sfxService.play('click');
+              setIsAtlasOpen(true);
+            }}
+            className="min-h-[46px] px-3.5 py-2 rounded-xl border text-xs sm:text-[13px] font-extrabold inline-flex items-center gap-2 cursor-pointer transition-colors hover:opacity-95 disabled:opacity-50"
             style={{
               backgroundColor: 'var(--brand-accent-soft)',
-              color: '#D97706',
+              borderColor: 'rgba(217, 119, 6, 0.34)',
+              color: 'var(--brand-accent-text)',
             }}
           >
-            <Star className="w-4 h-4" fill="currentColor" />
-          </div>
-          <div>
-            <div className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-              Atölye Yıldızları
+            <BookOpen className="w-4 h-4 shrink-0" />
+            <span>Sure Grupları Atlası (15 Aile)</span>
+          </button>
+
+          <div
+            className="rounded-xl border px-3.5 py-2 flex items-center gap-2.5"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                color: '#D97706',
+              }}
+            >
+              <Star className="w-4 h-4" fill="currentColor" />
             </div>
-            <div className="text-base font-extrabold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-              {totalEarnedStars} / {MAX_TOTAL_STARS}
+            <div>
+              <div className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                Atölye Yıldızları
+              </div>
+              <div className="text-sm font-extrabold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                {totalEarnedStars} / {MAX_TOTAL_STARS}
+              </div>
             </div>
           </div>
         </div>
@@ -393,7 +434,7 @@ export const GamesHubTab: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. 5 Oyun Kartı (Aşama 1 + Aşama 2) */}
+      {/* 3. 7 Oyun Kartı (Aşama 1 + Aşama 2 + Aşama 3) */}
       <section className="space-y-2.5">
         <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider px-0.5" style={{ color: 'var(--text-muted)' }}>
           2. Oyun Seçin ve Masaya Geçin
@@ -517,6 +558,15 @@ export const GamesHubTab: React.FC = () => {
         </div>
       </section>
 
+      {/* Görsel Sure Grupları Atlası (15 Aile) */}
+      {isAtlasOpen && enrichedSurahs.length > 0 && (
+        <SurahGroupsAtlasModal
+          allSurahs={enrichedSurahs}
+          onPlayWithGroup={handleLaunchFromAtlas}
+          onClose={() => setIsAtlasOpen(false)}
+        />
+      )}
+
       {/* Zümrüt Masa Tam Ekran Oyun Sahnesi */}
       {activeGameId && enrichedSurahs.length > 0 && (
         <GameStageModal
@@ -524,6 +574,7 @@ export const GamesHubTab: React.FC = () => {
           initialTierId={selectedTier}
           initialTempo={tempo}
           initialPlayerMode={playerMode}
+          focusGroupId={activeFocusGroupId}
           allSurahs={enrichedSurahs}
           activePoolSurahNos={poolStats.effectiveSurahs}
           onProgressUpdated={(nextMap) => setProgressMap(nextMap)}
@@ -532,7 +583,10 @@ export const GamesHubTab: React.FC = () => {
             if (patch.tempo) setTempo(patch.tempo);
             if (patch.playerMode) setPlayerMode(patch.playerMode);
           }}
-          onClose={() => setActiveGameId(null)}
+          onClose={() => {
+            setActiveGameId(null);
+            setActiveFocusGroupId(null);
+          }}
         />
       )}
     </div>

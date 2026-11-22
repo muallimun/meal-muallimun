@@ -12,7 +12,15 @@ export interface GameTierProgressEntry {
 
 export type GameProgressMap = Record<string, GameTierProgressEntry>;
 
-const ALL_GAME_IDS: readonly GameId[] = ['memory', 'chain', 'speed', 'compass', 'detective'];
+const ALL_GAME_IDS: readonly GameId[] = [
+  'memory',
+  'chain',
+  'speed',
+  'compass',
+  'detective',
+  'families',
+  'group_seq',
+];
 
 export function makeGameProgressKey(gameId: GameId, tierId: GameTierId): string {
   return `${gameId}:${tierId}`;

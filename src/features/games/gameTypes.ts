@@ -1,6 +1,10 @@
 import type { SurahExtraInfo } from '../../types/fihrist';
 import type { SurahMeta } from '../../types/quran';
-import type { MukattaaEntry, SpecialSurahFamilyInfo } from './surahSpecialGroups';
+import type {
+  MukattaaEntry,
+  SpecialSurahFamilyInfo,
+  SurahGroupId,
+} from './surahSpecialGroups';
 import {
   AMME_SURAH_NOS,
   FAMOUS_SURAH_NOS,
@@ -11,7 +15,14 @@ import {
   getSurahPrimarySpecialTrait,
 } from './surahSpecialGroups';
 
-export type GameId = 'memory' | 'chain' | 'speed' | 'compass' | 'detective';
+export type GameId =
+  | 'memory'
+  | 'chain'
+  | 'speed'
+  | 'compass'
+  | 'detective'
+  | 'families'
+  | 'group_seq';
 
 export type GameTierId =
   | 'kademe_1'
@@ -45,7 +56,8 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: 'Namaz Sureleri',
     subtitle: 'Fâtiha ve Fîl–Nâs arası 11 temel sure',
     surahCountLabel: '11 Sure',
-    tipText: 'Fâtiha (1) ve Fîl (105) – Nâs (114) arasındaki kısa surelerin tertibini ve anlamlarını pekiştirin.',
+    tipText:
+      'Fâtiha (1) ve Fîl (105) – Nâs (114) arasındaki kısa surelerin tertibini ve anlamlarını pekiştirin.',
   },
   {
     id: 'kademe_2',
@@ -54,7 +66,8 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: '30. Cüz (Amme)',
     subtitle: 'Nebe’den Nâs’a kısa sureler bütünü',
     surahCountLabel: '37 Sure',
-    tipText: 'Nebe (78) ile başlayıp Nâs (114) ile son bulan 37 surenin tamamı bu kademede yer alır.',
+    tipText:
+      'Nebe (78) ile başlayıp Nâs (114) ile son bulan 37 surenin tamamı bu kademede yer alır.',
   },
   {
     id: 'kademe_3',
@@ -63,16 +76,18 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: 'Meşhur Sureler',
     subtitle: 'Yâsîn, Mülk, Kehf, Rahmân, Fetih ve seçkin sureler',
     surahCountLabel: '18 Sure',
-    tipText: 'Günlük tilavette en çok okunan 18 seçkin surenin anlamı, ayet sayısı ve komşulukları.',
+    tipText:
+      'Günlük tilavette en çok okunan 18 seçkin surenin anlamı, ayet sayısı ve komşulukları.',
   },
   {
     id: 'kademe_4',
     order: 4,
     title: 'Özel Sure Grupları',
     shortTitle: 'Özel Gruplar',
-    subtitle: 'Havâmîm, Mukattaa, Müsebbihât, Hâmidât & Secde',
-    surahCountLabel: 'Özel Müfredat',
-    tipText: '7 Hâ-Mîm (40–46), 29 Mukattaa, Müsebbihât, Hâmidât, Kul ve Tilâvet Secdesi sureleri.',
+    subtitle: '15 Ulûmu’l-Kur’ân ailesi: Havâmîm, Müsebbihât, Hâmidât, Mukattaa...',
+    surahCountLabel: '15 Klasik Aile',
+    tipText:
+      'Havâmîm (40–46), Müsebbihât, Hâmidât, Tavâsîn, Elif-Lâm-Mîm, Elif-Lâm-Râ, Kâlâkıl, Nidâ, Kasem ve Secde sureleri.',
     isSpecialGroups: true,
   },
   {
@@ -82,7 +97,8 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: 'Çalışma Havuzum',
     subtitle: 'Seçili çalışma havuzunuzdaki surelerden oyun',
     surahCountLabel: 'Kişisel Havuz',
-    tipText: 'Uygulamada belirlediğiniz kişisel çalışma havuzundaki sureler öncelikli olarak seçilir.',
+    tipText:
+      'Uygulamada belirlediğiniz kişisel çalışma havuzundaki sureler öncelikli olarak seçilir.',
     isActivePool: true,
   },
   {
@@ -92,7 +108,8 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: 'Tüm Mushaf',
     subtitle: 'Fâtiha’dan Nâs’a 114 surenin tamamı',
     surahCountLabel: '114 Sure',
-    tipText: 'Fâtiha’dan Nâs’a 114 surenin tamamında Mushaf tertibi, anlam ve Ulûmu’l-Kur’ân ustalığı.',
+    tipText:
+      'Fâtiha’dan Nâs’a 114 surenin tamamında Mushaf tertibi, anlam ve Ulûmu’l-Kur’ân ustalığı.',
   },
 ];
 
@@ -114,7 +131,8 @@ export const GAME_DEFINITIONS: readonly GameDefinitionMeta[] = [
     title: 'Hafızanı Yokla',
     shortTitle: 'Hafızanı Yokla',
     arabicTitle: 'لُعْبَةُ الذَّاكِرَةِ',
-    subtitle: 'Numaralı 3B kartları çevirerek sure adını anlamı veya özel grup niteliğiyle eşleştirin.',
+    subtitle:
+      'Numaralı 3B kartları çevirerek sure adını anlamı veya özel grup niteliğiyle eşleştirin.',
     howToPlay:
       'Açılışta kartları kısa süre gözlemleyin. İki kart çevirerek sureyi Türkçe anlamı veya Ulûmu’l-Kur’ân özelliğiyle eşleştirin. Doğru eşleştiren 10 puan alır ve sıra hakkını korur.',
     focusLabel: 'Sure · Anlam · Özel Grup',
@@ -125,7 +143,8 @@ export const GAME_DEFINITIONS: readonly GameDefinitionMeta[] = [
     title: 'Mushaf Zinciri',
     shortTitle: 'Mushaf Zinciri',
     arabicTitle: 'سِلْسِلَةُ الْمُصْحَفِ',
-    subtitle: 'Komşu sureleri (öncesi–sonrası) yuvalara oturtun ve karışık sureleri Mushaf sırasına dizin.',
+    subtitle:
+      'Komşu sureleri (öncesi–sonrası) yuvalara oturtun ve karışık sureleri Mushaf sırasına dizin.',
     howToPlay:
       'Komşu Sure turlarında merkez surenin bir önceki ve bir sonraki suresini yuvalara sürükleyin veya dokunup yerleştirin. Mushaf Treni turlarında 4 sureyi baştan sona sıralayın.',
     focusLabel: 'Tertip · Komşu Sure · Sıralama',
@@ -136,7 +155,8 @@ export const GAME_DEFINITIONS: readonly GameDefinitionMeta[] = [
     title: 'Künye Eşleştir',
     shortTitle: 'Künye Eşleştir',
     arabicTitle: 'مُطَابَقَةُ السُّوَرِ',
-    subtitle: 'Sol sütundaki sureyi sağdaki anlam, ayet sayısı veya Mukattaa künyesiyle eşleştirin.',
+    subtitle:
+      'Sol sütundaki sureyi sağdaki anlam, ayet sayısı veya Mukattaa künyesiyle eşleştirin.',
     howToPlay:
       'Sol sütundan bir sureye, sağ sütundan ona ait anlam, ayet sayısı veya özel grup kartına dokunarak eşleştirin. Hızlı seri eşleştirmeler kombo puanı kazandırır.',
     focusLabel: 'Anlam · Ayet Sayısı · Mukattaa',
@@ -147,24 +167,50 @@ export const GAME_DEFINITIONS: readonly GameDefinitionMeta[] = [
     title: 'Mushaf Pusulası',
     shortTitle: 'Mushaf Pusulası',
     arabicTitle: 'بَوْصَلَةُ الْمُصْحَفِ',
-    subtitle: 'Mushaf cetvelinde surenin yerini (1–114) ibreyle tahmin edin ve sure uzunluklarını tartın.',
+    subtitle:
+      'Mushaf cetvelinde surenin yerini (1–114) ibreyle tahmin edin ve sure uzunluklarını tartın.',
     howToPlay:
       'Konum Kadranı turlarında ibreyi sürükleyerek surenin Mushaf sırasını tahmin edip kilitleyin (tam isabet 100p). Ayet Tartısı turlarında ayet sayısı daha fazla olan sureyi seçin.',
     focusLabel: '1–114 Konum · Ayet Tartısı',
     duelLabel: 'İbre Yarışı & Sıralı Tartı',
-    stageTag: 'Yeni',
   },
   {
     id: 'detective',
     title: 'Sure Dedektifi',
     shortTitle: 'Sure Dedektifi',
     arabicTitle: 'كَاشِفُ السُّوَرِ',
-    subtitle: 'Dönem, ayet sayısı, komşu sure ve anlam ipuçlarını birleştirip gizli sureyi en az ipucuyla bulun.',
+    subtitle:
+      'Dönem, ayet sayısı, komşu sure ve anlam ipuçlarını birleştirip gizli sureyi en az ipucuyla bulun.',
     howToPlay:
       'İlk ipucu açık başlar (100p). İhtiyaç duydukça 2., 3. ve 4. ipuçlarını açabilirsiniz (75p / 50p / 30p). 6 aday sure arasından gizli sureyi en az ipucuyla tahmin edin.',
     focusLabel: 'Çoklu İpucu · Muhakeme',
     duelLabel: 'Sıralı Dedektif Yarışı',
-    stageTag: 'Yeni',
+  },
+  {
+    id: 'families',
+    title: 'Sure Aileleri & Tasnif',
+    shortTitle: 'Sure Aileleri',
+    arabicTitle: 'تَصْنِيفُ السُّوَرِ',
+    subtitle:
+      '15 Ulûmu’l-Kur’ân grubunda çeldiriciyi yakalayın, üyeyi tanıyın ve sureleri aile sandıklarına tasnif edin.',
+    howToPlay:
+      'Üç akıcı turda (Hangisi Değildir?, Hangisi Üyesidir? ve Aile Sandıkları) Havâmîm, Müsebbihât, Hâmidât, Mukattaa ve diğer sure ailelerini sınıflandırın.',
+    focusLabel: '15 Aile · Çeldirici · Sandık Tasnifi',
+    duelLabel: 'Sıralı & Yarışmalı Tasnif',
+    stageTag: 'Ulûmu’l-Kur’ân',
+  },
+  {
+    id: 'group_seq',
+    title: 'Grup Kadrosu & Dizilim',
+    shortTitle: 'Grup Dizilimi',
+    arabicTitle: 'تَرْتِيبُ المَجْمُوعَاتِ',
+    subtitle:
+      '7 Hâ-Mîm, 7 Müsebbihât, 5 Hâmidât, 3 Tavâsîn ve diğer sure ailelerinin kadrosunu Mushaf sırasına dizin.',
+    howToPlay:
+      'Verilen sure ailesinin üyelerini Mushaf’taki sırasına göre 1’den N’ye sırayla dokunarak veya sürükleyerek altın yuvalara oturtun. Karma turlarda çeldiricilere dikkat edin!',
+    focusLabel: 'Kadro Seçimi · Grup İçi Tertip',
+    duelLabel: 'Sıralı & Eşzamanlı Dizilim',
+    stageTag: 'Ulûmu’l-Kur’ân',
   },
 ];
 
@@ -238,6 +284,7 @@ export interface GameComponentProps {
   playerMode: GamePlayerMode;
   tierSurahs: EnrichedGameSurah[];
   allSurahsMap: Map<number, EnrichedGameSurah>;
+  focusGroupId?: SurahGroupId | null;
   onHudUpdate: (hud: GameHudUpdate) => void;
   onComplete: (result: GameResultPayload) => void;
 }

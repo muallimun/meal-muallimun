@@ -6,10 +6,12 @@ import {
   Clock,
   Compass,
   Flame,
+  FolderKanban,
   Grid2x2,
   HelpCircle,
   Layers,
   Lightbulb,
+  ListOrdered,
   Moon,
   RotateCcw,
   Search,
@@ -48,6 +50,7 @@ interface GameArenaShellProps {
   tierId: GameTierId;
   tempo: GameTempo;
   playerMode: GamePlayerMode;
+  focusGroupTitle?: string | null;
   isMuted: boolean;
   isSummaryOpen: boolean;
   hud: GameHudUpdate;
@@ -73,6 +76,10 @@ function renderGameBadgeIcon(gameId: GameId) {
       return <Zap className="w-4 h-4 sm:w-5 sm:h-5" />;
     case 'compass':
       return <Compass className="w-4 h-4 sm:w-5 sm:h-5" />;
+    case 'families':
+      return <FolderKanban className="w-4 h-4 sm:w-5 sm:h-5" />;
+    case 'group_seq':
+      return <ListOrdered className="w-4 h-4 sm:w-5 sm:h-5" />;
     case 'detective':
     default:
       return <Search className="w-4 h-4 sm:w-5 sm:h-5" />;
@@ -84,6 +91,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   tierId,
   tempo,
   playerMode,
+  focusGroupTitle,
   isMuted,
   isSummaryOpen,
   hud,
@@ -393,7 +401,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               </span>
             </div>
             <div className="text-[11px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>
-              {tierMeta.title} · {modeLabel} · {tempoLabel}
+              {focusGroupTitle ? `Odak: ${focusGroupTitle}` : tierMeta.title} · {modeLabel} · {tempoLabel}
             </div>
           </div>
         </div>
@@ -530,7 +538,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               className="text-[10px] font-medium truncate"
               style={{ color: 'var(--text-muted)' }}
             >
-              {tierMeta.shortTitle}
+              {focusGroupTitle || tierMeta.shortTitle}
             </div>
           </div>
         </div>
