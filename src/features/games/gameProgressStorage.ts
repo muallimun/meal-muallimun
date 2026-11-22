@@ -1,6 +1,8 @@
-import type { GameId, GameTierId } from './gameTypes';
+import type { GameId, GamePlayerMode, GameTierId } from './gameTypes';
+import { sanitizePlayerMode } from './gameTypes';
 
 const PROGRESS_STORAGE_KEY = 'muallimun_games_progress_v1';
+const PLAYER_MODE_STORAGE_KEY = 'muallimun_games_player_mode_v1';
 
 export interface GameTierProgressEntry {
   bestStars: 1 | 2 | 3;
@@ -21,6 +23,27 @@ const ALL_GAME_IDS: readonly GameId[] = [
   'families',
   'group_seq',
 ];
+
+export function loadGamePlayerMode(): GamePlayerMode {
+  try {
+    const raw = window.localStorage.getItem(PLAYER_MODE_STORAGE_KEY);
+    const normalized = sanitizePlayerMode(raw);
+    if (raw && raw !== normalized) {
+      window.localStorage.setItem(PLAYER_MODE_STORAGE_KEY, normalized);
+    }
+    return normalized;
+  } catch {
+    return 'single';
+  }
+}
+
+export function saveGamePlayerMode(mode: GamePlayerMode): void {
+  try {
+    window.localStorage.setItem(PLAYER_MODE_STORAGE_KEY, sanitizePlayerMode(mode));
+  } catch {
+    // Depolama erişilemezse sessiz geç
+  }
+}
 
 export function makeGameProgressKey(gameId: GameId, tierId: GameTierId): string {
   return `${gameId}:${tierId}`;

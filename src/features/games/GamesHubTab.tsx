@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
-  Bot,
   Clock,
   Compass,
   FolderKanban,
@@ -25,8 +24,10 @@ import type { GameProgressMap } from './gameProgressStorage';
 import {
   getTierEarnedStars,
   getTotalEarnedGameStars,
+  loadGamePlayerMode,
   loadGameProgress,
   makeGameProgressKey,
+  saveGamePlayerMode,
 } from './gameProgressStorage';
 import { GameStageModal } from './GameStageModal';
 import type {
@@ -39,6 +40,7 @@ import {
   GAME_DEFINITIONS,
   GAME_TIERS,
   buildEnrichedGameSurahs,
+  sanitizePlayerMode,
 } from './gameTypes';
 import { SurahGroupsAtlasModal } from './SurahGroupsAtlasModal';
 import type { SurahGroupId } from './surahSpecialGroups';
@@ -53,12 +55,18 @@ export const GamesHubTab: React.FC = () => {
   const [isLoadingExtras, setIsLoadingExtras] = useState<boolean>(true);
   const [selectedTier, setSelectedTier] = useState<GameTierId>('kademe_1');
   const [tempo, setTempo] = useState<GameTempo>('calm');
-  // Varsayılan önerilen mod: Yapay Zekâya Karşı (hem mobil hem masaüstünde aktif)
-  const [playerMode, setPlayerMode] = useState<GamePlayerMode>('ai');
+  // Varsayılan mod her zaman Tek Oyuncu (eski localStorage 'ai' kaydı otomatik göç ettirilir)
+  const [playerMode, setPlayerMode] = useState<GamePlayerMode>(() => loadGamePlayerMode());
   const [progressMap, setProgressMap] = useState<GameProgressMap>(() => loadGameProgress());
   const [activeGameId, setActiveGameId] = useState<GameId | null>(null);
   const [activeFocusGroupId, setActiveFocusGroupId] = useState<SurahGroupId | null>(null);
   const [isAtlasOpen, setIsAtlasOpen] = useState<boolean>(false);
+
+  const handleSelectPlayerMode = (next: GamePlayerMode) => {
+    const clean = sanitizePlayerMode(next);
+    setPlayerMode(clean);
+    saveGamePlayerMode(clean);
+  };
 
   useEffect(() => {
     let alive = true;
@@ -78,16 +86,6 @@ export const GamesHubTab: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const onResize = () => {
-      if (window.innerWidth < 1024) {
-        setPlayerMode((prev) => (prev === 'duel' ? 'ai' : prev));
-      }
-    };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
   const enrichedSurahs = useMemo(() => {
     if (!meta?.surahs) return [];
     return buildEnrichedGameSurahs(meta.surahs, extrasMap);
@@ -100,11 +98,6 @@ export const GamesHubTab: React.FC = () => {
     if (enrichedSurahs.length === 0) return;
     sfxService.play('click');
     audioQueueService.pause();
-    const effectiveMode: GamePlayerMode =
-      typeof window !== 'undefined' && window.innerWidth < 1024 && playerMode === 'duel'
-        ? 'ai'
-        : playerMode;
-    setPlayerMode(effectiveMode);
     setActiveFocusGroupId(focusGroupId);
     setActiveGameId(gameId);
   };
@@ -154,11 +147,7 @@ export const GamesHubTab: React.FC = () => {
   };
 
   const launchCtaText =
-    playerMode === 'ai'
-      ? 'Yapay Zekâya Karşı Oyna'
-      : playerMode === 'duel'
-        ? '2 Oyunculu Başlat'
-        : 'Tek Başına Oyna';
+    playerMode === 'duel' ? '2 Oyunculu Başlat' : 'Tek Oyuncu Oyna';
 
   return (
     <div className="space-y-5">
@@ -179,7 +168,7 @@ export const GamesHubTab: React.FC = () => {
             7 Zümrüt Masa Oyunu ile Sureleri Uygulayarak Pekiştirin
           </h2>
           <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Tek başına, Yapay Zekâya karşı veya Akıllı Tahtada 2 oyunculu — 15 özel sure grubu, canlı Bilgi Notu ve tilavet desteğiyle.
+            Tek oyuncu veya 2 oyunculu — 15 özel sure grubu, canlı Bilgi Notu ve tilavet desteğiyle.
           </p>
         </div>
 
@@ -327,11 +316,11 @@ export const GamesHubTab: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. Üçlü Rakip Sistemi & Tempo Seçimi */}
-      <section className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
-        {/* 3'lü Rakip Seçici: Tek Başına | Yapay Zekâya Karşı | 2 Oyuncu (Akıllı Tahta) */}
+      {/* 2. Oyuncu Modu & Tempo Seçimi */}
+      <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        {/* İkili Oyuncu Seçici: Tek Oyuncu | 2 Oyuncu */}
         <div
-          className="grid grid-cols-2 lg:inline-flex p-1 rounded-xl border gap-1"
+          className="grid grid-cols-2 sm:inline-flex p-1 rounded-xl border gap-1"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
@@ -341,9 +330,9 @@ export const GamesHubTab: React.FC = () => {
             type="button"
             onClick={() => {
               sfxService.play('click');
-              setPlayerMode('single');
+              handleSelectPlayerMode('single');
             }}
-            className="min-h-[38px] px-3 sm:px-3.5 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            className="min-h-[38px] px-3.5 sm:px-4 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             style={{
               backgroundColor: playerMode === 'single' ? 'var(--bg-surface)' : 'transparent',
               color:
@@ -352,33 +341,16 @@ export const GamesHubTab: React.FC = () => {
             }}
           >
             <User className="w-3.5 h-3.5 shrink-0" />
-            <span>Tek Başına</span>
+            <span>Tek Oyuncu</span>
           </button>
 
           <button
             type="button"
             onClick={() => {
               sfxService.play('click');
-              setPlayerMode('ai');
+              handleSelectPlayerMode('duel');
             }}
-            className="min-h-[38px] px-3 sm:px-3.5 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            style={{
-              backgroundColor: playerMode === 'ai' ? 'var(--bg-surface)' : 'transparent',
-              color: playerMode === 'ai' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-              boxShadow: playerMode === 'ai' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-            }}
-          >
-            <Bot className="w-3.5 h-3.5 shrink-0" />
-            <span>Yapay Zekâya Karşı</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setPlayerMode('duel');
-            }}
-            className="hidden lg:inline-flex min-h-[38px] px-3.5 rounded-lg text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            className="min-h-[38px] px-3.5 sm:px-4 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             style={{
               backgroundColor: playerMode === 'duel' ? 'var(--bg-surface)' : 'transparent',
               color: playerMode === 'duel' ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
@@ -386,7 +358,7 @@ export const GamesHubTab: React.FC = () => {
             }}
           >
             <Users className="w-3.5 h-3.5 shrink-0" />
-            <span>2 Oyuncu (Akıllı Tahta)</span>
+            <span>2 Oyuncu</span>
           </button>
         </div>
 
@@ -581,7 +553,7 @@ export const GamesHubTab: React.FC = () => {
           onConfigSynced={(patch) => {
             if (patch.tierId) setSelectedTier(patch.tierId);
             if (patch.tempo) setTempo(patch.tempo);
-            if (patch.playerMode) setPlayerMode(patch.playerMode);
+            if (patch.playerMode) handleSelectPlayerMode(patch.playerMode);
           }}
           onClose={() => {
             setActiveGameId(null);

@@ -6,7 +6,6 @@ import {
   calculateGameStars,
   calculateGameXp,
   formatClock,
-  getAiMemoryCapacity,
   shuffleArray,
 } from './gameTypes';
 
@@ -23,6 +22,7 @@ interface MemoryCardItem {
 
 const PREVIEW_SECONDS = 2;
 const TURN_SECONDS = 15;
+const MISMATCH_FLIP_BACK_MS = 850;
 
 function useIsCompactViewport(): boolean {
   const [compact, setCompact] = useState<boolean>(() =>
@@ -122,22 +122,21 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
   onComplete,
 }) => {
   const isCompact = useIsCompactViewport();
-  const isVersus = playerMode === 'ai' || playerMode === 'duel';
+  const isDuel = playerMode === 'duel';
   const pairCount = isCompact ? 6 : tierId === 'kademe_1' ? 6 : 8;
   const timedLimitSec = pairCount <= 6 ? 80 : 100;
-  const aiMemoryCapacity = getAiMemoryCapacity(tierId);
 
   const deck = useMemo(
     () => buildMemoryDeck(tierSurahs, tierId, pairCount),
     [tierSurahs, tierId, pairCount],
   );
 
+  // Oyun Aşaması ve Kart Durumu
   const [previewLeft, setPreviewLeft] = useState<number>(PREVIEW_SECONDS);
   const [flippedIds, setFlippedIds] = useState<string[]>([]);
   const [matchedPairIds, setMatchedPairIds] = useState<number[]>([]);
   const [matchedOwner, setMatchedOwner] = useState<Record<number, 'p1' | 'p2'>>({});
   const [wrongIds, setWrongIds] = useState<string[]>([]);
-  const [isLocked, setIsLocked] = useState<boolean>(false);
 
   // Skor & İstatistikler
   const [score, setScore] = useState<number>(0);
@@ -148,9 +147,8 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
   const [mistakeCount, setMistakeCount] = useState<number>(0);
   const [elapsedSec, setElapsedSec] = useState<number>(0);
 
-  // Karşılaşma (Yapay Zekâ / 2 Oyuncu) Durumu
+  // 2 Oyuncu Sıra & Skor Durumu
   const [activePlayer, setActivePlayer] = useState<'p1' | 'p2'>('p1');
-  const [aiThinking, setAiThinking] = useState<boolean>(false);
   const [p1Score, setP1Score] = useState<number>(0);
   const [p2Score, setP2Score] = useState<number>(0);
   const [p1Correct, setP1Correct] = useState<number>(0);
@@ -161,25 +159,41 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
   const [featuredSurah, setFeaturedSurah] = useState<EnrichedGameSurah | null>(null);
   const [featuredNote, setFeaturedNote] = useState<string | undefined>(undefined);
 
-  // Yapay zekânın hatırladığı son N kart (gerçekçi insan hafızası)
-  const aiMemoryRef = useRef<string[]>([]);
+  // Deterministik Kilit ve Zamanlayıcı Ref'leri (Hiçbir kronometre efekti bunları iptal etmez!)
+  const phaseRef = useRef<'preview' | 'playing' | 'finished'>('preview');
+  const isResolvingRef = useRef<boolean>(false);
+  const flippedIdsRef = useRef<string[]>([]);
+  const matchedPairIdsRef = useRef<Set<number>>(new Set());
+  const mismatchTimerRef = useRef<number | null>(null);
+  const finishTimerRef = useRef<number | null>(null);
   const mistakenMapRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
-  const finishedRef = useRef<boolean>(false);
+  const elapsedSecRef = useRef<number>(0);
 
   const isPreview = previewLeft > 0;
-  const useTurnTimer = isVersus || tempo === 'timed';
+  const useTurnTimer = isDuel || tempo === 'timed';
 
-  const rememberCardForAi = useCallback(
-    (cardId: string) => {
-      const next = aiMemoryRef.current.filter((id) => id !== cardId);
-      next.push(cardId);
-      if (next.length > aiMemoryCapacity) {
-        next.splice(0, next.length - aiMemoryCapacity);
+  useEffect(() => {
+    elapsedSecRef.current = elapsedSec;
+  }, [elapsedSec]);
+
+  useEffect(() => {
+    if (phaseRef.current === 'finished') return;
+    phaseRef.current = isPreview ? 'preview' : 'playing';
+  }, [isPreview]);
+
+  // SADECE bileşen unmount olduğunda kart kapatma ve bitiş zamanlayıcılarını temizle
+  useEffect(() => {
+    return () => {
+      if (mismatchTimerRef.current !== null) {
+        window.clearTimeout(mismatchTimerRef.current);
+        mismatchTimerRef.current = null;
       }
-      aiMemoryRef.current = next;
-    },
-    [aiMemoryCapacity],
-  );
+      if (finishTimerRef.current !== null) {
+        window.clearTimeout(finishTimerRef.current);
+        finishTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // 2 saniyelik açılış gözlemi
   useEffect(() => {
@@ -202,17 +216,28 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
       p1Correct: number;
       p2Correct: number;
     }) => {
-      if (finishedRef.current) return;
-      finishedRef.current = true;
+      if (phaseRef.current === 'finished') return;
+      phaseRef.current = 'finished';
+      isResolvingRef.current = false;
+
+      if (mismatchTimerRef.current !== null) {
+        window.clearTimeout(mismatchTimerRef.current);
+        mismatchTimerRef.current = null;
+      }
+      if (finishTimerRef.current !== null) {
+        window.clearTimeout(finishTimerRef.current);
+        finishTimerRef.current = null;
+      }
+
       gameAudioService.playFanfare();
 
       const totalAttempts = Math.max(1, finalStats.correctCount + finalStats.mistakeCount);
       const accuracyPct = Math.round((finalStats.correctCount / totalAttempts) * 100);
       const timeBonus =
-        tempo === 'timed' && playerMode === 'single'
+        tempo === 'timed' && !isDuel
           ? Math.max(0, timedLimitSec - finalStats.elapsedSec)
           : 0;
-      const totalScore = playerMode === 'single' ? finalStats.score + timeBonus : finalStats.p1Score;
+      const totalScore = !isDuel ? finalStats.score + timeBonus : finalStats.p1Score;
       const stars = calculateGameStars(accuracyPct, totalScore);
       const earnedXp = calculateGameXp(totalScore, stars, finalStats.maxCombo);
 
@@ -230,14 +255,14 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
         durationSec: finalStats.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel: isVersus
+        duel: isDuel
           ? {
               p1Score: finalStats.p1Score,
               p2Score: finalStats.p2Score,
               p1Correct: finalStats.p1Correct,
               p2Correct: finalStats.p2Correct,
-              p1Label: playerMode === 'ai' ? 'Sen' : '1. Oyuncu',
-              p2Label: playerMode === 'ai' ? 'Yapay Zekâ' : '2. Oyuncu',
+              p1Label: '1. Oyuncu',
+              p2Label: '2. Oyuncu',
               winner:
                 finalStats.p1Score > finalStats.p2Score
                   ? 'p1'
@@ -248,48 +273,55 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
           : undefined,
       });
     },
-    [isVersus, onComplete, playerMode, tempo, tierId, timedLimitSec],
+    [isDuel, onComplete, playerMode, tempo, tierId, timedLimitSec],
   );
 
-  // Genel süre sayacı
+  // Genel süre sayacı (kart kapatma zamanlayıcısından tamamen bağımsız)
   useEffect(() => {
-    if (isPreview || finishedRef.current) return;
+    if (isPreview) return;
     const interval = window.setInterval(() => {
+      if (phaseRef.current !== 'playing') return;
       setElapsedSec((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(interval);
   }, [isPreview]);
 
-  // Tur geri sayımı (15s) — yalnızca insan sırası aktifken
+  // Tur geri sayımı (15s) — yalnızca sayaç düşürür; yan etkiler ayrı effect'te işlenir
   useEffect(() => {
-    if (isPreview || finishedRef.current || !useTurnTimer) return;
-    if (playerMode === 'ai' && activePlayer === 'p2') return;
-
+    if (isPreview || !useTurnTimer) return;
     const interval = window.setInterval(() => {
-      setTurnRemainingSec((prev) => {
-        if (prev <= 1) {
-          if (isVersus) {
-            setFlippedIds([]);
-            setIsLocked(false);
-            gameAudioService.playTurnSwitch();
-            setActivePlayer((cur) => (cur === 'p1' ? 'p2' : 'p1'));
-          }
-          return TURN_SECONDS;
-        }
-        return prev - 1;
-      });
+      if (phaseRef.current !== 'playing' || isResolvingRef.current) return;
+      setTurnRemainingSec((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [activePlayer, isPreview, isVersus, playerMode, useTurnTimer]);
+  }, [isPreview, useTurnTimer]);
 
-  // Zaman Yarışı (tek oyuncu) genel süre bitişi
+  // Tur süresi dolduğunda (1 kart açık kalmışsa dahil) tahtayı kilitsiz temizle ve sırayı devret
+  useEffect(() => {
+    if (!useTurnTimer || isPreview || turnRemainingSec > 0) return;
+    if (phaseRef.current !== 'playing') return;
+    if (isResolvingRef.current) return;
+
+    flippedIdsRef.current = [];
+    setFlippedIds([]);
+    setWrongIds([]);
+    isResolvingRef.current = false;
+    setTurnRemainingSec(TURN_SECONDS);
+
+    if (isDuel) {
+      gameAudioService.playTurnSwitch();
+      setActivePlayer((cur) => (cur === 'p1' ? 'p2' : 'p1'));
+    }
+  }, [isDuel, isPreview, turnRemainingSec, useTurnTimer]);
+
+  // Zaman Yarışı (Tek Oyuncu) genel süre bitişi
   useEffect(() => {
     if (
       tempo === 'timed' &&
-      playerMode === 'single' &&
+      !isDuel &&
       !isPreview &&
       elapsedSec >= timedLimitSec &&
-      !finishedRef.current
+      phaseRef.current === 'playing'
     ) {
       finishGame({
         score,
@@ -307,6 +339,7 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     correctCount,
     elapsedSec,
     finishGame,
+    isDuel,
     isPreview,
     maxCombo,
     mistakeCount,
@@ -314,200 +347,9 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     p1Score,
     p2Correct,
     p2Score,
-    playerMode,
     score,
     tempo,
     timedLimitSec,
-  ]);
-
-  // İki kart açıldığında eşleşme değerlendirmesi
-  const evaluatePair = useCallback(
-    (firstCard: MemoryCardItem, secondCard: MemoryCardItem, actor: 'p1' | 'p2') => {
-      setIsLocked(true);
-      setMovesCount((prev) => prev + 1);
-
-      if (firstCard.pairId === secondCard.pairId && firstCard.side !== secondCard.side) {
-        const nextCombo = actor === 'p1' ? combo + 1 : 0;
-        const nextMaxCombo = Math.max(maxCombo, nextCombo);
-        const earnedSinglePts = 12 + Math.min(12, Math.max(0, nextCombo - 1) * 4);
-        const nextScore = playerMode === 'single' ? score + earnedSinglePts : score;
-        const nextMatched = [...matchedPairIds, secondCard.pairId];
-
-        const nextP1Score = actor === 'p1' ? p1Score + 10 : p1Score;
-        const nextP2Score = actor === 'p2' ? p2Score + 10 : p2Score;
-        const nextP1Correct = actor === 'p1' ? p1Correct + 1 : p1Correct;
-        const nextP2Correct = actor === 'p2' ? p2Correct + 1 : p2Correct;
-        const nextCorrectTotal = correctCount + (actor === 'p1' || playerMode === 'duel' ? 1 : 0);
-
-        window.setTimeout(() => {
-          gameAudioService.playMatch(Math.max(1, nextCombo));
-          setMatchedPairIds(nextMatched);
-          setMatchedOwner((prev) => ({ ...prev, [secondCard.pairId]: actor }));
-          setScore(nextScore);
-          setP1Score(nextP1Score);
-          setP2Score(nextP2Score);
-          setP1Correct(nextP1Correct);
-          setP2Correct(nextP2Correct);
-          setCombo(nextCombo);
-          setMaxCombo(nextMaxCombo);
-          setCorrectCount(nextCorrectTotal);
-          setFeaturedSurah(secondCard.surah);
-          setFeaturedNote(
-            actor === 'p2' && playerMode === 'ai'
-              ? `Yapay Zekâ eşleştirdi (+10p) · ${secondCard.surah.no}. ${secondCard.surah.shortNameTr}`
-              : `${actor === 'p1' ? (playerMode === 'duel' ? '1. Oyuncu' : 'Sen') : '2. Oyuncu'} eşleştirdi (+10p)`,
-          );
-          setFlippedIds([]);
-          setTurnRemainingSec(TURN_SECONDS);
-          setIsLocked(false);
-          setAiThinking(false);
-
-          if (nextMatched.length >= deck.length / 2) {
-            window.setTimeout(() => {
-              finishGame({
-                score: nextScore,
-                maxCombo: nextMaxCombo,
-                correctCount: nextCorrectTotal,
-                mistakeCount,
-                elapsedSec,
-                p1Score: nextP1Score,
-                p2Score: nextP2Score,
-                p1Correct: nextP1Correct,
-                p2Correct: nextP2Correct,
-              });
-            }, 420);
-          }
-        }, 280);
-      } else {
-        if (actor === 'p1' || playerMode === 'duel') {
-          mistakenMapRef.current.set(firstCard.surah.no, firstCard.surah);
-          mistakenMapRef.current.set(secondCard.surah.no, secondCard.surah);
-          setMistakeCount((prev) => prev + 1);
-        }
-        setWrongIds([firstCard.id, secondCard.id]);
-        if (actor === 'p1') setCombo(0);
-        gameAudioService.playWrong();
-
-        window.setTimeout(() => {
-          setFlippedIds([]);
-          setWrongIds([]);
-          setIsLocked(false);
-          setAiThinking(false);
-          setTurnRemainingSec(TURN_SECONDS);
-          if (isVersus) {
-            gameAudioService.playTurnSwitch();
-            setActivePlayer((prev) => (prev === 'p1' ? 'p2' : 'p1'));
-          }
-        }, 720);
-      }
-    },
-    [
-      combo,
-      correctCount,
-      deck.length,
-      elapsedSec,
-      finishGame,
-      isVersus,
-      matchedPairIds,
-      maxCombo,
-      mistakeCount,
-      p1Correct,
-      p1Score,
-      p2Correct,
-      p2Score,
-      playerMode,
-      score,
-    ],
-  );
-
-  // Yapay Zekâ Hamle Motoru (Sıra YZ'de olduğunda gerçekçi hafızayla oynar)
-  useEffect(() => {
-    if (
-      playerMode !== 'ai' ||
-      activePlayer !== 'p2' ||
-      isPreview ||
-      isLocked ||
-      finishedRef.current
-    ) {
-      return;
-    }
-
-    const unmatchedCards = deck.filter((c) => !matchedPairIds.includes(c.pairId));
-    if (unmatchedCards.length < 2) return;
-
-    setAiThinking(true);
-    let cancelled = false;
-
-    const pickTimeout = window.setTimeout(() => {
-      if (cancelled || finishedRef.current) return;
-
-      // 1. Hafızada bilinen eşleşen bir çift var mı?
-      const memCards = aiMemoryRef.current
-        .map((id) => unmatchedCards.find((c) => c.id === id))
-        .filter((c): c is MemoryCardItem => Boolean(c));
-
-      let firstPick: MemoryCardItem | null = null;
-      let secondPick: MemoryCardItem | null = null;
-
-      for (let i = 0; i < memCards.length && !firstPick; i += 1) {
-        for (let j = i + 1; j < memCards.length; j += 1) {
-          if (memCards[i].pairId === memCards[j].pairId) {
-            firstPick = memCards[i];
-            secondPick = memCards[j];
-            break;
-          }
-        }
-      }
-
-      if (!firstPick) {
-        // Önce hafızasında olmayan bir kartı keşfet
-        const unseen = unmatchedCards.filter((c) => !aiMemoryRef.current.includes(c.id));
-        const pool = unseen.length > 0 ? unseen : unmatchedCards;
-        firstPick = pool[Math.floor(Math.random() * pool.length)];
-      }
-
-      gameAudioService.playFlip();
-      rememberCardForAi(firstPick.id);
-      setFlippedIds([firstPick.id]);
-
-      const secondTimeout = window.setTimeout(() => {
-        if (cancelled || finishedRef.current || !firstPick) return;
-
-        if (!secondPick) {
-          // İlk açtığı kartın eşi hafızasında var mı?
-          const mateInMem = memCards.find(
-            (c) => c.pairId === firstPick!.pairId && c.id !== firstPick!.id,
-          );
-          if (mateInMem) {
-            secondPick = mateInMem;
-          } else {
-            const others = unmatchedCards.filter((c) => c.id !== firstPick!.id);
-            secondPick = others[Math.floor(Math.random() * others.length)];
-          }
-        }
-
-        gameAudioService.playFlip();
-        rememberCardForAi(secondPick.id);
-        setFlippedIds([firstPick.id, secondPick.id]);
-        evaluatePair(firstPick, secondPick, 'p2');
-      }, 650);
-
-      return () => window.clearTimeout(secondTimeout);
-    }, 850);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(pickTimeout);
-    };
-  }, [
-    activePlayer,
-    deck,
-    evaluatePair,
-    isLocked,
-    isPreview,
-    matchedPairIds,
-    playerMode,
-    rememberCardForAi,
   ]);
 
   // HUD senkronizasyonu (Sağ panel & Mobil bar)
@@ -515,29 +357,26 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     const remaining = Math.max(0, timedLimitSec - elapsedSec);
     const statusMessage = isPreview
       ? `Kartları gözlemleyin... (${previewLeft} sn)`
-      : playerMode === 'ai' && activePlayer === 'p2'
-        ? 'Yapay zekâ hamlesini yapıyor...'
-        : playerMode === 'duel'
-          ? activePlayer === 'p1'
-            ? '1. Oyuncu sırada: iki kart çevir.'
-            : '2. Oyuncu sırada: iki kart çevir.'
-          : 'Sıra sende: iki kart çevir ve eşleştir.';
+      : isDuel
+        ? activePlayer === 'p1'
+          ? '1. Oyuncu sırada: iki kart çevir.'
+          : '2. Oyuncu sırada: iki kart çevir.'
+        : 'İki kart çevir ve sureyi künyesiyle eşleştir.';
 
     onHudUpdate({
-      score: playerMode === 'single' ? score : p1Score,
-      p1Score: playerMode === 'single' ? score : p1Score,
+      score: !isDuel ? score : p1Score,
+      p1Score: !isDuel ? score : p1Score,
       p2Score,
-      activeTurn: playerMode === 'single' ? 'p1' : activePlayer,
-      aiThinking: playerMode === 'ai' && aiThinking,
+      activeTurn: !isDuel ? 'p1' : activePlayer,
       combo,
       movesCount,
       progressLabel: `${matchedPairIds.length}/${deck.length / 2}`,
       elapsedSec,
       timerText:
-        tempo === 'timed' && playerMode === 'single'
+        tempo === 'timed' && !isDuel
           ? formatClock(remaining)
           : formatClock(elapsedSec),
-      timerUrgent: tempo === 'timed' && playerMode === 'single' && remaining <= 12,
+      timerUrgent: tempo === 'timed' && !isDuel && remaining <= 12,
       turnRemainingSec: useTurnTimer && !isPreview ? turnRemainingSec : null,
       turnDurationSec: TURN_SECONDS,
       statusMessage,
@@ -546,19 +385,18 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     });
   }, [
     activePlayer,
-    aiThinking,
     combo,
     deck.length,
     elapsedSec,
     featuredNote,
     featuredSurah,
+    isDuel,
     isPreview,
     matchedPairIds.length,
     movesCount,
     onHudUpdate,
     p1Score,
     p2Score,
-    playerMode,
     previewLeft,
     score,
     tempo,
@@ -567,23 +405,119 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     useTurnTimer,
   ]);
 
+  // Kesin Korumalı Kart Tıklama & Eşleşme Motoru
   const handleCardTap = (card: MemoryCardItem) => {
-    if (isPreview || isLocked || finishedRef.current) return;
-    if (playerMode === 'ai' && activePlayer === 'p2') return;
-    if (matchedPairIds.includes(card.pairId)) return;
-    if (flippedIds.includes(card.id)) return;
+    // 1. Aşama ve kilit korumaları
+    if (phaseRef.current !== 'playing') return;
+    if (isResolvingRef.current) return;
+    if (flippedIdsRef.current.length >= 2) return;
+    // 2. Zaten eşleşmiş veya zaten açık olan aynı karta tıklamayı kesin engelle
+    if (matchedPairIdsRef.current.has(card.pairId)) return;
+    if (flippedIdsRef.current.includes(card.id)) return;
 
     gameAudioService.playFlip();
-    rememberCardForAi(card.id);
 
-    const nextFlipped = [...flippedIds, card.id];
+    const nextFlipped = [...flippedIdsRef.current, card.id];
+    flippedIdsRef.current = nextFlipped;
     setFlippedIds(nextFlipped);
 
+    // Henüz ilk kart açıldıysa ikinci kartı bekle
     if (nextFlipped.length < 2) return;
 
     const firstCard = deck.find((c) => c.id === nextFlipped[0]);
-    if (!firstCard) return;
-    evaluatePair(firstCard, card, playerMode === 'single' ? 'p1' : activePlayer);
+    if (!firstCard || firstCard.id === card.id) {
+      flippedIdsRef.current = [];
+      setFlippedIds([]);
+      return;
+    }
+
+    const actor: 'p1' | 'p2' = isDuel ? activePlayer : 'p1';
+    setMovesCount((prev) => prev + 1);
+
+    // DURUM A: EŞLEŞME DOĞRU — anında eşleştir, tahtayı sıfır gecikmeyle kilitsiz bırak
+    if (firstCard.pairId === card.pairId && firstCard.side !== card.side) {
+      matchedPairIdsRef.current.add(card.pairId);
+      const nextMatchedArr = Array.from(matchedPairIdsRef.current);
+
+      const nextCombo = !isDuel || actor === 'p1' ? combo + 1 : combo;
+      const nextMaxCombo = Math.max(maxCombo, nextCombo);
+      const earnedSinglePts = 12 + Math.min(12, Math.max(0, nextCombo - 1) * 4);
+      const nextScore = !isDuel ? score + earnedSinglePts : score;
+      const nextP1Score = actor === 'p1' ? p1Score + 10 : p1Score;
+      const nextP2Score = actor === 'p2' ? p2Score + 10 : p2Score;
+      const nextP1Correct = actor === 'p1' ? p1Correct + 1 : p1Correct;
+      const nextP2Correct = actor === 'p2' ? p2Correct + 1 : p2Correct;
+      const nextCorrectTotal = correctCount + 1;
+
+      flippedIdsRef.current = [];
+      isResolvingRef.current = false;
+
+      gameAudioService.playMatch(Math.max(1, nextCombo));
+      setFlippedIds([]);
+      setWrongIds([]);
+      setMatchedPairIds(nextMatchedArr);
+      setMatchedOwner((prev) => ({ ...prev, [card.pairId]: actor }));
+      setScore(nextScore);
+      setP1Score(nextP1Score);
+      setP2Score(nextP2Score);
+      setP1Correct(nextP1Correct);
+      setP2Correct(nextP2Correct);
+      setCombo(nextCombo);
+      setMaxCombo(nextMaxCombo);
+      setCorrectCount(nextCorrectTotal);
+      setFeaturedSurah(card.surah);
+      setFeaturedNote(
+        isDuel
+          ? `${actor === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} eşleştirdi (+10p) — sıra hakkı devam ediyor!`
+          : `Doğru eşleşme (+${earnedSinglePts}p) · ${card.surah.no}. ${card.surah.shortNameTr}`,
+      );
+      setTurnRemainingSec(TURN_SECONDS);
+
+      if (nextMatchedArr.length >= deck.length / 2) {
+        finishTimerRef.current = window.setTimeout(() => {
+          finishTimerRef.current = null;
+          finishGame({
+            score: nextScore,
+            maxCombo: nextMaxCombo,
+            correctCount: nextCorrectTotal,
+            mistakeCount,
+            elapsedSec: elapsedSecRef.current,
+            p1Score: nextP1Score,
+            p2Score: nextP2Score,
+            p1Correct: nextP1Correct,
+            p2Correct: nextP2Correct,
+          });
+        }, 420);
+      }
+      return;
+    }
+
+    // DURUM B: EŞLEŞME YANLIŞ — 850ms koruma ile kapat ve tahtayı temizce aç
+    isResolvingRef.current = true;
+    mistakenMapRef.current.set(firstCard.surah.no, firstCard.surah);
+    mistakenMapRef.current.set(card.surah.no, card.surah);
+    setMistakeCount((prev) => prev + 1);
+    setCombo(0);
+    setWrongIds([firstCard.id, card.id]);
+    gameAudioService.playWrong();
+
+    if (mismatchTimerRef.current !== null) {
+      window.clearTimeout(mismatchTimerRef.current);
+    }
+
+    mismatchTimerRef.current = window.setTimeout(() => {
+      mismatchTimerRef.current = null;
+      flippedIdsRef.current = [];
+      isResolvingRef.current = false;
+      setFlippedIds([]);
+      setWrongIds([]);
+      setTurnRemainingSec(TURN_SECONDS);
+
+      if (isDuel && phaseRef.current === 'playing') {
+        gameAudioService.playTurnSwitch();
+        setActivePlayer((prev) => (prev === 'p1' ? 'p2' : 'p1'));
+      }
+    }, MISMATCH_FLIP_BACK_MS);
   };
 
   const gridClasses =
@@ -593,7 +527,7 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
-      {/* Açılış Gözlem Şeridi (Zümrüt Masa Üstünde Zarif Şerit) */}
+      {/* Açılış Gözlem Şeridi */}
       {isPreview && (
         <div className="shrink-0 rounded-xl px-3 py-1.5 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold bg-amber-100/95 text-amber-950 border border-amber-300 shadow-sm">
           <Eye className="w-4 h-4 shrink-0" />
@@ -611,22 +545,15 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
           const isFlipped = isPreview || isMatched || flippedIds.includes(card.id);
           const isWrong = wrongIds.includes(card.id);
           const owner = matchedOwner[card.pairId];
-          const ownerBadge = isMatched
-            ? owner === 'p2'
-              ? playerMode === 'ai'
-                ? 'YZ'
-                : 'P2'
-              : playerMode === 'duel'
-                ? 'P1'
-                : 'SEN'
-            : null;
+          // Tek Oyuncu modunda gereksiz SEN etiketi yok; 2 Oyuncu modunda zarif P1 / P2 rozeti
+          const ownerBadge = isDuel && isMatched ? (owner === 'p2' ? 'P2' : 'P1') : null;
 
           return (
             <button
               key={card.id}
               type="button"
               onClick={() => handleCardTap(card)}
-              disabled={isPreview || isMatched || (playerMode === 'ai' && activePlayer === 'p2')}
+              disabled={isPreview || isMatched}
               aria-label={isFlipped ? `${card.surah.nameTr}` : `Kart #${card.slotNo}`}
               className={`game-card-perspective w-full h-full min-h-0 cursor-pointer select-none focus:outline-none ${
                 isWrong ? 'game-shake' : ''
@@ -661,7 +588,7 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
                       : 'game-bevel-emerald'
                   }`}
                 >
-                  {/* Üst Etiket Satırı: Tip + SEN/YZ + Onay */}
+                  {/* Üst Etiket Satırı: Tip + (2 Oyuncu modunda P1/P2) + Onay */}
                   <div className="flex items-center justify-between gap-1 shrink-0">
                     <div className="flex items-center gap-1 min-w-0">
                       <span className="text-[8px] sm:text-[9px] font-extrabold tracking-wide uppercase px-1.5 py-0.5 rounded bg-white/12 text-amber-200 truncate">
@@ -671,8 +598,8 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
                         <span
                           className={`text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shrink-0 ${
                             owner === 'p2'
-                              ? 'bg-teal-200 text-teal-950'
-                              : 'bg-amber-400 text-amber-950'
+                              ? 'bg-amber-400 text-amber-950'
+                              : 'bg-teal-200 text-teal-950'
                           }`}
                         >
                           {ownerBadge}

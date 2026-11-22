@@ -34,7 +34,11 @@ export type GameTierId =
 
 export type GameTempo = 'calm' | 'timed';
 
-export type GamePlayerMode = 'single' | 'ai' | 'duel';
+export type GamePlayerMode = 'single' | 'duel';
+
+export function sanitizePlayerMode(value: unknown): GamePlayerMode {
+  return value === 'duel' ? 'duel' : 'single';
+}
 
 export interface GameTierMeta {
   id: GameTierId;
@@ -264,7 +268,6 @@ export interface GameHudUpdate {
   p1Score: number;
   p2Score: number;
   activeTurn: 'p1' | 'p2' | 'both';
-  aiThinking?: boolean;
   combo: number;
   movesCount: number;
   progressLabel: string;
@@ -403,10 +406,4 @@ export function formatClock(sec: number): string {
   const m = Math.floor(safe / 60);
   const s = safe % 60;
   return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-}
-
-export function getAiMemoryCapacity(tierId: GameTierId): number {
-  if (tierId === 'kademe_1' || tierId === 'kademe_2') return 3;
-  if (tierId === 'kademe_3' || tierId === 'kademe_4') return 5;
-  return 7;
 }

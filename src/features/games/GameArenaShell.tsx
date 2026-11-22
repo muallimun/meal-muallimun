@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
-  Bot,
   ChevronUp,
   Clock,
   Compass,
@@ -208,12 +207,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
     updateSettings({ theme: next });
   };
 
-  const modeLabel =
-    playerMode === 'ai'
-      ? 'Yapay Zekâya Karşı'
-      : playerMode === 'duel'
-        ? '2 Oyuncu (Akıllı Tahta)'
-        : 'Tek Başına';
+  const modeLabel = playerMode === 'duel' ? '2 Oyuncu' : 'Tek Oyuncu';
   const tempoLabel = tempo === 'timed' ? 'Zaman Yarışı' : 'Sakin Mod';
 
   // Dairesel SVG geri sayım halkası hesabı
@@ -229,8 +223,8 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   const ringDashOffset = ringCircumference * (1 - ringRatio);
   const ringUrgent = hasTurnRing && (hud.turnRemainingSec ?? 99) <= 5;
 
-  const p1Name = playerMode === 'duel' ? '1. Oyuncu' : 'Sen';
-  const p2Name = playerMode === 'duel' ? '2. Oyuncu' : 'Yapay Zekâ';
+  // Tek Oyuncu canlı yıldız hedefi göstergesi
+  const liveStarPreview = hud.p1Score >= 70 ? 3 : hud.p1Score >= 35 ? 2 : hud.p1Score > 0 ? 1 : 0;
 
   const renderInfoNoteBody = (compact?: boolean) => {
     if (!featuredSurah) {
@@ -640,25 +634,25 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                 className="px-2 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border"
                 style={{
                   backgroundColor:
-                    hud.activeTurn === 'p1' ? 'rgba(217, 119, 6, 0.14)' : 'var(--bg-surface)',
+                    hud.activeTurn === 'p1' ? 'rgba(13, 148, 136, 0.14)' : 'var(--bg-surface)',
                   borderColor:
-                    hud.activeTurn === 'p1' ? '#D97706' : 'var(--border-subtle)',
+                    hud.activeTurn === 'p1' ? '#0D9488' : 'var(--border-subtle)',
                   color: 'var(--text-primary)',
                 }}
               >
-                {p1Name}: {hud.p1Score}p
+                1.O: {hud.p1Score}p
               </span>
               <span
                 className="px-2 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border"
                 style={{
                   backgroundColor:
-                    hud.activeTurn === 'p2' ? 'rgba(13, 148, 136, 0.14)' : 'var(--bg-surface)',
+                    hud.activeTurn === 'p2' ? 'rgba(217, 119, 6, 0.14)' : 'var(--bg-surface)',
                   borderColor:
-                    hud.activeTurn === 'p2' ? '#0D9488' : 'var(--border-subtle)',
+                    hud.activeTurn === 'p2' ? '#D97706' : 'var(--border-subtle)',
                   color: 'var(--text-primary)',
                 }}
               >
-                {playerMode === 'ai' ? 'YZ' : '2.O'}: {hud.p2Score}p
+                2.O: {hud.p2Score}p
               </span>
             </div>
           )}
@@ -704,7 +698,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
 
           {/* SAĞ SÜTUN (Masaüstü lg+) — Skor, Sayaç ve Canlı Bilgi Notu Paneli */}
           <aside className="hidden lg:flex flex-col gap-3 min-h-0 overflow-hidden">
-            {/* A) Oyuncu & Rakip Skor Kartları */}
+            {/* A) Oyuncu Skor Kartı (Tek Oyuncu veya 2 Oyuncu) */}
             {playerMode === 'single' ? (
               <div
                 className="shrink-0 rounded-2xl border p-3.5 space-y-2.5"
@@ -717,16 +711,28 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                   <div className="flex items-center gap-2.5">
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center text-white"
-                      style={{ backgroundColor: '#D97706' }}
+                      style={{ backgroundColor: '#0F766E' }}
                     >
                       <User className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="text-sm font-extrabold" style={{ color: 'var(--text-primary)' }}>
-                        Tek Başına
+                        Tek Oyuncu
                       </div>
-                      <div className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
-                        Kişisel rekor &amp; yıldız hedefi
+                      <div className="flex items-center gap-0.5 mt-0.5" aria-label="Yıldız hedefi">
+                        {[1, 2, 3].map((n) => (
+                          <Star
+                            key={n}
+                            className="w-3.5 h-3.5"
+                            style={{
+                              color: n <= liveStarPreview ? '#D97706' : 'var(--border-strong)',
+                            }}
+                            fill={n <= liveStarPreview ? 'currentColor' : 'none'}
+                          />
+                        ))}
+                        <span className="text-[10px] font-semibold ml-1" style={{ color: 'var(--text-muted)' }}>
+                          Hedef
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -750,38 +756,36 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               </div>
             ) : (
               <div className="shrink-0 space-y-2">
-                {/* 1. Kart: Sen / 1. Oyuncu */}
+                {/* 1. Kart: 1. Oyuncu (Zümrüt vurgu) */}
                 <div
                   className="rounded-2xl border-2 px-3.5 py-2.5 flex items-center justify-between gap-2 transition-all"
                   style={{
                     backgroundColor:
                       hud.activeTurn === 'p1'
-                        ? 'var(--brand-accent-soft)'
+                        ? 'var(--brand-primary-soft)'
                         : 'var(--bg-surface)',
                     borderColor:
-                      hud.activeTurn === 'p1' ? '#D97706' : 'var(--border-subtle)',
+                      hud.activeTurn === 'p1' ? '#0D9488' : 'var(--border-subtle)',
                   }}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-white"
-                      style={{ backgroundColor: '#D97706' }}
+                      style={{ backgroundColor: '#0F766E' }}
                     >
                       <User className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-extrabold truncate" style={{ color: 'var(--text-primary)' }}>
-                        {p1Name}
+                        1. Oyuncu
                       </div>
                       <div
                         className="text-[11px] font-bold"
                         style={{
                           color:
-                            hud.activeTurn === 'p1'
-                              ? '#B45309'
-                              : hud.activeTurn === 'both'
-                                ? 'var(--brand-primary-text)'
-                                : 'var(--text-muted)',
+                            hud.activeTurn === 'p1' || hud.activeTurn === 'both'
+                              ? 'var(--brand-primary-text)'
+                              : 'var(--text-muted)',
                         }}
                       >
                         {hud.activeTurn === 'p1'
@@ -800,51 +804,43 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                   </div>
                 </div>
 
-                {/* 2. Kart: Yapay Zekâ / 2. Oyuncu */}
+                {/* 2. Kart: 2. Oyuncu (Kehribar vurgu) */}
                 <div
                   className="rounded-2xl border-2 px-3.5 py-2.5 flex items-center justify-between gap-2 transition-all"
                   style={{
                     backgroundColor:
                       hud.activeTurn === 'p2'
-                        ? 'var(--brand-primary-soft)'
+                        ? 'var(--brand-accent-soft)'
                         : 'var(--bg-surface)',
                     borderColor:
-                      hud.activeTurn === 'p2' ? '#0D9488' : 'var(--border-subtle)',
+                      hud.activeTurn === 'p2' ? '#D97706' : 'var(--border-subtle)',
                   }}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-white"
-                      style={{ backgroundColor: '#0F766E' }}
+                      style={{ backgroundColor: '#D97706' }}
                     >
-                      {playerMode === 'ai' ? (
-                        <Bot className="w-4 h-4" />
-                      ) : (
-                        <Users className="w-4 h-4" />
-                      )}
+                      <Users className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="text-sm font-extrabold truncate" style={{ color: 'var(--text-primary)' }}>
-                        {p2Name}
+                        2. Oyuncu
                       </div>
                       <div
                         className="text-[11px] font-bold"
                         style={{
                           color:
-                            hud.activeTurn === 'p2' || hud.aiThinking
-                              ? 'var(--brand-primary-text)'
-                              : hud.activeTurn === 'both'
-                                ? 'var(--brand-primary-text)'
-                                : 'var(--text-muted)',
+                            hud.activeTurn === 'p2' || hud.activeTurn === 'both'
+                              ? 'var(--brand-accent-text)'
+                              : 'var(--text-muted)',
                         }}
                       >
-                        {hud.aiThinking
-                          ? 'Düşünüyor...'
-                          : hud.activeTurn === 'p2'
-                            ? 'Sırada'
-                            : hud.activeTurn === 'both'
-                              ? 'Yarışıyor'
-                              : 'Bekliyor'}
+                        {hud.activeTurn === 'p2'
+                          ? 'Sırada'
+                          : hud.activeTurn === 'both'
+                            ? 'Yarışıyor'
+                            : 'Bekliyor'}
                       </div>
                     </div>
                   </div>
@@ -953,12 +949,12 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                 style={{
                   backgroundColor:
                     hud.activeTurn === 'p2'
-                      ? 'var(--brand-primary-soft)'
-                      : 'var(--brand-accent-soft)',
+                      ? 'var(--brand-accent-soft)'
+                      : 'var(--brand-primary-soft)',
                   color:
                     hud.activeTurn === 'p2'
-                      ? 'var(--brand-primary-text)'
-                      : 'var(--brand-accent-text)',
+                      ? 'var(--brand-accent-text)'
+                      : 'var(--brand-primary-text)',
                 }}
               >
                 {hud.statusMessage}
@@ -1236,22 +1232,16 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               </button>
             </div>
 
-            {/* Rakip Modu */}
+            {/* Oyuncu Modu */}
             <div className="space-y-1.5">
               <div className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                Rakip Modu
+                Oyuncu Modu
               </div>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {(
                   [
-                    { id: 'single', label: 'Tek Başına', icon: <User className="w-3.5 h-3.5" /> },
-                    { id: 'ai', label: 'Yapay Zekâ', icon: <Bot className="w-3.5 h-3.5" /> },
-                    {
-                      id: 'duel',
-                      label: '2 Oyuncu',
-                      icon: <Users className="w-3.5 h-3.5" />,
-                      desktopOnly: true,
-                    },
+                    { id: 'single', label: 'Tek Oyuncu', icon: <User className="w-3.5 h-3.5" /> },
+                    { id: 'duel', label: '2 Oyuncu', icon: <Users className="w-3.5 h-3.5" /> },
                   ] as const
                 ).map((item) => (
                   <button
@@ -1261,9 +1251,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                       onChangeConfig({ playerMode: item.id });
                       setIsModesOpen(false);
                     }}
-                    className={`${
-                      'desktopOnly' in item && item.desktopOnly ? 'hidden lg:inline-flex' : 'inline-flex'
-                    } min-h-[40px] px-3 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer`}
+                    className="inline-flex min-h-[40px] px-3 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer"
                     style={{
                       backgroundColor:
                         playerMode === item.id

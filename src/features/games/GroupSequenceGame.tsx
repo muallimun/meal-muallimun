@@ -139,9 +139,7 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
   onHudUpdate,
   onComplete,
 }) => {
-  const isAi = playerMode === 'ai';
   const isDuel = playerMode === 'duel';
-  const isVersus = isAi || isDuel;
 
   const usedGroupsRef = useRef<Set<SurahGroupId>>(new Set());
   const [roundIdx, setRoundIdx] = useState<number>(0);
@@ -161,7 +159,6 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
 
   // Sıra ve Skor
   const [activePlayer, setActivePlayer] = useState<'p1' | 'p2'>('p1');
-  const [aiThinking, setAiThinking] = useState<boolean>(false);
   const [p1Score, setP1Score] = useState<number>(0);
   const [p2Score, setP2Score] = useState<number>(0);
   const [p1Correct, setP1Correct] = useState<number>(0);
@@ -215,14 +212,14 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
         durationSec: stats.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel: isVersus
+        duel: isDuel
           ? {
               p1Score: stats.p1Score,
               p2Score: stats.p2Score,
               p1Correct: stats.p1Correct,
               p2Correct: stats.p2Correct,
-              p1Label: isAi ? 'Sen' : '1. Oyuncu',
-              p2Label: isAi ? 'Yapay Zekâ' : '2. Oyuncu',
+              p1Label: '1. Oyuncu',
+              p2Label: '2. Oyuncu',
               winner:
                 stats.p1Score > stats.p2Score
                   ? 'p1'
@@ -233,7 +230,7 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
           : undefined,
       });
     },
-    [isAi, isDuel, isVersus, onComplete, playerMode, tempo, tierId],
+    [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
   // Zamanlayıcı
@@ -244,33 +241,6 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
     }, 1000);
     return () => window.clearInterval(interval);
   }, []);
-
-  // Yapay Zekâ eşzamanlı dizilim yarışı (gerçekçi ritim)
-  useEffect(() => {
-    if (!isAi || finishedRef.current) return;
-    let active = true;
-    const schedule = () => {
-      const delay = 3100 + Math.floor(Math.random() * 2200);
-      return window.setTimeout(() => {
-        if (!active || finishedRef.current) return;
-        setAiThinking(true);
-        window.setTimeout(() => {
-          if (!active || finishedRef.current) return;
-          if (Math.random() < 0.78) {
-            setP2Score((prev) => prev + 12);
-            setP2Correct((prev) => prev + 1);
-          }
-          setAiThinking(false);
-          if (active && !finishedRef.current) timerId = schedule();
-        }, 550);
-      }, delay);
-    };
-    let timerId = schedule();
-    return () => {
-      active = false;
-      window.clearTimeout(timerId);
-    };
-  }, [isAi]);
 
   // Süreli mod bitişi
   useEffect(() => {
@@ -477,8 +447,7 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
       score: p1Score,
       p1Score,
       p2Score,
-      activeTurn: isAi ? 'both' : playerMode === 'single' ? 'p1' : activePlayer,
-      aiThinking: isAi && aiThinking,
+      activeTurn: !isDuel ? 'p1' : activePlayer,
       combo,
       movesCount,
       progressLabel: `${placedSurahs.length}/${round.orderedTargets.length}`,
@@ -493,20 +462,17 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
     });
   }, [
     activePlayer,
-    aiThinking,
     combo,
     elapsedSec,
     featuredNote,
     featuredSurah,
     inlineHint,
-    isAi,
     isDuel,
     movesCount,
     onHudUpdate,
     p1Score,
     p2Score,
     placedSurahs.length,
-    playerMode,
     round.group.shortLabel,
     round.hasDistractors,
     round.orderedTargets.length,

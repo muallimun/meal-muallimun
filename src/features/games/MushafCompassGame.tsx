@@ -37,18 +37,6 @@ function scoreDialDistance(diff: number): number {
   return 10;
 }
 
-function generateAiDialGuess(
-  trueNo: number,
-  tierId: GameComponentProps['tierId'],
-  minNo: number,
-  maxNo: number,
-): number {
-  const spread =
-    tierId === 'kademe_1' ? 4 : tierId === 'kademe_2' ? 6 : tierId === 'kademe_3' ? 8 : 11;
-  const offset = Math.round((Math.random() * 2 - 1) * spread);
-  return Math.max(minNo, Math.min(maxNo, trueNo + offset));
-}
-
 function generateCompassRound(
   roundIndex: number,
   tierSurahs: EnrichedGameSurah[],
@@ -92,9 +80,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
   onHudUpdate,
   onComplete,
 }) => {
-  const isAi = playerMode === 'ai';
   const isDuel = playerMode === 'duel';
-  const isVersus = isAi || isDuel;
 
   const usedNosRef = useRef<Set<number>>(new Set());
   const [roundIdx, setRoundIdx] = useState<number>(0);
@@ -120,7 +106,6 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
     pickedNo: number;
     longerNo: number;
     isCorrect: boolean;
-    aiCorrect?: boolean;
     actor: 'p1' | 'p2';
   } | null>(null);
 
@@ -176,14 +161,14 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
         durationSec: stats.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel: isVersus
+        duel: isDuel
           ? {
               p1Score: stats.p1Score,
               p2Score: stats.p2Score,
               p1Correct: stats.p1Correct,
               p2Correct: stats.p2Correct,
-              p1Label: isAi ? 'Sen' : '1. Oyuncu',
-              p2Label: isAi ? 'Yapay Zekâ' : '2. Oyuncu',
+              p1Label: '1. Oyuncu',
+              p2Label: '2. Oyuncu',
               winner:
                 stats.p1Score > stats.p2Score
                   ? 'p1'
@@ -194,7 +179,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
           : undefined,
       });
     },
-    [isAi, isDuel, isVersus, onComplete, playerMode, tempo, tierId],
+    [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
   // Zamanlayıcı
@@ -234,13 +219,11 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
   // HUD senkronizasyonu
   useEffect(() => {
     const remaining = Math.max(0, TIMED_LIMIT_SEC - elapsedSec);
-    const activeTurn: 'p1' | 'p2' | 'both' = isDuel
+    const activeTurn: 'p1' | 'p2' = isDuel
       ? round.kind === 'dial'
         ? duelDialStep
         : scaleTurnPlayer
-      : isAi
-        ? 'both'
-        : 'p1';
+      : 'p1';
 
     const statusMessage =
       round.kind === 'dial'
@@ -280,7 +263,6 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
     elapsedSec,
     featuredNote,
     featuredSurah,
-    isAi,
     isDuel,
     movesCount,
     onHudUpdate,
@@ -343,11 +325,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
 
     const trueNo = round.targetSurah.no;
     const p1Guess = isDuel && duelP1DialLock !== null ? duelP1DialLock : dialValue;
-    const p2Guess = isDuel
-      ? dialValue
-      : isAi
-        ? generateAiDialGuess(trueNo, tierId, 1, 114)
-        : undefined;
+    const p2Guess = isDuel ? dialValue : undefined;
 
     const p1Diff = Math.abs(p1Guess - trueNo);
     const p1BasePts = scoreDialDistance(p1Diff);
@@ -365,13 +343,13 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
             ? `Güzel Tahmin · ±${p1Diff} fark (+${p1Pts}p)`
             : `Gerçek konum: ${trueNo}. Sure (±${p1Diff} fark)`;
 
-    if (isVersus && p2Guess !== undefined) {
+    if (isDuel && p2Guess !== undefined) {
       if (p1Diff < p2Diff) {
         p1Pts += 15;
-        headline = `${isAi ? 'Sen' : '1. Oyuncu'} daha yakın! (+${p1Pts}p)`;
+        headline = `1. Oyuncu daha yakın! (+${p1Pts}p)`;
       } else if (p2Diff < p1Diff) {
         p2Pts += 15;
-        headline = `${isAi ? 'Yapay Zekâ' : '2. Oyuncu'} daha yakın! (+${p2Pts}p)`;
+        headline = `2. Oyuncu daha yakın! (+${p2Pts}p)`;
       } else {
         headline = `Eşit mesafe! (±${p1Diff} fark)`;
       }
@@ -379,7 +357,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
 
     setMovesCount((prev) => prev + 1);
     setP1Score((prev) => prev + p1Pts);
-    if (isVersus) setP2Score((prev) => prev + p2Pts);
+    if (isDuel) setP2Score((prev) => prev + p2Pts);
 
     if (p1Diff <= 6) {
       const nextCombo = combo + 1;
@@ -394,7 +372,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
       gameAudioService.playWrong();
     }
 
-    if (isVersus && p2Diff <= 6) {
+    if (isDuel && p2Diff <= 6) {
       setP2Correct((prev) => prev + 1);
     }
 
@@ -403,7 +381,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
       p2Guess,
       trueNo,
       p1Pts,
-      p2Pts: isVersus ? p2Pts : undefined,
+      p2Pts: isDuel ? p2Pts : undefined,
       headline,
     });
     setFeaturedSurah(round.targetSurah);
@@ -438,20 +416,10 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
       gameAudioService.playWrong();
     }
 
-    let aiGotIt: boolean | undefined;
-    if (isAi) {
-      aiGotIt = Math.random() < 0.78;
-      if (aiGotIt) {
-        setP2Score((prev) => prev + 50);
-        setP2Correct((prev) => prev + 1);
-      }
-    }
-
     setScaleRevealed({
       pickedNo: picked.no,
       longerNo: longer.no,
       isCorrect,
-      aiCorrect: aiGotIt,
       actor,
     });
     setFeaturedSurah(longer);
@@ -593,19 +561,19 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                       style={{ left: toPercent(dialRevealed.p1Guess) }}
                       className="absolute -top-4 -translate-x-1/2 flex flex-col items-center z-10"
                     >
-                      <span className="px-1.5 py-0.5 rounded bg-amber-600 text-white text-[9px] font-black tabular-nums shadow whitespace-nowrap">
-                        {isDuel ? 'P1' : 'Sen'}: {dialRevealed.p1Guess}
+                      <span className="px-1.5 py-0.5 rounded bg-teal-700 text-white text-[9px] font-black tabular-nums shadow whitespace-nowrap">
+                        {isDuel ? 'P1' : 'Tahmin'}: {dialRevealed.p1Guess}
                       </span>
                     </div>
 
-                    {/* YZ veya Oyuncu 2 İğnesi */}
+                    {/* Oyuncu 2 İğnesi */}
                     {dialRevealed.p2Guess !== undefined && (
                       <div
                         style={{ left: toPercent(dialRevealed.p2Guess) }}
                         className="absolute top-4 -translate-x-1/2 flex flex-col items-center z-10"
                       >
-                        <span className="px-1.5 py-0.5 rounded bg-slate-800 text-teal-200 text-[9px] font-black tabular-nums shadow whitespace-nowrap">
-                          {isAi ? 'YZ' : 'P2'}: {dialRevealed.p2Guess}
+                        <span className="px-1.5 py-0.5 rounded bg-amber-600 text-white text-[9px] font-black tabular-nums shadow whitespace-nowrap">
+                          P2: {dialRevealed.p2Guess}
                         </span>
                       </div>
                     )}
@@ -788,11 +756,6 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                   {scaleRevealed.isCorrect
                     ? 'Doğru! Ayet tartısında uzun sureyi buldunuz (+50p).'
                     : 'Diğer sure ayet sayısı bakımından daha uzundur.'}
-                  {isAi && scaleRevealed.aiCorrect !== undefined && (
-                    <span className="ml-1.5 text-amber-200">
-                      (Yapay Zekâ: {scaleRevealed.aiCorrect ? 'Doğru +50p' : 'Yanıldı'})
-                    </span>
-                  )}
                 </div>
                 <button
                   type="button"

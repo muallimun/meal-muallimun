@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Award,
   BookOpen,
-  Bot,
   Flame,
   RotateCcw,
   Sparkles,
@@ -36,7 +35,7 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
   const nextTierId = getNextTierId(result.tierId);
   const nextTierMeta = nextTierId ? GAME_TIERS.find((t) => t.id === nextTierId) : null;
 
-  const isVersus = (result.playerMode === 'duel' || result.playerMode === 'ai') && Boolean(result.duel);
+  const isVersus = result.playerMode === 'duel' && Boolean(result.duel);
 
   const versusHeadline = (() => {
     if (!result.duel) return '';
@@ -87,20 +86,16 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
                 className="mx-auto w-12 h-12 rounded-2xl flex items-center justify-center"
                 style={{
                   backgroundColor:
-                    result.duel.winner === 'p1'
+                    result.duel.winner === 'p2'
                       ? 'var(--brand-accent-soft)'
                       : 'var(--brand-primary-soft)',
                   color:
-                    result.duel.winner === 'p1'
+                    result.duel.winner === 'p2'
                       ? 'var(--brand-accent-text)'
                       : 'var(--brand-primary-text)',
                 }}
               >
-                {result.playerMode === 'ai' ? (
-                  <Bot className="w-6 h-6" />
-                ) : (
-                  <Users className="w-6 h-6" />
-                )}
+                <Users className="w-6 h-6" />
               </div>
               <h2
                 className="text-xl sm:text-2xl font-extrabold tracking-tight"
@@ -155,13 +150,13 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
               style={{
                 backgroundColor:
                   result.duel.winner === 'p1'
-                    ? 'var(--brand-accent-soft)'
+                    ? 'var(--brand-primary-soft)'
                     : 'var(--bg-surface-soft)',
                 borderColor:
-                  result.duel.winner === 'p1' ? '#D97706' : 'var(--border-subtle)',
+                  result.duel.winner === 'p1' ? '#0D9488' : 'var(--border-subtle)',
               }}
             >
-              <div className="text-xs font-bold" style={{ color: 'var(--brand-accent-text)' }}>
+              <div className="text-xs font-bold" style={{ color: 'var(--brand-primary-text)' }}>
                 {result.duel.p1Label}
               </div>
               <div
@@ -180,13 +175,13 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
               style={{
                 backgroundColor:
                   result.duel.winner === 'p2'
-                    ? 'var(--brand-primary-soft)'
+                    ? 'var(--brand-accent-soft)'
                     : 'var(--bg-surface-soft)',
                 borderColor:
-                  result.duel.winner === 'p2' ? '#0D9488' : 'var(--border-subtle)',
+                  result.duel.winner === 'p2' ? '#D97706' : 'var(--border-subtle)',
               }}
             >
-              <div className="text-xs font-bold" style={{ color: 'var(--brand-primary-text)' }}>
+              <div className="text-xs font-bold" style={{ color: 'var(--brand-accent-text)' }}>
                 {result.duel.p2Label}
               </div>
               <div

@@ -94,7 +94,7 @@ interface SpeedBoardProps {
   headerLabel?: string;
   headerScore?: number;
   headerAccent?: 'amber' | 'teal';
-  ownerTag: string;
+  ownerTag?: string;
   wave: SpeedWaveData;
   waveNumber: number;
   totalWavesLabel: string;
@@ -267,9 +267,17 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                       #{idx + 1} · SURE
                     </span>
                     {isMatched && (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-400 text-amber-950">
+                      <span
+                        className={`inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded ${
+                          ownerTag === 'P2'
+                            ? 'bg-amber-400 text-amber-950'
+                            : ownerTag === 'P1'
+                              ? 'bg-teal-200 text-teal-950'
+                              : 'bg-emerald-400/25 text-emerald-200'
+                        }`}
+                      >
                         <Check className="w-2.5 h-2.5" strokeWidth={3} />
-                        {ownerTag}
+                        {ownerTag ? <span>{ownerTag}</span> : null}
                       </span>
                     )}
                   </div>
@@ -372,7 +380,6 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   onComplete,
 }) => {
   const isDuel = playerMode === 'duel';
-  const isAi = playerMode === 'ai';
   const isDesktopSingle = !isDuel && typeof window !== 'undefined' && window.innerWidth >= 768;
   const pairCount = isDesktopSingle ? 5 : 4;
 
@@ -387,11 +394,6 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [mistakeCount, setMistakeCount] = useState<number>(0);
   const [elapsedSec, setElapsedSec] = useState<number>(0);
-
-  // Yapay Zekâ eşzamanlı rakip puanı
-  const [aiScore, setAiScore] = useState<number>(0);
-  const [aiCorrect, setAiCorrect] = useState<number>(0);
-  const [aiThinking, setAiThinking] = useState<boolean>(false);
 
   // 2 Oyuncu durumu
   const [p1WaveIdx, setP1WaveIdx] = useState<number>(0);
@@ -451,26 +453,25 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
         durationSec: payload.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel:
-          isDuel || isAi
-            ? {
-                p1Score: payload.p1Score,
-                p2Score: payload.p2Score,
-                p1Correct: payload.p1Correct,
-                p2Correct: payload.p2Correct,
-                p1Label: isAi ? 'Sen' : '1. Oyuncu',
-                p2Label: isAi ? 'Yapay Zekâ' : '2. Oyuncu',
-                winner:
-                  payload.p1Score > payload.p2Score
-                    ? 'p1'
-                    : payload.p2Score > payload.p1Score
-                      ? 'p2'
-                      : 'draw',
-              }
-            : undefined,
+        duel: isDuel
+          ? {
+              p1Score: payload.p1Score,
+              p2Score: payload.p2Score,
+              p1Correct: payload.p1Correct,
+              p2Correct: payload.p2Correct,
+              p1Label: '1. Oyuncu',
+              p2Label: '2. Oyuncu',
+              winner:
+                payload.p1Score > payload.p2Score
+                  ? 'p1'
+                  : payload.p2Score > payload.p1Score
+                    ? 'p2'
+                    : 'draw',
+            }
+          : undefined,
       });
     },
-    [isAi, isDuel, onComplete, playerMode, tempo, tierId],
+    [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
   // Zamanlayıcı
@@ -482,35 +483,6 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
     return () => window.clearInterval(interval);
   }, []);
 
-  // Yapay Zekâ eşzamanlı eşleştirme ritmi
-  useEffect(() => {
-    if (!isAi || finishedRef.current) return;
-    let active = true;
-    const scheduleNext = () => {
-      const delay = 2700 + Math.floor(Math.random() * 1900);
-      return window.setTimeout(() => {
-        if (!active || finishedRef.current) return;
-        setAiThinking(true);
-        window.setTimeout(() => {
-          if (!active || finishedRef.current) return;
-          if (Math.random() < 0.82) {
-            setAiScore((prev) => prev + 10);
-            setAiCorrect((prev) => prev + 1);
-          }
-          setAiThinking(false);
-          if (active && !finishedRef.current) {
-            timerRef = scheduleNext();
-          }
-        }, 500);
-      }, delay);
-    };
-    let timerRef = scheduleNext();
-    return () => {
-      active = false;
-      window.clearTimeout(timerRef);
-    };
-  }, [isAi]);
-
   // Süreli mod bitişi
   useEffect(() => {
     if (tempo === 'timed' && elapsedSec >= TIMED_LIMIT_SEC && !finishedRef.current) {
@@ -521,14 +493,12 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
         mistakeCount,
         elapsedSec,
         p1Score: isDuel ? p1Score : score,
-        p2Score: isDuel ? p2Score : aiScore,
+        p2Score: isDuel ? p2Score : 0,
         p1Correct: isDuel ? p1Correct : correctCount,
-        p2Correct: isDuel ? p2Correct : aiCorrect,
+        p2Correct: isDuel ? p2Correct : 0,
       });
     }
   }, [
-    aiCorrect,
-    aiScore,
     correctCount,
     elapsedSec,
     finishGame,
@@ -549,9 +519,8 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
     onHudUpdate({
       score: isDuel ? p1Score : score,
       p1Score: isDuel ? p1Score : score,
-      p2Score: isDuel ? p2Score : aiScore,
-      activeTurn: isDuel || isAi ? 'both' : 'p1',
-      aiThinking: isAi && aiThinking,
+      p2Score: isDuel ? p2Score : 0,
+      activeTurn: isDuel ? 'both' : 'p1',
       combo,
       movesCount,
       progressLabel:
@@ -567,21 +536,16 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
       turnDurationSec: TIMED_LIMIT_SEC,
       statusMessage: isDuel
         ? 'İki oyuncu aynı anda künye dalgalarını temizliyor!'
-        : isAi
-          ? 'Sureleri anlam ve mukattaalarıyla Yapay Zekâdan hızlı eşleştir.'
-          : 'Sol sütundan sureyi, sağ sütundan doğru künyesini seç.',
+        : 'Sol sütundan sureyi, sağ sütundan doğru künyesini seç.',
       featuredSurah,
       featuredNote,
     });
   }, [
-    aiScore,
-    aiThinking,
     combo,
     correctCount,
     elapsedSec,
     featuredNote,
     featuredSurah,
-    isAi,
     isDuel,
     movesCount,
     onHudUpdate,
@@ -634,9 +598,9 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
         mistakeCount,
         elapsedSec,
         p1Score: nextScore,
-        p2Score: aiScore,
+        p2Score: 0,
         p1Correct: correctCount,
-        p2Correct: aiCorrect,
+        p2Correct: 0,
       });
       return;
     }
@@ -644,8 +608,6 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
     setWaveIdx(nextWaveIdx);
     setSingleWave(buildSpeedWave(nextWaveIdx, tierId, tierSurahs, pairCount));
   }, [
-    aiCorrect,
-    aiScore,
     correctCount,
     elapsedSec,
     finishGame,
@@ -748,12 +710,12 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
 
   if (isDuel) {
     return (
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 overflow-hidden">
-        <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-hidden">
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto md:overflow-hidden">
+        <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/35 bg-black/15 p-2.5 overflow-hidden">
           <SpeedBoard
             headerLabel="1. Oyuncu"
             headerScore={p1Score}
-            headerAccent="amber"
+            headerAccent="teal"
             ownerTag="P1"
             wave={p1Wave}
             waveNumber={p1WaveIdx + 1}
@@ -769,11 +731,11 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
           />
         </div>
 
-        <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/30 bg-black/15 p-2.5 overflow-hidden">
+        <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-hidden">
           <SpeedBoard
             headerLabel="2. Oyuncu"
             headerScore={p2Score}
-            headerAccent="teal"
+            headerAccent="amber"
             ownerTag="P2"
             wave={p2Wave}
             waveNumber={p2WaveIdx + 1}
@@ -795,7 +757,6 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       <SpeedBoard
-        ownerTag="SEN"
         wave={singleWave}
         waveNumber={waveIdx + 1}
         totalWavesLabel={tempo === 'calm' ? String(TOTAL_CALM_WAVES) : ''}

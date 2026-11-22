@@ -14,7 +14,7 @@ import type {
   GameTempo,
   GameTierId,
 } from './gameTypes';
-import { resolveTierSurahs } from './gameTypes';
+import { resolveTierSurahs, sanitizePlayerMode } from './gameTypes';
 import { GroupSequenceGame } from './GroupSequenceGame';
 import { MemoryMatchGame } from './MemoryMatchGame';
 import { MushafChainGame } from './MushafChainGame';
@@ -74,7 +74,9 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
 
   const [currentTierId, setCurrentTierId] = useState<GameTierId>(initialTierId);
   const [currentTempo, setCurrentTempo] = useState<GameTempo>(initialTempo);
-  const [currentPlayerMode, setCurrentPlayerMode] = useState<GamePlayerMode>(initialPlayerMode);
+  const [currentPlayerMode, setCurrentPlayerMode] = useState<GamePlayerMode>(() =>
+    sanitizePlayerMode(initialPlayerMode),
+  );
   const [runNonce, setRunNonce] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(() => gameAudioService.isMuted());
   const [result, setResult] = useState<GameResultPayload | null>(null);
@@ -136,8 +138,11 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
       gameAudioService.playFlip();
       if (patch.tierId) setCurrentTierId(patch.tierId);
       if (patch.tempo) setCurrentTempo(patch.tempo);
-      if (patch.playerMode) setCurrentPlayerMode(patch.playerMode);
-      onConfigSynced(patch);
+      if (patch.playerMode) setCurrentPlayerMode(sanitizePlayerMode(patch.playerMode));
+      onConfigSynced({
+        ...patch,
+        playerMode: patch.playerMode ? sanitizePlayerMode(patch.playerMode) : undefined,
+      });
       setResult(null);
       setIsNewRecord(false);
       setHud(DEFAULT_HUD);

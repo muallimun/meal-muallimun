@@ -248,9 +248,7 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
   onHudUpdate,
   onComplete,
 }) => {
-  const isAi = playerMode === 'ai';
   const isDuel = playerMode === 'duel';
-  const isVersus = isAi || isDuel;
 
   const usedGroupsRef = useRef<Set<SurahGroupId>>(new Set());
   const [roundIdx, setRoundIdx] = useState<number>(0);
@@ -275,7 +273,6 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
 
   // Sıra ve Skor
   const [activePlayer, setActivePlayer] = useState<'p1' | 'p2'>('p1');
-  const [aiThinking, setAiThinking] = useState<boolean>(false);
   const [p1Score, setP1Score] = useState<number>(0);
   const [p2Score, setP2Score] = useState<number>(0);
   const [p1Correct, setP1Correct] = useState<number>(0);
@@ -326,14 +323,14 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
         durationSec: stats.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel: isVersus
+        duel: isDuel
           ? {
               p1Score: stats.p1Score,
               p2Score: stats.p2Score,
               p1Correct: stats.p1Correct,
               p2Correct: stats.p2Correct,
-              p1Label: isAi ? 'Sen' : '1. Oyuncu',
-              p2Label: isAi ? 'Yapay Zekâ' : '2. Oyuncu',
+              p1Label: '1. Oyuncu',
+              p2Label: '2. Oyuncu',
               winner:
                 stats.p1Score > stats.p2Score
                   ? 'p1'
@@ -344,7 +341,7 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
           : undefined,
       });
     },
-    [isAi, isDuel, isVersus, onComplete, playerMode, tempo, tierId],
+    [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
   // Zamanlayıcı
@@ -407,7 +404,7 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
     setSelectedCardNo(null);
     setWrongChestId(null);
     setDragState(null);
-    if (isVersus) {
+    if (isDuel) {
       setActivePlayer(nextIdx % 2 === 0 ? 'p1' : 'p2');
     }
   }, [
@@ -415,7 +412,7 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
     elapsedSec,
     finishGame,
     focusGroupId,
-    isVersus,
+    isDuel,
     maxCombo,
     mistakeCount,
     p1Correct,
@@ -439,7 +436,6 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
       if (isCorrect) {
         const pts = 25;
         setQuizSolved({ actor, pickedNo: option.no, isCorrect: true });
-        setAiThinking(false);
         if (actor === 'p1') {
           const nextCombo = combo + 1;
           setCombo(nextCombo);
@@ -456,58 +452,19 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
         setFeaturedNote(round.explanation);
       } else {
         setWrongOptionNo(option.no);
-        setAiThinking(false);
         gameAudioService.playWrong();
-        if (actor === 'p1' || isDuel) {
-          setCombo(0);
-          setMistakeCount((prev) => prev + 1);
-          mistakenMapRef.current.set(option.no, option);
-          mistakenMapRef.current.set(correctSurah.no, correctSurah);
-        }
+        setCombo(0);
+        setMistakeCount((prev) => prev + 1);
+        mistakenMapRef.current.set(option.no, option);
+        mistakenMapRef.current.set(correctSurah.no, correctSurah);
         setQuizSolved({ actor, pickedNo: option.no, isCorrect: false });
         setFeaturedSurah(correctSurah);
         setFeaturedNote(round.explanation);
         window.setTimeout(() => setWrongOptionNo(null), 500);
       }
     },
-    [combo, isDuel, quizSolved, round],
+    [combo, quizSolved, round],
   );
-
-  // Yapay Zekâ sırası (Quiz turlarında düşünür ve cevaplar; Sandık turlarında eşzamanlı puan toplar)
-  useEffect(() => {
-    if (!isAi || finishedRef.current) return;
-
-    if (round.kind !== 'chest_sort' && activePlayer === 'p2' && !quizSolved) {
-      setAiThinking(true);
-      let cancelled = false;
-      const timer = window.setTimeout(() => {
-        if (cancelled || finishedRef.current) return;
-        const willBeRight = Math.random() < 0.78;
-        const correctOpt = round.options.find((o) => o.no === round.correctSurahNo);
-        const wrongOpts = round.options.filter((o) => o.no !== round.correctSurahNo);
-        const pick =
-          willBeRight && correctOpt
-            ? correctOpt
-            : wrongOpts[Math.floor(Math.random() * wrongOpts.length)] ?? round.options[0];
-        handleQuizAnswer(pick, 'p2');
-      }, 1250);
-      return () => {
-        cancelled = true;
-        window.clearTimeout(timer);
-      };
-    }
-
-    if (round.kind === 'chest_sort') {
-      const interval = window.setInterval(() => {
-        if (finishedRef.current) return;
-        if (Math.random() < 0.72) {
-          setP2Score((prev) => prev + 10);
-          setP2Correct((prev) => prev + 1);
-        }
-      }, 3600);
-      return () => window.clearInterval(interval);
-    }
-  }, [activePlayer, handleQuizAnswer, isAi, quizSolved, round]);
 
   // Sandığa yerleştirme kontrolü (Type C)
   const placeCardInChest = useCallback(
@@ -620,28 +577,22 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
       round.kind === 'chest_sort'
         ? selectedCardNo !== null
           ? 'Şimdi bu surenin ait olduğu altın aile sandığına dokunun.'
-          : 'Sure kartlarını sürükleyerek veya dokunarak doğru aile sandığına yerleştirin.'
+          : isDuel
+            ? `${activePlayer === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} sırada: sureyi doğru sandığa yerleştir.`
+            : 'Sure kartlarını sürükleyerek veya dokunarak doğru aile sandığına yerleştirin.'
         : quizSolved
           ? 'Açıklamayı inceleyip sonraki tura geçebilirsiniz.'
-          : isAi && activePlayer === 'p2'
-            ? 'Yapay zekâ sure grubunu inceliyor...'
-            : isDuel
-              ? `${activePlayer === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} sırada: doğru kartı seç.`
-              : round.kind === 'odd_one_out'
-                ? 'Gruba ait OLMAYAN çeldirici sureyi bul.'
-                : 'Bu sure ailesinin gerçek üyesini seç.';
+          : isDuel
+            ? `${activePlayer === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} sırada: doğru kartı seç.`
+            : round.kind === 'odd_one_out'
+              ? 'Gruba ait OLMAYAN çeldirici sureyi bul.'
+              : 'Bu sure ailesinin gerçek üyesini seç.';
 
     onHudUpdate({
       score: p1Score,
       p1Score,
       p2Score,
-      activeTurn:
-        round.kind === 'chest_sort' && isAi
-          ? 'both'
-          : playerMode === 'single'
-            ? 'p1'
-            : activePlayer,
-      aiThinking: isAi && aiThinking,
+      activeTurn: !isDuel ? 'p1' : activePlayer,
       combo,
       movesCount,
       progressLabel:
@@ -659,18 +610,15 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
     });
   }, [
     activePlayer,
-    aiThinking,
     combo,
     elapsedSec,
     featuredNote,
     featuredSurah,
-    isAi,
     isDuel,
     movesCount,
     onHudUpdate,
     p1Score,
     p2Score,
-    playerMode,
     quizSolved,
     round.kind,
     roundIdx,
@@ -750,10 +698,8 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
                 <button
                   key={opt.no}
                   type="button"
-                  disabled={Boolean(quizSolved) || (isAi && activePlayer === 'p2')}
-                  onClick={() =>
-                    handleQuizAnswer(opt, playerMode === 'single' ? 'p1' : activePlayer)
-                  }
+                  disabled={Boolean(quizSolved)}
+                  onClick={() => handleQuizAnswer(opt, !isDuel ? 'p1' : activePlayer)}
                   className={`rounded-2xl p-3 sm:p-4 flex flex-col justify-between text-center cursor-pointer transition-all select-none ${cardStyle}`}
                 >
                   <div className="flex items-center justify-between gap-1 w-full">
@@ -769,16 +715,20 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
                       #{idx + 1} · {opt.no}. Sure
                     </span>
                     {isRevealedCorrect && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-400 text-amber-950 text-[9px] font-black">
+                      <span
+                        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-black ${
+                          isDuel && quizSolved?.isCorrect
+                            ? quizSolved.actor === 'p2'
+                              ? 'bg-amber-400 text-amber-950'
+                              : 'bg-teal-200 text-teal-950'
+                            : 'bg-emerald-400/25 text-emerald-100'
+                        }`}
+                      >
                         <Check className="w-3 h-3" strokeWidth={3} />
-                        {quizSolved?.isCorrect
+                        {isDuel && quizSolved?.isCorrect
                           ? quizSolved.actor === 'p1'
-                            ? isDuel
-                              ? 'P1'
-                              : 'SEN'
-                            : isAi
-                              ? 'YZ'
-                              : 'P2'
+                            ? 'P1'
+                            : 'P2'
                           : 'DOĞRU'}
                       </span>
                     )}

@@ -600,7 +600,6 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   onComplete,
 }) => {
   const isDuel = playerMode === 'duel';
-  const isAi = playerMode === 'ai';
 
   const usedSingleRef = useRef<Set<number>>(new Set());
   const [singleRoundIdx, setSingleRoundIdx] = useState<number>(0);
@@ -614,11 +613,6 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [mistakeCount, setMistakeCount] = useState<number>(0);
   const [elapsedSec, setElapsedSec] = useState<number>(0);
-
-  // Yapay Zekâ puanları (eşzamanlı yarış)
-  const [aiScore, setAiScore] = useState<number>(0);
-  const [aiCorrect, setAiCorrect] = useState<number>(0);
-  const [aiThinking, setAiThinking] = useState<boolean>(false);
 
   // 2 Oyuncu Bölünmüş Ekran
   const usedP1Ref = useRef<Set<number>>(new Set());
@@ -680,26 +674,25 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
         durationSec: payload.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel:
-          isDuel || isAi
-            ? {
-                p1Score: payload.p1Score,
-                p2Score: payload.p2Score,
-                p1Correct: payload.p1Correct,
-                p2Correct: payload.p2Correct,
-                p1Label: isAi ? 'Sen' : '1. Oyuncu',
-                p2Label: isAi ? 'Yapay Zekâ' : '2. Oyuncu',
-                winner:
-                  payload.p1Score > payload.p2Score
-                    ? 'p1'
-                    : payload.p2Score > payload.p1Score
-                      ? 'p2'
-                      : 'draw',
-              }
-            : undefined,
+        duel: isDuel
+          ? {
+              p1Score: payload.p1Score,
+              p2Score: payload.p2Score,
+              p1Correct: payload.p1Correct,
+              p2Correct: payload.p2Correct,
+              p1Label: '1. Oyuncu',
+              p2Label: '2. Oyuncu',
+              winner:
+                payload.p1Score > payload.p2Score
+                  ? 'p1'
+                  : payload.p2Score > payload.p1Score
+                    ? 'p2'
+                    : 'draw',
+            }
+          : undefined,
       });
     },
-    [isAi, isDuel, onComplete, playerMode, tempo, tierId],
+    [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
   // Zamanlayıcı
@@ -711,36 +704,6 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
     return () => window.clearInterval(interval);
   }, []);
 
-  // Yapay Zekâ eşzamanlı rakip döngüsü (gerçekçi tempo & doğruluk)
-  useEffect(() => {
-    if (!isAi || finishedRef.current) return;
-    let active = true;
-    const scheduleNext = () => {
-      const delay = 4600 + Math.floor(Math.random() * 2800);
-      return window.setTimeout(() => {
-        if (!active || finishedRef.current) return;
-        setAiThinking(true);
-        window.setTimeout(() => {
-          if (!active || finishedRef.current) return;
-          const success = Math.random() < 0.8;
-          if (success) {
-            setAiScore((prev) => prev + 18);
-            setAiCorrect((prev) => prev + 1);
-          }
-          setAiThinking(false);
-          if (active && !finishedRef.current) {
-            timerRef = scheduleNext();
-          }
-        }, 700);
-      }, delay);
-    };
-    let timerRef = scheduleNext();
-    return () => {
-      active = false;
-      window.clearTimeout(timerRef);
-    };
-  }, [isAi]);
-
   // Süreli mod bitişi
   useEffect(() => {
     if (tempo === 'timed' && elapsedSec >= TIMED_LIMIT_SEC && !finishedRef.current) {
@@ -751,14 +714,12 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
         mistakeCount,
         elapsedSec,
         p1Score: isDuel ? p1Score : score,
-        p2Score: isDuel ? p2Score : aiScore,
+        p2Score: isDuel ? p2Score : 0,
         p1Correct: isDuel ? p1Correct : correctCount,
-        p2Correct: isDuel ? p2Correct : aiCorrect,
+        p2Correct: isDuel ? p2Correct : 0,
       });
     }
   }, [
-    aiCorrect,
-    aiScore,
     correctCount,
     elapsedSec,
     finishGame,
@@ -779,9 +740,8 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
     onHudUpdate({
       score: isDuel ? p1Score : score,
       p1Score: isDuel ? p1Score : score,
-      p2Score: isDuel ? p2Score : aiScore,
-      activeTurn: isDuel || isAi ? 'both' : 'p1',
-      aiThinking: isAi && aiThinking,
+      p2Score: isDuel ? p2Score : 0,
+      activeTurn: isDuel ? 'both' : 'p1',
       combo,
       movesCount,
       progressLabel:
@@ -797,21 +757,16 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
       turnDurationSec: TIMED_LIMIT_SEC,
       statusMessage: isDuel
         ? 'İki oyuncu aynı anda kendi zincirini tamamlıyor!'
-        : isAi
-          ? 'Komşu sureleri ve Mushaf trenini Yapay Zekâdan hızlı kur.'
-          : 'Komşu sureleri altın yuvalara sürükle veya dokunup yerleştir.',
+        : 'Komşu sureleri altın yuvalara sürükle veya dokunup yerleştir.',
       featuredSurah,
       featuredNote,
     });
   }, [
-    aiScore,
-    aiThinking,
     combo,
     correctCount,
     elapsedSec,
     featuredNote,
     featuredSurah,
-    isAi,
     isDuel,
     movesCount,
     onHudUpdate,
@@ -858,9 +813,9 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
           mistakeCount,
           elapsedSec,
           p1Score: nextScore,
-          p2Score: aiScore,
+          p2Score: 0,
           p1Correct: nextCorrect,
-          p2Correct: aiCorrect,
+          p2Correct: 0,
         });
         return;
       }
@@ -871,8 +826,6 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
       );
     },
     [
-      aiCorrect,
-      aiScore,
       allSurahsMap,
       combo,
       correctCount,
@@ -979,13 +932,13 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
 
   if (isDuel) {
     return (
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 overflow-hidden">
-        <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-hidden">
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto md:overflow-hidden">
+        <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/35 bg-black/15 p-2.5 overflow-hidden">
           <ChainBoard
             boardId="p1"
             headerLabel="1. Oyuncu"
             headerScore={p1Score}
-            headerAccent="amber"
+            headerAccent="teal"
             round={p1Round}
             roundNumber={p1Idx + 1}
             totalRoundsLabel={
@@ -999,12 +952,12 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
           />
         </div>
 
-        <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/30 bg-black/15 p-2.5 overflow-hidden">
+        <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-hidden">
           <ChainBoard
             boardId="p2"
             headerLabel="2. Oyuncu"
             headerScore={p2Score}
-            headerAccent="teal"
+            headerAccent="amber"
             round={p2Round}
             roundNumber={p2Idx + 1}
             totalRoundsLabel={

@@ -99,9 +99,7 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
   onHudUpdate,
   onComplete,
 }) => {
-  const isAi = playerMode === 'ai';
   const isDuel = playerMode === 'duel';
-  const isVersus = isAi || isDuel;
 
   const usedNosRef = useRef<Set<number>>(new Set());
   const [caseIdx, setCaseIdx] = useState<number>(0);
@@ -118,7 +116,6 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
 
   // Sıra ve Skor
   const [activePlayer, setActivePlayer] = useState<'p1' | 'p2'>('p1');
-  const [aiThinking, setAiThinking] = useState<boolean>(false);
   const [p1Score, setP1Score] = useState<number>(0);
   const [p2Score, setP2Score] = useState<number>(0);
   const [p1Correct, setP1Correct] = useState<number>(0);
@@ -134,6 +131,16 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
 
   const mistakenMapRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
   const finishedRef = useRef<boolean>(false);
+  const wrongTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (wrongTimerRef.current !== null) {
+        window.clearTimeout(wrongTimerRef.current);
+        wrongTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const currentRewardPoints =
     CLUE_POINTS[Math.min(CLUE_POINTS.length - 1, Math.max(0, revealedCluesCount - 1))];
@@ -172,14 +179,14 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
         durationSec: stats.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel: isVersus
+        duel: isDuel
           ? {
               p1Score: stats.p1Score,
               p2Score: stats.p2Score,
               p1Correct: stats.p1Correct,
               p2Correct: stats.p2Correct,
-              p1Label: isAi ? 'Sen' : '1. Oyuncu',
-              p2Label: isAi ? 'Yapay Zekâ' : '2. Oyuncu',
+              p1Label: '1. Oyuncu',
+              p2Label: '2. Oyuncu',
               winner:
                 stats.p1Score > stats.p2Score
                   ? 'p1'
@@ -190,7 +197,7 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
           : undefined,
       });
     },
-    [isAi, isDuel, isVersus, onComplete, playerMode, tempo, tierId],
+    [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
   // Zamanlayıcı
@@ -234,10 +241,13 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
       setMovesCount((prev) => prev + 1);
 
       if (candidate.no === activeCase.target.no) {
+        if (wrongTimerRef.current !== null) {
+          window.clearTimeout(wrongTimerRef.current);
+          wrongTimerRef.current = null;
+        }
         const pts = currentRewardPoints;
         setSolvedBy({ actor, points: pts });
         setRevealedCluesCount(4); // Öğreticilik için kalan tüm ipuçlarını aç
-        setAiThinking(false);
 
         if (actor === 'p1') {
           const nextCombo = combo + 1;
@@ -254,33 +264,28 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
 
         setFeaturedSurah(activeCase.target);
         setFeaturedNote(
-          `${
-            actor === 'p1'
-              ? isDuel
-                ? '1. Oyuncu'
-                : 'Sen'
-              : isAi
-                ? 'Yapay Zekâ'
-                : '2. Oyuncu'
-          } gizli sureyi buldu (+${pts}p)!`,
+          isDuel
+            ? `${actor === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} gizli sureyi buldu (+${pts}p)!`
+            : `Gizli sureyi buldunuz (+${pts}p) · ${activeCase.target.no}. ${activeCase.target.shortNameTr}`,
         );
       } else {
         setWrongNo(candidate.no);
         setEliminatedNos((prev) => [...prev, candidate.no]);
-        setAiThinking(false);
         gameAudioService.playWrong();
 
-        if (actor === 'p1' || isDuel) {
-          setCombo(0);
-          setMistakeCount((prev) => prev + 1);
-          mistakenMapRef.current.set(activeCase.target.no, activeCase.target);
-        }
+        setCombo(0);
+        setMistakeCount((prev) => prev + 1);
+        mistakenMapRef.current.set(activeCase.target.no, activeCase.target);
 
-        window.setTimeout(() => {
+        if (wrongTimerRef.current !== null) {
+          window.clearTimeout(wrongTimerRef.current);
+        }
+        wrongTimerRef.current = window.setTimeout(() => {
+          wrongTimerRef.current = null;
           setWrongNo(null);
           // Yanlış tahminde kapalı ipucu varsa bir sonrakini otomatik aç
           setRevealedCluesCount((prev) => Math.min(4, prev + 1));
-          if (isVersus) {
+          if (isDuel) {
             gameAudioService.playTurnSwitch();
             setActivePlayer((prev) => (prev === 'p1' ? 'p2' : 'p1'));
           }
@@ -292,67 +297,25 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
       combo,
       currentRewardPoints,
       eliminatedNos,
-      isAi,
       isDuel,
-      isVersus,
       solvedBy,
     ],
   );
-
-  // Yapay Zekâ Dedektif Sırası
-  useEffect(() => {
-    if (!isAi || activePlayer !== 'p2' || solvedBy || finishedRef.current) return;
-    setAiThinking(true);
-    let cancelled = false;
-
-    const timer = window.setTimeout(() => {
-      if (cancelled || finishedRef.current) return;
-      const accuracyByClues =
-        revealedCluesCount >= 3 ? 0.88 : revealedCluesCount === 2 ? 0.72 : 0.55;
-      const remaining = activeCase.candidates.filter((c) => !eliminatedNos.includes(c.no));
-
-      if (Math.random() < accuracyByClues) {
-        submitGuess(activeCase.target, 'p2');
-      } else {
-        const wrongOptions = remaining.filter((c) => c.no !== activeCase.target.no);
-        const pick =
-          wrongOptions[Math.floor(Math.random() * wrongOptions.length)] ?? activeCase.target;
-        submitGuess(pick, 'p2');
-      }
-    }, 1200);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [
-    activeCase.candidates,
-    activeCase.target,
-    activePlayer,
-    eliminatedNos,
-    isAi,
-    revealedCluesCount,
-    solvedBy,
-    submitGuess,
-  ]);
 
   // HUD senkronizasyonu
   useEffect(() => {
     const remaining = Math.max(0, TIMED_LIMIT_SEC - elapsedSec);
     const statusMessage = solvedBy
       ? `Gizli sure çözüldü: ${activeCase.target.no}. ${activeCase.target.shortNameTr}`
-      : isAi && activePlayer === 'p2'
-        ? 'Yapay zekâ ipuçlarını değerlendiriyor...'
-        : isDuel
-          ? `${activePlayer === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} sırada: ipucu aç veya sureyi tahmin et.`
-          : `Açık ipuçlarıyla gizli sureyi bul (${currentRewardPoints}p değerinde).`;
+      : isDuel
+        ? `${activePlayer === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} sırada: ipucu aç veya sureyi tahmin et.`
+        : `Açık ipuçlarıyla gizli sureyi bul (${currentRewardPoints}p değerinde).`;
 
     onHudUpdate({
       score: p1Score,
       p1Score,
       p2Score,
-      activeTurn: playerMode === 'single' ? 'p1' : activePlayer,
-      aiThinking: isAi && aiThinking,
+      activeTurn: !isDuel ? 'p1' : activePlayer,
       combo,
       movesCount,
       progressLabel:
@@ -372,32 +335,32 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
     activeCase.target.no,
     activeCase.target.shortNameTr,
     activePlayer,
-    aiThinking,
     caseIdx,
     combo,
     currentRewardPoints,
     elapsedSec,
     featuredNote,
     featuredSurah,
-    isAi,
     isDuel,
     movesCount,
     onHudUpdate,
     p1Score,
     p2Score,
-    playerMode,
     solvedBy,
     tempo,
   ]);
 
   const handleOpenNextClue = () => {
     if (solvedBy || revealedCluesCount >= 4) return;
-    if (isAi && activePlayer === 'p2') return;
     gameAudioService.playFlip();
     setRevealedCluesCount((prev) => Math.min(4, prev + 1));
   };
 
   const handleNextCase = () => {
+    if (wrongTimerRef.current !== null) {
+      window.clearTimeout(wrongTimerRef.current);
+      wrongTimerRef.current = null;
+    }
     const nextIdx = caseIdx + 1;
     if (tempo === 'calm' && nextIdx >= TOTAL_CALM_CASES) {
       finishGame({
@@ -419,7 +382,7 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
     setEliminatedNos([]);
     setWrongNo(null);
     setSolvedBy(null);
-    if (isVersus) {
+    if (isDuel) {
       setActivePlayer(nextIdx % 2 === 0 ? 'p1' : 'p2');
     }
   };
@@ -443,7 +406,6 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
         {!solvedBy && revealedCluesCount < 4 && (
           <button
             type="button"
-            disabled={isAi && activePlayer === 'p2'}
             onClick={handleOpenNextClue}
             className="h-7 sm:h-8 px-2.5 sm:px-3 rounded-full bg-amber-400 text-amber-950 text-[11px] sm:text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
           >
@@ -464,7 +426,7 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
               <button
                 key={clue.index}
                 type="button"
-                disabled={!isNextUnlockable || (isAi && activePlayer === 'p2')}
+                disabled={!isNextUnlockable}
                 onClick={handleOpenNextClue}
                 className={`rounded-xl sm:rounded-2xl p-2.5 sm:p-3 flex items-center justify-between gap-2 text-left transition-all ${
                   isNextUnlockable
@@ -516,14 +478,10 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
       {solvedBy && (
         <div className="shrink-0 rounded-xl bg-black/25 border border-amber-300/45 px-3 py-2 flex items-center justify-between gap-2 text-white">
           <div className="text-xs sm:text-sm font-bold truncate">
-            {solvedBy.actor === 'p1'
-              ? isDuel
-                ? '1. Oyuncu'
-                : 'Sen'
-              : isAi
-                ? 'Yapay Zekâ'
-                : '2. Oyuncu'}{' '}
-            buldu (+{solvedBy.points}p) · {activeCase.target.no}. {activeCase.target.nameTr}
+            {isDuel
+              ? `${solvedBy.actor === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} buldu`
+              : 'Doğru tahmin'}{' '}
+            (+{solvedBy.points}p) · {activeCase.target.no}. {activeCase.target.nameTr}
           </div>
           <button
             type="button"
@@ -554,10 +512,8 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
             <button
               key={cand.no}
               type="button"
-              disabled={
-                Boolean(solvedBy) || isEliminated || (isAi && activePlayer === 'p2')
-              }
-              onClick={() => submitGuess(cand, playerMode === 'single' ? 'p1' : activePlayer)}
+              disabled={Boolean(solvedBy) || isEliminated}
+              onClick={() => submitGuess(cand, !isDuel ? 'p1' : activePlayer)}
               style={{ opacity: isEliminated && !isWrongNow ? 0.35 : 1 }}
               className={`min-h-[56px] sm:min-h-[68px] rounded-xl sm:rounded-2xl px-2.5 py-1.5 flex items-center justify-between gap-2 text-left cursor-pointer transition-all select-none ${cardClass}`}
             >
