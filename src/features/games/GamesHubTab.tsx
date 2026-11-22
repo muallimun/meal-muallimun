@@ -15,7 +15,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { audioQueueService } from '../../services/audioQueueService';
+import { claimAudioFocus } from '../../services/audioFocusCoordinator';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -97,7 +97,7 @@ export const GamesHubTab: React.FC = () => {
   const handleLaunchGame = (gameId: GameId, focusGroupId: SurahGroupId | null = null) => {
     if (enrichedSurahs.length === 0) return;
     sfxService.play('click');
-    audioQueueService.pause();
+    claimAudioFocus('activity_scene');
     setActiveFocusGroupId(focusGroupId);
     setActiveGameId(gameId);
   };

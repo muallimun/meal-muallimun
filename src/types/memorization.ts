@@ -158,6 +158,7 @@ export interface MemorizationBackupPayload {
   exportedAt: string;
   units: MemorizationUnit[];
   prefs: MemorizationPrefs;
+  activeSession?: ActiveSessionSnapshot | null;
 }
 
 export const RETENTION_STAGE_META: Record<

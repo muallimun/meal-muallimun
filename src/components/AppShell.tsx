@@ -18,6 +18,7 @@ import {
   Star,
   Trophy,
   WifiOff,
+  X,
 } from 'lucide-react';
 import { MEALS_CATALOG } from '../config/mealsConfig';
 import { RECITERS_CATALOG } from '../config/recitersConfig';
@@ -78,6 +79,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     isOnline,
     isSidebarCollapsed,
     toggleSidebarCollapsed,
+    storageQuotaWarning,
+    dismissStorageQuotaWarning,
   } = useAppStore();
 
   const isReaderTab = activeTab === 'reader';
@@ -747,6 +750,48 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             >
               Canlı veriyi dene
             </button>
+          </div>
+        )}
+
+        {/* Depolama Kotası Uyarısı */}
+        {storageQuotaWarning && (
+          <div
+            role="alert"
+            className="px-4 py-2 text-xs border-b"
+            style={{
+              backgroundColor: 'rgba(217, 119, 6, 0.12)',
+              borderColor: 'rgba(217, 119, 6, 0.35)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span className="font-semibold leading-snug">{storageQuotaWarning}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    openSettingsModal();
+                  }}
+                  className="px-2.5 py-1 rounded-lg font-extrabold cursor-pointer text-[11px] text-white"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                >
+                  Ayarlar / Yedekle
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissStorageQuotaWarning}
+                  aria-label="Depolama uyarısını kapat"
+                  className="p-1 rounded-lg cursor-pointer hover:opacity-80"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

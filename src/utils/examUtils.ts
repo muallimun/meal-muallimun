@@ -398,22 +398,94 @@ export function saveActiveExamSession(session: ExamSessionState): void {
   }
 }
 
+export function validateExamSessionPayload(raw: unknown): ExamSessionState | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const candidate = raw as Partial<ExamSessionState>;
+
+  if (typeof candidate.sessionId !== 'string' || !candidate.sessionId.trim()) return null;
+  if (!candidate.config || typeof candidate.config !== 'object') return null;
+  if (!Array.isArray(candidate.questions) || candidate.questions.length === 0) return null;
+
+  for (const item of candidate.questions) {
+    if (!item || typeof item !== 'object') return null;
+    const pq = item as Partial<PreparedQuestion>;
+    if (typeof pq.uid !== 'string' || !pq.uid.trim()) return null;
+    if (!pq.question || typeof pq.question !== 'object') return null;
+    const surah = pq.question.surah;
+    if (
+      typeof surah !== 'number' ||
+      !Number.isInteger(surah) ||
+      surah < 1 ||
+      surah > 114 ||
+      typeof pq.question.stem !== 'string' ||
+      !pq.question.stem.trim()
+    ) {
+      return null;
+    }
+    if (
+      !Array.isArray(pq.options) ||
+      pq.options.length === 0 ||
+      !pq.options.every((opt) => typeof opt === 'string')
+    ) {
+      return null;
+    }
+    if (
+      typeof pq.correctDisplayIndex !== 'number' ||
+      !Number.isInteger(pq.correctDisplayIndex) ||
+      pq.correctDisplayIndex < 0 ||
+      pq.correctDisplayIndex >= pq.options.length
+    ) {
+      return null;
+    }
+  }
+
+  const rawIndex =
+    typeof candidate.currentIndex === 'number' && Number.isFinite(candidate.currentIndex)
+      ? Math.floor(candidate.currentIndex)
+      : 0;
+  const clampedIndex = Math.max(0, Math.min(candidate.questions.length - 1, rawIndex));
+
+  const answers =
+    candidate.answers && typeof candidate.answers === 'object' && !Array.isArray(candidate.answers)
+      ? candidate.answers
+      : {};
+  const flaggedUids = Array.isArray(candidate.flaggedUids)
+    ? candidate.flaggedUids.filter((id): id is string => typeof id === 'string')
+    : [];
+  const eliminatedOptionsByUid =
+    candidate.eliminatedOptionsByUid &&
+    typeof candidate.eliminatedOptionsByUid === 'object' &&
+    !Array.isArray(candidate.eliminatedOptionsByUid)
+      ? candidate.eliminatedOptionsByUid
+      : {};
+
+  return {
+    ...(candidate as ExamSessionState),
+    currentIndex: clampedIndex,
+    answers,
+    flaggedUids,
+    eliminatedOptionsByUid,
+    startedAt:
+      typeof candidate.startedAt === 'number' && Number.isFinite(candidate.startedAt)
+        ? candidate.startedAt
+        : Date.now(),
+  };
+}
+
 export function loadActiveExamSession(): ExamSessionState | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.sessionStorage.getItem(ACTIVE_EXAM_SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as ExamSessionState;
-    if (
-      !parsed ||
-      typeof parsed.sessionId !== 'string' ||
-      !Array.isArray(parsed.questions) ||
-      parsed.questions.length === 0
-    ) {
+    const parsed: unknown = JSON.parse(raw);
+    const validated = validateExamSessionPayload(parsed);
+    if (!validated) {
+      clearActiveExamSession();
       return null;
     }
-    return parsed;
+    return validated;
   } catch {
+    clearActiveExamSession();
     return null;
   }
 }

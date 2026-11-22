@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -1037,6 +1038,19 @@ interface AppContextValue {
   isPwaInstalled: boolean;
   isIosDevice: boolean;
   promptPwaInstall: () => Promise<boolean>;
+
+  // Depolama Kotası Uyarısı
+  storageQuotaWarning: string | null;
+  dismissStorageQuotaWarning: () => void;
+}
+
+const STORAGE_QUOTA_WARNING_TEXT =
+  "Cihaz depolama alanı dolduğu için son değişiklik kaydedilemedi. Ayarlar'dan yedek alabilirsiniz.";
+
+let storePersistencePaused = false;
+
+export function setStorePersistencePaused(paused: boolean): void {
+  storePersistencePaused = paused;
 }
 
 function readIntroDismissed(): boolean {
@@ -1184,14 +1198,108 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  // Kalıcı localStorage kaydı
+  const [storageQuotaWarning, setStorageQuotaWarning] = useState<string | null>(null);
+  const dismissStorageQuotaWarning = useCallback(() => {
+    setStorageQuotaWarning(null);
+  }, []);
+
+  const latestPersistedRef = useRef<PersistedAppState>(persisted);
+  const hasPendingPersistRef = useRef(false);
+  const skipNextPersistRef = useRef(false);
+  const persistTimerRef = useRef<number | null>(null);
+  const isExamActiveRef = useRef(isExamActive);
+  const isMemorizationZenActiveRef = useRef(isMemorizationZenActive);
+
   useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
-    } catch {
-      // Depolama kotası dolu veya gizli sekme kısıtlıysa sessizce devam et
+    isExamActiveRef.current = isExamActive;
+  }, [isExamActive]);
+
+  useEffect(() => {
+    isMemorizationZenActiveRef.current = isMemorizationZenActive;
+  }, [isMemorizationZenActive]);
+
+  const flushPersistedState = useCallback(() => {
+    if (persistTimerRef.current !== null) {
+      window.clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = null;
     }
-  }, [persisted]);
+    if (!hasPendingPersistRef.current || storePersistencePaused) return;
+    hasPendingPersistRef.current = false;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(latestPersistedRef.current));
+      setStorageQuotaWarning((prev) => (prev !== null ? null : prev));
+    } catch {
+      setStorageQuotaWarning(STORAGE_QUOTA_WARNING_TEXT);
+    }
+  }, []);
+
+  // Kalıcı localStorage kaydı (350ms debounce + sekme kapanışında senkron flush)
+  useEffect(() => {
+    latestPersistedRef.current = persisted;
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
+    if (storePersistencePaused) return;
+
+    hasPendingPersistRef.current = true;
+    if (persistTimerRef.current !== null) {
+      window.clearTimeout(persistTimerRef.current);
+    }
+    persistTimerRef.current = window.setTimeout(() => {
+      persistTimerRef.current = null;
+      flushPersistedState();
+    }, 350);
+
+    return () => {
+      if (persistTimerRef.current !== null) {
+        window.clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = null;
+      }
+    };
+  }, [persisted, flushPersistedState]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushPersistedState();
+      }
+    };
+    const handlePageHide = () => {
+      flushPersistedState();
+    };
+    const handleBeforeUnload = () => {
+      flushPersistedState();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [flushPersistedState]);
+
+  // Sekmeler arası depolama senkronizasyonu (aktif sınav veya ezber oturumu sırasında kesinti yapmaz)
+  useEffect(() => {
+    const handleStorageSync = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || storePersistencePaused) return;
+      if (isExamActiveRef.current || isMemorizationZenActiveRef.current) return;
+      if (persistTimerRef.current !== null) {
+        window.clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = null;
+      }
+      hasPendingPersistRef.current = false;
+      skipNextPersistRef.current = true;
+      setPersisted(hydrateState());
+    };
+    window.addEventListener('storage', handleStorageSync);
+    return () => {
+      window.removeEventListener('storage', handleStorageSync);
+    };
+  }, []);
 
   // Tema, yazı tipi, theme-color ve SFX senkronizasyonu
   useEffect(() => {
@@ -1445,10 +1553,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...prev.studyPrefs,
         ...patch,
       };
+      const audioSnap = audioQueueService.getSnapshot();
+      const isAudioActive = audioSnap.isVisible && audioSnap.status !== 'idle';
       const shouldSyncAudioMode =
-        patch.viewMode !== undefined ||
-        patch.pageLayout !== undefined ||
-        patch.bookContentMode !== undefined;
+        !isAudioActive &&
+        (patch.viewMode !== undefined ||
+          patch.pageLayout !== undefined ||
+          patch.bookContentMode !== undefined);
       return {
         ...prev,
         studyPrefs: nextStudyPrefs,
@@ -2416,6 +2527,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isPwaInstalled,
       isIosDevice,
       promptPwaInstall,
+      storageQuotaWarning,
+      dismissStorageQuotaWarning,
     }),
     [
       persisted.settings,
@@ -2539,6 +2652,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isPwaInstalled,
       isIosDevice,
       promptPwaInstall,
+      storageQuotaWarning,
+      dismissStorageQuotaWarning,
     ],
   );
 

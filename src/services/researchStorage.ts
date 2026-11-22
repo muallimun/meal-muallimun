@@ -4,6 +4,7 @@ import type {
   ResearchTopic,
   ResearchVerseEntry,
 } from '../types/fihrist';
+import { clampAyahRange } from '../utils/quranBounds';
 
 export const RESEARCH_NOTEBOOK_STORAGE_KEY = 'muallimun_research_notebooks_v1';
 
@@ -54,11 +55,14 @@ function sanitizeVerseEntry(raw: unknown, idx: number): ResearchVerseEntry | nul
     return null;
   }
 
+  const clamped = clampAyahRange(surah, startAyah, endAyah);
+  if (!clamped) return null;
+
   return {
-    id: id ?? `rv_${idx}_${surah}_${startAyah}`,
-    surah,
-    startAyah: Math.min(startAyah, endAyah),
-    endAyah: Math.max(startAyah, endAyah),
+    id: id ?? `rv_${idx}_${clamped.surah}_${clamped.startAyah}`,
+    surah: clamped.surah,
+    startAyah: clamped.startAyah,
+    endAyah: clamped.endAyah,
     note,
     addedAt: addedAt ?? new Date().toISOString(),
   };
@@ -223,9 +227,9 @@ export function addVersesToResearchTopic(
     const newEntries: ResearchVerseEntry[] = [];
 
     for (const r of ranges) {
-      const s = Math.max(1, Math.min(114, r.surah));
-      const a1 = Math.max(1, Math.min(r.startAyah, r.endAyah));
-      const a2 = Math.max(a1, Math.max(r.startAyah, r.endAyah));
+      const clamped = clampAyahRange(r.surah, r.startAyah, r.endAyah);
+      if (!clamped) continue;
+      const { surah: s, startAyah: a1, endAyah: a2 } = clamped;
       const sig = `${s}:${a1}-${a2}`;
       if (existingKeys.has(sig)) {
         skippedDuplicates += 1;
@@ -283,9 +287,13 @@ export function updateResearchVerse(
   entryId: string,
   patch: { surah: number; startAyah: number; endAyah: number; note?: string },
 ): void {
-  const s = Math.max(1, Math.min(114, Math.trunc(patch.surah)));
-  const a1 = Math.max(1, Math.trunc(Math.min(patch.startAyah, patch.endAyah)));
-  const a2 = Math.max(a1, Math.trunc(Math.max(patch.startAyah, patch.endAyah)));
+  const clamped = clampAyahRange(
+    Math.trunc(patch.surah),
+    Math.trunc(patch.startAyah),
+    Math.trunc(patch.endAyah),
+  );
+  if (!clamped) return;
+  const { surah: s, startAyah: a1, endAyah: a2 } = clamped;
   const cleanNote = patch.note !== undefined ? patch.note.trim() || undefined : undefined;
 
   const current = getResearchTopicsSnapshot();

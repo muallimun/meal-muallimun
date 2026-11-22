@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import {
   ArrowLeft,
   ChevronUp,
@@ -29,9 +29,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { buildReciterAudioUrls, findReciterById } from '../../config/recitersConfig';
-import { audioQueueService } from '../../services/audioQueueService';
-import { memorizationAudioController } from '../../services/memorizationAudioController';
-import { wordAudioService } from '../../services/wordAudioService';
+import { previewAudioService } from '../../services/previewAudioService';
 import { useAppStore } from '../../store/useAppStore';
 import type { ThemeMode } from '../../types/quran';
 import type {
@@ -112,10 +110,11 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   const [isModesOpen, setIsModesOpen] = useState(false);
   const [isSidePanelHidden, setIsSidePanelHidden] = useState(false);
   const [isMobileNoteSheetOpen, setIsMobileNoteSheetOpen] = useState(false);
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const [audioLoadingSurah, setAudioLoadingSurah] = useState<number | null>(null);
 
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const previewSnap = useSyncExternalStore(
+    previewAudioService.subscribe,
+    previewAudioService.getSnapshot,
+  );
 
   const gameMeta = GAME_DEFINITIONS.find((g) => g.id === gameId) ?? GAME_DEFINITIONS[0];
   const tierMeta = GAME_TIERS.find((t) => t.id === tierId) ?? GAME_TIERS[0];
@@ -124,90 +123,40 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   const prevNeighbor = featuredSurah ? allSurahsMap.get(featuredSurah.no - 1) : undefined;
   const nextNeighbor = featuredSurah ? allSurahsMap.get(featuredSurah.no + 1) : undefined;
 
-  const stopPreviewAudio = useCallback(() => {
-    if (previewAudioRef.current) {
-      try {
-        previewAudioRef.current.pause();
-        previewAudioRef.current.currentTime = 0;
-        previewAudioRef.current.src = '';
-      } catch {
-        // yoksay
-      }
-      previewAudioRef.current = null;
-    }
-    setIsAudioPlaying(false);
-    setAudioLoadingSurah(null);
-  }, []);
+  const previewKey = featuredSurah ? `game_surah:${featuredSurah.no}` : null;
+  const isAudioPlaying =
+    previewKey !== null &&
+    previewSnap.activeKey === previewKey &&
+    previewSnap.status === 'playing';
+  const isAudioLoading =
+    previewKey !== null &&
+    previewSnap.activeKey === previewKey &&
+    previewSnap.status === 'loading';
 
-  // Sure değiştiğinde veya bileşen kapandığında tekil önizleme sesini temizle
+  // Sure değiştiğinde veya bileşen kapandığında bu sahneye ait önizleme sesini temizle
   useEffect(() => {
-    stopPreviewAudio();
-  }, [featuredSurah?.no, stopPreviewAudio]);
+    const activeKey = previewAudioService.getSnapshot().activeKey;
+    if (activeKey && activeKey.startsWith('game_surah:') && activeKey !== previewKey) {
+      previewAudioService.stop();
+    }
+  }, [previewKey]);
 
   useEffect(() => {
     return () => {
-      stopPreviewAudio();
+      const activeKey = previewAudioService.getSnapshot().activeKey;
+      if (activeKey && activeKey.startsWith('game_surah:')) {
+        previewAudioService.stop();
+      }
     };
-  }, [stopPreviewAudio]);
+  }, []);
 
   const handleToggleListen = useCallback(() => {
-    if (!featuredSurah) return;
-    if (isAudioPlaying) {
-      stopPreviewAudio();
-      return;
-    }
-
+    if (!featuredSurah || !previewKey) return;
     const reciter = findReciterById(audioPrefs.arabicReciterId, manifest);
     const urls = buildReciterAudioUrls(reciter, featuredSurah.no, 1);
     if (urls.length === 0) return;
-
-    stopPreviewAudio();
-    audioQueueService.pause();
-    memorizationAudioController.pause();
-    wordAudioService.stop();
-    setAudioLoadingSurah(featuredSurah.no);
-
-    let urlIdx = 0;
-    const audio = new Audio();
-    audio.preload = 'auto';
-    previewAudioRef.current = audio;
-
-    const tryPlayCurrent = () => {
-      if (urlIdx >= urls.length) {
-        stopPreviewAudio();
-        return;
-      }
-      audio.src = urls[urlIdx];
-      void audio
-        .play()
-        .then(() => {
-          setAudioLoadingSurah(null);
-          setIsAudioPlaying(true);
-        })
-        .catch(() => {
-          urlIdx += 1;
-          if (urlIdx < urls.length) {
-            tryPlayCurrent();
-          } else {
-            stopPreviewAudio();
-          }
-        });
-    };
-
-    audio.onended = () => {
-      stopPreviewAudio();
-    };
-    audio.onerror = () => {
-      urlIdx += 1;
-      if (urlIdx < urls.length) {
-        tryPlayCurrent();
-      } else {
-        stopPreviewAudio();
-      }
-    };
-
-    tryPlayCurrent();
-  }, [audioPrefs.arabicReciterId, featuredSurah, isAudioPlaying, manifest, stopPreviewAudio]);
+    previewAudioService.toggle(previewKey, urls);
+  }, [audioPrefs.arabicReciterId, featuredSurah, manifest, previewKey]);
 
   const handleCycleTheme = () => {
     const order: ThemeMode[] = ['light', 'cream', 'dark'];
@@ -1033,7 +982,6 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                     <button
                       type="button"
                       onClick={handleToggleListen}
-                      disabled={audioLoadingSurah === featuredSurah.no}
                       className="h-8 px-3 rounded-full text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-90 shrink-0"
                       style={{
                         backgroundColor: isAudioPlaying
@@ -1050,9 +998,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                       ) : (
                         <>
                           <Volume2 className="w-3.5 h-3.5" />
-                          <span>
-                            {audioLoadingSurah === featuredSurah.no ? 'Yükleniyor...' : 'Dinle'}
-                          </span>
+                          <span>{isAudioLoading ? 'Yükleniyor...' : 'Dinle'}</span>
                         </>
                       )}
                     </button>
@@ -1111,7 +1057,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                 ) : (
                   <Volume2 className="w-3 h-3" />
                 )}
-                <span>{isAudioPlaying ? 'Dur' : 'Dinle'}</span>
+                <span>{isAudioPlaying ? 'Dur' : isAudioLoading ? '...' : 'Dinle'}</span>
               </button>
             )}
             <button
@@ -1169,7 +1115,13 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                     ) : (
                       <Volume2 className="w-3.5 h-3.5" />
                     )}
-                    <span>{isAudioPlaying ? 'Durdur' : '1. Ayeti Dinle'}</span>
+                    <span>
+                      {isAudioPlaying
+                        ? 'Durdur'
+                        : isAudioLoading
+                          ? 'Yükleniyor...'
+                          : '1. Ayeti Dinle'}
+                    </span>
                   </button>
                 )}
                 <button

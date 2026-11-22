@@ -1,5 +1,5 @@
 import { buildReciterAudioUrls } from '../config/recitersConfig';
-import { audioQueueService } from './audioQueueService';
+import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
 import { wakeLockService } from './wakeLockService';
 import type {
   PauseMultiplier,
@@ -276,17 +276,32 @@ class MemorizationAudioController {
     ) {
       const nextFirstKey = this.currentParams.nextStep.verseKeys[0];
       const { surah, ayah } = parseVerseKey(nextFirstKey);
-      nextUrl = buildReciterAudioUrls(this.currentParams.reciter, surah, ayah)[0] ?? null;
+      const exclude = this.currentParams.excludeBesmeleSurahs ?? [1, 9];
+      const nextNeedsBesmele =
+        ayah === 1 &&
+        !exclude.includes(surah) &&
+        this.currentParams.nextStep.repeatIndex === 1;
+      nextUrl = nextNeedsBesmele
+        ? (buildReciterAudioUrls(this.currentParams.reciter, 1, 1)[0] ?? null)
+        : (buildReciterAudioUrls(this.currentParams.reciter, surah, ayah)[0] ?? null);
     }
 
     if (!nextUrl || nextUrl === this.preloadedUrl) return;
     this.preloadedUrl = nextUrl;
+    const targetNextUrl = nextUrl;
     try {
+      standby.onerror = () => {
+        if (this.preloadedUrl === targetNextUrl) {
+          this.preloadedUrl = null;
+        }
+      };
       standby.preload = 'auto';
-      standby.src = nextUrl;
+      standby.src = targetNextUrl;
       standby.load();
     } catch {
-      // Ön-yükleme hatalarını sessizce geç
+      if (this.preloadedUrl === targetNextUrl) {
+        this.preloadedUrl = null;
+      }
     }
   }
 
@@ -300,8 +315,8 @@ class MemorizationAudioController {
   // ==========================================================================
 
   public playStep(params: PlayStepParams): void {
-    // Çakışma koruması: Genel oynatıcıyı anında duraklat
-    audioQueueService.pause();
+    // Merkezi ses odağını devral (diğer tüm ses/önizleme/mikrofon kaynaklarını durdur)
+    claimAudioFocus('memorization');
 
     this.sessionId += 1;
     const mySession = this.sessionId;
@@ -352,13 +367,15 @@ class MemorizationAudioController {
     const naturalTeacherPause = TEACHER_RECITER_IDS.has(reciter.id);
     this.currentTrackIdx = trackIdx;
 
-    // Eğer bekleyen kanal bu URL'yi zaten ön-yüklediyse kanalları değiştir (anında geçiş)
-    if (this.preloadedUrl === url) {
+    // Eğer bekleyen kanal bu URL'yi sağlıklı biçimde ön-yüklediyse kanalları değiştir (anında geçiş)
+    const [, standbyCheck] = this.getActiveAndStandbyChannels();
+    if (this.preloadedUrl === url && !standbyCheck.error) {
       this.activeChannelIdx = this.activeChannelIdx === 0 ? 1 : 0;
       this.preloadedUrl = null;
     }
 
     const [audio] = this.getActiveAndStandbyChannels();
+    audio.onerror = null;
     this.detachActiveListeners();
     this.clearLoadTimer();
 
@@ -450,8 +467,9 @@ class MemorizationAudioController {
       }
     }, LOAD_TIMEOUT_MS);
 
-    if (audio.src !== url) {
+    if (audio.src !== url || audio.error !== null) {
       audio.src = url;
+      audio.load();
     } else {
       try {
         audio.currentTime = 0;
@@ -578,7 +596,7 @@ class MemorizationAudioController {
 
   public resume(): void {
     if (!this.currentParams) return;
-    audioQueueService.pause();
+    claimAudioFocus('memorization');
 
     if (this.snapshot.status === 'paused') {
       void this.acquireWakeLock();
@@ -650,7 +668,7 @@ class MemorizationAudioController {
 
 export const memorizationAudioController = new MemorizationAudioController();
 
-// Karşılıklı kilit: Genel dinleme motoru başladığında Ezber ses motorunu otomatik duraklat
-audioQueueService.registerExternalAudioPauser(() => {
+// Merkezi ses odak koordinatörü kaydı
+registerAudioOwner('memorization', () => {
   memorizationAudioController.pause();
 });

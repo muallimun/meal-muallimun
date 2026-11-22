@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   CheckCircle2,
   Link2,
@@ -10,12 +10,10 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { audioQueueService } from '../../services/audioQueueService';
 import { useBackButtonGuard } from '../../services/backStackService';
 import { dataService } from '../../services/dataService';
-import { memorizationAudioController } from '../../services/memorizationAudioController';
+import { previewAudioService } from '../../services/previewAudioService';
 import { sfxService } from '../../services/sfxService';
-import { wordAudioService } from '../../services/wordAudioService';
 import {
   buildReciterAudioUrls,
   findReciterById,
@@ -97,10 +95,12 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
-  const [playingAudio, setPlayingAudio] = useState(false);
   const [quizSeed, setQuizSeed] = useState(0);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const previewSnap = useSyncExternalStore(
+    previewAudioService.subscribe,
+    previewAudioService.getSnapshot,
+  );
 
   const activeReciter = useMemo(
     () => findReciterById(audioPrefs.arabicReciterId || audioPrefs.arabicAudioSource, manifest),
@@ -108,12 +108,10 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
   );
 
   const stopPreviewAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.removeAttribute('src');
-      audioRef.current = null;
+    const activeKey = previewAudioService.getSnapshot().activeKey;
+    if (activeKey && activeKey.startsWith('rabt:')) {
+      previewAudioService.stop();
     }
-    setPlayingAudio(false);
   }, []);
 
   const handleCloseModal = useCallback(() => {
@@ -373,46 +371,25 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
   }, [isOpen, unit, meta, quizSeed, stopPreviewAudio]);
 
   const currentQuestion = questions[currentIndex] ?? null;
+  const currentPreviewKey = currentQuestion ? `rabt:${currentQuestion.id}` : null;
+  const playingAudio =
+    currentPreviewKey !== null &&
+    previewSnap.activeKey === currentPreviewKey &&
+    previewSnap.status === 'playing';
+  const loadingAudio =
+    currentPreviewKey !== null &&
+    previewSnap.activeKey === currentPreviewKey &&
+    previewSnap.status === 'loading';
 
   const handlePlayPromptAudio = () => {
-    if (!currentQuestion) return;
-    if (playingAudio) {
-      stopPreviewAudio();
-      return;
-    }
-
+    if (!currentQuestion || !currentPreviewKey) return;
     const urls = buildReciterAudioUrls(
       activeReciter,
       currentQuestion.surah,
       currentQuestion.ayah,
     );
     if (urls.length === 0) return;
-
-    stopPreviewAudio();
-    audioQueueService.pause();
-    memorizationAudioController.pause();
-    wordAudioService.stop();
-    const audio = new Audio();
-    audio.preload = 'auto';
-    let urlIdx = 0;
-
-    const tryNext = () => {
-      if (urlIdx >= urls.length) {
-        setPlayingAudio(false);
-        return;
-      }
-      audio.src = urls[urlIdx];
-      urlIdx += 1;
-      audio
-        .play()
-        .then(() => setPlayingAudio(true))
-        .catch(() => tryNext());
-    };
-
-    audio.onended = () => setPlayingAudio(false);
-    audio.onerror = () => tryNext();
-    audioRef.current = audio;
-    tryNext();
+    previewAudioService.toggle(currentPreviewKey, urls);
   };
 
   const handleSelectOption = (optionId: string, isCorrect: boolean) => {
@@ -722,7 +699,13 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
                       }}
                     >
                       <Volume2 className="w-3.5 h-3.5" />
-                      <span>{playingAudio ? 'Durdur' : 'Ayeti Dinle'}</span>
+                      <span>
+                        {playingAudio
+                          ? 'Durdur'
+                          : loadingAudio
+                            ? 'Yükleniyor...'
+                            : 'Ayeti Dinle'}
+                      </span>
                     </button>
                   )}
                 </div>

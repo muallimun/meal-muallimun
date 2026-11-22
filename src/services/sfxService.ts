@@ -12,6 +12,8 @@ interface SfxConfigState {
 
 type AudioContextCtor = typeof AudioContext;
 
+const POOL_SIZE = 4;
+
 class SfxService {
   private config: SfxConfigState = {
     enabled: true,
@@ -19,10 +21,18 @@ class SfxService {
   };
 
   private lastPlayedIndex: Partial<Record<SfxKey, number>> = {};
-  private audioCache = new Map<string, HTMLAudioElement>();
   private failedPrimary = new Set<string>();
   private failedAllMp3 = new Set<string>();
   private audioCtx: AudioContext | null = null;
+
+  // Birincil yol: Sıfır HTMLAudioElement maliyetiyle Web Audio API AudioBuffer önbelleği
+  private bufferCache = new Map<string, AudioBuffer>();
+  private loadingBuffers = new Map<string, Promise<AudioBuffer | null>>();
+
+  // Yedek yol: Maksimum 4 elemanlı sabit döner <audio> havuzu (sınırsız cloneNode yok)
+  private htmlAudioPool: HTMLAudioElement[] = [];
+  private poolAbortControllers: (AbortController | null)[] = [];
+  private poolCursor = 0;
 
   public configure(enabled: boolean, volume: number): void {
     this.config.enabled = enabled;
@@ -151,30 +161,143 @@ class SfxService {
     return localUrl;
   }
 
-  private createOrCloneAudio(url: string, volume: number): HTMLAudioElement | null {
+  private playAudioBuffer(ctx: AudioContext, buffer: AudioBuffer, volume: number): boolean {
+    try {
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      gain.gain.setValueAtTime(Math.max(0, Math.min(1, volume)), ctx.currentTime);
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private preloadAudioBuffer(url: string, ctx: AudioContext): Promise<AudioBuffer | null> {
+    const cached = this.bufferCache.get(url);
+    if (cached) return Promise.resolve(cached);
+
+    const inflight = this.loadingBuffers.get(url);
+    if (inflight) return inflight;
+
+    const promise = (async (): Promise<AudioBuffer | null> => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const arrayBuffer = await response.arrayBuffer();
+        const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
+        this.bufferCache.set(url, decoded);
+        return decoded;
+      } catch {
+        return null;
+      } finally {
+        this.loadingBuffers.delete(url);
+      }
+    })();
+
+    this.loadingBuffers.set(url, promise);
+    return promise;
+  }
+
+  private warmBufferInBackground(primaryUrl: string, fallbackUrl: string): void {
+    const ctx = this.getAudioContext();
+    if (!ctx || typeof fetch !== 'function') return;
+    if (this.bufferCache.has(primaryUrl) || this.bufferCache.has(fallbackUrl)) return;
+
+    void this.preloadAudioBuffer(primaryUrl, ctx).then((decoded) => {
+      if (decoded) return;
+      if (primaryUrl !== fallbackUrl) {
+        void this.preloadAudioBuffer(fallbackUrl, ctx);
+      }
+    });
+  }
+
+  /**
+   * Maksimum POOL_SIZE (4) elemanlı sabit döner HTMLAudioElement havuzundan bir yuva tahsis eder.
+   * Eski dinleyiciler AbortController ile temizlenir; yeni cloneNode üretilmez.
+   */
+  private acquirePooledSlot(): { audio: HTMLAudioElement; signal: AbortSignal } | null {
     if (typeof window === 'undefined' || typeof Audio === 'undefined') {
       return null;
     }
 
-    let baseAudio = this.audioCache.get(url);
-    if (!baseAudio) {
+    const slotIdx = this.poolCursor;
+    this.poolCursor = (this.poolCursor + 1) % POOL_SIZE;
+
+    const prevController = this.poolAbortControllers[slotIdx];
+    if (prevController) {
+      prevController.abort();
+    }
+
+    let audio = this.htmlAudioPool[slotIdx];
+    if (!audio) {
       try {
-        baseAudio = new Audio(url);
-        baseAudio.preload = 'auto';
-        this.audioCache.set(url, baseAudio);
+        audio = new Audio();
+        audio.preload = 'auto';
+        this.htmlAudioPool[slotIdx] = audio;
       } catch {
         return null;
       }
     }
 
+    const controller = new AbortController();
+    this.poolAbortControllers[slotIdx] = controller;
+
     try {
-      const instance = baseAudio.cloneNode(true) as HTMLAudioElement;
-      instance.volume = volume;
-      return instance;
+      audio.pause();
     } catch {
-      baseAudio.currentTime = 0;
-      baseAudio.volume = volume;
-      return baseAudio;
+      // ignore
+    }
+
+    return { audio, signal: controller.signal };
+  }
+
+  private playViaRotatingPool(
+    url: string,
+    volume: number,
+    onFailure: () => void,
+  ): boolean {
+    const slot = this.acquirePooledSlot();
+    if (!slot) return false;
+
+    const { audio, signal } = slot;
+    let failed = false;
+    const handleFailure = () => {
+      if (failed || signal.aborted) return;
+      failed = true;
+      onFailure();
+    };
+
+    audio.addEventListener('error', handleFailure, { signal, once: true });
+
+    try {
+      audio.volume = volume;
+      if (audio.src !== url) {
+        audio.src = url;
+      } else {
+        try {
+          audio.currentTime = 0;
+        } catch {
+          // ignore
+        }
+      }
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch((err) => {
+          if (signal.aborted) return;
+          const errName =
+            err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
+          if (errName === 'NotAllowedError' || errName === 'AbortError') return;
+          handleFailure();
+        });
+      }
+      return true;
+    } catch {
+      handleFailure();
+      return false;
     }
   }
 
@@ -202,12 +325,21 @@ class SfxService {
 
     const primaryUrl = this.resolveUrlForFile(fileName);
     const fallbackUrl = getSfxUrl(fileName);
-    const audio = this.createOrCloneAudio(primaryUrl, effectiveVolume);
-    if (!audio) {
-      this.playSynthTone(key, effectiveVolume);
-      return;
+
+    // 1. Birincil yol: Çözülmüş AudioBuffer hazırsa sıfır <audio> dekoder maliyetiyle anında çal
+    const ctx = this.getAudioContext();
+    if (ctx) {
+      const cachedBuffer =
+        this.bufferCache.get(primaryUrl) ??
+        (fallbackUrl !== primaryUrl ? this.bufferCache.get(fallbackUrl) : undefined);
+      if (cachedBuffer && this.playAudioBuffer(ctx, cachedBuffer, effectiveVolume)) {
+        return;
+      }
+      // İlk tıklamada tamponu arka planda ısıt ki sonraki tüm tıklamalar AudioBuffer'dan çalsın
+      this.warmBufferInBackground(primaryUrl, fallbackUrl);
     }
 
+    // 2. Yedek yol: Maksimum 4 elemanlı sabit döner <audio> havuzu
     let fallbackTriggered = false;
     let synthTriggered = false;
 
@@ -228,43 +360,23 @@ class SfxService {
       }
 
       this.failedPrimary.add(fileName);
-      const fbAudio = this.createOrCloneAudio(fallbackUrl, effectiveVolume);
-      if (!fbAudio) {
-        triggerSynth();
-        return;
-      }
-
-      fbAudio.addEventListener('error', triggerSynth, { once: true });
-
-      try {
-        const p = fbAudio.play();
-        if (p && typeof p.catch === 'function') {
-          p.catch((err) => {
-            const errName =
-              err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
-            if (errName === 'NotAllowedError') return;
-            triggerSynth();
-          });
-        }
-      } catch {
+      const startedFallback = this.playViaRotatingPool(
+        fallbackUrl,
+        effectiveVolume,
+        triggerSynth,
+      );
+      if (!startedFallback) {
         triggerSynth();
       }
     };
 
-    audio.addEventListener('error', tryFallback, { once: true });
-
-    try {
-      const playPromise = audio.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch((err) => {
-          const errName =
-            err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
-          if (errName === 'NotAllowedError') return;
-          tryFallback();
-        });
-      }
-    } catch {
-      tryFallback();
+    const startedPrimary = this.playViaRotatingPool(
+      primaryUrl,
+      effectiveVolume,
+      tryFallback,
+    );
+    if (!startedPrimary) {
+      this.playSynthTone(key, effectiveVolume);
     }
   }
 }

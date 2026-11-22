@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppShell } from './components/AppShell';
 import { AudioPlayerBar } from './components/AudioPlayerBar';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { IntroSplash } from './components/IntroSplash';
 import { PageBookmarksDrawer } from './components/PageBookmarksDrawer';
 import { PoolSelectorModal } from './components/PoolSelectorModal';
@@ -24,38 +25,47 @@ import { HomePage } from './pages/HomePage';
 import { AppProvider, useAppStore } from './store/useAppStore';
 
 const MainRouter: React.FC = () => {
-  const { activeTab, settings } = useAppStore();
+  const { activeTab, setActiveTab, settings } = useAppStore();
 
   return (
     <AppShell>
-      {activeTab === 'home' ? (
-        <HomePage />
-      ) : activeTab === 'reader' ? (
-        <StudyPage />
-      ) : activeTab === 'fihrist' ? (
-        <FihristHubPage />
-      ) : activeTab === 'memorize' ? (
-        <MemorizationHubPage />
-      ) : (
-        <ExamCenterPage />
-      )}
-      <AudioPlayerBar />
-      <ListeningDrawerModal />
-      <PoolSelectorModal />
-      <SettingsModal />
-      <ReciterSelectorModal />
-      <MealSelectorModal />
-      <MealCompareModal />
-      <MutashabihatModal />
-      <WaqfGuideModal />
-      <WaqfPopoverHost />
-      <RukuPopoverHost />
-      <TajweedRulePopoverHost theme={settings.theme} enabled={settings.tajweedEnabled} />
-      <QuickMemorizeFromVerseModal />
-      <QuickAddToResearchModal />
-      <PageBookmarksDrawer />
-      <GlobalSearchModal />
-      <IntroSplash />
+      <ErrorBoundary
+        scope="page"
+        resetKey={activeTab}
+        onNavigateHome={() => setActiveTab('home')}
+      >
+        {activeTab === 'home' ? (
+          <HomePage />
+        ) : activeTab === 'reader' ? (
+          <StudyPage />
+        ) : activeTab === 'fihrist' ? (
+          <FihristHubPage />
+        ) : activeTab === 'memorize' ? (
+          <MemorizationHubPage />
+        ) : (
+          <ExamCenterPage />
+        )}
+      </ErrorBoundary>
+
+      <ErrorBoundary scope="modals">
+        <AudioPlayerBar />
+        <ListeningDrawerModal />
+        <PoolSelectorModal />
+        <SettingsModal />
+        <ReciterSelectorModal />
+        <MealSelectorModal />
+        <MealCompareModal />
+        <MutashabihatModal />
+        <WaqfGuideModal />
+        <WaqfPopoverHost />
+        <RukuPopoverHost />
+        <TajweedRulePopoverHost theme={settings.theme} enabled={settings.tajweedEnabled} />
+        <QuickMemorizeFromVerseModal />
+        <QuickAddToResearchModal />
+        <PageBookmarksDrawer />
+        <GlobalSearchModal />
+        <IntroSplash />
+      </ErrorBoundary>
     </AppShell>
   );
 };

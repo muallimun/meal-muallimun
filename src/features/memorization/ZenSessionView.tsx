@@ -37,7 +37,7 @@ import {
 import { findReciterById } from '../../config/recitersConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useMutashabihatData } from '../../hooks/useStudyReferenceData';
-import { audioQueueService } from '../../services/audioQueueService';
+import { claimAudioFocus, registerAudioOwner } from '../../services/audioFocusCoordinator';
 import { useBackButtonGuard } from '../../services/backStackService';
 import { dataService } from '../../services/dataService';
 import { memorizationAudioController } from '../../services/memorizationAudioController';
@@ -264,6 +264,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
 
   const [isComparePanelOpen, setIsComparePanelOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isRequestingMic, setIsRequestingMic] = useState(false);
   const [recordingSec, setRecordingSec] = useState(0);
   const [recordedBlobUrl, setRecordedBlobUrl] = useState<string | null>(null);
   const [recordedDurationSec, setRecordedDurationSec] = useState(0);
@@ -271,14 +272,26 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     'idle' | 'playing_user' | 'comparing_user' | 'comparing_reciter'
   >('idle');
   const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [recordingNotice, setRecordingNotice] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<number | null>(null);
   const recordingSecRef = useRef(0);
+  const recordingRequestIdRef = useRef(0);
+  const isRecordingRef = useRef(false);
+  const isRequestingMicRef = useRef(false);
   const userAudioRef = useRef<HTMLAudioElement | null>(null);
   const recordedUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  useEffect(() => {
+    isRequestingMicRef.current = isRequestingMic;
+  }, [isRequestingMic]);
 
   const stopRecordingTimer = useCallback(() => {
     if (recordingTimerRef.current !== null) {
@@ -317,6 +330,8 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
   }, []);
 
   const clearRecordedVoice = useCallback(() => {
+    recordingRequestIdRef.current += 1;
+    setIsRequestingMic(false);
     stopRecordingTimer();
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
@@ -343,6 +358,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     setIsRecording(false);
     setRecordingSec(0);
     setRecordingError(null);
+    setRecordingNotice(null);
   }, [stopRecordingTimer, stopMicTracks, stopUserAudioPlayback]);
 
   // Veri yükleme (yalnızca bu birimde geçen sureler)
@@ -379,8 +395,9 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
   // Zen oturum bayrağını, ses çakışma korumasını ve mikrofon/Blob bellek temizliğini yönet
   useEffect(() => {
     setIsMemorizationZenActive(true);
-    audioQueueService.pause();
+    claimAudioFocus('activity_scene');
     return () => {
+      recordingRequestIdRef.current += 1;
       memorizationAudioController.stop();
       clearRecordedVoice();
       if (peekHoldTimerRef.current !== null) {
@@ -840,6 +857,8 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
   // Mikrofon Kaydı & Karî Kıyaslama Aksiyonları
   // ============================================================================
   const stopVoiceRecording = useCallback(() => {
+    recordingRequestIdRef.current += 1;
+    setIsRequestingMic(false);
     stopRecordingTimer();
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       try {
@@ -854,7 +873,52 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     }
   }, [stopRecordingTimer, stopMicTracks]);
 
+  const stopVoiceRecordingRef = useRef(stopVoiceRecording);
+  stopVoiceRecordingRef.current = stopVoiceRecording;
+  const stopUserAudioPlaybackRef = useRef(stopUserAudioPlayback);
+  stopUserAudioPlaybackRef.current = stopUserAudioPlayback;
+
+  // Merkezi ses odak koordinatörü kaydı ('zen_user_voice' ve 'zen_mic')
+  useEffect(() => {
+    const unregisterUserVoice = registerAudioOwner('zen_user_voice', () => {
+      stopUserAudioPlaybackRef.current();
+    });
+    const unregisterMic = registerAudioOwner('zen_mic', () => {
+      if (isRecordingRef.current || isRequestingMicRef.current) {
+        stopVoiceRecordingRef.current();
+      }
+    });
+    return () => {
+      unregisterUserVoice();
+      unregisterMic();
+    };
+  }, []);
+
+  // Sekme gizlendiğinde veya sayfa kapatılırken açık mikrofon izlerini güvenle kapat
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === 'hidden' &&
+        (isRecordingRef.current || isRequestingMicRef.current)
+      ) {
+        stopVoiceRecordingRef.current();
+      }
+    };
+    const handlePageHide = () => {
+      if (isRecordingRef.current || isRequestingMicRef.current) {
+        stopVoiceRecordingRef.current();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, []);
+
   const startVoiceRecording = useCallback(async () => {
+    if (isRecording || isRequestingMic) return;
     if (!canRecordAudio) {
       setRecordingError('Tarayıcınız ses kaydını desteklemiyor.');
       return;
@@ -862,8 +926,11 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
 
     sfxService.play('click');
     setRecordingError(null);
-    memorizationAudioController.pause();
-    audioQueueService.pause();
+    setRecordingNotice(null);
+
+    const reqId = ++recordingRequestIdRef.current;
+    setIsRequestingMic(true);
+    claimAudioFocus('zen_mic');
     stopUserAudioPlayback();
 
     if (recordedUrlRef.current) {
@@ -874,6 +941,19 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Gecikmeli izin yarış koruması: kullanıcı iptal ettiyse veya Zen ekranından çıktıysa izleri anında kapat
+      if (reqId !== recordingRequestIdRef.current) {
+        stream.getTracks().forEach((t) => {
+          try {
+            t.stop();
+          } catch {
+            // ignore
+          }
+        });
+        return;
+      }
+
+      setIsRequestingMic(false);
       mediaStreamRef.current = stream;
 
       const mimeCandidates = [
@@ -934,15 +1014,41 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
         recordingSecRef.current += 1;
         setRecordingSec(recordingSecRef.current);
         if (recordingSecRef.current >= MAX_RECORDING_SEC) {
+          setRecordingNotice(
+            'Maksimum 1:30 kayıt süresine ulaşıldı; kaydınızı dinleyebilir veya kurrâ ile kıyaslayabilirsiniz.',
+          );
           stopVoiceRecording();
         }
       }, 1000);
-    } catch {
+    } catch (err) {
+      if (reqId !== recordingRequestIdRef.current) return;
+      setIsRequestingMic(false);
       stopMicTracks();
       setIsRecording(false);
-      setRecordingError('Mikrofon izni alınamadı. Tarayıcı izinlerini kontrol edip tekrar deneyin.');
+
+      const errName =
+        err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
+      if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+        setRecordingError(
+          'Mikrofon izni verilmedi. Tarayıcı adres çubuğundaki izin simgesinden (iPhone/iPad için Ayarlar → Safari → Mikrofon) izin verip tekrar deneyin.',
+        );
+      } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+        setRecordingError('Cihazınızda kullanılabilir bir mikrofon bulunamadı.');
+      } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        setRecordingError('Mikrofon şu anda başka bir uygulama tarafından kullanılıyor.');
+      } else {
+        setRecordingError('Mikrofon izni alınamadı. Tarayıcı izinlerini kontrol edip tekrar deneyin.');
+      }
     }
-  }, [canRecordAudio, stopRecordingTimer, stopMicTracks, stopUserAudioPlayback, stopVoiceRecording]);
+  }, [
+    isRecording,
+    isRequestingMic,
+    canRecordAudio,
+    stopRecordingTimer,
+    stopMicTracks,
+    stopUserAudioPlayback,
+    stopVoiceRecording,
+  ]);
 
   const playUserVoice = useCallback(
     (compareWithReciter: boolean) => {
@@ -955,10 +1061,8 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
         return;
       }
 
-      memorizationAudioController.pause();
-      audioQueueService.pause();
-
       const startUserPlayback = (stateLabel: 'playing_user' | 'comparing_user') => {
+        claimAudioFocus('zen_user_voice');
         const audio = new Audio(recordedBlobUrl);
         userAudioRef.current = audio;
         setVoicePlaybackState(stateLabel);
@@ -982,7 +1086,6 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
 
       // Kıyasla (Kurrâ -> Ben): Önce seçili kurrâyı, bitince otomatik olarak kullanıcının kaydını çal
       if (compareWithReciter && highlightedVerseKey) {
-        setVoicePlaybackState('comparing_reciter');
         const compareStep: SessionStep = {
           index: stepIndex,
           phase: 'encode',
@@ -1009,6 +1112,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
             startUserPlayback('comparing_user');
           },
         });
+        setVoicePlaybackState('comparing_reciter');
         return;
       }
 
@@ -2655,11 +2759,13 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                         >
                           {!canRecordAudio
                             ? 'Bu tarayıcı mikrofon kaydını desteklemiyor'
-                            : isRecording
-                              ? `Kaydediliyor · ${formatClock(recordingSec)} / 1:30`
-                              : recordedBlobUrl
-                                ? `Kayıt hazır (${formatClock(recordedDurationSec)}) · Sadece cihaz belleğinde`
-                                : 'Sesiniz sunucuya gönderilmez; Kurrâ → Ben sırasıyla kıyaslayın'}
+                            : isRequestingMic
+                              ? 'Mikrofon izni bekleniyor...'
+                              : isRecording
+                                ? `Kaydediliyor · ${formatClock(recordingSec)} / 1:30`
+                                : recordedBlobUrl
+                                  ? `Kayıt hazır (${formatClock(recordedDurationSec)}) · Sadece cihaz belleğinde`
+                                  : 'Sesiniz sunucuya gönderilmez; Kurrâ → Ben sırasıyla kıyaslayın'}
                         </p>
                       </div>
                     </button>
@@ -2667,20 +2773,21 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                     {canRecordAudio && !isComparePanelOpen && !isRecording && !recordedBlobUrl && (
                       <button
                         type="button"
+                        disabled={isRecording || isRequestingMic}
                         onClick={() => {
                           setIsComparePanelOpen(true);
                           void startVoiceRecording();
                         }}
-                        className="min-h-[36px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                        className="min-h-[36px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-60"
                         style={{ backgroundColor: 'var(--brand-primary)' }}
                       >
                         <Mic className="w-3.5 h-3.5" />
-                        <span>Oku &amp; Kaydet</span>
+                        <span>{isRequestingMic ? 'İzin Bekleniyor...' : 'Oku & Kaydet'}</span>
                       </button>
                     )}
                   </div>
 
-                  {(isComparePanelOpen || isRecording || recordedBlobUrl) && (
+                  {(isComparePanelOpen || isRecording || isRequestingMic || recordedBlobUrl) && (
                     <div
                       className="px-3.5 pb-3 pt-2 border-t space-y-2.5"
                       style={{
@@ -2689,7 +2796,26 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                       }}
                     >
                       {recordingError && (
-                        <p className="text-xs font-semibold text-red-600">{recordingError}</p>
+                        <p
+                          role="alert"
+                          className="text-xs font-semibold leading-snug text-red-600 dark:text-red-400"
+                        >
+                          {recordingError}
+                        </p>
+                      )}
+
+                      {recordingNotice && !recordingError && (
+                        <p
+                          role="status"
+                          className="text-xs font-semibold leading-snug px-2.5 py-1.5 rounded-lg border"
+                          style={{
+                            backgroundColor: 'var(--brand-accent-soft)',
+                            borderColor: 'rgba(217, 119, 6, 0.35)',
+                            color: 'var(--brand-accent-text)',
+                          }}
+                        >
+                          {recordingNotice}
+                        </p>
                       )}
 
                       {!canRecordAudio ? (
@@ -2697,11 +2823,45 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                           Tarayıcınız MediaRecorder ses kaydını desteklemiyor. Kurrâ tilavetini
                           dinleyip Gölge Tekrar boşluğuyla çalışmaya devam edebilirsiniz.
                         </p>
+                      ) : isRequestingMic ? (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div
+                            className="flex items-center gap-2 text-xs font-bold"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                            <span>Mikrofon izni bekleniyor...</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={stopVoiceRecording}
+                            className="min-h-[36px] px-3 rounded-xl border text-xs font-bold cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            İptal
+                          </button>
+                        </div>
                       ) : isRecording ? (
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-xs font-extrabold text-red-600 tabular-nums">
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold text-red-600 dark:text-red-400 tabular-nums">
                             <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
                             <span>Kayıt sürüyor · {formatClock(recordingSec)} / 1:30</span>
+                            {MAX_RECORDING_SEC - recordingSec <= 15 && (
+                              <span
+                                className="px-2 py-0.5 rounded-md text-[11px] font-extrabold border"
+                                style={{
+                                  backgroundColor: 'rgba(217, 119, 6, 0.16)',
+                                  borderColor: 'rgba(217, 119, 6, 0.45)',
+                                  color: '#B45309',
+                                }}
+                              >
+                                Son {Math.max(0, MAX_RECORDING_SEC - recordingSec)} sn
+                              </span>
+                            )}
                           </div>
                           <button
                             type="button"
@@ -2784,8 +2944,9 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                           </span>
                           <button
                             type="button"
+                            disabled={isRecording || isRequestingMic}
                             onClick={() => void startVoiceRecording()}
-                            className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                            className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-60"
                             style={{ backgroundColor: 'var(--brand-primary)' }}
                           >
                             <Mic className="w-3.5 h-3.5" />

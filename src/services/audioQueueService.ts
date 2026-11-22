@@ -5,6 +5,7 @@ import {
   findReciterById,
   resolveSyncedReciterKey,
 } from '../config/recitersConfig';
+import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
 import { dataService, getPageBounds } from './dataService';
 import { wakeLockService } from './wakeLockService';
 import type {
@@ -204,11 +205,13 @@ class AudioQueueService {
   private preloader: HTMLAudioElement | null = null;
   private previewAudio: HTMLAudioElement | null = null;
   private previewAbortController: AbortController | null = null;
+  private previewLoadTimer: number | null = null;
   private previewSessionId = 0;
   private skipTimer: number | null = null;
   private loadTimer: number | null = null;
   private playSessionId = 0;
   private consecutiveFailures = 0;
+  private userPausedDuringLoad = false;
 
   private verses: CombinedVerse[] = [];
   private currentVerseIndex = 0;
@@ -1282,6 +1285,41 @@ class AudioQueueService {
     void this.advanceToNextVerse();
   }
 
+  private emitPreparedPausedState(verse: CombinedVerse, step: PlaybackStep): void {
+    const nav = this.updateNavigationAvailability();
+    const segParentIdx =
+      this.atomicSegments.length > 0
+        ? (this.atomicSegments[this.currentAtomicIdx]?.parentIndex ?? 0)
+        : 0;
+    this.setMediaPlaybackState('paused');
+    this.emit({
+      status: 'paused',
+      isVisible: true,
+      context: this.context,
+      contextKey: this.contextKey,
+      queueTitle: this.getFormattedQueueTitle(),
+      currentSegmentIndex: segParentIdx,
+      totalSegments: this.totalParentSegments,
+      currentQueueRound: this.currentQueueRound,
+      totalQueueRounds: this.getEffectiveQueueLoop(),
+      currentSurah: verse.surah,
+      currentSurahName: this.getSurahName(verse.surah),
+      currentAyah: verse.ayah,
+      currentPage: verse.page,
+      currentAyahId: verse.id,
+      activePhase: step.phase,
+      activeSourceKey: step.sourceKey,
+      activeReciterLabel: step.reciterLabel,
+      currentRepeat: step.repeatIndex,
+      totalRepeats: this.getEffectiveRepeatCount(),
+      canGoPrev: nav.canGoPrev,
+      canGoNext: nav.canGoNext,
+      errorMessage: null,
+      infoMessage: this.activeInfoNotice,
+      missingMealAudio: false,
+    });
+  }
+
   private async loadAndPlayAtomicSegment(
     segIdx: number,
     session: number,
@@ -1299,27 +1337,24 @@ class AudioQueueService {
       this.currentAtomicIdx = segIdx;
       this.verses = verses;
 
-      if (startFromLastVerse) {
-        for (let i = verses.length - 1; i >= 0; i -= 1) {
-          const built = this.buildStepsForVerse(i, true);
-          if (built.length > 0) {
-            this.currentVerseIndex = i;
-            this.steps = built;
-            this.currentStepIndex = 0;
-            this.playCurrentStep(0);
+      const startIdx = startFromLastVerse ? verses.length - 1 : 0;
+      const stepDir = startFromLastVerse ? -1 : 1;
+      for (
+        let i = startIdx;
+        startFromLastVerse ? i >= 0 : i < verses.length;
+        i += stepDir
+      ) {
+        const built = this.buildStepsForVerse(i, true);
+        if (built.length > 0) {
+          this.currentVerseIndex = i;
+          this.steps = built;
+          this.currentStepIndex = 0;
+          if (this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+            this.emitPreparedPausedState(verses[i], built[0]);
             return true;
           }
-        }
-      } else {
-        for (let i = 0; i < verses.length; i += 1) {
-          const built = this.buildStepsForVerse(i, true);
-          if (built.length > 0) {
-            this.currentVerseIndex = i;
-            this.steps = built;
-            this.currentStepIndex = 0;
-            this.playCurrentStep(0);
-            return true;
-          }
+          this.playCurrentStep(0);
+          return true;
         }
       }
     } catch {
@@ -1441,6 +1476,10 @@ class AudioQueueService {
                 this.currentVerseIndex = i;
                 this.steps = nextSteps;
                 this.currentStepIndex = 0;
+                if (this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+                  this.emitPreparedPausedState(this.verses[i], nextSteps[0]);
+                  return;
+                }
                 this.playCurrentStep(0);
                 return;
               }
@@ -1473,6 +1512,10 @@ class AudioQueueService {
                 this.currentVerseIndex = i;
                 this.steps = nextSteps;
                 this.currentStepIndex = 0;
+                if (this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+                  this.emitPreparedPausedState(this.verses[i], nextSteps[0]);
+                  return;
+                }
                 this.playCurrentStep(0);
                 return;
               }
@@ -1527,8 +1570,10 @@ class AudioQueueService {
   // ==========================================================================
 
   public startQueue(options: StartQueueOptions): void {
+    claimAudioFocus('main_queue');
     this.pauseExternalAudioEngines();
     this.stopPreview();
+    this.userPausedDuringLoad = false;
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
     this.teardownAudioElement();
@@ -1613,8 +1658,10 @@ class AudioQueueService {
    * tembel yüklemeli dinleme kuyruğunu başlatır.
    */
   public async startSegmentQueue(options: StartSegmentQueueOptions): Promise<void> {
+    claimAudioFocus('main_queue');
     this.pauseExternalAudioEngines();
     this.stopPreview();
+    this.userPausedDuringLoad = false;
     this.playSessionId += 1;
     const session = this.playSessionId;
     this.consecutiveFailures = 0;
@@ -1705,6 +1752,10 @@ class AudioQueueService {
             this.currentVerseIndex = vIdx;
             this.steps = built;
             this.currentStepIndex = 0;
+            if (this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+              this.emitPreparedPausedState(verses[vIdx], built[0]);
+              return;
+            }
             this.playCurrentStep(0);
             return;
           }
@@ -1725,28 +1776,36 @@ class AudioQueueService {
 
   public togglePlayPause(): void {
     if (!this.audio) {
+      if (this.snapshot.status === 'loading') {
+        this.pause();
+        return;
+      }
       if (this.verses.length > 0 && this.steps.length > 0) {
+        this.userPausedDuringLoad = false;
+        claimAudioFocus('main_queue');
         this.pauseExternalAudioEngines();
         this.stopPreview();
         this.playSessionId += 1;
         this.consecutiveFailures = 0;
         this.playCurrentStep(0);
+      } else if (this.verses.length === 0 && this.atomicSegments.length > 0) {
+        this.userPausedDuringLoad = false;
+        claimAudioFocus('main_queue');
+        this.pauseExternalAudioEngines();
+        this.stopPreview();
+        this.playSessionId += 1;
+        const resumeSession = this.playSessionId;
+        this.consecutiveFailures = 0;
+        void this.loadAndPlayAtomicSegment(this.currentAtomicIdx, resumeSession, false);
       }
       return;
     }
 
     if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
-      this.clearSkipTimer();
-      this.clearLoadTimer();
-      this.stopWordSyncLoop();
-      try {
-        this.audio.pause();
-      } catch {
-        // ignore
-      }
-      this.setMediaPlaybackState('paused');
-      this.emit({ status: 'paused' });
+      this.pause();
     } else if (this.snapshot.status === 'paused' || this.snapshot.status === 'error') {
+      this.userPausedDuringLoad = false;
+      claimAudioFocus('main_queue');
       this.pauseExternalAudioEngines();
       this.stopPreview();
       const session = this.playSessionId;
@@ -1770,6 +1829,9 @@ class AudioQueueService {
 
   public pause(): void {
     if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
+      if (this.snapshot.status === 'loading') {
+        this.userPausedDuringLoad = true;
+      }
       this.clearSkipTimer();
       this.clearLoadTimer();
       this.stopWordSyncLoop();
@@ -1785,6 +1847,8 @@ class AudioQueueService {
 
   public nextVerse(): void {
     if (this.verses.length === 0) return;
+    this.userPausedDuringLoad = false;
+    claimAudioFocus('main_queue');
     this.pauseExternalAudioEngines();
     this.stopPreview();
     this.playSessionId += 1;
@@ -1794,6 +1858,8 @@ class AudioQueueService {
 
   public prevVerse(): void {
     if (this.verses.length === 0) return;
+    this.userPausedDuringLoad = false;
+    claimAudioFocus('main_queue');
     this.pauseExternalAudioEngines();
     this.stopPreview();
     this.playSessionId += 1;
@@ -1823,7 +1889,15 @@ class AudioQueueService {
     }
   }
 
+  private clearPreviewLoadTimer(): void {
+    if (this.previewLoadTimer !== null && typeof window !== 'undefined') {
+      window.clearTimeout(this.previewLoadTimer);
+      this.previewLoadTimer = null;
+    }
+  }
+
   private teardownPreviewAudio(): void {
+    this.clearPreviewLoadTimer();
     if (this.previewAbortController) {
       this.previewAbortController.abort();
       this.previewAbortController = null;
@@ -1860,6 +1934,7 @@ class AudioQueueService {
       return;
     }
 
+    claimAudioFocus('reciter_preview');
     this.pauseExternalAudioEngines();
     if (this.snapshot.status === 'playing' || this.snapshot.status === 'loading') {
       this.pause();
@@ -1901,6 +1976,7 @@ class AudioQueueService {
       const onFail = () => {
         if (failed || session !== this.previewSessionId) return;
         failed = true;
+        this.clearPreviewLoadTimer();
         if (urlIndex + 1 < urls.length) {
           playAt(urlIndex + 1);
           return;
@@ -1909,10 +1985,25 @@ class AudioQueueService {
         this.emit({ previewReciterId: reciter.id, previewStatus: 'error' });
       };
 
+      this.previewLoadTimer = window.setTimeout(() => {
+        if (session !== this.previewSessionId) return;
+        onFail();
+      }, LOAD_TIMEOUT_MS);
+
+      audio.addEventListener(
+        'canplay',
+        () => {
+          if (session !== this.previewSessionId) return;
+          this.clearPreviewLoadTimer();
+        },
+        { signal },
+      );
+
       audio.addEventListener(
         'playing',
         () => {
           if (session !== this.previewSessionId) return;
+          this.clearPreviewLoadTimer();
           this.emit({ previewReciterId: reciter.id, previewStatus: 'playing' });
         },
         { signal },
@@ -2031,6 +2122,8 @@ class AudioQueueService {
       });
 
       if (wasPlayingOrWaitingRecovery && this.steps.length > 0) {
+        this.userPausedDuringLoad = false;
+        claimAudioFocus('main_queue');
         this.pauseExternalAudioEngines();
         this.stopPreview();
         this.playSessionId += 1;
@@ -2042,6 +2135,7 @@ class AudioQueueService {
 
   public stopAndReset(hideBar = true): void {
     this.stopPreview();
+    this.userPausedDuringLoad = false;
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
     this.teardownAudioElement();
@@ -2070,3 +2164,11 @@ class AudioQueueService {
 }
 
 export const audioQueueService = new AudioQueueService();
+
+registerAudioOwner('main_queue', () => {
+  audioQueueService.pause();
+});
+
+registerAudioOwner('reciter_preview', () => {
+  audioQueueService.stopPreview();
+});

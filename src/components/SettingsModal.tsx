@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  AlertTriangle,
   BookOpen,
+  CheckCircle2,
   ChevronRight,
   Download,
   Eye,
@@ -10,6 +12,7 @@ import {
   Loader2,
   Play,
   RotateCcw,
+  ShieldCheck,
   Sparkles,
   Square,
   Sun,
@@ -29,18 +32,87 @@ import {
 } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { useBackButtonGuard } from '../services/backStackService';
-import { memorizationStorage } from '../services/memorizationStorage';
+import {
+  memorizationStorage,
+  validateMemorizationBackupPayload,
+} from '../services/memorizationStorage';
+import { RESEARCH_NOTEBOOK_STORAGE_KEY } from '../services/researchStorage';
 import { sfxService } from '../services/sfxService';
-import { useAppStore } from '../store/useAppStore';
+import { setStorePersistencePaused, useAppStore } from '../store/useAppStore';
+import type { MemorizationBackupPayload } from '../types/memorization';
 import type {
   BookContentMode,
+  ExamSessionState,
   PageLayoutMode,
   StudyViewMode,
   ThemeMode,
   WordMealMode,
 } from '../types/quran';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
+import {
+  clearActiveExamSession,
+  loadActiveExamSession,
+  saveActiveExamSession,
+  validateExamSessionPayload,
+} from '../utils/examUtils';
 import { PwaInstallControl } from './PwaInstallControl';
+
+const MAX_BACKUP_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
+
+const JSON_LOCAL_STORAGE_KEYS = new Set<string>([
+  'muallimun_meal_v1',
+  RESEARCH_NOTEBOOK_STORAGE_KEY,
+  'muallimun_games_progress_v1',
+  'muallimun_recent_searches_v1',
+  'muallimun_memorization_v1_units',
+  'muallimun_memorization_v1_prefs',
+  'muallimun_memorization_v1_active_session',
+  'muallimun_memorization_v1_timestamps',
+]);
+
+interface PendingBackupPreview {
+  fileName: string;
+  exportedAt: string | null;
+  backupVersion: number;
+  hasFullStorage: boolean;
+  localStorageEntries: Record<string, string>;
+  memorizationPayload: unknown | null;
+  hasActiveExamSessionField: boolean;
+  activeExamSession: ExamSessionState | null;
+  localKeysCount: number;
+  memorizationUnitsCount: number;
+  researchTopicsCount: number;
+  hasActiveMemorizationSession: boolean;
+  hasActiveExamSession: boolean;
+}
+
+function formatBackupDate(iso: string | null): string {
+  if (!iso) return 'Belirtilmemiş';
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return 'Belirtilmemiş';
+  try {
+    return new Intl.DateTimeFormat('tr-TR', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(dt);
+  } catch {
+    return dt.toISOString().slice(0, 16).replace('T', ' ');
+  }
+}
+
+function countResearchTopicsFromJson(rawJson: string | undefined): number {
+  if (!rawJson) return 0;
+  try {
+    const parsed: unknown = JSON.parse(rawJson);
+    if (Array.isArray(parsed)) return parsed.length;
+    if (parsed && typeof parsed === 'object' && Array.isArray((parsed as { topics?: unknown }).topics)) {
+      return (parsed as { topics: unknown[] }).topics.length;
+    }
+    return 0;
+  } catch {
+    return 0;
+  }
+}
 
 type SettingsTabId = 'appearance' | 'typography' | 'reading' | 'audio_exam';
 
@@ -145,6 +217,9 @@ export const SettingsModal: React.FC = () => {
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+  const [pendingBackupRestore, setPendingBackupRestore] = useState<PendingBackupPreview | null>(
+    null,
+  );
   const [isBackupBusy, setIsBackupBusy] = useState(false);
   const backupFileInputRef = useRef<HTMLInputElement | null>(null);
   const backupSectionRef = useRef<HTMLElement | null>(null);
@@ -152,7 +227,10 @@ export const SettingsModal: React.FC = () => {
   useBackButtonGuard('settings_modal', isSettingsModalOpen, closeSettingsModal);
 
   useEffect(() => {
-    if (!isSettingsModalOpen) return;
+    if (!isSettingsModalOpen) {
+      setPendingBackupRestore(null);
+      return;
+    }
     return acquireBodyScrollLock();
   }, [isSettingsModalOpen]);
 
@@ -164,46 +242,59 @@ export const SettingsModal: React.FC = () => {
     }, 60);
   };
 
+  const exportCurrentBackupFile = async (): Promise<{
+    localKeysCount: number;
+    memorizationUnitsCount: number;
+  }> => {
+    const localEntries: Record<string, string> = {};
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (!key || !key.startsWith('muallimun')) continue;
+      const val = window.localStorage.getItem(key);
+      if (val !== null) {
+        localEntries[key] = val;
+      }
+    }
+
+    const memorizationPayload = await memorizationStorage.createBackupPayload();
+    const activeExamSession = loadActiveExamSession();
+
+    const fullBackup = {
+      app: 'muallimun-kuran-full-backup',
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      localStorage: localEntries,
+      memorization: memorizationPayload,
+      activeExamSession,
+    };
+
+    const jsonStr = JSON.stringify(fullBackup, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `muallimun-kuran-yedek-${dateStamp}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    return {
+      localKeysCount: Object.keys(localEntries).length,
+      memorizationUnitsCount: memorizationPayload.units.length,
+    };
+  };
+
   const handleExportFullBackup = async () => {
     sfxService.play('click');
     setIsBackupBusy(true);
     setBackupStatus(null);
     try {
-      const localEntries: Record<string, string> = {};
-      for (let i = 0; i < window.localStorage.length; i += 1) {
-        const key = window.localStorage.key(i);
-        if (!key || !key.startsWith('muallimun')) continue;
-        const val = window.localStorage.getItem(key);
-        if (val !== null) {
-          localEntries[key] = val;
-        }
-      }
-
-      const memorizationPayload = await memorizationStorage.createBackupPayload();
-
-      const fullBackup = {
-        app: 'muallimun-kuran-full-backup',
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        localStorage: localEntries,
-        memorization: memorizationPayload,
-      };
-
-      const jsonStr = JSON.stringify(fullBackup, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const dateStamp = new Date().toISOString().slice(0, 10);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `muallimun-kuran-yedek-${dateStamp}.json`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-
+      const summary = await exportCurrentBackupFile();
       setBackupStatus({
         type: 'success',
-        text: `Yedek indirildi (${Object.keys(localEntries).length} kayıt alanı ve ${memorizationPayload.units.length} ezber birimi).`,
+        text: `Yedek indirildi (${summary.localKeysCount} kayıt alanı ve ${summary.memorizationUnitsCount} ezber birimi).`,
       });
     } catch {
       setBackupStatus({
@@ -215,6 +306,7 @@ export const SettingsModal: React.FC = () => {
     }
   };
 
+  // Aşama 1: Dosyayı bellekte doğrula ve önizleme oluştur (depolamaya SIFIR yazım)
   const handleImportFullBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -222,63 +314,164 @@ export const SettingsModal: React.FC = () => {
 
     setIsBackupBusy(true);
     setBackupStatus(null);
+    setPendingBackupRestore(null);
+
     try {
+      if (file.size > MAX_BACKUP_FILE_BYTES) {
+        throw new Error(
+          'Yedek dosyası 15 MB sınırını aşıyor. Lütfen geçerli bir Muallimun yedeği seçin.',
+        );
+      }
+
       const rawText = await file.text();
-      const parsed: unknown = JSON.parse(rawText);
-      if (!parsed || typeof parsed !== 'object') {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(rawText);
+      } catch {
+        throw new Error('Seçilen dosya geçerli bir JSON biçiminde değil.');
+      }
+
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
         throw new Error('Geçersiz JSON yedek dosyası.');
       }
 
       const record = parsed as {
-        app?: string;
-        localStorage?: Record<string, unknown>;
+        app?: unknown;
+        version?: unknown;
+        exportedAt?: unknown;
+        localStorage?: unknown;
         memorization?: unknown;
+        activeExamSession?: unknown;
         units?: unknown;
       };
 
       const hasFullStorage =
-        record.localStorage &&
+        Boolean(record.localStorage) &&
         typeof record.localStorage === 'object' &&
         !Array.isArray(record.localStorage);
-      const hasMemorization = Boolean(record.memorization) || Array.isArray(record.units);
 
-      if (!hasFullStorage && !hasMemorization) {
-        throw new Error(
-          'Bu dosya geçerli bir Muallimun çalışma yedeği içermiyor.',
-        );
+      const rawMemorizationCandidate =
+        record.memorization && typeof record.memorization === 'object'
+          ? record.memorization
+          : record.app === 'muallimun-memorization' && Array.isArray(record.units)
+            ? record
+            : null;
+
+      if (!hasFullStorage && !rawMemorizationCandidate) {
+        throw new Error('Bu dosya geçerli bir Muallimun çalışma yedeği içermiyor.');
       }
 
-      if (hasFullStorage && record.localStorage) {
-        let restoredKeys = 0;
-        for (const [k, v] of Object.entries(record.localStorage)) {
-          if (!k.startsWith('muallimun')) continue;
-          if (typeof v === 'string') {
-            window.localStorage.setItem(k, v);
-            restoredKeys += 1;
-          } else if (v !== null && v !== undefined) {
-            window.localStorage.setItem(k, JSON.stringify(v));
-            restoredKeys += 1;
+      const validatedLocalEntries: Record<string, string> = {};
+      if (hasFullStorage) {
+        for (const [key, value] of Object.entries(
+          record.localStorage as Record<string, unknown>,
+        )) {
+          if (!key.startsWith('muallimun')) continue;
+          let serialized: string;
+          if (typeof value === 'string') {
+            serialized = value;
+          } else if (value !== null && value !== undefined) {
+            serialized = JSON.stringify(value);
+          } else {
+            continue;
           }
+
+          if (JSON_LOCAL_STORAGE_KEYS.has(key)) {
+            try {
+              JSON.parse(serialized);
+            } catch {
+              throw new Error(
+                `Yedek dosyasındaki "${key}" alanı bozuk JSON içeriyor; işlem iptal edildi.`,
+              );
+            }
+          }
+          validatedLocalEntries[key] = serialized;
         }
-        if (restoredKeys === 0 && !hasMemorization) {
+
+        if (Object.keys(validatedLocalEntries).length === 0 && !rawMemorizationCandidate) {
           throw new Error('Yedek dosyasında geri yüklenecek Muallimun kaydı bulunamadı.');
         }
       }
 
-      if (record.memorization && typeof record.memorization === 'object') {
-        await memorizationStorage.importBackupPayload(record.memorization, 'replace');
-      } else if (record.app === 'muallimun-memorization' && Array.isArray(record.units)) {
-        await memorizationStorage.importBackupPayload(record, 'replace');
+      let validatedMemorizationPayload: unknown | null = null;
+      let memorizationUnitsFromPayload: number | null = null;
+      let hasMemActiveSessionFromPayload = false;
+      let memorizationExportedAt: string | null = null;
+
+      if (rawMemorizationCandidate) {
+        const check = validateMemorizationBackupPayload(rawMemorizationCandidate);
+        if (!check.valid) {
+          throw new Error(check.error || 'Ezber yedek verisi doğrulanamadı.');
+        }
+        validatedMemorizationPayload = rawMemorizationCandidate;
+        memorizationUnitsFromPayload = check.unitsCount;
+        hasMemActiveSessionFromPayload = check.hasActiveSession;
+        const memRec = rawMemorizationCandidate as { exportedAt?: unknown };
+        if (typeof memRec.exportedAt === 'string' && memRec.exportedAt.trim()) {
+          memorizationExportedAt = memRec.exportedAt;
+        }
       }
 
-      sfxService.play('correct');
-      setBackupStatus({
-        type: 'success',
-        text: 'Yedek başarıyla geri yüklendi. Uygulama yenileniyor...',
+      const hasActiveExamSessionField = 'activeExamSession' in record;
+      let validatedExamSession: ExamSessionState | null = null;
+      if (
+        hasActiveExamSessionField &&
+        record.activeExamSession !== null &&
+        record.activeExamSession !== undefined
+      ) {
+        const validExam = validateExamSessionPayload(record.activeExamSession);
+        if (!validExam) {
+          throw new Error('Yedekteki aktif sınav oturumu geçersiz biçimde; işlem iptal edildi.');
+        }
+        validatedExamSession = validExam;
+      }
+
+      const exportedAt =
+        typeof record.exportedAt === 'string' && record.exportedAt.trim()
+          ? record.exportedAt
+          : memorizationExportedAt;
+      const backupVersion =
+        typeof record.version === 'number' && Number.isFinite(record.version) ? record.version : 1;
+
+      const localKeysCount = Object.keys(validatedLocalEntries).length;
+      const memorizationUnitsCount =
+        memorizationUnitsFromPayload !== null
+          ? memorizationUnitsFromPayload
+          : (() => {
+              const rawUnits = validatedLocalEntries['muallimun_memorization_v1_units'];
+              if (!rawUnits) return 0;
+              try {
+                const arr = JSON.parse(rawUnits);
+                return Array.isArray(arr) ? arr.length : 0;
+              } catch {
+                return 0;
+              }
+            })();
+      const researchTopicsCount = countResearchTopicsFromJson(
+        validatedLocalEntries[RESEARCH_NOTEBOOK_STORAGE_KEY],
+      );
+      const hasActiveMemorizationSession = Boolean(
+        hasMemActiveSessionFromPayload ||
+          (validatedLocalEntries['muallimun_memorization_v1_active_session'] &&
+            validatedLocalEntries['muallimun_memorization_v1_active_session'] !== 'null'),
+      );
+
+      sfxService.play('click');
+      setPendingBackupRestore({
+        fileName: file.name,
+        exportedAt,
+        backupVersion,
+        hasFullStorage,
+        localStorageEntries: validatedLocalEntries,
+        memorizationPayload: validatedMemorizationPayload,
+        hasActiveExamSessionField,
+        activeExamSession: validatedExamSession,
+        localKeysCount,
+        memorizationUnitsCount,
+        researchTopicsCount,
+        hasActiveMemorizationSession,
+        hasActiveExamSession: Boolean(validatedExamSession),
       });
-      window.setTimeout(() => {
-        window.location.reload();
-      }, 650);
     } catch (err) {
       setBackupStatus({
         type: 'error',
@@ -286,6 +479,141 @@ export const SettingsModal: React.FC = () => {
           err instanceof Error
             ? err.message
             : 'Seçilen dosya geçerli bir Muallimun yedeği değil.',
+      });
+    } finally {
+      setIsBackupBusy(false);
+    }
+  };
+
+  // Aşama 2: Onay sonrası atomik uygulama + hata halinde eksiksiz rollback
+  const handleConfirmBackupRestore = async (downloadCurrentFirst: boolean) => {
+    if (!pendingBackupRestore) return;
+
+    sfxService.play('click');
+    setIsBackupBusy(true);
+    setBackupStatus(null);
+
+    if (downloadCurrentFirst) {
+      try {
+        await exportCurrentBackupFile();
+      } catch {
+        setBackupStatus({
+          type: 'error',
+          text: 'Mevcut veriniz indirilemediği için geri yükleme başlatılmadı.',
+        });
+        setIsBackupBusy(false);
+        return;
+      }
+    }
+
+    const pending = pendingBackupRestore;
+
+    // 1) Mevcut durumun eksiksiz rollback anlık görüntüsünü al
+    const prevLocalEntries: Record<string, string> = {};
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (!key || !key.startsWith('muallimun')) continue;
+      const val = window.localStorage.getItem(key);
+      if (val !== null) {
+        prevLocalEntries[key] = val;
+      }
+    }
+    const prevExamSession = loadActiveExamSession();
+    let prevMemorization: MemorizationBackupPayload | null = null;
+    try {
+      prevMemorization = await memorizationStorage.createBackupPayload();
+    } catch {
+      prevMemorization = null;
+    }
+
+    // 2) Store otomatik yazımını duraklat ki mevcut bellek state'i geri yüklemeyi ezmesin
+    setStorePersistencePaused(true);
+
+    try {
+      if (pending.hasFullStorage) {
+        const existingKeys: string[] = [];
+        for (let i = 0; i < window.localStorage.length; i += 1) {
+          const key = window.localStorage.key(i);
+          if (key && key.startsWith('muallimun')) {
+            existingKeys.push(key);
+          }
+        }
+        for (const key of existingKeys) {
+          if (!(key in pending.localStorageEntries)) {
+            window.localStorage.removeItem(key);
+          }
+        }
+        for (const [key, value] of Object.entries(pending.localStorageEntries)) {
+          window.localStorage.setItem(key, value);
+        }
+      }
+
+      if (pending.hasActiveExamSessionField) {
+        if (pending.activeExamSession) {
+          saveActiveExamSession(pending.activeExamSession);
+        } else {
+          clearActiveExamSession();
+        }
+      }
+
+      if (pending.memorizationPayload) {
+        await memorizationStorage.importBackupPayload(pending.memorizationPayload, 'replace');
+      }
+
+      setPendingBackupRestore(null);
+      sfxService.play('correct');
+      setBackupStatus({
+        type: 'success',
+        text: 'Yedek atomik olarak geri yüklendi. Uygulama yenileniyor...',
+      });
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 650);
+    } catch (err) {
+      // Hata oluştuysa tüm katmanları rollback anlık görüntüsüne geri döndür
+      try {
+        const currentKeys: string[] = [];
+        for (let i = 0; i < window.localStorage.length; i += 1) {
+          const key = window.localStorage.key(i);
+          if (key && key.startsWith('muallimun')) {
+            currentKeys.push(key);
+          }
+        }
+        for (const key of currentKeys) {
+          window.localStorage.removeItem(key);
+        }
+        for (const [key, value] of Object.entries(prevLocalEntries)) {
+          window.localStorage.setItem(key, value);
+        }
+      } catch {
+        // ignore rollback storage error
+      }
+
+      try {
+        if (prevExamSession) {
+          saveActiveExamSession(prevExamSession);
+        } else {
+          clearActiveExamSession();
+        }
+      } catch {
+        // ignore
+      }
+
+      if (prevMemorization) {
+        try {
+          await memorizationStorage.importBackupPayload(prevMemorization, 'replace');
+        } catch {
+          // ignore
+        }
+      }
+
+      setStorePersistencePaused(false);
+      setBackupStatus({
+        type: 'error',
+        text:
+          err instanceof Error
+            ? `Geri yükleme tamamlanamadı (${err.message}). Mevcut verileriniz korundu.`
+            : 'Geri yükleme sırasında hata oluştu. Mevcut verileriniz korundu.',
       });
       setIsBackupBusy(false);
     }
@@ -728,6 +1056,172 @@ export const SettingsModal: React.FC = () => {
                     <span>Yedekten Geri Yükle</span>
                   </button>
                 </div>
+
+                {/* İki Aşamalı Yedek Önizleme & Onay Kartı */}
+                {pendingBackupRestore && (
+                  <div
+                    role="region"
+                    aria-label="Yedek Önizleme ve Geri Yükleme Onayı"
+                    className="p-3.5 rounded-xl border space-y-3"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--brand-primary)',
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <ShieldCheck
+                          className="w-4 h-4 shrink-0 mt-0.5"
+                          style={{ color: 'var(--brand-primary)' }}
+                        />
+                        <div className="min-w-0">
+                          <h4
+                            className="text-xs sm:text-sm font-extrabold"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            Yedek Önizleme &amp; Geri Yükleme Onayı
+                          </h4>
+                          <p
+                            className="text-[11px] truncate mt-0.5"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            {pendingBackupRestore.fileName} · Tarih:{' '}
+                            {formatBackupDate(pendingBackupRestore.exportedAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isBackupBusy}
+                        onClick={() => setPendingBackupRestore(null)}
+                        aria-label="Önizlemeyi kapat"
+                        className="p-1 rounded-lg cursor-pointer shrink-0"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div
+                        className="px-2.5 py-2 rounded-lg border"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <p style={{ color: 'var(--text-muted)' }}>Ezber Birimi</p>
+                        <p className="font-extrabold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                          {pendingBackupRestore.memorizationUnitsCount} birim
+                        </p>
+                      </div>
+                      <div
+                        className="px-2.5 py-2 rounded-lg border"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <p style={{ color: 'var(--text-muted)' }}>Araştırma Konusu</p>
+                        <p className="font-extrabold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                          {pendingBackupRestore.researchTopicsCount} konu
+                        </p>
+                      </div>
+                      <div
+                        className="px-2.5 py-2 rounded-lg border"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <p style={{ color: 'var(--text-muted)' }}>Kayıt Alanı</p>
+                        <p className="font-extrabold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                          {pendingBackupRestore.localKeysCount} alan
+                        </p>
+                      </div>
+                      <div
+                        className="px-2.5 py-2 rounded-lg border"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <p style={{ color: 'var(--text-muted)' }}>Aktif Oturum</p>
+                        <p className="font-extrabold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                          {pendingBackupRestore.hasActiveMemorizationSession ||
+                          pendingBackupRestore.hasActiveExamSession
+                            ? [
+                                pendingBackupRestore.hasActiveMemorizationSession ? 'Ezber' : null,
+                                pendingBackupRestore.hasActiveExamSession ? 'Sınav' : null,
+                              ]
+                                .filter(Boolean)
+                                .join(' + ')
+                            : 'Yok'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      className="flex items-start gap-2 px-2.5 py-2 rounded-lg text-[11px] leading-snug"
+                      style={{
+                        backgroundColor: 'var(--brand-accent-soft)',
+                        color: 'var(--brand-accent-text)',
+                      }}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <span>
+                        Onayladığınızda mevcut çalışma verileriniz bu yedekle değiştirilecektir.
+                        Hata durumunda mevcut verileriniz otomatik korunur.
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        disabled={isBackupBusy}
+                        onClick={() => void handleConfirmBackupRestore(false)}
+                        className="min-h-[40px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                        style={{ backgroundColor: 'var(--brand-primary)' }}
+                      >
+                        {isBackupBusy ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        )}
+                        <span>Onayla ve Geri Yükle</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isBackupBusy}
+                        onClick={() => void handleConfirmBackupRestore(true)}
+                        className="min-h-[40px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--brand-primary)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <Download className="w-3.5 h-3.5 shrink-0" />
+                        <span>Önce Mevcut Verimi İndir, Sonra Yükle</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isBackupBusy}
+                        onClick={() => setPendingBackupRestore(null)}
+                        className="min-h-[38px] px-3.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center cursor-pointer disabled:opacity-60"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        Vazgeç
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {backupStatus && (
                   <p

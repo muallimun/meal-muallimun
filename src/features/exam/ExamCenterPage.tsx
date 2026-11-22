@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Puzzle, RotateCcw, Trophy } from 'lucide-react';
-import { audioQueueService } from '../../services/audioQueueService';
+import { claimAudioFocus } from '../../services/audioFocusCoordinator';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -47,6 +47,7 @@ export const ExamCenterPage: React.FC = () => {
   const [initialSurahFilter, setInitialSurahFilter] = useState<number | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const isStartingRef = useRef(false);
 
   // Aktif sınav durumunu AppShell'e (mobil alt bar gizleme) bildir
   useEffect(() => {
@@ -63,6 +64,8 @@ export const ExamCenterPage: React.FC = () => {
 
   const startExamFromConfig = useCallback(
     async (config: ExamConfig) => {
+      if (isStartingRef.current) return;
+      isStartingRef.current = true;
       setIsStarting(true);
       setStartError(null);
 
@@ -100,8 +103,8 @@ export const ExamCenterPage: React.FC = () => {
           return;
         }
 
-        // Arka planda ses çalıyorsa duraklat ve başlangıç SFX çal
-        audioQueueService.pause();
+        // Arka plandaki tüm ses ve önizlemeleri durdur ve başlangıç SFX çal
+        claimAudioFocus('activity_scene');
         sfxService.play('start');
 
         const mockTotalSec = Math.max(60, Math.round(prepared.length * 90));
@@ -139,6 +142,7 @@ export const ExamCenterPage: React.FC = () => {
           err instanceof Error ? err.message : 'Soru bankası yüklenirken bir hata oluştu.',
         );
       } finally {
+        isStartingRef.current = false;
         setIsStarting(false);
       }
     },
@@ -195,7 +199,7 @@ export const ExamCenterPage: React.FC = () => {
 
   const handleResumeSession = () => {
     if (!resumableSession) return;
-    audioQueueService.pause();
+    claimAudioFocus('activity_scene');
     sfxService.play('start');
     setActiveSession(resumableSession);
     setResumableSession(null);

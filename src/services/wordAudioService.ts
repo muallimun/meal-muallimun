@@ -1,5 +1,5 @@
+import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
 import { audioQueueService } from './audioQueueService';
-import { memorizationAudioController } from './memorizationAudioController';
 import { mapDisplayWordIndexToQul } from '../utils/wordSyncUtils';
 
 export type WordAudioStatus = 'idle' | 'loading' | 'playing';
@@ -13,6 +13,7 @@ type Listener = () => void;
 
 const DEFAULT_WBW_PRIMARY = 'https://audio.qurancdn.com/wbw/{SSS}_{AAA}_{WWW}.mp3';
 const DEFAULT_WBW_FALLBACK = 'https://verses.quran.com/wbw/{SSS}_{AAA}_{WWW}.mp3';
+const WORD_LOAD_TIMEOUT_MS = 10_000;
 
 const INITIAL_SNAPSHOT: WordAudioSnapshot = {
   playingKey: null,
@@ -47,16 +48,8 @@ class WordAudioService {
   private listeners = new Set<Listener>();
   private audio: HTMLAudioElement | null = null;
   private abortController: AbortController | null = null;
+  private loadTimer: number | null = null;
   private sessionId = 0;
-  private externalRegistered = false;
-
-  private ensureMutualExclusion(): void {
-    if (this.externalRegistered) return;
-    this.externalRegistered = true;
-    audioQueueService.registerExternalAudioPauser(() => {
-      this.stop();
-    });
-  }
 
   public subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
@@ -80,7 +73,15 @@ class WordAudioService {
     }
   }
 
+  private clearLoadTimer(): void {
+    if (this.loadTimer !== null && typeof window !== 'undefined') {
+      window.clearTimeout(this.loadTimer);
+      this.loadTimer = null;
+    }
+  }
+
   private teardownAudio(): void {
+    this.clearLoadTimer();
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
@@ -104,7 +105,7 @@ class WordAudioService {
 
   /**
    * Tek bir Kur'an kelimesinin telaffuzunu Quran.com WBW CDN üzerinden çalar.
-   * Ana tilavet çalıyorsa çakışmayı önlemek için otomatik olarak duraklatır.
+   * Merkezi ses odağını devralarak diğer ses kaynaklarıyla üst üste binmeyi önler.
    */
   public playWordAudio(
     surah: number,
@@ -116,14 +117,7 @@ class WordAudioService {
     if (!Number.isInteger(surah) || surah < 1 || surah > 114) return;
     if (!Number.isInteger(ayah) || ayah < 1) return;
 
-    this.ensureMutualExclusion();
-
-    // Ana tilavet veya ezber motoru çalıyorsa üst üste binmemesi için duraklat
-    const mainStatus = audioQueueService.getSnapshot().status;
-    if (mainStatus === 'playing' || mainStatus === 'loading') {
-      audioQueueService.pause();
-    }
-    memorizationAudioController.pause();
+    claimAudioFocus('word_wbw');
 
     const key = buildWordAudioKey(surah, ayah, wordIndex1Based);
     this.sessionId += 1;
@@ -147,7 +141,8 @@ class WordAudioService {
 
       const primaryUrl = fillWbwTemplate(primaryTemplate, surah, ayah, safeQulIdx);
       const fallbackUrl = fillWbwTemplate(fallbackTemplate, surah, ayah, safeQulIdx);
-      const urls = fallbackUrl && fallbackUrl !== primaryUrl ? [primaryUrl, fallbackUrl] : [primaryUrl];
+      const urls =
+        fallbackUrl && fallbackUrl !== primaryUrl ? [primaryUrl, fallbackUrl] : [primaryUrl];
 
       const playAttempt = (urlIndex: number) => {
         if (session !== this.sessionId) return;
@@ -174,6 +169,7 @@ class WordAudioService {
         const onFail = () => {
           if (failed || session !== this.sessionId) return;
           failed = true;
+          this.clearLoadTimer();
           if (urlIndex + 1 < urls.length) {
             playAttempt(urlIndex + 1);
             return;
@@ -182,10 +178,25 @@ class WordAudioService {
           this.emit(INITIAL_SNAPSHOT);
         };
 
+        this.loadTimer = window.setTimeout(() => {
+          if (session !== this.sessionId) return;
+          onFail();
+        }, WORD_LOAD_TIMEOUT_MS);
+
+        audio.addEventListener(
+          'canplay',
+          () => {
+            if (session !== this.sessionId) return;
+            this.clearLoadTimer();
+          },
+          { signal },
+        );
+
         audio.addEventListener(
           'playing',
           () => {
             if (session !== this.sessionId) return;
+            this.clearLoadTimer();
             this.emit({ playingKey: key, status: 'playing' });
           },
           { signal },
@@ -195,6 +206,7 @@ class WordAudioService {
           'ended',
           () => {
             if (session !== this.sessionId) return;
+            this.clearLoadTimer();
             this.emit(INITIAL_SNAPSHOT);
           },
           { signal },
@@ -240,3 +252,7 @@ class WordAudioService {
 }
 
 export const wordAudioService = new WordAudioService();
+
+registerAudioOwner('word_wbw', () => {
+  wordAudioService.stop();
+});
