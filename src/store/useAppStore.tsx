@@ -973,7 +973,13 @@ interface AppContextValue {
   ) => void;
   closeQuickMemorize: () => void;
   quickResearchSeed: QuickResearchSeed | null;
-  openQuickResearch: (surah: number, startAyah: number, endAyah?: number, page?: number) => void;
+  openQuickResearch: (
+    surah: number,
+    startAyah: number,
+    endAyah?: number,
+    page?: number,
+    initialNote?: string,
+  ) => void;
   closeQuickResearch: () => void;
   memorizeLaunchTarget: MemorizeLaunchTarget | null;
   navigateToMemorizeUnit: (
@@ -1014,6 +1020,12 @@ interface AppContextValue {
   isBookmarksDrawerOpen: boolean;
   openBookmarksDrawer: () => void;
   closeBookmarksDrawer: () => void;
+  isHatimModalOpen: boolean;
+  openHatimModal: () => void;
+  closeHatimModal: () => void;
+  verseNoteTarget: { surah: number; ayah: number; page?: number } | null;
+  openVerseNoteModal: (surah: number, ayah: number, page?: number) => void;
+  closeVerseNoteModal: () => void;
   isSearchModalOpen: boolean;
   openSearchModal: () => void;
   closeSearchModal: () => void;
@@ -1154,6 +1166,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   } | null>(null);
   const [isWaqfGuideOpen, setIsWaqfGuideOpen] = useState(false);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
+  const [isHatimModalOpen, setIsHatimModalOpen] = useState(false);
+  const [verseNoteTarget, setVerseNoteTarget] = useState<{
+    surah: number;
+    ayah: number;
+    page?: number;
+  } | null>(null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isUserGuideOpen, setIsUserGuideOpen] = useState(false);
   const [userGuideTab, setUserGuideTab] = useState<UserGuideTabId>('quickstart');
@@ -2168,13 +2186,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const openQuickResearch = useCallback(
-    (surah: number, startAyah: number, endAyah?: number, page?: number) => {
+    (surah: number, startAyah: number, endAyah?: number, page?: number, initialNote?: string) => {
       sfxService.play('click');
       setQuickResearchSeed({
         surah,
         startAyah,
         endAyah: endAyah ?? startAyah,
         page,
+        initialNote,
         nonce: Date.now(),
       });
     },
@@ -2239,6 +2258,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const closeBookmarksDrawer = useCallback(() => {
     setIsBookmarksDrawerOpen(false);
+  }, []);
+
+  const openHatimModal = useCallback(() => {
+    sfxService.play('click');
+    setIsHatimModalOpen(true);
+  }, []);
+
+  const closeHatimModal = useCallback(() => {
+    setIsHatimModalOpen(false);
+  }, []);
+
+  const openVerseNoteModal = useCallback((surah: number, ayah: number, page?: number) => {
+    sfxService.play('click');
+    setVerseNoteTarget({ surah, ayah, page });
+  }, []);
+
+  const closeVerseNoteModal = useCallback(() => {
+    setVerseNoteTarget(null);
   }, []);
 
   const openSearchModal = useCallback(() => {
@@ -2592,6 +2629,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isBookmarksDrawerOpen,
       openBookmarksDrawer,
       closeBookmarksDrawer,
+      isHatimModalOpen,
+      openHatimModal,
+      closeHatimModal,
+      verseNoteTarget,
+      openVerseNoteModal,
+      closeVerseNoteModal,
       isSearchModalOpen,
       openSearchModal,
       closeSearchModal,
@@ -2721,6 +2764,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isBookmarksDrawerOpen,
       openBookmarksDrawer,
       closeBookmarksDrawer,
+      isHatimModalOpen,
+      openHatimModal,
+      closeHatimModal,
+      verseNoteTarget,
+      openVerseNoteModal,
+      closeVerseNoteModal,
       isSearchModalOpen,
       openSearchModal,
       closeSearchModal,

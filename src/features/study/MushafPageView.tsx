@@ -21,6 +21,7 @@ import {
   Scale,
   Sparkles,
   Star,
+  StickyNote,
   Trash2,
   Volume2,
 } from 'lucide-react';
@@ -34,6 +35,7 @@ import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useRukusData } from '../../hooks/useStudyReferenceData';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
+import { hatimStorage } from '../../services/hatimStorage';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import {
@@ -41,6 +43,11 @@ import {
   toArabicIndicDigits,
 } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
+import {
+  VERSE_NOTE_COLOR_STYLES,
+  makeVerseNoteKey,
+  verseNotesStorage,
+} from '../../services/verseNotesStorage';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   AppSettings,
@@ -348,6 +355,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     openBookmarksDrawer,
     openMealCompare,
     openMealSelector,
+    openVerseNoteModal,
     openListeningDrawer,
     manifest,
     meta,
@@ -355,6 +363,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   } = useAppStore();
 
   const { getRukuEndingAt } = useRukusData(settings.showRukuMarkers);
+  const verseNotesMap = useSyncExternalStore(
+    verseNotesStorage.subscribe,
+    verseNotesStorage.getMapSnapshot,
+  );
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
@@ -737,6 +749,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   surah: firstVerse.surah,
                   ayah: firstVerse.ayah,
                 });
+                if (hatimStorage.getSnapshot().activePlan) {
+                  hatimStorage.markPagesReadUpTo(bundle.pageNo);
+                }
                 setOpenRibbonPage(null);
               }}
               className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
@@ -1476,6 +1491,23 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                             ? `(${group.startAyah}–${group.endAyah})`
                             : `(${group.startAyah})`;
                           const ayahIdsAttr = group.verses.map((v) => v.id).join(' ');
+                          const groupNotes = group.verses
+                            .map((v) => ({
+                              verse: v,
+                              note: verseNotesMap.get(makeVerseNoteKey(v.surah, v.ayah)),
+                            }))
+                            .filter(
+                              (
+                                item,
+                              ): item is {
+                                verse: CombinedVerse;
+                                note: NonNullable<typeof item.note>;
+                              } => Boolean(item.note),
+                            );
+                          const primaryGroupNote = groupNotes[0] ?? null;
+                          const primaryGroupNoteStyle = primaryGroupNote
+                            ? VERSE_NOTE_COLOR_STYLES[primaryGroupNote.note.color]
+                            : null;
 
                           const handleSelectGroupCard = () => {
                             sfxService.play('click');
@@ -1652,6 +1684,32 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                           <span>Ses: {activeSpokenMeal.label}</span>
                                         </span>
                                       )}
+
+                                    {primaryGroupNote && primaryGroupNoteStyle && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openVerseNoteModal(
+                                            primaryGroupNote.verse.surah,
+                                            primaryGroupNote.verse.ayah,
+                                            bundle.pageNo,
+                                          );
+                                        }}
+                                        title="Kişisel ayet notunu görüntüle veya düzenle"
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[10.5px] font-extrabold whitespace-nowrap cursor-pointer hover:opacity-85"
+                                        style={{
+                                          backgroundColor: primaryGroupNoteStyle.softBg,
+                                          borderColor: primaryGroupNoteStyle.border,
+                                          color: primaryGroupNoteStyle.badgeText,
+                                        }}
+                                      >
+                                        <StickyNote className="w-3 h-3 shrink-0" />
+                                        <span>
+                                          Not{groupNotes.length > 1 ? ` (${groupNotes.length})` : ''}
+                                        </span>
+                                      </button>
+                                    )}
                                   </div>
 
                                   <div
@@ -1759,6 +1817,30 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                     >
                                       <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        openVerseNoteModal(
+                                          targetVerse.surah,
+                                          targetVerse.ayah,
+                                          bundle.pageNo,
+                                        )
+                                      }
+                                      title={
+                                        primaryGroupNote
+                                          ? `${targetVerse.ayah}. ayet notunu düzenle`
+                                          : `${targetVerse.ayah}. ayete kişisel not ekle`
+                                      }
+                                      aria-label={`${targetVerse.ayah}. ayet notu`}
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      style={{
+                                        color: primaryGroupNoteStyle
+                                          ? primaryGroupNoteStyle.dot
+                                          : 'var(--text-muted)',
+                                      }}
+                                    >
+                                      <StickyNote className="w-3.5 h-3.5" />
                                     </button>
                                     <button
                                       type="button"
@@ -1951,6 +2033,55 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                           ))}
                                         </div>
                                       )}
+                                    </div>
+                                  )}
+
+                                  {groupNotes.length > 0 && (
+                                    <div className="pt-1 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                                      {groupNotes.map(({ verse: nv, note: vn }) => {
+                                        const st = VERSE_NOTE_COLOR_STYLES[vn.color];
+                                        return (
+                                          <button
+                                            key={`mushaf-note-${vn.key}`}
+                                            type="button"
+                                            onClick={() =>
+                                              openVerseNoteModal(nv.surah, nv.ayah, bundle.pageNo)
+                                            }
+                                            className="w-full text-left rounded-lg border px-2.5 py-1.5 text-xs space-y-0.5 cursor-pointer hover:opacity-95"
+                                            style={{
+                                              backgroundColor: st.softBg,
+                                              borderColor: st.border,
+                                            }}
+                                          >
+                                            <div className="flex items-center justify-between gap-2">
+                                              <span
+                                                className="inline-flex items-center gap-1 text-[10.5px] font-extrabold"
+                                                style={{ color: st.badgeText }}
+                                              >
+                                                <StickyNote className="w-3 h-3 shrink-0" />
+                                                <span>
+                                                  Notum
+                                                  {isMerged ? ` (${nv.ayah}. Ayet)` : ''}
+                                                </span>
+                                              </span>
+                                              <span
+                                                className="text-[10px] font-bold underline"
+                                                style={{ color: st.badgeText }}
+                                              >
+                                                Düzenle
+                                              </span>
+                                            </div>
+                                            {vn.text && (
+                                              <p
+                                                className="text-xs leading-snug whitespace-pre-wrap line-clamp-2"
+                                                style={{ color: 'var(--text-primary)' }}
+                                              >
+                                                {vn.text}
+                                              </p>
+                                            )}
+                                          </button>
+                                        );
+                                      })}
                                     </div>
                                   )}
                                 </div>

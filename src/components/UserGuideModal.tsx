@@ -58,13 +58,13 @@ const QUICKSTART_ROUTES: QuickStartRouteItem[] = [
   {
     id: 'daily_reader',
     title: 'Günlük Okuyucu & Hatim Takipçisi',
-    audience: 'Mushaf · Kitap · Kart Görünümleri',
+    audience: 'Mushaf · 30 Cüz Hatim Planlayıcısı · Ayraçlar',
     description:
-      'Sayfa sayfa Mushaf okuyun, renkli tecvit ve 9 farklı Arapça hat arasından seçim yapın, kaldığınız yere ayraç bırakın ve 28 kurrâdan tilavet dinleyin.',
+      'Sayfa sayfa Mushaf okuyun, 30 Cüz Hatim Planlayıcısı ile günlük sayfa veya bitiş tarihi hedefi belirleyin, Hatim ayracınızla ilerlemenizi senkronize edin ve 28 kurrâdan tilavet dinleyin.',
     ctaLabel: 'Okuma Ekranını Aç',
     targetTab: 'reader',
     icon: BookOpen,
-    keywords: 'okuma hatim mushaf kitap kart tecvit hat ayraç kurra tilavet ses',
+    keywords: 'okuma hatim planlayıcı 30 cüz mushaf kitap kart tecvit hat ayraç kurra tilavet ses',
   },
   {
     id: 'hifz_student',
@@ -92,13 +92,13 @@ const QUICKSTART_ROUTES: QuickStartRouteItem[] = [
   {
     id: 'researcher',
     title: 'Araştırmacı & Tefsir/Meal Çalışanı',
-    audience: '27 Meal/Tefsir · Konu Fihristi · Araştırma Defteri',
+    audience: '27 Meal/Tefsir · Konu Fihristi · Ayet Notları & Defterim',
     description:
-      '27 farklı meal ve tefsiri yan yana karşılaştırın, konu fihristinden ilgili ayetlere ulaşın, nüzul sırası ve müteşâbihât eşleşmelerini inceleyip kişisel notlar alın.',
+      '27 farklı meal ve tefsiri yan yana karşılaştırın, ayetlere renkli ve etiketli kişisel tefekkür notları ekleyin, konu fihristi ve araştırma defterinizden A4 PDF çalışma çıktıları alın.',
     ctaLabel: 'Fihrist & Araştırmayı Aç',
     targetTab: 'fihrist',
     icon: Layers,
-    keywords: 'araştırma tefsir 27 meal fihrist konu nüzul müteşabihat rüku defter not',
+    keywords: 'araştırma tefsir 27 meal fihrist konu nüzul müteşabihat rüku defter not tefekkür etiket',
   },
 ];
 
@@ -150,6 +150,32 @@ const MODULE_TIPS: ModuleTipItem[] = [
       'Okuma ekranında ise havuzdan bağımsız olarak 114 sure ve 604 sayfanın tamamına her zaman doğrudan erişebilirsiniz.',
     ],
     keywords: 'havuz aktif çalışma havuzu 114 sure genişlet başlangıç cüz filtre',
+  },
+  {
+    id: 'hatim_planner_guide',
+    title: '30 Cüz Hatim Planlayıcısı ve Mushaf Ayraç Senkronu',
+    badge: 'Hatim Takibi',
+    summary:
+      'Ana Sayfa "Hatim Planım" kısayolu veya "Sayfa Ayraçlarım" çekmecesinden 604 sayfalık 30 Cüz Hatim Planlayıcısına ulaşabilirsiniz:',
+    bullets: [
+      'Günlük sayfa hedefi (ör. günde 4 veya 20 sayfa), hedef bitiş tarihi ya da serbest 30 cüz işaretleme modlarından birini seçebilirsiniz.',
+      'Mushaf görünümünde "Hatim Ayracımı Buraya Taşı" dediğinizde aktif hatim planınız o sayfaya kadar otomatik güncellenir; 30 cüzlük ızgaradan herhangi bir cüzü doğrudan açabilir veya tamamlandı işaretleyebilirsiniz.',
+      '604 sayfanın tamamı bittiğinde hatminiz tarih ve notuyla Hatim Geçmişinize kaydedilir.',
+    ],
+    keywords: 'hatim 30 cüz planlayıcı günlük sayfa hedef tarih ayraç mushaf geçmiş',
+  },
+  {
+    id: 'personal_verse_notes',
+    title: 'Ayet Bazlı Kişisel Tefekkür Notları ve Etiketleme',
+    badge: 'Defterim & Arama',
+    summary:
+      'Kartlar, Kitap ve Mushaf görünümlerindeki herhangi bir ayete renkli, etiketli kişisel notlar ekleyebilir ve dilediğinizde Araştırma Defterinize aktarabilirsiniz:',
+    bullets: [
+      'Not eklediğiniz ayetlerde renkli "Notum" rozeti ve tıklanabilir not kutusu görünür; tüm notlarınız Fihrist → Defterim → Ayet Notlarım altında toplanır.',
+      'Ayet Notlarım panelinde arama, renk/etiket filtreleme ve tek tıkla A4 PDF yazdırma seçenekleri bulunur; Ctrl+K Genel Arama da Türkçe sorgularda kişisel notlarınızı tarar.',
+      'Kişisel notlarınız ve Hatim ilerlemeniz cihazınızda saklanır ve Ayarlar içindeki Tam Yedek (.json) dosyasına otomatik dâhil edilir.',
+    ],
+    keywords: 'kişisel ayet notu tefekkür etiket renk defterim arama pdf yedek',
   },
   {
     id: 'a4_exam_pdf',

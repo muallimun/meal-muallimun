@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { researchStorage } from '../../services/researchStorage';
 import { sfxService } from '../../services/sfxService';
+import { verseNotesStorage } from '../../services/verseNotesStorage';
 import { useAppStore } from '../../store/useAppStore';
 import { BazerganTimelineTab } from './BazerganTimelineTab';
 import { ResearchNotebookTab } from './ResearchNotebookTab';
@@ -25,6 +26,11 @@ export const FihristHubPage: React.FC = () => {
     researchStorage.subscribe,
     researchStorage.getSnapshot,
   );
+  const verseNotes = useSyncExternalStore(
+    verseNotesStorage.subscribe,
+    verseNotesStorage.getSnapshot,
+  );
+  const totalNotebookCount = researchTopics.length + verseNotes.length;
 
   const [subTab, setSubTab] = useState<FihristSubTab>('topics');
   const [targetFihristTopicId, setTargetFihristTopicId] = useState<string | null>(null);
@@ -137,7 +143,7 @@ export const FihristHubPage: React.FC = () => {
                 label: 'Defterim',
                 mobileLabel: 'Defterim',
                 icon: NotebookPen,
-                badge: researchTopics.length > 0 ? researchTopics.length : null,
+                badge: totalNotebookCount > 0 ? totalNotebookCount : null,
               },
             ] as const
           ).map((tab) => {

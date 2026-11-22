@@ -163,6 +163,7 @@ export interface QuickResearchSeed {
   startAyah: number;
   endAyah?: number;
   page?: number;
+  initialNote?: string;
   nonce: number;
 }
 

@@ -30,6 +30,7 @@ import {
 } from '../../services/fihristService';
 import { researchStorage } from '../../services/researchStorage';
 import { sfxService } from '../../services/sfxService';
+import { verseNotesStorage } from '../../services/verseNotesStorage';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   FihristPrintMode,
@@ -39,6 +40,7 @@ import type {
   ResearchVerseEntry,
 } from '../../types/fihrist';
 import { getSurahMap } from '../../utils/poolUtils';
+import { PersonalVerseNotesPanel } from './PersonalVerseNotesPanel';
 import { PrintableFihristModal } from './PrintableFihristModal';
 import {
   VerseCollectionRenderer,
@@ -131,6 +133,11 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     researchStorage.subscribe,
     researchStorage.getSnapshot,
   );
+  const verseNotes = useSyncExternalStore(
+    verseNotesStorage.subscribe,
+    verseNotesStorage.getSnapshot,
+  );
+  const [notebookSubView, setNotebookSubView] = useState<'topics' | 'notes'>('topics');
 
   const surahMap = useMemo(() => getSurahMap(meta), [meta]);
   const surahsList = useMemo(() => meta?.surahs ?? [], [meta]);
@@ -178,6 +185,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   // Dışarıdan kopyalanan veya yönlendirilen bir konuya doğrudan geçiş
   useEffect(() => {
     if (!selectedTopicIdOverride) return;
+    setNotebookSubView('topics');
     setSelectedTopicId(selectedTopicIdOverride);
     onClearTopicOverride?.();
   }, [selectedTopicIdOverride, onClearTopicOverride]);
@@ -519,10 +527,87 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
 
   return (
     <div className="space-y-3.5">
-      {/* ====================================================================
-          MOBİL (< lg) KOMPAKT ÜST KONU SEÇİCİ ŞERİDİ (Ekranı kaplamaz!)
-          ==================================================================== */}
-      <div className="lg:hidden space-y-2.5">
+      {/* Üst 2 Bölmeli Alt Geçiş: Araştırma Konularım | Ayet Notlarım */}
+      <div
+        role="tablist"
+        aria-label="Defterim görünüm seçici"
+        className="grid grid-cols-2 p-1 rounded-2xl border gap-1 max-w-xl"
+        style={{
+          backgroundColor: 'var(--bg-surface-soft)',
+          borderColor: 'var(--border-subtle)',
+        }}
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={notebookSubView === 'topics'}
+          onClick={() => {
+            sfxService.play('click');
+            setNotebookSubView('topics');
+          }}
+          className="min-h-[40px] px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-w-0"
+          style={{
+            backgroundColor: notebookSubView === 'topics' ? 'var(--bg-surface)' : 'transparent',
+            color:
+              notebookSubView === 'topics' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+            boxShadow: notebookSubView === 'topics' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          <NotebookPen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="truncate">Araştırma Konularım</span>
+          <span
+            className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums leading-none shrink-0"
+            style={{
+              backgroundColor:
+                notebookSubView === 'topics' ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+              color:
+                notebookSubView === 'topics' ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+            }}
+          >
+            {topics.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={notebookSubView === 'notes'}
+          onClick={() => {
+            sfxService.play('click');
+            setNotebookSubView('notes');
+          }}
+          className="min-h-[40px] px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-w-0"
+          style={{
+            backgroundColor: notebookSubView === 'notes' ? 'var(--bg-surface)' : 'transparent',
+            color:
+              notebookSubView === 'notes' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+            boxShadow: notebookSubView === 'notes' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          <StickyNote className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="truncate">Ayet Notlarım</span>
+          <span
+            className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums leading-none shrink-0"
+            style={{
+              backgroundColor:
+                notebookSubView === 'notes' ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+              color:
+                notebookSubView === 'notes' ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+            }}
+          >
+            {verseNotes.length}
+          </span>
+        </button>
+      </div>
+
+      {notebookSubView === 'notes' ? (
+        <PersonalVerseNotesPanel />
+      ) : (
+        <>
+          {/* ====================================================================
+              MOBİL (< lg) KOMPAKT ÜST KONU SEÇİCİ ŞERİDİ (Ekranı kaplamaz!)
+              ==================================================================== */}
+          <div className="lg:hidden space-y-2.5">
         <div className="surface-card rounded-2xl p-2.5 flex items-center gap-1.5">
           {topics.length > 0 ? (
             <select
@@ -1494,6 +1579,8 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

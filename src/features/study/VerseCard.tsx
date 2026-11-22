@@ -18,6 +18,7 @@ import {
   Scale,
   Share2,
   Star,
+  StickyNote,
   Volume2,
 } from 'lucide-react';
 import {
@@ -30,6 +31,11 @@ import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReference
 import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
+import {
+  VERSE_NOTE_COLOR_STYLES,
+  makeVerseNoteKey,
+  verseNotesStorage,
+} from '../../services/verseNotesStorage';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   AppSettings,
@@ -98,6 +104,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
     openMutashabihat,
     openQuickMemorize,
     openQuickResearch,
+    openVerseNoteModal,
     openListeningDrawer,
     manifest,
     meta,
@@ -108,6 +115,12 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   const surahNameTr = surahMeta.nameTr;
   const mutashabihatCount = getMutashabihatCount(verse.surah, verse.ayah);
   const rukuEnd = settings.showRukuMarkers ? getRukuEndingAt(verse.surah, verse.ayah) : null;
+  const verseNotesMap = useSyncExternalStore(
+    verseNotesStorage.subscribe,
+    verseNotesStorage.getMapSnapshot,
+  );
+  const verseNote = verseNotesMap.get(makeVerseNoteKey(verse.surah, verse.ayah));
+  const verseNoteStyle = verseNote ? VERSE_NOTE_COLOR_STYLES[verseNote.color] : null;
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
@@ -464,6 +477,22 @@ export const VerseCard: React.FC<VerseCardProps> = ({
               <span>Nüzul Notu</span>
             </button>
           )}
+          {verseNote && verseNoteStyle && (
+            <button
+              type="button"
+              onClick={() => openVerseNoteModal(verse.surah, verse.ayah, verse.page)}
+              title="Kişisel ayet notunu düzenle"
+              className="inline-flex items-center gap-1 h-6 px-2 rounded-lg border text-[11px] font-extrabold whitespace-nowrap cursor-pointer transition-opacity hover:opacity-85"
+              style={{
+                backgroundColor: verseNoteStyle.softBg,
+                borderColor: verseNoteStyle.border,
+                color: verseNoteStyle.badgeText,
+              }}
+            >
+              <StickyNote className="w-3 h-3 shrink-0" />
+              <span>Notum</span>
+            </button>
+          )}
         </div>
 
         {/* Hızlı Aksiyonlar: Mobilde yalnızca 3 temiz ikon (Dinle · Yıldız · ⋯), masaüstünde tam aksiyonlar */}
@@ -635,6 +664,30 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                 >
                   <BookMarked className="w-4 h-4" style={{ color: 'var(--brand-primary-text)' }} />
                   <span>Buradan Ezber Başlat</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    openVerseNoteModal(verse.surah, verse.ayah, verse.page);
+                  }}
+                  className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center justify-between gap-2 hover:bg-[var(--bg-surface-soft)] cursor-pointer"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <span className="flex items-center gap-2">
+                    <StickyNote
+                      className="w-4 h-4 shrink-0"
+                      style={{ color: verseNoteStyle ? verseNoteStyle.dot : 'var(--brand-primary-text)' }}
+                    />
+                    <span>{verseNote ? 'Kişisel Notumu Düzenle' : 'Kişisel Not Ekle'}</span>
+                  </span>
+                  {verseNote && verseNoteStyle && (
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: verseNoteStyle.dot }}
+                    />
+                  )}
                 </button>
 
                 <button
@@ -1000,6 +1053,63 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Kişisel Tefekkür Notum Kutusu */}
+      {verseNote && verseNoteStyle && (
+        <button
+          type="button"
+          onClick={() => openVerseNoteModal(verse.surah, verse.ayah, verse.page)}
+          className="mt-4 w-full text-left rounded-xl border p-3 sm:p-3.5 transition-opacity hover:opacity-95 cursor-pointer space-y-1.5"
+          style={{
+            backgroundColor: verseNoteStyle.softBg,
+            borderColor: verseNoteStyle.border,
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className="inline-flex items-center gap-1.5 text-[11px] font-extrabold"
+              style={{ color: verseNoteStyle.badgeText }}
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: verseNoteStyle.dot }}
+              />
+              <StickyNote className="w-3.5 h-3.5 shrink-0" />
+              <span>Kişisel Notum</span>
+            </span>
+            <span
+              className="text-[11px] font-bold underline underline-offset-2"
+              style={{ color: verseNoteStyle.badgeText }}
+            >
+              Düzenle
+            </span>
+          </div>
+          {verseNote.text && (
+            <p
+              className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap line-clamp-4"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {verseNote.text}
+            </p>
+          )}
+          {verseNote.tags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 pt-0.5">
+              {verseNote.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2 py-0.5 rounded-md text-[10px] font-bold"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    color: verseNoteStyle.badgeText,
+                  }}
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </button>
       )}
     </article>
   );

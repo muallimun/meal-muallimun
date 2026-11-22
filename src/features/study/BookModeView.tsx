@@ -20,6 +20,7 @@ import {
   Scale,
   Share2,
   Star,
+  StickyNote,
   Volume2,
 } from 'lucide-react';
 import {
@@ -35,6 +36,11 @@ import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
+import {
+  VERSE_NOTE_COLOR_STYLES,
+  makeVerseNoteKey,
+  verseNotesStorage,
+} from '../../services/verseNotesStorage';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   BookContentMode,
@@ -90,6 +96,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     openMutashabihat,
     openQuickMemorize,
     openQuickResearch,
+    openVerseNoteModal,
     openListeningDrawer,
     manifest,
     meta,
@@ -98,6 +105,10 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 
   const { getCount: getMutashabihatCount } = useMutashabihatData(true);
   const { getRukuEndingAt } = useRukusData(settings.showRukuMarkers);
+  const verseNotesMap = useSyncExternalStore(
+    verseNotesStorage.subscribe,
+    verseNotesStorage.getMapSnapshot,
+  );
 
   const bookSurahNos = useMemo(() => [bundle.surahMeta.no], [bundle.surahMeta.no]);
   const {
@@ -271,6 +282,34 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             >
               <Scale className="w-4 h-4 text-[var(--brand-primary-text)]" />
               <span>Mealleri Karşılaştır ({MEALS_CATALOG.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpenMenuAyahId(null);
+                openVerseNoteModal(verse.surah, verse.ayah, verse.page);
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center justify-between gap-2 cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <StickyNote className="w-4 h-4 text-[var(--brand-primary-text)]" />
+                <span>
+                  {verseNotesMap.has(makeVerseNoteKey(verse.surah, verse.ayah))
+                    ? 'Ayet Notumu Düzenle'
+                    : 'Ayet Notu Ekle'}
+                </span>
+              </span>
+              {(() => {
+                const existing = verseNotesMap.get(makeVerseNoteKey(verse.surah, verse.ayah));
+                if (!existing) return null;
+                return (
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: VERSE_NOTE_COLOR_STYLES[existing.color].dot }}
+                  />
+                );
+              })()}
             </button>
 
             <button
@@ -798,6 +837,45 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 
                     <button
                       type="button"
+                      onClick={() =>
+                        openVerseNoteModal(
+                          selectedArabicVerse.surah,
+                          selectedArabicVerse.ayah,
+                          selectedArabicVerse.page,
+                        )
+                      }
+                      className="min-h-[42px] px-3.5 py-2 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                      style={(() => {
+                        const existing = verseNotesMap.get(
+                          makeVerseNoteKey(selectedArabicVerse.surah, selectedArabicVerse.ayah),
+                        );
+                        if (!existing) {
+                          return {
+                            backgroundColor: 'var(--bg-surface-soft)',
+                            borderColor: 'var(--border-subtle)',
+                            color: 'var(--text-primary)',
+                          };
+                        }
+                        const st = VERSE_NOTE_COLOR_STYLES[existing.color];
+                        return {
+                          backgroundColor: st.softBg,
+                          borderColor: st.border,
+                          color: st.badgeText,
+                        };
+                      })()}
+                    >
+                      <StickyNote className="w-3.5 h-3.5" />
+                      <span>
+                        {verseNotesMap.has(
+                          makeVerseNoteKey(selectedArabicVerse.surah, selectedArabicVerse.ayah),
+                        )
+                          ? 'Notumu Düzenle'
+                          : 'Ayet Notu'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => onShareVerse(selectedArabicVerse, bundle.surahMeta)}
                       className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface-soft)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                     >
@@ -925,6 +1003,8 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   ? getRukuEndingAt(verse.surah, verse.ayah)
                   : null;
                 const mutashabihatCount = getMutashabihatCount(verse.surah, verse.ayah);
+                const verseNote = verseNotesMap.get(makeVerseNoteKey(verse.surah, verse.ayah));
+                const verseNoteStyle = verseNote ? VERSE_NOTE_COLOR_STYLES[verseNote.color] : null;
                 const primaryVerse = getPrimaryVerse(verse);
                 const secondaryVerse = isDual ? getSecondaryVerse(verse) : null;
                 const fnList = settings.showFootnotes
@@ -1043,6 +1123,23 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             <Link2 className="w-3 h-3" />
                             {primaryMeal.shortLabel} {primaryVerse.mg[0]}–{primaryVerse.mg[1]}
                           </span>
+                        )}
+
+                        {verseNote && verseNoteStyle && (
+                          <button
+                            type="button"
+                            onClick={() => openVerseNoteModal(verse.surah, verse.ayah, verse.page)}
+                            title="Kişisel ayet notunu düzenle"
+                            className="inline-flex items-center gap-1 h-6 px-2 rounded-lg border text-[11px] font-extrabold whitespace-nowrap cursor-pointer transition-opacity hover:opacity-85"
+                            style={{
+                              backgroundColor: verseNoteStyle.softBg,
+                              borderColor: verseNoteStyle.border,
+                              color: verseNoteStyle.badgeText,
+                            }}
+                          >
+                            <StickyNote className="w-3 h-3 shrink-0" />
+                            <span>Notum</span>
+                          </button>
                         )}
                       </div>
 
@@ -1233,6 +1330,63 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           </div>
                         )}
                       </div>
+                    )}
+
+                    {/* Kişisel Tefekkür Notum */}
+                    {verseNote && verseNoteStyle && (
+                      <button
+                        type="button"
+                        onClick={() => openVerseNoteModal(verse.surah, verse.ayah, verse.page)}
+                        className="mt-3 w-full text-left rounded-xl border px-3 py-2.5 transition-opacity hover:opacity-95 cursor-pointer space-y-1"
+                        style={{
+                          backgroundColor: verseNoteStyle.softBg,
+                          borderColor: verseNoteStyle.border,
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className="inline-flex items-center gap-1.5 text-[11px] font-extrabold"
+                            style={{ color: verseNoteStyle.badgeText }}
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: verseNoteStyle.dot }}
+                            />
+                            <StickyNote className="w-3 h-3 shrink-0" />
+                            <span>Kişisel Notum</span>
+                          </span>
+                          <span
+                            className="text-[11px] font-bold underline underline-offset-2"
+                            style={{ color: verseNoteStyle.badgeText }}
+                          >
+                            Düzenle
+                          </span>
+                        </div>
+                        {verseNote.text && (
+                          <p
+                            className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap line-clamp-3"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            {verseNote.text}
+                          </p>
+                        )}
+                        {verseNote.tags.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                            {verseNote.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                                style={{
+                                  backgroundColor: 'var(--bg-surface)',
+                                  color: verseNoteStyle.badgeText,
+                                }}
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </button>
                     )}
                   </section>
                 );

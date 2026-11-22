@@ -6,6 +6,7 @@ import { IntroSplash } from './components/IntroSplash';
 import { PageBookmarksDrawer } from './components/PageBookmarksDrawer';
 import { PoolSelectorModal } from './components/PoolSelectorModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { HatimPlannerModal } from './components/HatimPlannerModal';
 import { ListeningDrawerModal } from './components/ListeningDrawerModal';
 import { MealCompareModal } from './components/MealCompareModal';
 import { MealSelectorModal } from './components/MealSelectorModal';
@@ -13,6 +14,7 @@ import { MutashabihatModal } from './components/MutashabihatModal';
 import { ReciterSelectorModal } from './components/ReciterSelectorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { UserGuideModal } from './components/UserGuideModal';
+import { VerseNoteModal } from './components/VerseNoteModal';
 import { WaqfGuideModal } from './components/WaqfGuideModal';
 import { ExamCenterPage } from './features/exam/ExamCenterPage';
 import { FihristHubPage } from './features/fihrist/FihristHubPage';
@@ -64,6 +66,8 @@ const MainRouter: React.FC = () => {
         <QuickMemorizeFromVerseModal />
         <QuickAddToResearchModal />
         <PageBookmarksDrawer />
+        <HatimPlannerModal />
+        <VerseNoteModal />
         <GlobalSearchModal />
         <UserGuideModal />
         <IntroSplash />

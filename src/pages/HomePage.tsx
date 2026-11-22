@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
   Bookmark,
   BookMarked,
   BookOpen,
+  BookOpenCheck,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -38,6 +39,7 @@ import { TajweedText } from '../features/study/TajweedText';
 import { useTajweedData } from '../hooks/useTajweedData';
 import { audioQueueService } from '../services/audioQueueService';
 import { dataService, resolvePlaylistItemStartLocation } from '../services/dataService';
+import { computeHatimSummary, hatimStorage } from '../services/hatimStorage';
 import { isUnitDueForReview, memorizationStorage } from '../services/memorizationStorage';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -128,8 +130,15 @@ export const HomePage: React.FC = () => {
     openUserGuide,
     openIntroSplash,
     openBookmarksDrawer,
+    openHatimModal,
     openListeningDrawer,
   } = useAppStore();
+
+  const hatimState = useSyncExternalStore(hatimStorage.subscribe, hatimStorage.getSnapshot);
+  const hatimSummary = useMemo(
+    () => (hatimState.activePlan ? computeHatimSummary(hatimState.activePlan) : null),
+    [hatimState.activePlan],
+  );
 
   // Tefekkür çerçevesi (mobilde kompakt sekme + isteğe bağlı daraltma)
   const [activeReflectionTab, setActiveReflectionTab] = useState<'kamer' | 'furkan'>('kamer');
@@ -1184,7 +1193,7 @@ export const HomePage: React.FC = () => {
                     <BookOpen className="w-4 h-4" />
                   </span>
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                       <span className="text-xs font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
                         Okuma
                       </span>
@@ -1200,6 +1209,21 @@ export const HomePage: React.FC = () => {
                         >
                           {formatSafeArabicTitle(lastSurahMeta.nameAr)}
                         </span>
+                      )}
+                      {hatimSummary && (
+                        <button
+                          type="button"
+                          onClick={openHatimModal}
+                          title="30 Cüz Hatim Planlayıcısını aç"
+                          className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums cursor-pointer hover:opacity-85"
+                          style={{
+                            backgroundColor: 'var(--brand-primary-soft)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          Hatim: %{hatimSummary.percent} · Bugün {hatimSummary.todayCompletedCount}/
+                          {hatimSummary.todayTargetPages} s.
+                        </button>
                       )}
                     </div>
                     <p
@@ -1218,7 +1242,24 @@ export const HomePage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={openHatimModal}
+                    className="min-h-[36px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
+                    style={{
+                      backgroundColor: hatimSummary ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+                      borderColor: hatimSummary ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                      color: hatimSummary ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+                    }}
+                  >
+                    <BookOpenCheck
+                      className="w-3.5 h-3.5 shrink-0"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <span>Hatim Planım</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={openBookmarksDrawer}

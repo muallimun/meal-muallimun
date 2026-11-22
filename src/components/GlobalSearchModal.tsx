@@ -15,6 +15,7 @@ import {
   Loader2,
   Search,
   Sparkles,
+  StickyNote,
   Volume2,
   X,
 } from 'lucide-react';
@@ -622,6 +623,18 @@ export const GlobalSearchModal: React.FC = () => {
                 Dipnot Eşleşmesi
               </span>
             )}
+            {hit.matchedPersonalNote && (
+              <span
+                className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-lg"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <StickyNote className="w-3 h-3 shrink-0" />
+                <span>Notum</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
@@ -799,6 +812,32 @@ export const GlobalSearchModal: React.FC = () => {
                 />
               </p>
             ))}
+          </div>
+        )}
+
+        {/* Eşleşen Kişisel Ayet Notu */}
+        {hit.matchedPersonalNote && (
+          <div
+            className="rounded-xl border px-3 py-2 text-xs leading-relaxed"
+            style={{
+              backgroundColor: 'var(--brand-primary-soft)',
+              borderColor: 'var(--brand-primary)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            <span
+              className="inline-flex items-center gap-1 font-extrabold mr-1.5"
+              style={{ color: 'var(--brand-primary-text)' }}
+            >
+              <StickyNote className="w-3 h-3 shrink-0" />
+              <span>Notunuz:</span>
+            </span>
+            <HighlightedText
+              text={hit.matchedPersonalNote}
+              query={trimmedQuery}
+              arabicMode={false}
+              includeSubstring={includeSubstring}
+            />
           </div>
         )}
       </article>

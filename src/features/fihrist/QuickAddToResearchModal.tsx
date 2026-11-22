@@ -31,7 +31,7 @@ export const QuickAddToResearchModal: React.FC = () => {
     const e = Math.max(s, Math.min(maxAyah, quickResearchSeed.endAyah ?? s));
     setStartAyah(s);
     setEndAyah(e);
-    setNote('');
+    setNote(quickResearchSeed.initialNote ?? '');
     setNewTopicTitle('');
     setFeedback(null);
   }, [quickResearchSeed, maxAyah]);

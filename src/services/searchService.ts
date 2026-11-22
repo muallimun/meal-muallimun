@@ -1,5 +1,6 @@
 import { findMealById, isExtraMealId, isRtlMeal } from '../config/mealsConfig';
 import { dataService } from './dataService';
+import { makeVerseNoteKey, verseNotesStorage } from './verseNotesStorage';
 import type { FihristTopic, SurahExtraInfo } from '../types/fihrist';
 import type { ManifestData, MealVerse, MetaData, SurahMeta, WordSurahFile } from '../types/quran';
 import {
@@ -64,6 +65,7 @@ export interface VerseSearchHit {
   matchedM2: boolean;
   matchedFootnotes: { meal: string; text: string }[];
   extraMealHits?: ExtraMealSearchHit[];
+  matchedPersonalNote?: string;
 }
 
 export interface WordSearchHit {
@@ -656,6 +658,7 @@ export async function runProgressiveSearch(
     };
   });
   const needsExtraMeals = activeExtraMeals.length > 0;
+  const personalNotesMap = !arabicMode ? verseNotesStorage.getMapSnapshot() : null;
 
   let scanned = 0;
 
@@ -777,11 +780,37 @@ export async function runProgressiveSearch(
           }
         }
 
+        let matchedPersonalNote: string | undefined;
+        if (!arabicMode && personalNotesMap && personalNotesMap.size > 0) {
+          const personalNote = personalNotesMap.get(makeVerseNoteKey(verse.surah, verse.ayah));
+          if (personalNote) {
+            const noteTextMatched =
+              personalNote.text.length > 0 &&
+              matchesNormalizedText(
+                normalizeTurkish(personalNote.text),
+                normQuery,
+                false,
+                includeSubstring,
+              );
+            const noteTagMatched =
+              !noteTextMatched &&
+              personalNote.tags.some((tag) =>
+                matchesNormalizedText(normalizeTurkish(tag), normQuery, false, includeSubstring),
+              );
+            if (noteTextMatched || noteTagMatched) {
+              matchedPersonalNote =
+                personalNote.text ||
+                personalNote.tags.map((tag) => `#${tag}`).join(' ');
+            }
+          }
+        }
+
         const matchedMealOrFn =
           matchedM1 ||
           matchedM2 ||
           extraMealHits.length > 0 ||
-          matchedFootnotes.length > 0;
+          matchedFootnotes.length > 0 ||
+          Boolean(matchedPersonalNote);
         if (matchedArabic || matchedMealOrFn) {
           const hit: VerseSearchHit = {
             id: verse.id,
@@ -799,6 +828,7 @@ export async function runProgressiveSearch(
             matchedM2,
             matchedFootnotes,
             ...(extraMealHits.length > 0 ? { extraMealHits } : {}),
+            ...(matchedPersonalNote ? { matchedPersonalNote } : {}),
           };
           allHits.push(hit);
           if (matchedArabic || matchedExtraRtl) arabicHits.push(hit);

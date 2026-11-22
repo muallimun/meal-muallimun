@@ -33,11 +33,19 @@ import {
 import { audioQueueService } from '../services/audioQueueService';
 import { useBackButtonGuard } from '../services/backStackService';
 import {
+  HATIM_STORAGE_KEY,
+  validateHatimBackupJson,
+} from '../services/hatimStorage';
+import {
   memorizationStorage,
   validateMemorizationBackupPayload,
 } from '../services/memorizationStorage';
 import { RESEARCH_NOTEBOOK_STORAGE_KEY } from '../services/researchStorage';
 import { sfxService } from '../services/sfxService';
+import {
+  VERSE_NOTES_STORAGE_KEY,
+  validateVerseNotesJson,
+} from '../services/verseNotesStorage';
 import { setStorePersistencePaused, useAppStore } from '../store/useAppStore';
 import type { MemorizationBackupPayload } from '../types/memorization';
 import type {
@@ -63,6 +71,8 @@ const MAX_BACKUP_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
 const JSON_LOCAL_STORAGE_KEYS = new Set<string>([
   'muallimun_meal_v1',
   RESEARCH_NOTEBOOK_STORAGE_KEY,
+  HATIM_STORAGE_KEY,
+  VERSE_NOTES_STORAGE_KEY,
   'muallimun_games_progress_v1',
   'muallimun_recent_searches_v1',
   'muallimun_memorization_v1_units',
@@ -83,6 +93,10 @@ interface PendingBackupPreview {
   localKeysCount: number;
   memorizationUnitsCount: number;
   researchTopicsCount: number;
+  verseNotesCount: number;
+  hasActiveHatim: boolean;
+  hatimCompletedPagesCount: number;
+  hatimHistoryCount: number;
   hasActiveMemorizationSession: boolean;
   hasActiveExamSession: boolean;
 }
@@ -451,6 +465,29 @@ export const SettingsModal: React.FC = () => {
       const researchTopicsCount = countResearchTopicsFromJson(
         validatedLocalEntries[RESEARCH_NOTEBOOK_STORAGE_KEY],
       );
+
+      let verseNotesCount = 0;
+      if (validatedLocalEntries[VERSE_NOTES_STORAGE_KEY]) {
+        const notesCheck = validateVerseNotesJson(validatedLocalEntries[VERSE_NOTES_STORAGE_KEY]);
+        if (!notesCheck.valid) {
+          throw new Error('Yedekteki kişisel ayet notları verisi doğrulanamadı; işlem iptal edildi.');
+        }
+        verseNotesCount = notesCheck.notesCount;
+      }
+
+      let hasActiveHatim = false;
+      let hatimCompletedPagesCount = 0;
+      let hatimHistoryCount = 0;
+      if (validatedLocalEntries[HATIM_STORAGE_KEY]) {
+        const hatimCheck = validateHatimBackupJson(validatedLocalEntries[HATIM_STORAGE_KEY]);
+        if (!hatimCheck.valid) {
+          throw new Error('Yedekteki 30 Cüz Hatim planı verisi doğrulanamadı; işlem iptal edildi.');
+        }
+        hasActiveHatim = hatimCheck.hasActivePlan;
+        hatimCompletedPagesCount = hatimCheck.completedPagesCount;
+        hatimHistoryCount = hatimCheck.historyCount;
+      }
+
       const hasActiveMemorizationSession = Boolean(
         hasMemActiveSessionFromPayload ||
           (validatedLocalEntries['muallimun_memorization_v1_active_session'] &&
@@ -470,6 +507,10 @@ export const SettingsModal: React.FC = () => {
         localKeysCount,
         memorizationUnitsCount,
         researchTopicsCount,
+        verseNotesCount,
+        hasActiveHatim,
+        hatimCompletedPagesCount,
+        hatimHistoryCount,
         hasActiveMemorizationSession,
         hasActiveExamSession: Boolean(validatedExamSession),
       });
@@ -1126,6 +1167,35 @@ export const SettingsModal: React.FC = () => {
                         <p style={{ color: 'var(--text-muted)' }}>Araştırma Konusu</p>
                         <p className="font-extrabold mt-0.5" style={{ color: 'var(--text-primary)' }}>
                           {pendingBackupRestore.researchTopicsCount} konu
+                        </p>
+                      </div>
+                      <div
+                        className="px-2.5 py-2 rounded-lg border"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <p style={{ color: 'var(--text-muted)' }}>Kişisel Ayet Notu</p>
+                        <p className="font-extrabold mt-0.5 tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                          {pendingBackupRestore.verseNotesCount} kişisel ayet notu
+                        </p>
+                      </div>
+                      <div
+                        className="px-2.5 py-2 rounded-lg border"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <p style={{ color: 'var(--text-muted)' }}>30 Cüz Hatim</p>
+                        <p className="font-extrabold mt-0.5 tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                          {pendingBackupRestore.hasActiveHatim
+                            ? `Aktif plan (${pendingBackupRestore.hatimCompletedPagesCount}/604 s.)`
+                            : 'Aktif plan yok'}
+                          {pendingBackupRestore.hatimHistoryCount > 0
+                            ? ` · ${pendingBackupRestore.hatimHistoryCount} tamamlanan`
+                            : ''}
                         </p>
                       </div>
                       <div

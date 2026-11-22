@@ -1,7 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
+  ArrowRight,
   ArrowUpRight,
   Bookmark,
+  BookOpenCheck,
   Check,
   Edit3,
   Plus,
@@ -10,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { useBackButtonGuard } from '../services/backStackService';
+import { computeHatimSummary, hatimStorage } from '../services/hatimStorage';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { PageBookmark, PageBookmarkColor } from '../types/quran';
@@ -56,6 +59,7 @@ export const PageBookmarksDrawer: React.FC = () => {
   const {
     isBookmarksDrawerOpen,
     closeBookmarksDrawer,
+    openHatimModal,
     studyProgress,
     meta,
     navigateToStudy,
@@ -64,6 +68,12 @@ export const PageBookmarksDrawer: React.FC = () => {
     renamePageBookmark,
     removePageBookmark,
   } = useAppStore();
+
+  const hatimState = useSyncExternalStore(hatimStorage.subscribe, hatimStorage.getSnapshot);
+  const hatimSummary = useMemo(
+    () => (hatimState.activePlan ? computeHatimSummary(hatimState.activePlan) : null),
+    [hatimState.activePlan],
+  );
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
@@ -134,6 +144,9 @@ export const PageBookmarksDrawer: React.FC = () => {
       surah: pos.surah,
       ayah: pos.ayah,
     });
+    if (hatimState.activePlan) {
+      hatimStorage.markPagesReadUpTo(pos.page);
+    }
   };
 
   const formatShortDate = (iso: string) => {
@@ -252,6 +265,78 @@ export const PageBookmarksDrawer: React.FC = () => {
 
         {/* Ayraç Listesi */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+          {/* 30 Cüz Hatim Planlayıcısı Köprü Kartı */}
+          <div
+            className="rounded-2xl border p-3.5 space-y-2.5"
+            style={{
+              backgroundColor: 'var(--brand-primary-soft)',
+              borderColor: 'var(--brand-primary)',
+            }}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                >
+                  <BookOpenCheck className="w-4 h-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold truncate" style={{ color: 'var(--text-primary)' }}>
+                    {hatimState.activePlan ? hatimState.activePlan.title : '30 Cüz Hatim Planlayıcısı'}
+                  </p>
+                  <p className="text-[11px] tabular-nums truncate" style={{ color: 'var(--text-secondary)' }}>
+                    {hatimSummary
+                      ? `%${hatimSummary.percent} · ${hatimSummary.completedCount}/604 s. · ${hatimSummary.completedJuzCount}/30 cüz`
+                      : hatimState.history.length > 0
+                        ? `${hatimState.history.length} tamamlanan hatim · Yeni plan başlatın`
+                        : 'Günlük sayfa hedefi veya serbest cüz takibi oluşturun'}
+                  </p>
+                </div>
+              </div>
+              {hatimSummary && (
+                <span
+                  className="px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums shrink-0"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  Bugün {hatimSummary.todayCompletedCount}/{hatimSummary.todayTargetPages} s.
+                </span>
+              )}
+            </div>
+
+            {hatimSummary && (
+              <div
+                className="w-full h-1.5 rounded-full overflow-hidden"
+                style={{ backgroundColor: 'rgba(15, 118, 110, 0.16)' }}
+              >
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${hatimSummary.percent}%`,
+                    backgroundColor: 'var(--brand-primary)',
+                  }}
+                />
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                closeBookmarksDrawer();
+                openHatimModal();
+              }}
+              className="w-full min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-95 transition-opacity"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <span>30 Cüz Hatim Planlayıcısı</span>
+              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+            </button>
+          </div>
+
           {sortedBookmarks.length === 0 ? (
             <div
               className="rounded-2xl border border-dashed p-6 text-center space-y-2.5 mt-4"

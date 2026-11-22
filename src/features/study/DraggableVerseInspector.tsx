@@ -27,6 +27,7 @@ import {
   Share2,
   Sparkles,
   Star,
+  StickyNote,
   Volume2,
   X,
 } from 'lucide-react';
@@ -41,6 +42,11 @@ import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
+import {
+  VERSE_NOTE_COLOR_STYLES,
+  makeVerseNoteKey,
+  verseNotesStorage,
+} from '../../services/verseNotesStorage';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   AppSettings,
@@ -105,6 +111,7 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
     openMutashabihat,
     openQuickMemorize,
     openQuickResearch,
+    openVerseNoteModal,
     openListeningDrawer,
     manifest,
     meta,
@@ -112,6 +119,10 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   } = useAppStore();
   const { getCount: getMutashabihatCount } = useMutashabihatData(isOpen);
   const { getRukuEndingAt } = useRukusData(isOpen && settings.showRukuMarkers);
+  const verseNotesMap = useSyncExternalStore(
+    verseNotesStorage.subscribe,
+    verseNotesStorage.getMapSnapshot,
+  );
   const verseSurah = verse?.surah;
   const activeSurahNos = useMemo(
     () => (verseSurah ? [verseSurah] : []),
@@ -307,6 +318,8 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
   const mutashabihatCount = getMutashabihatCount(verse.surah, verse.ayah);
   const rukuEnd = settings.showRukuMarkers ? getRukuEndingAt(verse.surah, verse.ayah) : null;
+  const verseNote = verseNotesMap.get(makeVerseNoteKey(verse.surah, verse.ayah));
+  const verseNoteStyle = verseNote ? VERSE_NOTE_COLOR_STYLES[verseNote.color] : null;
   const primaryVerse = getPrimaryVerse(verse);
   const secondaryVerse = isDual ? getSecondaryVerse(verse) : null;
   const primaryFootnotes = primaryVerse?.fn ?? [];
@@ -864,12 +877,34 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
 
             <button
               type="button"
+              onClick={() => openVerseNoteModal(verse.surah, verse.ayah, verse.page)}
+              className="w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
+              style={
+                verseNoteStyle
+                  ? {
+                      backgroundColor: verseNoteStyle.softBg,
+                      borderColor: verseNoteStyle.border,
+                      color: verseNoteStyle.badgeText,
+                    }
+                  : {
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--brand-primary)',
+                      color: 'var(--brand-primary-text)',
+                    }
+              }
+            >
+              <StickyNote className="w-3.5 h-3.5 shrink-0" />
+              <span>{verseNote ? 'Notumu Düzenle' : 'Ayet Notu'}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => {
                 sfxService.play('click');
                 openQuickResearch(verse.surah, verse.ayah, verse.ayah, verse.page);
               }}
               className={`${
-                mutashabihatCount > 0 ? '' : 'sm:col-span-2 '
+                mutashabihatCount > 0 ? 'sm:col-span-2 ' : ''
               }w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90`}
               style={{
                 backgroundColor: 'var(--brand-accent-soft)',
@@ -882,6 +917,63 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
             </button>
           </div>
         </div>
+
+        {/* Kişisel Ayet Notu Önizleme */}
+        {verseNote && verseNoteStyle && (
+          <button
+            type="button"
+            onClick={() => openVerseNoteModal(verse.surah, verse.ayah, verse.page)}
+            className="w-full text-left p-3 rounded-xl border space-y-1.5 cursor-pointer transition-opacity hover:opacity-95"
+            style={{
+              backgroundColor: verseNoteStyle.softBg,
+              borderColor: verseNoteStyle.border,
+            }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className="inline-flex items-center gap-1.5 text-[11px] font-extrabold"
+                style={{ color: verseNoteStyle.badgeText }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: verseNoteStyle.dot }}
+                />
+                <StickyNote className="w-3.5 h-3.5 shrink-0" />
+                <span>Kişisel Notum</span>
+              </span>
+              <span
+                className="text-[11px] font-bold underline underline-offset-2"
+                style={{ color: verseNoteStyle.badgeText }}
+              >
+                Düzenle
+              </span>
+            </div>
+            {verseNote.text && (
+              <p
+                className="text-xs leading-relaxed whitespace-pre-wrap line-clamp-3"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {verseNote.text}
+              </p>
+            )}
+            {verseNote.tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1">
+                {verseNote.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      color: verseNoteStyle.badgeText,
+                    }}
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </button>
+        )}
 
         {/* Dipnot / Tefsir Açıklaması */}
         {footnoteCount > 0 && (
