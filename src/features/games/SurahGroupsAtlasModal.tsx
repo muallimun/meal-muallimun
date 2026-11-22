@@ -7,9 +7,11 @@ import {
   Target,
   X,
 } from 'lucide-react';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type { SurahMeta } from '../../types/quran';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { SurahInfoModal } from '../study/SurahInfoModal';
 import type { EnrichedGameSurah, GameId } from './gameTypes';
 import type {
@@ -40,10 +42,24 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [infoSurah, setInfoSurah] = useState<SurahMeta | null>(null);
+  const [backGuardNonce, setBackGuardNonce] = useState(0);
+
+  useBackButtonGuard(
+    'surah_groups_atlas',
+    true,
+    () => {
+      if (infoSurah) {
+        setInfoSurah(null);
+        setBackGuardNonce((n) => n + 1);
+      } else {
+        onClose();
+      }
+    },
+    backGuardNonce,
+  );
 
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScrollLock = acquireBodyScrollLock();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (infoSurah) setInfoSurah(null);
@@ -52,7 +68,7 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = prev;
+      releaseScrollLock();
       window.removeEventListener('keydown', onKey);
     };
   }, [infoSurah, onClose]);
@@ -96,7 +112,7 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Ulûmu'l-Kur'ân Sure Grupları Atlası"
-      className="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-[80] bg-black/55 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4"
       onClick={onClose}
     >
       <div

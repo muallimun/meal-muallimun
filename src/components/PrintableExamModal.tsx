@@ -17,10 +17,12 @@ import {
   X,
 } from 'lucide-react';
 import { FormattedStem } from '../features/exam/FormattedStem';
+import { useBackButtonGuard } from '../services/backStackService';
 import { dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { PreparedQuestion, QuestionItem, SurahMeta } from '../types/quran';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import {
   OPTION_LETTERS,
   formatPremiseItem,
@@ -504,12 +506,27 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialSurahNo]);
 
+  const [backGuardNonce, setBackGuardNonce] = useState(0);
+
+  useBackButtonGuard(
+    'printable_exam_modal',
+    isOpen,
+    () => {
+      if (isMobileSettingsOpen) {
+        setIsMobileSettingsOpen(false);
+        setBackGuardNonce((n) => n + 1);
+      } else {
+        onClose();
+      }
+    },
+    backGuardNonce,
+  );
+
   // Body sınıfı & klavye Escape yönetimi
   useEffect(() => {
     if (!isOpen) return;
     document.body.classList.add('print-exam-active');
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScrollLock = acquireBodyScrollLock();
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -524,7 +541,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
 
     return () => {
       document.body.classList.remove('print-exam-active');
-      document.body.style.overflow = prevOverflow;
+      releaseScrollLock();
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [isOpen, isMobileSettingsOpen, onClose]);
@@ -1362,7 +1379,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
           A. EKRAN MODALI (Masaüstü: Sol Ayar Paneli + Sağ A4 Sahnesi | Mobil: Çekmeceli Tam Önizleme)
           ==================================================================== */}
       <div
-        className="no-print fixed inset-0 z-50 flex items-end lg:items-center justify-center p-0 lg:p-4"
+        className="no-print fixed inset-0 z-[92] flex items-end lg:items-center justify-center p-0 lg:p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="printable-exam-modal-title"
@@ -1601,7 +1618,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
           {/* Mobil Ayarlar Bottom Sheet Alt Çekmecesi (< 1024px) */}
           {isMobileSettingsOpen && (
             <div
-              className="lg:hidden fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-xs"
+              className="lg:hidden fixed inset-0 z-[93] flex items-end justify-center bg-black/55 backdrop-blur-xs"
               role="dialog"
               aria-modal="true"
               aria-label="Sınav ayarları"

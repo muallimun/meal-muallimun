@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   BookOpen,
   ChevronRight,
@@ -28,6 +28,7 @@ import {
   RECITER_CATEGORIES,
 } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
+import { useBackButtonGuard } from '../services/backStackService';
 import { memorizationStorage } from '../services/memorizationStorage';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -38,6 +39,7 @@ import type {
   ThemeMode,
   WordMealMode,
 } from '../types/quran';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { PwaInstallControl } from './PwaInstallControl';
 
 type SettingsTabId = 'appearance' | 'typography' | 'reading' | 'audio_exam';
@@ -145,6 +147,22 @@ export const SettingsModal: React.FC = () => {
   } | null>(null);
   const [isBackupBusy, setIsBackupBusy] = useState(false);
   const backupFileInputRef = useRef<HTMLInputElement | null>(null);
+  const backupSectionRef = useRef<HTMLElement | null>(null);
+
+  useBackButtonGuard('settings_modal', isSettingsModalOpen, closeSettingsModal);
+
+  useEffect(() => {
+    if (!isSettingsModalOpen) return;
+    return acquireBodyScrollLock();
+  }, [isSettingsModalOpen]);
+
+  const handleJumpToBackup = () => {
+    sfxService.play('click');
+    setActiveTab('appearance');
+    window.setTimeout(() => {
+      backupSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
+  };
 
   const handleExportFullBackup = async () => {
     sfxService.play('click');
@@ -306,7 +324,7 @@ export const SettingsModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[92] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="settings-modal-title"
@@ -323,37 +341,54 @@ export const SettingsModal: React.FC = () => {
       >
         {/* Başlık */}
         <div
-          className="px-5 py-3.5 border-b flex items-center justify-between gap-3 shrink-0"
+          className="px-4 sm:px-5 py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <div>
-            <h2 id="settings-modal-title" className="text-base sm:text-lg font-extrabold tracking-tight">
+          <div className="min-w-0">
+            <h2 id="settings-modal-title" className="text-sm sm:text-lg font-extrabold tracking-tight truncate">
               Ayarlar ve Kişiselleştirme
             </h2>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
               Tüm tercihler cihazında otomatik olarak saklanır.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={closeSettingsModal}
-            aria-label="Ayarları kapat"
-            className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleJumpToBackup}
+              title="Çalışma verilerini yedekle veya geri yükle"
+              className="min-h-[36px] px-2.5 rounded-xl border text-[11px] sm:text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                borderColor: 'rgba(13, 148, 136, 0.35)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <HardDrive className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Yedekle / Taşı</span>
+              <span className="sm:hidden">Yedekle</span>
+            </button>
+            <button
+              type="button"
+              onClick={closeSettingsModal}
+              aria-label="Ayarları kapat"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* 4 Kategorik Sekme Şeridi */}
+        {/* 4 Kategorik Sekme Şeridi — 360px mobilde taşmasız 2x2, masaüstünde 4'lü */}
         <div
-          className="px-4 py-2 border-b shrink-0 overflow-x-auto"
+          className="px-3 sm:px-4 py-2 border-b shrink-0"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="grid grid-cols-4 gap-1 min-w-[420px]">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
             {SETTINGS_TABS.map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -365,7 +400,7 @@ export const SettingsModal: React.FC = () => {
                     sfxService.play('click');
                     setActiveTab(tab.id);
                   }}
-                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+                  className="min-h-[38px] px-2 py-1.5 rounded-xl text-[11.5px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer truncate"
                   style={{
                     backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                     color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -373,7 +408,7 @@ export const SettingsModal: React.FC = () => {
                   }}
                 >
                   <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span>{tab.label}</span>
+                  <span className="truncate">{tab.label}</span>
                 </button>
               );
             })}
@@ -624,6 +659,7 @@ export const SettingsModal: React.FC = () => {
 
               {/* Çalışma Verilerimi Yedekle & Taşı */}
               <section
+                ref={backupSectionRef}
                 className="p-3.5 rounded-2xl border space-y-3"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',

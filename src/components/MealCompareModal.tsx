@@ -319,7 +319,7 @@ export const MealCompareModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[92] flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-xs"
+      className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-xs"
       role="dialog"
       aria-modal="true"
       aria-label="Tüm Mealleri Karşılaştır"

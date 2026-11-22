@@ -26,10 +26,12 @@ import { findReciterById } from '../config/recitersConfig';
 import { useActiveMeals } from '../hooks/useActiveMeals';
 import { useTajweedData } from '../hooks/useTajweedData';
 import { audioQueueService } from '../services/audioQueueService';
+import { useBackButtonGuard } from '../services/backStackService';
 import { SAJDAH_AYAH_IDS } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { wordAudioService } from '../services/wordAudioService';
 import { useAppStore } from '../store/useAppStore';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import type {
   AudioPlayMode,
   BesmeleInfo,
@@ -220,12 +222,18 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  useBackButtonGuard('presentation_mode', isOpen, () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+    onCloseRef.current();
+  });
+
   // Body scroll kilidi ve fullscreen durum takibi — SADECE isOpen'a bağlı!
   // Ses durumu veya ayet/sayfa değişiminde asla fullscreen'den çıkmaz.
   useEffect(() => {
     if (!isOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScrollLock = acquireBodyScrollLock();
 
     const onFullscreenChange = () => {
       setIsFullscreen(Boolean(document.fullscreenElement));
@@ -242,7 +250,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     window.addEventListener('resize', onResize, { passive: true });
 
     return () => {
-      document.body.style.overflow = prevOverflow;
+      releaseScrollLock();
       document.removeEventListener('fullscreenchange', onFullscreenChange);
       window.removeEventListener('resize', onResize);
     };

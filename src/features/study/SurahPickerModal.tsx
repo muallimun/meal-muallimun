@@ -8,6 +8,7 @@ import {
   normalizeTurkish,
 } from '../../utils/poolUtils';
 import { formatSafeArabicTitle } from '../../utils/arabicUtils';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 
 interface SurahPickerModalProps {
   isOpen: boolean;
@@ -31,14 +32,13 @@ export const SurahPickerModal: React.FC<SurahPickerModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     setQuery('');
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScrollLock = acquireBodyScrollLock();
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      releaseScrollLock();
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [isOpen, onClose]);
@@ -69,7 +69,7 @@ export const SurahPickerModal: React.FC<SurahPickerModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[96] flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="surah-picker-title"

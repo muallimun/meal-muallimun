@@ -38,6 +38,7 @@ import { findReciterById } from '../../config/recitersConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useMutashabihatData } from '../../hooks/useStudyReferenceData';
 import { audioQueueService } from '../../services/audioQueueService';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { dataService } from '../../services/dataService';
 import { memorizationAudioController } from '../../services/memorizationAudioController';
 import {
@@ -366,6 +367,12 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
       meta?.surahs.find((s) => s.no === surahNo)?.nameTr ?? `${surahNo}. Sure`,
     [meta],
   );
+
+  useBackButtonGuard('zen_session_view', true, () => {
+    memorizationAudioController.stop();
+    clearRecordedVoice();
+    onExit();
+  });
 
   // Zen oturum bayrağını, ses çakışma korumasını ve mikrofon/Blob bellek temizliğini yönet
   useEffect(() => {

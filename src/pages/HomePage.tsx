@@ -26,8 +26,14 @@ import {
   X,
 } from 'lucide-react';
 import { PwaInstallControl } from '../components/PwaInstallControl';
-import { MEALS_CATALOG } from '../config/mealsConfig';
+import {
+  findMealById,
+  getMealTextPresentation,
+  MEALS_CATALOG,
+} from '../config/mealsConfig';
 import { findReciterById } from '../config/recitersConfig';
+import { TajweedText } from '../features/study/TajweedText';
+import { useTajweedData } from '../hooks/useTajweedData';
 import { audioQueueService } from '../services/audioQueueService';
 import { dataService, resolvePlaylistItemStartLocation } from '../services/dataService';
 import { isUnitDueForReview, memorizationStorage } from '../services/memorizationStorage';
@@ -52,8 +58,12 @@ interface AyahPreviewData {
   cuzNo: number;
   pageNo: number;
   arabicText: string;
-  tdvText: string;
-  dibText: string;
+  primaryMealId: string;
+  primaryMealLabel: string;
+  primaryMealText: string;
+  secondaryMealId: string | null;
+  secondaryMealLabel: string | null;
+  secondaryMealText: string;
 }
 
 const MAX_HOME_QUIZ_CARDS = 4;
@@ -245,7 +255,36 @@ export const HomePage: React.FC = () => {
     return Math.round((gamification.correctCount / gamification.solvedCount) * 100);
   }, [gamification.solvedCount, gamification.correctCount]);
 
-  // Havuzdan rastgele bir ayet seç ve yükle
+  const activePrimaryMealId = settings.primaryMealId || 'm1';
+  const activeSecondaryMealId = settings.secondaryMealId || 'm2';
+  const isDualMealActive =
+    settings.mealDisplayMode === 'dual' || settings.preferredMeal === 'both';
+
+  const previewTajweedSurahs = useMemo(
+    () => (previewAyah ? [previewAyah.surahNo] : []),
+    [previewAyah],
+  );
+  const {
+    rules: previewTjRules,
+    getVerseWords: getPreviewTjVerseWords,
+  } = useTajweedData(previewTajweedSurahs, settings.tajweedEnabled);
+
+  const resolveMealTextForAyah = useCallback(
+    async (surahNo: number, ayahNo: number, mealId: string): Promise<string> => {
+      if (mealId === 'm1' || mealId === 'm2') {
+        const file = await dataService.getMealSurah(mealId, surahNo);
+        return file.verses.find((v) => v.a === ayahNo)?.t ?? '';
+      }
+      await dataService.loadExtraMealsForSurah(surahNo);
+      const extraVerse = dataService.getMealVerse(surahNo, ayahNo, mealId);
+      if (extraVerse?.t) return extraVerse.t;
+      const fallbackFile = await dataService.getMealSurah('m1', surahNo);
+      return fallbackFile.verses.find((v) => v.a === ayahNo)?.t ?? '';
+    },
+    [],
+  );
+
+  // Havuzdan rastgele bir ayet seç ve aktif 27 meal tercihine göre yükle
   const fetchRandomAyahFromPool = useCallback(
     async (playSound = false) => {
       if (!meta) return;
@@ -261,12 +300,12 @@ export const HomePage: React.FC = () => {
       setAyahError(null);
 
       try {
-        const [arFile, m1File, m2File] = await Promise.all([
-          dataService.getArabicSurah(chosenSurahNo),
-          dataService.getMealSurah('m1', chosenSurahNo),
-          dataService.getMealSurah('m2', chosenSurahNo),
-        ]);
+        const primaryDef = findMealById(activePrimaryMealId, manifest);
+        const secondaryDef = isDualMealActive
+          ? findMealById(activeSecondaryMealId, manifest)
+          : null;
 
+        const arFile = await dataService.getArabicSurah(chosenSurahNo);
         if (!arFile.verses.length) {
           throw new Error('Bu surede görüntülenecek ayet bulunamadı.');
         }
@@ -277,8 +316,15 @@ export const HomePage: React.FC = () => {
         const poolToPick = readablePool.length > 0 ? readablePool : arFile.verses;
         const pickedAr = poolToPick[Math.floor(Math.random() * poolToPick.length)];
 
-        const m1Verse = m1File.verses.find((v) => v.a === pickedAr.a);
-        const m2Verse = m2File.verses.find((v) => v.a === pickedAr.a);
+        const effectiveSecondaryDef =
+          secondaryDef && secondaryDef.id !== primaryDef.id ? secondaryDef : null;
+
+        const [primaryMealText, secondaryMealText] = await Promise.all([
+          resolveMealTextForAyah(chosenSurahNo, pickedAr.a, primaryDef.id),
+          effectiveSecondaryDef
+            ? resolveMealTextForAyah(chosenSurahNo, pickedAr.a, effectiveSecondaryDef.id)
+            : Promise.resolve(''),
+        ]);
 
         lastAyahIdRef.current = pickedAr.id;
         setPreviewAyah({
@@ -289,8 +335,12 @@ export const HomePage: React.FC = () => {
           cuzNo: pickedAr.c,
           pageNo: pickedAr.p,
           arabicText: pickedAr.t,
-          tdvText: m1Verse?.t ?? '',
-          dibText: m2Verse?.t ?? '',
+          primaryMealId: primaryDef.id,
+          primaryMealLabel: primaryDef.label,
+          primaryMealText,
+          secondaryMealId: effectiveSecondaryDef ? effectiveSecondaryDef.id : null,
+          secondaryMealLabel: effectiveSecondaryDef ? effectiveSecondaryDef.label : null,
+          secondaryMealText,
         });
       } catch (err) {
         setAyahError(
@@ -300,8 +350,76 @@ export const HomePage: React.FC = () => {
         setIsLoadingAyah(false);
       }
     },
-    [meta, poolStats.effectiveSurahs, surahMap],
+    [
+      meta,
+      manifest,
+      poolStats.effectiveSurahs,
+      surahMap,
+      activePrimaryMealId,
+      activeSecondaryMealId,
+      isDualMealActive,
+      resolveMealTextForAyah,
+    ],
   );
+
+  // Kullanıcı ayarlardan aktif meal veya tekli/ikili görünümü değiştirdiğinde mevcut önizleme ayetini senkronize et
+  useEffect(() => {
+    if (!previewAyah) return;
+    const desiredPrimaryDef = findMealById(activePrimaryMealId, manifest);
+    const desiredSecondaryDef = isDualMealActive
+      ? findMealById(activeSecondaryMealId, manifest)
+      : null;
+    const desiredSecondaryId =
+      desiredSecondaryDef && desiredSecondaryDef.id !== desiredPrimaryDef.id
+        ? desiredSecondaryDef.id
+        : null;
+
+    if (
+      previewAyah.primaryMealId === desiredPrimaryDef.id &&
+      previewAyah.secondaryMealId === desiredSecondaryId
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const { surahNo, ayahNo } = previewAyah;
+
+    Promise.all([
+      resolveMealTextForAyah(surahNo, ayahNo, desiredPrimaryDef.id),
+      desiredSecondaryId
+        ? resolveMealTextForAyah(surahNo, ayahNo, desiredSecondaryId)
+        : Promise.resolve(''),
+    ])
+      .then(([primaryMealText, secondaryMealText]) => {
+        if (cancelled) return;
+        setPreviewAyah((prev) => {
+          if (!prev || prev.surahNo !== surahNo || prev.ayahNo !== ayahNo) return prev;
+          return {
+            ...prev,
+            primaryMealId: desiredPrimaryDef.id,
+            primaryMealLabel: desiredPrimaryDef.label,
+            primaryMealText,
+            secondaryMealId: desiredSecondaryId,
+            secondaryMealLabel: desiredSecondaryId ? desiredSecondaryDef?.label ?? null : null,
+            secondaryMealText,
+          };
+        });
+      })
+      .catch(() => {
+        // sessizce koru
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activePrimaryMealId,
+    activeSecondaryMealId,
+    isDualMealActive,
+    manifest,
+    previewAyah,
+    resolveMealTextForAyah,
+  ]);
 
   const poolSignature = useMemo(
     () => poolStats.effectiveSurahs.join(','),
@@ -335,12 +453,6 @@ export const HomePage: React.FC = () => {
   };
 
   const handleFocusSurahAction = (surahNo: number, targetTab: 'reader' | 'exam') => {
-    if (!poolStats.effectiveSurahs.includes(surahNo)) {
-      setStudyPool({
-        selectedSurahs: [...studyPool.selectedSurahs, surahNo],
-        selectedJuzs: studyPool.selectedJuzs,
-      });
-    }
     if (targetTab === 'exam') {
       navigateToExam({ surahNo });
     } else {
@@ -1445,70 +1557,112 @@ export const HomePage: React.FC = () => {
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  <p
-                    dir="rtl"
-                    lang="ar"
-                    className="arabic-text text-right break-words"
-                    style={{
-                      fontSize: `${settings.arabicFontSize}px`,
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    {previewAyah.arabicText}
-                  </p>
+                  {(() => {
+                    const tjWords = settings.tajweedEnabled
+                      ? getPreviewTjVerseWords(previewAyah.surahNo, previewAyah.ayahNo)
+                      : null;
+                    if (tjWords && tjWords.length > 0 && previewTjRules) {
+                      return (
+                        <p
+                          dir="rtl"
+                          lang="ar"
+                          className="tajweed-arabic-text text-right break-words"
+                          style={{
+                            fontSize: `${settings.arabicFontSize}px`,
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          <TajweedText
+                            words={tjWords}
+                            rules={previewTjRules}
+                            theme={settings.theme}
+                            surahNo={previewAyah.surahNo}
+                            ayahNo={previewAyah.ayahNo}
+                          />
+                        </p>
+                      );
+                    }
+                    return (
+                      <p
+                        dir="rtl"
+                        lang="ar"
+                        className="arabic-text text-right break-words"
+                        style={{
+                          fontSize: `${settings.arabicFontSize}px`,
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        {previewAyah.arabicText}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 <div className="space-y-3">
-                  {(settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') &&
-                    previewAyah.tdvText && (
-                      <div>
-                        <p
-                          className="text-[11px] font-bold mb-1"
-                          style={{ color: 'var(--brand-primary-text)' }}
-                        >
-                          Diyanet Vakfı Meali (TDV)
-                        </p>
-                        <p
-                          className="turkish-reading"
-                          style={{
-                            fontSize: `${settings.turkishFontSize}px`,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {previewAyah.tdvText}
-                        </p>
-                      </div>
-                    )}
+                  {previewAyah.primaryMealText &&
+                    (() => {
+                      const pres = getMealTextPresentation(
+                        findMealById(previewAyah.primaryMealId, manifest),
+                        settings.turkishFontSize,
+                      );
+                      return (
+                        <div>
+                          <p
+                            className="text-[11px] font-bold mb-1"
+                            style={{ color: 'var(--brand-primary-text)' }}
+                          >
+                            {previewAyah.primaryMealLabel}
+                          </p>
+                          <p
+                            dir={pres.dir}
+                            lang={pres.lang}
+                            className={pres.className}
+                            style={{
+                              fontSize: `${pres.fontSizePx}px`,
+                              ...(pres.fontFamily ? { fontFamily: pres.fontFamily } : {}),
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {previewAyah.primaryMealText}
+                          </p>
+                        </div>
+                      );
+                    })()}
 
-                  {(settings.preferredMeal === 'm2' || settings.preferredMeal === 'both') &&
-                    previewAyah.dibText && (
-                      <div
-                        className={
-                          settings.preferredMeal === 'both' ? 'pt-3 border-t' : undefined
-                        }
-                        style={
-                          settings.preferredMeal === 'both'
-                            ? { borderColor: 'var(--border-subtle)' }
-                            : undefined
-                        }
-                      >
-                        <p
-                          className="text-[11px] font-bold mb-1"
-                          style={{ color: 'var(--brand-accent-text)' }}
+                  {previewAyah.secondaryMealId &&
+                    previewAyah.secondaryMealLabel &&
+                    previewAyah.secondaryMealText &&
+                    (() => {
+                      const pres = getMealTextPresentation(
+                        findMealById(previewAyah.secondaryMealId, manifest),
+                        settings.turkishFontSize,
+                      );
+                      return (
+                        <div
+                          className="pt-3 border-t"
+                          style={{ borderColor: 'var(--border-subtle)' }}
                         >
-                          Diyanet İşleri Meali (DİB Yeni)
-                        </p>
-                        <p
-                          className="turkish-reading"
-                          style={{
-                            fontSize: `${settings.turkishFontSize}px`,
-                            color: 'var(--text-secondary)',
-                          }}
-                        >
-                          {previewAyah.dibText}
-                        </p>
-                      </div>
-                    )}
+                          <p
+                            className="text-[11px] font-bold mb-1"
+                            style={{ color: 'var(--brand-accent-text)' }}
+                          >
+                            {previewAyah.secondaryMealLabel}
+                          </p>
+                          <p
+                            dir={pres.dir}
+                            lang={pres.lang}
+                            className={pres.className}
+                            style={{
+                              fontSize: `${pres.fontSizePx}px`,
+                              ...(pres.fontFamily ? { fontFamily: pres.fontFamily } : {}),
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {previewAyah.secondaryMealText}
+                          </p>
+                        </div>
+                      );
+                    })()}
                 </div>
               </div>
             )}
@@ -1735,7 +1889,14 @@ export const HomePage: React.FC = () => {
 
                       <button
                         type="button"
-                        onClick={() => handleToggleSurahInPool(surah.no)}
+                        onClick={() => {
+                          if (!directlySelected && inPool) {
+                            sfxService.play('click');
+                            openPoolModal();
+                          } else {
+                            handleToggleSurahInPool(surah.no);
+                          }
+                        }}
                         disabled={
                           directlySelected &&
                           studyPool.selectedSurahs.length === 1 &&
@@ -1747,10 +1908,15 @@ export const HomePage: React.FC = () => {
                           color: inPool ? 'var(--brand-primary-text)' : 'var(--text-muted)',
                         }}
                       >
-                        {inPool ? (
+                        {directlySelected ? (
                           <>
                             <Check className="w-3.5 h-3.5 shrink-0" />
                             <span>Çalışma Havuzunda</span>
+                          </>
+                        ) : inPool ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 shrink-0" />
+                            <span>Cüz ile Havuzda · Düzenle</span>
                           </>
                         ) : (
                           <>

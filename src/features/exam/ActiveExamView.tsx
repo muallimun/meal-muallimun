@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { QuestionReportModal } from '../../components/QuestionReportModal';
 import { audioQueueService } from '../../services/audioQueueService';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type { ExamAnswerRecord, ExamSessionState } from '../../types/quran';
@@ -55,6 +56,28 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   const [showPaletteModal, setShowPaletteModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [openPracticeVerseDrawer, setOpenPracticeVerseDrawer] = useState(false);
+  const [backGuardNonce, setBackGuardNonce] = useState(0);
+
+  // Mobil fiziksel/kaydırmalı Geri tuşunda sınavı aniden kaybetmeden çıkış onayı aç ve tekrar kur
+  useBackButtonGuard(
+    'active_exam_view',
+    true,
+    () => {
+      if (showReportModal) {
+        setShowReportModal(false);
+      } else if (showPaletteModal) {
+        setShowPaletteModal(false);
+      } else if (showFinishModal) {
+        setShowFinishModal(false);
+      } else if (showExitModal) {
+        setShowExitModal(false);
+      } else {
+        setShowExitModal(true);
+      }
+      setBackGuardNonce((n) => n + 1);
+    },
+    backGuardNonce,
+  );
 
   const isCompletingRef = useRef(false);
   const feedbackSectionRef = useRef<HTMLDivElement | null>(null);
@@ -1500,7 +1523,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
           ==================================================================== */}
       {showExitModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+          className="fixed inset-0 z-[92] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
           role="dialog"
           aria-modal="true"
           aria-labelledby="exit-exam-title"
@@ -1569,7 +1592,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
           ==================================================================== */}
       {showFinishModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+          className="fixed inset-0 z-[92] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
           role="dialog"
           aria-modal="true"
           aria-labelledby="finish-exam-title"
@@ -1624,7 +1647,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
           ==================================================================== */}
       {showPaletteModal && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs"
+          className="fixed inset-0 z-[92] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs"
           role="dialog"
           aria-modal="true"
           aria-labelledby="palette-title"

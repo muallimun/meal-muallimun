@@ -22,6 +22,7 @@ import {
 import { MEALS_CATALOG } from '../config/mealsConfig';
 import { RECITERS_CATALOG } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
+import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
@@ -132,6 +133,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   useEffect(() => {
     setIsModuleMenuOpen(false);
   }, [activeTab, isSidebarCollapsed]);
+
+  // Ana sekme Geri tuşu koruması: alt sekmelerdeyken (sınav/zen aktif değilse) Ana Sayfaya dön
+  useBackButtonGuard(
+    'app_shell_tab',
+    activeTab !== 'home' && !isExamActive && !isMemorizationZenActive,
+    () => {
+      setActiveTab('home');
+    },
+    activeTab,
+  );
 
   // Genel Tam Ekran Durumu Senkronizasyonu
   useEffect(() => {

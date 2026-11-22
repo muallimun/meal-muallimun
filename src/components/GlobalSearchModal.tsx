@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { audioQueueService } from '../services/audioQueueService';
+import { useBackButtonGuard } from '../services/backStackService';
 import { dataService } from '../services/dataService';
 import {
   type DirectJumpItem,
@@ -34,6 +35,7 @@ import {
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import { formatSafeArabicTitle } from '../utils/arabicUtils';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { formatNumberTr } from '../utils/poolUtils';
 import { buildHighlightedSegments, isArabicText } from '../utils/textNormalize';
 
@@ -212,6 +214,8 @@ export const GlobalSearchModal: React.FC = () => {
     writeRecentSearches([]);
   }, []);
 
+  useBackButtonGuard('global_search_modal', isSearchModalOpen, closeSearchModal);
+
   // Modal açıldığında yalnızca geniş masaüstü + fare ortamında odaklan & ESC dinle
   useEffect(() => {
     if (!isSearchModalOpen) {
@@ -228,8 +232,7 @@ export const GlobalSearchModal: React.FC = () => {
       }
     }
 
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScrollLock = acquireBodyScrollLock();
 
     let focusTimer: number | null = null;
     if (isDesktopFinePointer()) {
@@ -246,7 +249,7 @@ export const GlobalSearchModal: React.FC = () => {
 
     return () => {
       if (focusTimer !== null) window.clearTimeout(focusTimer);
-      document.body.style.overflow = prevOverflow;
+      releaseScrollLock();
       window.removeEventListener('keydown', onKeyDown);
       abortControllerRef.current?.abort();
     };
@@ -740,7 +743,7 @@ export const GlobalSearchModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[92] flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-label="Kur'an, Meal ve Kelime Meali Arama Merkezi"

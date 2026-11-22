@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { findReciterById } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
+import { useBackButtonGuard } from '../services/backStackService';
 import { getPageBounds, resolvePlaylistItemStartLocation } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
@@ -28,6 +29,7 @@ import type {
   QueueLoopOption,
   RepeatCountOption,
 } from '../types/quran';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { normalizeTurkish } from '../utils/poolUtils';
 
 type DrawerTab = 'quick' | 'playlists';
@@ -84,6 +86,13 @@ export const ListeningDrawerModal: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<DrawerTab>('quick');
   const [scope, setScope] = useState<QuickScope>('surah');
+
+  useBackButtonGuard('listening_drawer_modal', isListeningDrawerOpen, closeListeningDrawer);
+
+  useEffect(() => {
+    if (!isListeningDrawerOpen) return;
+    return acquireBodyScrollLock();
+  }, [isListeningDrawerOpen]);
 
   // Hızlı Dinle Seçimleri
   const [selectedSurah, setSelectedSurah] = useState<number>(1);
@@ -572,7 +581,7 @@ export const ListeningDrawerModal: React.FC = () => {
       role="dialog"
       aria-modal="true"
       aria-label="Dinleme ve Çalma Listeleri"
-      className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[92] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-[2px]"
       onClick={(e) => {
         if (e.target === e.currentTarget) closeListeningDrawer();
       }}

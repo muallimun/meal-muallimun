@@ -145,7 +145,7 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
       aria-label={`Tecvit Kuralı: ${rule.nameTr}`}
       onClick={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
-      className="fixed z-[95] rounded-2xl border shadow-2xl overflow-hidden animate-in fade-in duration-150"
+      className="fixed z-[100] rounded-2xl border shadow-2xl overflow-hidden animate-in fade-in duration-150"
       style={{
         top: `${coords.top}px`,
         left: `${coords.left}px`,

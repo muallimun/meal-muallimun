@@ -4,8 +4,9 @@ import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import type { SurahExtraInfo } from '../../types/fihrist';
 import type { SurahMeta } from '../../types/quran';
-import { formatNumberTr } from '../../utils/poolUtils';
 import { formatSafeArabicTitle } from '../../utils/arabicUtils';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
+import { formatNumberTr } from '../../utils/poolUtils';
 
 interface SurahInfoModalProps {
   surah: SurahMeta | null;
@@ -61,14 +62,13 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({
 
   useEffect(() => {
     if (!surah) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScrollLock = acquireBodyScrollLock();
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      releaseScrollLock();
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [surah, onClose]);
@@ -79,7 +79,7 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[96] flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="surah-info-title"

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpRight,
   Bookmark,
@@ -9,9 +9,11 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { PageBookmark, PageBookmarkColor } from '../types/quran';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { getSurahMap } from '../utils/poolUtils';
 
 export const BOOKMARK_COLOR_STYLES: Record<
@@ -78,6 +80,13 @@ export const PageBookmarksDrawer: React.FC = () => {
     });
   }, [studyProgress.pageBookmarks]);
 
+  useBackButtonGuard('page_bookmarks_drawer', isBookmarksDrawerOpen, closeBookmarksDrawer);
+
+  useEffect(() => {
+    if (!isBookmarksDrawerOpen) return;
+    return acquireBodyScrollLock();
+  }, [isBookmarksDrawerOpen]);
+
   if (!isBookmarksDrawerOpen) return null;
 
   const handleOpenBookmark = (bm: PageBookmark) => {
@@ -142,7 +151,7 @@ export const PageBookmarksDrawer: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[92] flex justify-end bg-black/50 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="bookmarks-drawer-title"

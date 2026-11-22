@@ -29,6 +29,9 @@ import {
   Zap,
 } from 'lucide-react';
 import { buildReciterAudioUrls, findReciterById } from '../../config/recitersConfig';
+import { audioQueueService } from '../../services/audioQueueService';
+import { memorizationAudioController } from '../../services/memorizationAudioController';
+import { wordAudioService } from '../../services/wordAudioService';
 import { useAppStore } from '../../store/useAppStore';
 import type { ThemeMode } from '../../types/quran';
 import type {
@@ -159,6 +162,9 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
     if (urls.length === 0) return;
 
     stopPreviewAudio();
+    audioQueueService.pause();
+    memorizationAudioController.pause();
+    wordAudioService.stop();
     setAudioLoadingSurah(featuredSurah.no);
 
     let urlIdx = 0;
@@ -378,7 +384,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={`${gameMeta.title} Oyun Sahnesi`}
-      className="fixed inset-0 z-50 w-full h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col"
+      className="fixed inset-0 z-[70] w-full h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col"
       style={{ backgroundColor: 'var(--bg-canvas)' }}
     >
       {/* ================================================================= */}

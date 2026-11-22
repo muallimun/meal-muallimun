@@ -9,11 +9,21 @@
       "source": "/mushaf/:path*",
       "destination": "/",
       "permanent": true
+    },
+    {
+      "source": "/quran_vocab",
+      "destination": "https://kelime.muallimun.net/",
+      "permanent": true
+    },
+    {
+      "source": "/quran_vocab/:path*",
+      "destination": "https://kelime.muallimun.net/:path*",
+      "permanent": true
     }
   ],
   "rewrites": [
     {
-      "source": "/((?!data/|fonts/|sfx/|icons/|assets/|manifest\\.webmanifest).*)",
+      "source": "/((?!data/|fonts/|sfx/|icons/|assets/|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js|registerSW\\.js).*)",
       "destination": "/index.html"
     }
   ],

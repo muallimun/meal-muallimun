@@ -9,6 +9,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
+import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { StudyPreset } from '../types/quran';
@@ -21,6 +22,7 @@ import {
   normalizeTurkish,
 } from '../utils/poolUtils';
 import { formatSafeArabicTitle } from '../utils/arabicUtils';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 
 type PoolTab = 'presets' | 'surahs' | 'juzs';
 
@@ -49,18 +51,19 @@ export const PoolSelectorModal: React.FC = () => {
     }
   }, [isPoolModalOpen, studyPool.selectedSurahs, studyPool.selectedJuzs]);
 
+  useBackButtonGuard('pool_selector_modal', isPoolModalOpen, closePoolModal);
+
   // Escape ile kapatma ve arka plan kaydırma kilidi
   useEffect(() => {
     if (!isPoolModalOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScrollLock = acquireBodyScrollLock();
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closePoolModal();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      releaseScrollLock();
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [isPoolModalOpen, closePoolModal]);
@@ -166,7 +169,7 @@ export const PoolSelectorModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[92] flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pool-modal-title"

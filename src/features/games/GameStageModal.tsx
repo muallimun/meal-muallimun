@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { useAppStore } from '../../store/useAppStore';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { GameArenaShell } from './GameArenaShell';
 import { gameAudioService } from './gameAudioService';
 import type { GameProgressMap } from './gameProgressStorage';
@@ -83,10 +85,11 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
   const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
   const [hud, setHud] = useState<GameHudUpdate>(DEFAULT_HUD);
 
+  useBackButtonGuard('game_stage_modal', true, onClose);
+
   useEffect(() => {
     setIsExamActive(true);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScrollLock = acquireBodyScrollLock();
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -96,7 +99,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
     window.addEventListener('keydown', onKeyDown);
 
     return () => {
-      document.body.style.overflow = prevOverflow;
+      releaseScrollLock();
       setIsExamActive(false);
       window.removeEventListener('keydown', onKeyDown);
     };

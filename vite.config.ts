@@ -38,7 +38,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/meal-muallimun\.vercel\.app\/data\/.*\.json$/i,
+            urlPattern: /^https:\/\/kuran\.muallimun\.net\/data\/.*\.json$/i,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'muallimun-remote-json-data',

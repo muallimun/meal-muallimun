@@ -10,8 +10,12 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { audioQueueService } from '../../services/audioQueueService';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { dataService } from '../../services/dataService';
+import { memorizationAudioController } from '../../services/memorizationAudioController';
 import { sfxService } from '../../services/sfxService';
+import { wordAudioService } from '../../services/wordAudioService';
 import {
   buildReciterAudioUrls,
   findReciterById,
@@ -19,6 +23,7 @@ import {
 import type { MemorizationUnit } from '../../types/memorization';
 import { parseVerseKey } from '../../types/memorization';
 import type { CombinedVerse } from '../../types/quran';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 
 interface RabtQuizModalProps {
   isOpen: boolean;
@@ -111,14 +116,31 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
     setPlayingAudio(false);
   }, []);
 
+  const handleCloseModal = useCallback(() => {
+    stopPreviewAudio();
+    onClose();
+  }, [stopPreviewAudio, onClose]);
+
+  useBackButtonGuard('rabt_quiz_modal', isOpen && Boolean(unit), handleCloseModal);
+
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !unit) {
       stopPreviewAudio();
+      return;
     }
+    const releaseLock = acquireBodyScrollLock();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseModal();
+      }
+    };
+    window.addEventListener('keydown', onKey);
     return () => {
+      releaseLock();
+      window.removeEventListener('keydown', onKey);
       stopPreviewAudio();
     };
-  }, [isOpen, stopPreviewAudio]);
+  }, [isOpen, unit, stopPreviewAudio, handleCloseModal]);
 
   // Ayet verilerini yükle ve Rabt + Fâsıla karma testini üret
   useEffect(() => {
@@ -367,6 +389,9 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
     if (urls.length === 0) return;
 
     stopPreviewAudio();
+    audioQueueService.pause();
+    memorizationAudioController.pause();
+    wordAudioService.stop();
     const audio = new Audio();
     audio.preload = 'auto';
     let urlIdx = 0;
@@ -429,7 +454,7 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-sm"
+      className="fixed inset-0 z-[92] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Ayet Bağlama (Rabt) ve Fâsıla Mini Testi"

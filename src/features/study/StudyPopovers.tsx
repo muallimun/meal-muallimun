@@ -80,7 +80,7 @@ export const WaqfPopoverHost: React.FC = () => {
       ref={popoverRef}
       role="dialog"
       aria-label={`${sign.nameTr} durak açıklaması`}
-      className="fixed z-[94] rounded-2xl border shadow-2xl p-3.5"
+      className="fixed z-[100] rounded-2xl border shadow-2xl p-3.5"
       style={{
         top: `${top}px`,
         left: `${left}px`,
@@ -234,7 +234,7 @@ export const RukuPopoverHost: React.FC = () => {
       ref={popoverRef}
       role="dialog"
       aria-label={`${surahNameTr} ${ruku.surahRuku}. Rükû`}
-      className="fixed z-[94] rounded-2xl border shadow-2xl p-3.5"
+      className="fixed z-[100] rounded-2xl border shadow-2xl p-3.5"
       style={{
         top: `${top}px`,
         left: `${left}px`,

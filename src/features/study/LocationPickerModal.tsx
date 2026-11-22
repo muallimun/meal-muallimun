@@ -179,7 +179,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Hızlı Konum Seçici"
-      className="fixed inset-0 z-[92] flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-xs"
+      className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

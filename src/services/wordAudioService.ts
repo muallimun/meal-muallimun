@@ -1,4 +1,5 @@
 import { audioQueueService } from './audioQueueService';
+import { memorizationAudioController } from './memorizationAudioController';
 import { mapDisplayWordIndexToQul } from '../utils/wordSyncUtils';
 
 export type WordAudioStatus = 'idle' | 'loading' | 'playing';
@@ -117,11 +118,12 @@ class WordAudioService {
 
     this.ensureMutualExclusion();
 
-    // Ana tilavet çalıyorsa üst üste binmemesi için duraklat
+    // Ana tilavet veya ezber motoru çalıyorsa üst üste binmemesi için duraklat
     const mainStatus = audioQueueService.getSnapshot().status;
     if (mainStatus === 'playing' || mainStatus === 'loading') {
       audioQueueService.pause();
     }
+    memorizationAudioController.pause();
 
     const key = buildWordAudioKey(surah, ayah, wordIndex1Based);
     this.sessionId += 1;
