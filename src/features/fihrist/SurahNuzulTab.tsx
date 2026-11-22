@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowUpDown, BookOpen, Info, Loader2, Search, X } from 'lucide-react';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type { SurahExtraInfo, SurahInfoExtrasFile } from '../../types/fihrist';
+import type { SurahMeta } from '../../types/quran';
 import { normalizeTurkish } from '../../utils/textNormalize';
+import { SurahInfoModal } from '../study/SurahInfoModal';
 
 type SurahSortKey = 'mushaf' | 'alphabetical' | 'osman' | 'ibnAbbas' | 'noldeke';
 type SurahFilterKey = 'all' | 'mekki' | 'medeni' | 'medeni_exceptions';
@@ -27,13 +29,14 @@ function formatRangeChip(range: [number, number]): string {
 }
 
 export const SurahNuzulTab: React.FC = () => {
-  const { navigateToStudy } = useAppStore();
+  const { meta, navigateToStudy } = useAppStore();
 
   const [dataFile, setDataFile] = useState<SurahInfoExtrasFile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SurahSortKey>('mushaf');
   const [filterBy, setFilterBy] = useState<SurahFilterKey>('all');
+  const [selectedInfoSurah, setSelectedInfoSurah] = useState<SurahMeta | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,8 +111,45 @@ export const SurahNuzulTab: React.FC = () => {
 
   const handleOpenSurah = (surahNo: number, ayah = 1) => {
     sfxService.play('click');
-    navigateToStudy({ surah: surahNo, ayah, viewMode: 'cards' });
+    navigateToStudy({ surah: surahNo, ayah, viewMode: 'cards', ensureMealVisible: true });
   };
+
+  const handleOpenSurahInfo = useCallback(
+    async (extra: SurahExtraInfo) => {
+      sfxService.play('click');
+      const existing = meta?.surahs.find((m) => m.no === extra.no);
+      if (existing) {
+        setSelectedInfoSurah(existing);
+        return;
+      }
+      try {
+        const fetchedMeta = await dataService.getMeta();
+        const found = fetchedMeta.surahs.find((m) => m.no === extra.no);
+        if (found) {
+          setSelectedInfoSurah(found);
+          return;
+        }
+      } catch {
+        // Fallback below if core meta cannot be loaded
+      }
+      setSelectedInfoSurah({
+        no: extra.no,
+        nameTr: extra.nameTr,
+        shortNameTr: extra.nameTr,
+        nameAr: '',
+        type: extra.type,
+        ayahCount: extra.ayahCount,
+        nuzulSirasi: extra.nuzul.osman,
+        pageStart: 1,
+        pageEnd: 1,
+        cuzs: [1],
+        firstId: 1,
+        lastId: extra.ayahCount,
+        questionCount: 0,
+      });
+    },
+    [meta],
+  );
 
   const renderRangeChips = (s: SurahExtraInfo) => {
     const hasMedeni = Boolean(s.medeniAyahs && s.medeniAyahs.length > 0);
@@ -347,10 +387,28 @@ export const SurahNuzulTab: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3 px-3">
-                          <p className="text-sm font-extrabold">{s.nameTr}</p>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            {s.meaningTr}
-                          </p>
+                          <div className="flex items-start gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-extrabold">{s.nameTr}</p>
+                              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                                {s.meaningTr}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void handleOpenSurahInfo(s)}
+                              title={`${s.nameTr} Suresi Tanıtımı ve Künyesi`}
+                              aria-label={`${s.nameTr} Suresi Tanıtımı ve Künyesi`}
+                              className="w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 cursor-pointer transition-colors hover:border-[var(--brand-primary)]"
+                              style={{
+                                backgroundColor: 'var(--bg-surface-soft)',
+                                borderColor: 'var(--border-subtle)',
+                                color: 'var(--brand-primary-text)',
+                              }}
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                         <td className="py-3 px-3">
                           <span
@@ -453,18 +511,35 @@ export const SurahNuzulTab: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenSurah(s.no, 1)}
-                      className="min-h-[34px] px-3 rounded-xl text-xs font-extrabold inline-flex items-center gap-1 shrink-0 cursor-pointer"
-                      style={{
-                        backgroundColor: 'var(--brand-primary-soft)',
-                        color: 'var(--brand-primary-text)',
-                      }}
-                    >
-                      <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                      <span>Oku</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenSurahInfo(s)}
+                        title={`${s.nameTr} Suresi Tanıtımı ve Künyesi`}
+                        aria-label={`${s.nameTr} Suresi Tanıtımı ve Künyesi`}
+                        className="min-w-[36px] min-h-[36px] rounded-xl border inline-flex items-center justify-center shrink-0 cursor-pointer transition-colors hover:border-[var(--brand-primary)]"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <Info className="w-4 h-4 shrink-0" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenSurah(s.no, 1)}
+                        className="min-h-[36px] px-3 rounded-xl text-xs font-extrabold inline-flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'var(--brand-primary-soft)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                        <span>Oku</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Tek Satır Karşılaştırmalı Nüzul Bilgisi */}
@@ -514,6 +589,20 @@ export const SurahNuzulTab: React.FC = () => {
           )}
         </>
       )}
+
+      <SurahInfoModal
+        surah={selectedInfoSurah}
+        onClose={() => setSelectedInfoSurah(null)}
+        onReadSurah={(surahNo) => {
+          setSelectedInfoSurah(null);
+          navigateToStudy({
+            surah: surahNo,
+            ayah: 1,
+            viewMode: 'cards',
+            ensureMealVisible: true,
+          });
+        }}
+      />
     </div>
   );
 };

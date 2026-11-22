@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, Info, X } from 'lucide-react';
+import { ArrowRight, BookOpen, Info, X } from 'lucide-react';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import type { SurahExtraInfo } from '../../types/fihrist';
@@ -10,11 +10,16 @@ import { formatSafeArabicTitle } from '../../utils/arabicUtils';
 interface SurahInfoModalProps {
   surah: SurahMeta | null;
   onClose: () => void;
+  onReadSurah?: (surahNo: number) => void;
 }
 
 type InfoSectionKey = 'hakkinda' | 'nuzul' | 'konusu';
 
-export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({ surah, onClose }) => {
+export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({
+  surah,
+  onClose,
+  onReadSurah,
+}) => {
   const sections: { key: InfoSectionKey; label: string; content: string }[] = surah
     ? [
         { key: 'hakkinda' as const, label: 'Hakkında', content: surah.hakkinda?.trim() ?? '' },
@@ -266,6 +271,30 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({ surah, onClose }
             </div>
           )}
         </div>
+
+        {onReadSurah && (
+          <div
+            className="px-5 py-3 border-t flex items-center justify-end gap-2 shrink-0"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                onReadSurah(surah.no);
+              }}
+              className="min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-bold text-white inline-flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-95 whitespace-nowrap"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <BookOpen className="w-4 h-4 shrink-0" />
+              <span>Sureyi Oku</span>
+              <ArrowRight className="w-4 h-4 shrink-0" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

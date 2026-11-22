@@ -11,10 +11,12 @@ import {
   Loader2,
   Play,
   Printer,
+  Search,
   SlidersHorizontal,
   Sparkles,
   Trash2,
   Trophy,
+  X,
   Zap,
 } from 'lucide-react';
 import { PrintableExamModal } from '../../components/PrintableExamModal';
@@ -30,6 +32,7 @@ import type {
 } from '../../types/quran';
 import { formatDurationTr } from '../../utils/examUtils';
 import { buildSurahQuestionCountMap, formatNumberTr, getSurahMap } from '../../utils/poolUtils';
+import { normalizeTurkish } from '../../utils/textNormalize';
 
 interface ExamHubPageProps {
   initialSurahFilter?: number | null;
@@ -84,6 +87,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
   const [arenaTimePerQuestion, setArenaTimePerQuestion] = useState<ArenaTimeLimit>(45);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState<boolean>(false);
+  const [surahSearch, setSurahSearch] = useState<string>('');
 
   const reportedCount = Object.keys(questionAudit.reports).length;
 
@@ -97,6 +101,16 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
     () => questionIndex?.availableSurahs ?? [],
     [questionIndex],
   );
+
+  const filteredAvailableSurahs = useMemo(() => {
+    const norm = normalizeTurkish(surahSearch);
+    if (!norm) return availableSurahs;
+    return availableSurahs.filter((sNo) => {
+      const sMeta = surahMap.get(sNo);
+      const hay = normalizeTurkish(`${sNo} ${sMeta?.nameTr ?? ''} ${sMeta?.shortNameTr ?? ''}`);
+      return hay.includes(norm);
+    });
+  }, [availableSurahs, surahSearch, surahMap]);
 
   const poolQuestionSurahs = useMemo(() => {
     const availSet = new Set(availableSurahs);
@@ -341,8 +355,41 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               </button>
             </div>
 
-            {/* Sure Kapsamı */}
-            <div className="flex flex-wrap gap-1.5">
+            {/* Sure Kapsamı (114 sureye ölçeklenebilir aramalı ve kaydırılabilir liste) */}
+            {availableSurahs.length > 6 && (
+              <div className="relative">
+                <Search
+                  className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: 'var(--text-muted)' }}
+                />
+                <input
+                  type="search"
+                  value={surahSearch}
+                  onChange={(e) => setSurahSearch(e.target.value)}
+                  placeholder="Soru bankasında sure ara..."
+                  aria-label="Soru bankasında sure ara"
+                  className="w-full h-9 pl-8 pr-8 rounded-xl border text-xs font-medium outline-none focus:border-[var(--brand-primary)]"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+                {surahSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setSurahSearch('')}
+                    aria-label="Sure aramasını temizle"
+                    className="w-6 h-6 rounded-md flex items-center justify-center absolute right-1.5 top-1/2 -translate-y-1/2 cursor-pointer"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto pr-0.5">
               <button
                 type="button"
                 onClick={() => {
@@ -369,7 +416,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                 </span>
               </button>
 
-              {availableSurahs.map((sNo) => {
+              {filteredAvailableSurahs.map((sNo) => {
                 const sMeta = surahMap.get(sNo);
                 const qCnt = questionCountBySurah.get(sNo) ?? sMeta?.questionCount ?? 0;
                 const isSelected = selectedSingleSurah === sNo;
@@ -401,6 +448,12 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                   </button>
                 );
               })}
+
+              {surahSearch.trim() && filteredAvailableSurahs.length === 0 && (
+                <p className="text-xs py-1" style={{ color: 'var(--text-muted)' }}>
+                  &ldquo;{surahSearch.trim()}&rdquo; ile eşleşen soru bankalı sure bulunamadı.
+                </p>
+              )}
             </div>
 
             {selectedSingleSurah === null && poolQuestionSurahs.length === 0 && (

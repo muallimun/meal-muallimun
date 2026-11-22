@@ -3,11 +3,11 @@ import {
   ArrowRight,
   BookOpen,
   Bookmark,
+  Clock,
   Compass,
   Delete,
   CornerDownLeft,
   FileText,
-  Filter,
   Hash,
   Keyboard,
   Languages,
@@ -66,15 +66,48 @@ const TURKISH_ALPHABETICAL_ROWS: readonly (readonly string[])[] = [
 ];
 
 const PAGE_CHUNK_SIZE = 30;
+const RECENT_SEARCHES_KEY = 'muallimun_recent_searches_v1';
+const MAX_RECENT_SEARCHES = 5;
+
+function isDesktopFinePointer(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return window.matchMedia('(min-width: 1024px) and (pointer: fine)').matches;
+}
+
+function readRecentSearches(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is string => typeof item === 'string' && item.trim().length >= 2)
+      .slice(0, MAX_RECENT_SEARCHES);
+  } catch {
+    return [];
+  }
+}
+
+function writeRecentSearches(items: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(items.slice(0, MAX_RECENT_SEARCHES)));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
 
 const EXAMPLE_QUERIES: { label: string; value: string; isAr?: boolean }[] = [
   { label: 'Bakara 255', value: 'Bakara 255' },
+  { label: 'Yâsîn', value: 'Yâsîn' },
   { label: 'Sayfa 411', value: 'Sayfa 411' },
   { label: 'غفور', value: 'غفور', isAr: true },
   { label: 'رحمن', value: 'رحمن', isAr: true },
   { label: 'sabır', value: 'sabır' },
-  { label: "Kur'an", value: "Kur'an" },
-  { label: 'rahmet', value: 'rahmet' },
+  { label: 'takva', value: 'takva' },
 ];
 
 const HighlightedText: React.FC<{
@@ -133,6 +166,7 @@ export const GlobalSearchModal: React.FC = () => {
   const [selectedWordGroupKey, setSelectedWordGroupKey] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(PAGE_CHUNK_SIZE);
   const [includeSubstring, setIncludeSubstring] = useState<boolean>(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => readRecentSearches());
 
   // Sanal Klavye Durumu
   const [showKeyboard, setShowKeyboard] = useState<boolean>(false);
@@ -150,16 +184,57 @@ export const GlobalSearchModal: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const searchTokenRef = useRef<number>(0);
 
-  // Modal açıldığında odaklan & ESC dinle
+  const saveRecentSearch = useCallback((rawTerm: string) => {
+    const term = rawTerm.trim();
+    if (term.length < 2) return;
+    setRecentSearches((prev) => {
+      const next = [term, ...prev.filter((item) => item.toLowerCase() !== term.toLowerCase())].slice(
+        0,
+        MAX_RECENT_SEARCHES,
+      );
+      writeRecentSearches(next);
+      return next;
+    });
+  }, []);
+
+  const removeRecentSearch = useCallback((term: string) => {
+    sfxService.play('click');
+    setRecentSearches((prev) => {
+      const next = prev.filter((item) => item !== term);
+      writeRecentSearches(next);
+      return next;
+    });
+  }, []);
+
+  const clearRecentSearches = useCallback(() => {
+    sfxService.play('click');
+    setRecentSearches([]);
+    writeRecentSearches([]);
+  }, []);
+
+  // Modal açıldığında yalnızca geniş masaüstü + fare ortamında odaklan & ESC dinle
   useEffect(() => {
     if (!isSearchModalOpen) {
       abortControllerRef.current?.abort();
       return;
     }
 
+    // Aktif okunan sure / cüz bilgilerini kapsam varsayılanlarına senkronize et
+    if (studyProgress.lastRead?.surah) {
+      setSelectedSurahNo(studyProgress.lastRead.surah);
+      const currentSurahMeta = meta?.surahs.find((s) => s.no === studyProgress.lastRead?.surah);
+      if (currentSurahMeta?.cuzs[0]) {
+        setSelectedJuzNo(currentSurahMeta.cuzs[0]);
+      }
+    }
+
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    window.setTimeout(() => inputRef.current?.focus(), 30);
+
+    let focusTimer: number | null = null;
+    if (isDesktopFinePointer()) {
+      focusTimer = window.setTimeout(() => inputRef.current?.focus(), 30);
+    }
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -170,11 +245,12 @@ export const GlobalSearchModal: React.FC = () => {
     window.addEventListener('keydown', onKeyDown);
 
     return () => {
+      if (focusTimer !== null) window.clearTimeout(focusTimer);
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKeyDown);
       abortControllerRef.current?.abort();
     };
-  }, [isSearchModalOpen, closeSearchModal]);
+  }, [isSearchModalOpen, closeSearchModal, studyProgress.lastRead?.surah, meta]);
 
   // Seçili kapsama göre taranacak sure listesi
   const { targetSurahs, filterJuzNo } = useMemo(() => {
@@ -272,7 +348,7 @@ export const GlobalSearchModal: React.FC = () => {
     }
   }, [activeTab, selectedWordGroupKey]);
 
-  // Sanal klavye tuş girişi (imleç konumuna ekler)
+  // Sanal klavye tuş girişi (imleç konumuna ekler; mobilde native klavyeyi tetiklemez)
   const insertAtCursor = useCallback((char: string) => {
     sfxService.play('click');
     const el = inputRef.current;
@@ -284,11 +360,13 @@ export const GlobalSearchModal: React.FC = () => {
     const end = el.selectionEnd ?? query.length;
     const nextValue = query.slice(0, start) + char + query.slice(end);
     setQuery(nextValue);
-    window.requestAnimationFrame(() => {
-      el.focus();
-      const nextPos = start + char.length;
-      el.setSelectionRange(nextPos, nextPos);
-    });
+    if (isDesktopFinePointer()) {
+      window.requestAnimationFrame(() => {
+        el.focus();
+        const nextPos = start + char.length;
+        el.setSelectionRange(nextPos, nextPos);
+      });
+    }
   }, [query]);
 
   const handleBackspace = useCallback(() => {
@@ -312,10 +390,12 @@ export const GlobalSearchModal: React.FC = () => {
       nextPos = start - 1;
     }
     setQuery(nextValue);
-    window.requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(nextPos, nextPos);
-    });
+    if (isDesktopFinePointer()) {
+      window.requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(nextPos, nextPos);
+      });
+    }
   }, [query]);
 
   // Ayete git (Mushaf veya Kartlar görünümünde)
@@ -327,26 +407,29 @@ export const GlobalSearchModal: React.FC = () => {
       viewMode: 'mushaf' | 'cards' = 'mushaf',
     ) => {
       sfxService.play('click');
+      saveRecentSearch(query);
       closeSearchModal();
       navigateToStudy({ viewMode, surah, ayah, page });
     },
-    [closeSearchModal, navigateToStudy],
+    [closeSearchModal, navigateToStudy, query, saveRecentSearch],
   );
 
   // Konu Fihristi başlığına git
   const handleJumpToFihristTopic = useCallback(
     (topicId: string) => {
       sfxService.play('click');
+      saveRecentSearch(query);
       closeSearchModal();
       navigateToFihrist({ subTab: 'topics', topicId });
     },
-    [closeSearchModal, navigateToFihrist],
+    [closeSearchModal, navigateToFihrist, query, saveRecentSearch],
   );
 
   // Doğrudan Git kartı aksiyonu
   const handleDirectJump = useCallback(
     (item: DirectJumpItem) => {
       sfxService.play('click');
+      saveRecentSearch(query);
       closeSearchModal();
       navigateToStudy({
         viewMode: 'mushaf',
@@ -355,7 +438,7 @@ export const GlobalSearchModal: React.FC = () => {
         page: item.page,
       });
     },
-    [closeSearchModal, navigateToStudy],
+    [closeSearchModal, navigateToStudy, query, saveRecentSearch],
   );
 
   // Sonuç kartından doğrudan ayeti dinle
@@ -657,7 +740,7 @@ export const GlobalSearchModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-label="Kur'an, Meal ve Kelime Meali Arama Merkezi"
@@ -666,92 +749,113 @@ export const GlobalSearchModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full sm:max-w-4xl h-[94dvh] sm:h-[88dvh] rounded-t-3xl sm:rounded-2xl border shadow-2xl overflow-hidden flex flex-col"
+        className="w-full h-[100dvh] max-h-[100dvh] sm:h-[88dvh] sm:max-h-[88dvh] sm:max-w-4xl rounded-none sm:rounded-2xl border-0 sm:border shadow-2xl overflow-hidden flex flex-col"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
         }}
       >
         {/* ====================================================================
-            1. Üst Arama Giriş Çubuğu + Sanal Klavye & Temizle Butonları
+            1. Üst Arama Giriş Çubuğu + Tek Satırlık Kaydırılabilir Filtre Şeridi
             ==================================================================== */}
         <div
-          className="px-3.5 sm:px-4 py-3 border-b space-y-2.5 shrink-0"
+          className="px-3 sm:px-4 pt-3 pb-2 border-b space-y-2 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div className="flex items-center gap-2">
             <div
-              className="flex-1 min-w-0 flex items-center gap-2 px-3 min-h-[44px] rounded-xl border focus-within:ring-2 focus-within:ring-teal-600/35"
+              className="relative flex-1 min-w-0 flex items-center min-h-[44px] rounded-xl border focus-within:ring-2 focus-within:ring-teal-600/35"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-strong)',
               }}
             >
-              <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+              <Search
+                className="w-4 h-4 absolute left-3 pointer-events-none shrink-0"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
               <input
                 ref={inputRef}
                 type="text"
+                inputMode="search"
+                enterKeyHint="search"
                 dir={inputIsRtl ? 'rtl' : 'ltr'}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && snapshot?.directJumps[0]) {
-                    e.preventDefault();
-                    handleDirectJump(snapshot.directJumps[0]);
+                  if (e.key === 'Enter') {
+                    saveRecentSearch(query);
+                    if (snapshot?.directJumps[0]) {
+                      e.preventDefault();
+                      handleDirectJump(snapshot.directJumps[0]);
+                    } else if (!isDesktopFinePointer()) {
+                      inputRef.current?.blur();
+                    }
                   }
                 }}
-                placeholder="Arapça (غفور), Meal (sabır, Kur'an), Sure:Ayet (2:255) veya Sayfa (411)..."
-                className="flex-1 min-w-0 bg-transparent text-sm sm:text-base font-medium outline-none"
+                placeholder="Sure, ayet (2:255), konu veya kelime ara..."
+                className="w-full min-w-0 h-[42px] pl-9 pr-20 sm:pr-28 bg-transparent text-sm sm:text-base font-medium outline-none"
                 style={{ color: 'var(--text-primary)' }}
               />
 
-              {/* Temizle (X) */}
-              {query && (
+              <div className="absolute right-1.5 flex items-center gap-1">
+                {/* Temizle (X) */}
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setQuery('');
+                      if (isDesktopFinePointer()) {
+                        inputRef.current?.focus();
+                      }
+                    }}
+                    aria-label="Aramayı temizle"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer shrink-0 hover:bg-black/5"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Sanal Klavye Aç/Kapa */}
                 <button
                   type="button"
                   onClick={() => {
                     sfxService.play('click');
-                    setQuery('');
-                    inputRef.current?.focus();
+                    setShowKeyboard((prev) => {
+                      const next = !prev;
+                      if (next && !isDesktopFinePointer()) {
+                        inputRef.current?.blur();
+                      } else if (isDesktopFinePointer()) {
+                        window.setTimeout(() => inputRef.current?.focus(), 10);
+                      }
+                      return next;
+                    });
                   }}
-                  aria-label="Aramayı temizle"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer shrink-0 hover:bg-black/5"
-                  style={{ color: 'var(--text-muted)' }}
+                  aria-label="Sanal ekran klavyesini aç veya kapat"
+                  aria-pressed={showKeyboard}
+                  title="Arapça / Türkçe Sanal Klavye"
+                  className="h-8 px-2 sm:px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors"
+                  style={{
+                    backgroundColor: showKeyboard
+                      ? 'var(--brand-primary)'
+                      : 'var(--bg-surface)',
+                    borderColor: showKeyboard ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                    color: showKeyboard ? '#FFFFFF' : 'var(--text-primary)',
+                  }}
                 >
-                  <X className="w-4 h-4" />
+                  <Keyboard className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline whitespace-nowrap">Klavye</span>
                 </button>
-              )}
-
-              {/* Sanal Klavye Aç/Kapa */}
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setShowKeyboard((v) => !v);
-                  window.setTimeout(() => inputRef.current?.focus(), 10);
-                }}
-                aria-label="Sanal ekran klavyesini aç veya kapat"
-                aria-pressed={showKeyboard}
-                title="Arapça / Türkçe Sanal Klavye"
-                className="min-h-[34px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors"
-                style={{
-                  backgroundColor: showKeyboard
-                    ? 'var(--brand-primary)'
-                    : 'var(--bg-surface)',
-                  borderColor: showKeyboard ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                  color: showKeyboard ? '#FFFFFF' : 'var(--text-primary)',
-                }}
-              >
-                <Keyboard className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline whitespace-nowrap">Klavye</span>
-              </button>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={closeSearchModal}
               aria-label="Aramayı kapat"
-              className="min-w-[40px] min-h-[44px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center cursor-pointer shrink-0"
+              className="min-w-[44px] min-h-[44px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center cursor-pointer shrink-0"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -759,29 +863,18 @@ export const GlobalSearchModal: React.FC = () => {
               }}
             >
               <span className="hidden sm:inline">ESC</span>
-              <X className="w-4 h-4 sm:hidden" />
+              <X className="w-5 h-5 sm:hidden" />
             </button>
           </div>
 
-          {/* Kapsam Seçim Şeridi */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span
-              className="text-[11px] font-bold flex items-center gap-1 mr-1"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              <Filter className="w-3 h-3" />
-              <span>Kapsam:</span>
-            </span>
-
+          {/* Tek Satırlık Kaydırılabilir Kapsam & Ek/Kök Filtre Şeridi */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             {(
               [
                 { id: 'all', label: "Tüm Kur'an (114)" },
-                {
-                  id: 'pool',
-                  label: `Havuzum (${poolStats.surahCount})`,
-                },
-                { id: 'juz', label: 'Seçili Cüz' },
-                { id: 'surah', label: 'Seçili Sure' },
+                { id: 'pool', label: `Havuzum (${poolStats.surahCount})` },
+                { id: 'surah', label: 'Bu Sure' },
+                { id: 'juz', label: 'Bu Cüz' },
               ] as { id: SearchScopeMode; label: string }[]
             ).map((opt) => {
               const active = scopeMode === opt.id;
@@ -793,7 +886,7 @@ export const GlobalSearchModal: React.FC = () => {
                     sfxService.play('click');
                     setScopeMode(opt.id);
                   }}
-                  className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer transition-colors whitespace-nowrap"
+                  className="h-8 px-2.5 rounded-lg border text-xs font-bold cursor-pointer transition-colors whitespace-nowrap shrink-0"
                   style={{
                     backgroundColor: active
                       ? 'var(--brand-primary-soft)'
@@ -807,29 +900,6 @@ export const GlobalSearchModal: React.FC = () => {
               );
             })}
 
-            {scopeMode === 'juz' && meta && (
-              <select
-                value={selectedJuzNo}
-                onChange={(e) => {
-                  sfxService.play('click');
-                  setSelectedJuzNo(Number(e.target.value));
-                }}
-                aria-label="Aranacak cüzü seç"
-                className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--brand-primary)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {meta.juzs.map((j) => (
-                  <option key={j.no} value={j.no}>
-                    {j.no}. Cüz ({j.surahs.length} Sure)
-                  </option>
-                ))}
-              </select>
-            )}
-
             {scopeMode === 'surah' && meta && (
               <select
                 value={selectedSurahNo}
@@ -838,7 +908,7 @@ export const GlobalSearchModal: React.FC = () => {
                   setSelectedSurahNo(Number(e.target.value));
                 }}
                 aria-label="Aranacak sureyi seç"
-                className="min-h-[32px] max-w-[190px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer"
+                className="h-8 max-w-[150px] sm:max-w-[185px] px-2 rounded-lg border text-xs font-bold cursor-pointer shrink-0"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--brand-primary)',
@@ -847,13 +917,42 @@ export const GlobalSearchModal: React.FC = () => {
               >
                 {meta.surahs.map((s) => (
                   <option key={s.no} value={s.no}>
-                    {s.no}. {s.nameTr}
+                    {s.no}. {s.shortNameTr}
                   </option>
                 ))}
               </select>
             )}
 
-            {/* İsteğe Bağlı Kelime Ortası Eşleşme Seçeneği (Varsayılan: Kapalı / Kelime Başı) */}
+            {scopeMode === 'juz' && meta && (
+              <select
+                value={selectedJuzNo}
+                onChange={(e) => {
+                  sfxService.play('click');
+                  setSelectedJuzNo(Number(e.target.value));
+                }}
+                aria-label="Aranacak cüzü seç"
+                className="h-8 px-2 rounded-lg border text-xs font-bold cursor-pointer shrink-0"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--brand-primary)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {meta.juzs.map((j) => (
+                  <option key={j.no} value={j.no}>
+                    {j.no}. Cüz
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <span
+              aria-hidden="true"
+              className="w-px h-4 shrink-0 mx-0.5"
+              style={{ backgroundColor: 'var(--border-subtle)' }}
+            />
+
+            {/* Kompakt Ek/Kök Dahil Toggle Çip */}
             <button
               type="button"
               role="switch"
@@ -862,7 +961,7 @@ export const GlobalSearchModal: React.FC = () => {
                 sfxService.play('click');
                 setIncludeSubstring((prev) => !prev);
               }}
-              className="sm:ml-auto min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+              className="h-8 px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap shrink-0"
               style={{
                 backgroundColor: includeSubstring
                   ? 'var(--brand-accent-soft)'
@@ -870,20 +969,9 @@ export const GlobalSearchModal: React.FC = () => {
                 borderColor: includeSubstring ? 'var(--brand-accent)' : 'var(--border-subtle)',
                 color: includeSubstring ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
               }}
-              title="Kapalıyken yalnızca kelime başı (Arapça'da ال/و/ف/ب/ل ön ek duyarlı) eşleşmeleri gösterir"
+              title="Kelime ortasında geçenleri de dahil et. Kapalıyken yalnızca kelime başı (Arapça'da ال/و/ف/ب/ل ön ek duyarlı) eşleşmeleri gösterir."
             >
-              <span
-                className="w-6 h-3.5 rounded-full p-0.5 flex items-center transition-colors shrink-0"
-                style={{
-                  backgroundColor: includeSubstring
-                    ? 'var(--brand-accent)'
-                    : 'var(--border-strong)',
-                  justifyContent: includeSubstring ? 'flex-end' : 'flex-start',
-                }}
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-white" />
-              </span>
-              <span>Kelime ortasında geçenleri de dahil et</span>
+              <span>≈ Ek/Kök Dahil</span>
             </button>
           </div>
         </div>
@@ -1043,8 +1131,11 @@ export const GlobalSearchModal: React.FC = () => {
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     sfxService.play('click');
+                    saveRecentSearch(query);
                     setShowKeyboard(false);
-                    inputRef.current?.focus();
+                    if (isDesktopFinePointer()) {
+                      inputRef.current?.focus();
+                    }
                   }}
                   className="col-span-3 min-h-[36px] rounded-lg text-xs font-extrabold text-white flex items-center justify-center gap-1 cursor-pointer active:scale-95"
                   style={{ backgroundColor: 'var(--brand-primary)' }}
@@ -1150,23 +1241,94 @@ export const GlobalSearchModal: React.FC = () => {
         <div
           ref={scrollContainerRef}
           onScroll={handleResultsScroll}
+          onTouchMove={() => {
+            if (document.activeElement === inputRef.current) {
+              inputRef.current?.blur();
+            }
+          }}
           className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3"
           style={{ backgroundColor: 'var(--bg-canvas)' }}
         >
-          {/* A. BOŞ SORGU: Örnek Aramalar + Kayıtlı Ayraçlar + Hızlı Sureler */}
+          {/* A. BOŞ SORGU: Son Aramalar + Hızlı Geçiş Örnekleri + Ayraçlar + Hızlı Sureler */}
           {!trimmedQuery && meta && (
             <div className="space-y-4">
-              {/* Örnek Aramalar */}
+              {/* Son Aramalar (Varsa, max 5) */}
+              {recentSearches.length > 0 && (
+                <div
+                  className="rounded-2xl border p-3.5 space-y-2"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="text-xs font-extrabold flex items-center gap-1.5"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      <Clock className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                      <span>Son Aramalar</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearRecentSearches}
+                      className="text-[11px] font-bold hover:underline cursor-pointer"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Temizle
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recentSearches.map((term) => (
+                      <div
+                        key={term}
+                        className="inline-flex items-center rounded-xl border overflow-hidden"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setQuery(term);
+                            if (isArabicText(term)) setKbLang('ar');
+                          }}
+                          className="min-h-[34px] pl-3 pr-1.5 text-xs font-bold cursor-pointer"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {term}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeRecentSearch(term)}
+                          aria-label={`${term} aramasını sil`}
+                          className="w-7 h-8 flex items-center justify-center cursor-pointer hover:bg-black/5"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Hızlı Geçiş & Arama Örnekleri */}
               <div
-                className="rounded-2xl border p-4 space-y-2.5"
+                className="rounded-2xl border p-3.5 sm:p-4 space-y-2.5"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
                 }}
               >
-                <div className="flex items-center gap-1.5 text-xs font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                <div
+                  className="flex items-center gap-1.5 text-xs font-extrabold"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Hızlı Arama Örnekleri</span>
+                  <span>Hızlı Geçiş &amp; Arama Örnekleri</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {EXAMPLE_QUERIES.map((ex) => (
@@ -1178,7 +1340,7 @@ export const GlobalSearchModal: React.FC = () => {
                         setQuery(ex.value);
                         if (ex.isAr) setKbLang('ar');
                       }}
-                      className="min-h-[34px] px-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors hover:border-teal-600/50"
+                      className="min-h-[36px] px-3 rounded-xl border text-xs font-bold cursor-pointer transition-colors hover:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -1190,9 +1352,8 @@ export const GlobalSearchModal: React.FC = () => {
                   ))}
                 </div>
                 <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                  Arapça harekesiz kelimeler (ör. <strong>غفور</strong>), Türkçe meal/dipnot ifadeleri,
-                  kelime mealleri veya doğrudan ayet/sayfa referansları (ör. <strong>2:255</strong>,{' '}
-                  <strong>Sayfa 411</strong>) yazabilirsiniz.
+                  Ayet no (2:255), sayfa (411), sure anlamı, fihrist konusu veya Arapça/Türkçe
+                  kelime arayabilirsiniz.
                 </p>
               </div>
 

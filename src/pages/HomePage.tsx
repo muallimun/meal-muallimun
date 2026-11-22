@@ -7,32 +7,42 @@ import {
   BookOpen,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Compass,
   Flame,
+  Headphones,
   Layers,
   ListMusic,
   Play,
   Plus,
   RefreshCw,
+  Search,
   SlidersHorizontal,
   Star,
   Target,
   Trophy,
   Type,
+  X,
 } from 'lucide-react';
 import { PwaInstallControl } from '../components/PwaInstallControl';
 import { MEALS_CATALOG } from '../config/mealsConfig';
+import { findReciterById } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { dataService, resolvePlaylistItemStartLocation } from '../services/dataService';
+import { isUnitDueForReview, memorizationStorage } from '../services/memorizationStorage';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
-import type { SurahMeta } from '../types/quran';
+import type { ActiveSessionSnapshot, MemorizationUnit } from '../types/memorization';
+import { RETENTION_STAGE_META } from '../types/memorization';
+import type { AudioPlaylistItem, SurahMeta } from '../types/quran';
+import { formatSafeArabicTitle } from '../utils/arabicUtils';
 import {
   buildSurahQuestionCountMap,
   formatNumberTr,
   getSurahMap,
 } from '../utils/poolUtils';
-import { formatSafeArabicTitle } from '../utils/arabicUtils';
+import { normalizeTurkish } from '../utils/textNormalize';
 
 interface AyahPreviewData {
   surahNo: number;
@@ -45,6 +55,31 @@ interface AyahPreviewData {
   tdvText: string;
   dibText: string;
 }
+
+const MAX_HOME_QUIZ_CARDS = 4;
+
+const REFLECTION_VERSES = {
+  kamer: {
+    id: 'kamer' as const,
+    tabLabel: 'İlahî Müjde · Kamer 17',
+    kicker: 'İlahî Kolaylık ve Öğüt Çağrısı',
+    arabic: 'وَلَقَدْ يَسَّرْنَا الْقُرْاٰنَ لِلذِّكْرِ فَهَلْ مِنْ مُدَّكِرٍ',
+    meal: "Andolsun biz Kur'an'ı öğüt alınsın diye kolaylaştırdık. (Ondan) öğüt alan yok mu?",
+    refLabel: 'Kamer 54/17 (Surede 4 kez tekrarlanır)',
+    surah: 54,
+    ayah: 17,
+  },
+  furkan: {
+    id: 'furkan' as const,
+    tabLabel: 'Nebevî Uyarı · Furkan 30',
+    kicker: 'Mehcûr Bırakmama Bilinci',
+    arabic: 'وَقَالَ الرَّسُولُ يَا رَبِّ اِنَّ قَوْمِي اتَّخَذُوا هٰذَا الْقُرْاٰنَ مَهْجُورًا',
+    meal: "Peygamber der ki: Ey Rabbim! Kavmim bu Kur'an'ı büsbütün terk ettiler.",
+    refLabel: 'Furkan 25/30',
+    surah: 25,
+    ayah: 30,
+  },
+};
 
 export const HomePage: React.FC = () => {
   const {
@@ -73,6 +108,42 @@ export const HomePage: React.FC = () => {
     openListeningDrawer,
   } = useAppStore();
 
+  // Tefekkür çerçevesi (mobilde kompakt sekme + isteğe bağlı daraltma)
+  const [activeReflectionTab, setActiveReflectionTab] = useState<'kamer' | 'furkan'>('kamer');
+  const [isReflectionCollapsedMobile, setIsReflectionCollapsedMobile] = useState(false);
+
+  // Ezber durumu (Çalışma Masam için canlı okuma)
+  const [memUnits, setMemUnits] = useState<MemorizationUnit[]>(() =>
+    memorizationStorage.readUnitsSync(),
+  );
+  const [memActiveSession, setMemActiveSession] = useState<ActiveSessionSnapshot | null>(() =>
+    memorizationStorage.readActiveSessionSync(),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      memorizationStorage.loadUnits(),
+      memorizationStorage.loadActiveSession(),
+    ])
+      .then(([units, session]) => {
+        if (!cancelled) {
+          setMemUnits(units);
+          setMemActiveSession(session);
+        }
+      })
+      .catch(() => {
+        // Senkron önbellek zaten yüklü
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Soru bankası vitrini anlık sure filtresi (114 sureye ölçeklenebilir)
+  const [quizSurahQuery, setQuizSurahQuery] = useState('');
+
+  // Rastgele ayet önizleme durumu
   const [previewAyah, setPreviewAyah] = useState<AyahPreviewData | null>(null);
   const [isLoadingAyah, setIsLoadingAyah] = useState(false);
   const [ayahError, setAyahError] = useState<string | null>(null);
@@ -90,6 +161,76 @@ export const HomePage: React.FC = () => {
       .map((sNo) => surahMap.get(sNo))
       .filter((s): s is SurahMeta => Boolean(s));
   }, [meta, questionIndex, surahMap]);
+
+  // Akıllı önceliklendirme: Önce Aktif Çalışma Havuzu'ndakiler, sonra Mushaf sırası (en fazla 4 kart)
+  const { visibleQuizSurahs, totalMatchedQuizSurahs } = useMemo(() => {
+    const normQuery = normalizeTurkish(quizSurahQuery);
+    const poolSet = new Set(poolStats.effectiveSurahs);
+
+    const filtered = normQuery
+      ? availableQuestionSurahs.filter((s) => {
+          const hay = normalizeTurkish(`${s.no} ${s.nameTr} ${s.shortNameTr}`);
+          return hay.includes(normQuery);
+        })
+      : availableQuestionSurahs;
+
+    const prioritized = [...filtered].sort((a, b) => {
+      const aInPool = poolSet.has(a.no) ? 0 : 1;
+      const bInPool = poolSet.has(b.no) ? 0 : 1;
+      if (aInPool !== bInPool) return aInPool - bInPool;
+      return a.no - b.no;
+    });
+
+    return {
+      visibleQuizSurahs: prioritized.slice(0, MAX_HOME_QUIZ_CARDS),
+      totalMatchedQuizSurahs: prioritized.length,
+    };
+  }, [availableQuestionSurahs, poolStats.effectiveSurahs, quizSurahQuery]);
+
+  // En güncel / aktif ezber kaydı özeti
+  const memorizationSummary = useMemo(() => {
+    if (memActiveSession) {
+      const pct =
+        memActiveSession.totalSteps > 0
+          ? Math.min(
+              100,
+              Math.round(((memActiveSession.stepIndex + 1) / memActiveSession.totalSteps) * 100),
+            )
+          : 0;
+      return {
+        title: memActiveSession.unitTitle,
+        detail: `Devam eden oturum · Adım ${memActiveSession.stepIndex + 1}/${memActiveSession.totalSteps} (%${pct})`,
+        hasProgress: true,
+      };
+    }
+
+    if (memUnits.length > 0) {
+      const sorted = [...memUnits].sort(
+        (a, b) => (b.lastPracticedAt ?? b.createdAt) - (a.lastPracticedAt ?? a.createdAt),
+      );
+      const top = sorted[0];
+      const dueCount = memUnits.filter((u) => isUnitDueForReview(u)).length;
+      const stageLabel = RETENTION_STAGE_META[top.stage]?.label ?? top.stage;
+      return {
+        title: top.title,
+        detail: `${top.verseKeys.length} ayet · ${stageLabel}${
+          dueCount > 0 ? ` · ${dueCount} tekrar bekliyor` : ''
+        }`,
+        hasProgress: true,
+      };
+    }
+
+    return {
+      title: 'Ezber Çalışması',
+      detail: 'Rükû veya sure bazlı ezber başlatın',
+      hasProgress: false,
+    };
+  }, [memActiveSession, memUnits]);
+
+  const activeReciter = useMemo(
+    () => findReciterById(audioPrefs.arabicReciterId, manifest),
+    [audioPrefs.arabicReciterId, manifest],
+  );
 
   const accuracyPercent = useMemo(() => {
     if (gamification.solvedCount <= 0) return null;
@@ -122,7 +263,6 @@ export const HomePage: React.FC = () => {
           throw new Error('Bu surede görüntülenecek ayet bulunamadı.');
         }
 
-        // Çok kısa huruf-u mukattaa ayetlerini mümkünse atla, aynı ayeti üst üste getirme
         const readablePool = arFile.verses.filter(
           (v) => !v.mq && v.id !== lastAyahIdRef.current,
         );
@@ -155,7 +295,6 @@ export const HomePage: React.FC = () => {
     [meta, poolStats.effectiveSurahs, surahMap],
   );
 
-  // Çekirdek veri hazır olduğunda veya havuz değiştiğinde önizleme ayetini yenile
   const poolSignature = useMemo(
     () => poolStats.effectiveSurahs.join(','),
     [poolStats.effectiveSurahs],
@@ -174,7 +313,6 @@ export const HomePage: React.FC = () => {
       ? studyPool.selectedSurahs.filter((n) => n !== surahNo)
       : [...studyPool.selectedSurahs, surahNo];
 
-    // Havuzu tamamen boş bırakma
     if (nextSurahs.length === 0 && studyPool.selectedJuzs.length === 0) {
       return;
     }
@@ -226,6 +364,32 @@ export const HomePage: React.FC = () => {
     } else {
       setActiveTab('reader');
     }
+  };
+
+  const handleListenActivePool = () => {
+    sfxService.play('click');
+    if (!meta || !manifest || poolStats.effectiveSurahs.length === 0) {
+      openListeningDrawer({ initialTab: 'quick' });
+      return;
+    }
+    const items: AudioPlaylistItem[] = poolStats.effectiveSurahs.map((sNo) => ({
+      id: `pool_s${sNo}`,
+      type: 'surah',
+      label: surahMap.get(sNo)?.nameTr ?? `${sNo}. Sure`,
+      surah: sNo,
+    }));
+    if (audioPrefs.showTextOnStart && items[0]) {
+      navigateToStudy(resolvePlaylistItemStartLocation(items[0], meta));
+    }
+    void audioQueueService.startSegmentQueue({
+      items,
+      title: `Aktif Çalışma Havuzu (${items.length} Sure)`,
+      context: 'playlist',
+      contextKey: `pool:${poolSignature}`,
+      manifest,
+      meta,
+      prefs: audioPrefs,
+    });
   };
 
   // ============================================================================
@@ -288,29 +452,24 @@ export const HomePage: React.FC = () => {
   // ============================================================================
   if (isLoadingCore && !meta) {
     return (
-      <div className="space-y-6 animate-pulse">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {[0, 1, 2, 3].map((idx) => (
-            <div
-              key={idx}
-              className="h-24 rounded-2xl border"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div className="space-y-4 animate-pulse">
+        <div
+          className="h-44 rounded-2xl border"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div
-            className="lg:col-span-7 h-64 rounded-2xl border"
+            className="lg:col-span-7 h-72 rounded-2xl border"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-subtle)',
             }}
           />
           <div
-            className="lg:col-span-5 h-64 rounded-2xl border"
+            className="lg:col-span-5 h-72 rounded-2xl border"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-subtle)',
@@ -321,453 +480,330 @@ export const HomePage: React.FC = () => {
     );
   }
 
-  // Seçili surelerin okunaklı kısa özeti
+  // Seçili surelerin okunaklı kısa özeti (ilk 5 sure + kalan)
   const activeSurahLabels = poolStats.effectiveSurahs
-    .slice(0, 6)
+    .slice(0, 5)
     .map((no) => surahMap.get(no)?.shortNameTr ?? `${no}. Sure`);
-  const remainingSurahCount = Math.max(0, poolStats.effectiveSurahs.length - 6);
+  const remainingSurahCount = Math.max(0, poolStats.effectiveSurahs.length - 5);
+
+  const lastRead = studyProgress.lastRead;
+  const lastSurahMeta = lastRead ? surahMap.get(lastRead.surah) : undefined;
+  const lastReadModeLabel = lastRead
+    ? lastRead.viewMode === 'mushaf'
+      ? 'Mushaf'
+      : lastRead.viewMode === 'book'
+        ? 'Kitap'
+        : 'Kartlar'
+    : null;
+  const hatimBookmark = studyProgress.pageBookmarks.find((b) => b.isHatim);
+
+  const renderReflectionVerseCard = (
+    verse: typeof REFLECTION_VERSES.kamer | typeof REFLECTION_VERSES.furkan,
+    tone: 'primary' | 'accent',
+  ) => (
+    <button
+      type="button"
+      onClick={() => {
+        sfxService.play('click');
+        navigateToStudy({
+          surah: verse.surah,
+          ayah: verse.ayah,
+          viewMode: 'cards',
+          ensureMealVisible: true,
+        });
+      }}
+      className="w-full text-left rounded-xl border p-3.5 sm:p-4 flex flex-col justify-between gap-2.5 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
+      style={{
+        backgroundColor: 'var(--bg-surface-soft)',
+        borderColor: 'var(--border-subtle)',
+      }}
+    >
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="text-[11px] font-bold tracking-tight"
+            style={{
+              color:
+                tone === 'primary' ? 'var(--brand-primary-text)' : 'var(--brand-accent-text)',
+            }}
+          >
+            {verse.kicker}
+          </span>
+          <ArrowRight
+            className="w-3.5 h-3.5 shrink-0 opacity-55 group-hover:opacity-100 transition-opacity"
+            style={{ color: 'var(--brand-primary-text)' }}
+          />
+        </div>
+
+        <p
+          dir="rtl"
+          lang="ar"
+          className="text-right leading-[2.05] text-xl sm:text-[23px] break-words"
+          style={{
+            fontFamily: '"Scheherazade New", "Amiri Quran", serif',
+            color: 'var(--text-primary)',
+          }}
+        >
+          {verse.arabic}
+        </p>
+
+        <p
+          className="text-xs sm:text-[13px] leading-relaxed italic"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          &ldquo;{verse.meal}&rdquo;
+        </p>
+      </div>
+
+      <div
+        className="pt-2 border-t flex items-center justify-between gap-2 text-[11px] font-semibold"
+        style={{
+          borderColor: 'var(--border-subtle)',
+          color: 'var(--text-muted)',
+        }}
+      >
+        <span className="truncate">{verse.refLabel}</span>
+        <span
+          className="font-bold whitespace-nowrap shrink-0"
+          style={{ color: 'var(--brand-primary-text)' }}
+        >
+          Ayeti Aç
+        </span>
+      </div>
+    </button>
+  );
+
+  const activeMobileVerse =
+    activeReflectionTab === 'kamer' ? REFLECTION_VERSES.kamer : REFLECTION_VERSES.furkan;
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-4">
       {/* ====================================================================
-          1. Üst Karşılama ve 4 Özet İstatistik Kartı
+          1. Tefekkür & İlahî Çağrı Çerçevesi (Kamer 54/17 & Furkan 25/30)
           ==================================================================== */}
-      <section aria-label="Çalışma özeti">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2.5 mb-3">
-          <div>
-            <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--brand-primary-text)' }}>
-              Muallimun Kur&apos;an &amp; Meal
-            </p>
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-balance">
-              Bugün hangi sureyle yolculuğa başlıyoruz?
-            </h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <p className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
-              Okuma, tefsir karşılaştırma, fihrist, ezber ve sınav tek çalışma alanında.
-            </p>
-            <button
-              type="button"
-              onClick={openIntroSplash}
-              className="text-xs font-bold underline underline-offset-4 cursor-pointer whitespace-nowrap"
-              style={{ color: 'var(--brand-primary-text)' }}
-            >
-              Platform Tanıtımı
-            </button>
-          </div>
-        </div>
+      <section aria-label="Tefekkür ve İlahî Çağrı">
+        <div
+          className="surface-card rounded-2xl overflow-hidden"
+          style={{ borderColor: 'var(--border-subtle)' }}
+        >
+          {/* Üst İnce Zümrüt-Kehribar Çizgi Vurgusu */}
+          <div
+            aria-hidden="true"
+            className="h-[3px] w-full"
+            style={{
+              background:
+                'linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-accent) 50%, var(--brand-primary) 100%)',
+            }}
+          />
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Günlük Seri */}
-          <div className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Günlük Seri
-              </span>
-              <span
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{
-                  backgroundColor: 'var(--brand-accent-soft)',
-                  color: 'var(--brand-accent-text)',
-                }}
-              >
-                <Flame className="w-4 h-4" />
-              </span>
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight">
-                {formatNumberTr(gamification.streakDays)}
-                <span
-                  className="text-xs font-semibold ml-1"
-                  style={{ color: 'var(--text-muted)' }}
+          <div className="p-4 sm:p-5 space-y-3.5">
+            {/* Üst Başlık Satırı + Masaüstü Kompakt Seri/Puan + Platform Tanıtımı + Mobil Daralt */}
+            <div className="flex items-start sm:items-center justify-between gap-2.5">
+              <div className="min-w-0">
+                <p
+                  className="text-[11px] font-bold tracking-tight"
+                  style={{ color: 'var(--brand-primary-text)' }}
                 >
-                  gün
-                </span>
-              </p>
-              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                Düzenli çalışma zinciri
-              </p>
-            </div>
-          </div>
-
-          {/* Toplam Puan */}
-          <div className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Toplam Puan
-              </span>
-              <span
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{
-                  backgroundColor: 'var(--brand-primary-soft)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                <Star className="w-4 h-4" />
-              </span>
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight">
-                {formatNumberTr(gamification.totalXp)}
-              </p>
-              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                Yarışma ve tekrar puanı
-              </p>
-            </div>
-          </div>
-
-          {/* Çözülen Soru */}
-          <div className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Çözülen Soru
-              </span>
-              <span
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                <CheckCircle2 className="w-4 h-4" />
-              </span>
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight">
-                {formatNumberTr(gamification.solvedCount)}
-              </p>
-              <p className="text-[11px] mt-0.5 tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                {formatNumberTr(gamification.correctCount)} doğru yanıt
-              </p>
-            </div>
-          </div>
-
-          {/* Doğruluk Oranı */}
-          <div className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Doğruluk Oranı
-              </span>
-              <span
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{
-                  backgroundColor: 'rgba(16, 185, 129, 0.14)',
-                  color: '#10B981',
-                }}
-              >
-                <Target className="w-4 h-4" />
-              </span>
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight">
-                {accuracyPercent !== null ? `%${accuracyPercent}` : '—'}
-              </p>
-              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {accuracyPercent !== null ? 'Genel isabet ortalaması' : 'İlk sınavınızla oluşur'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ====================================================================
-          1.5. Kaldığım Yerden Devam Et & Sayfa Ayraçları Kartı
-          ==================================================================== */}
-      {studyProgress.lastRead && (() => {
-        const lastRead = studyProgress.lastRead;
-        const lastSurahMeta = surahMap.get(lastRead.surah);
-        const modeLabel =
-          lastRead.viewMode === 'mushaf'
-            ? 'Mushaf Sayfa Düzeni'
-            : lastRead.viewMode === 'book'
-              ? 'Kitap Modu'
-              : 'Ayet & Karşılaştırmalı Meal';
-        const hatimBookmark = studyProgress.pageBookmarks.find((b) => b.isHatim);
-
-        return (
-          <section aria-label="Kaldığım yerden devam et">
-            <div
-              className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              style={{ borderColor: 'rgba(15, 118, 110, 0.25)' }}
-            >
-              <div className="flex items-start sm:items-center gap-3 min-w-0">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{
-                    backgroundColor: 'var(--brand-primary-soft)',
-                    color: 'var(--brand-primary-text)',
-                  }}
-                >
-                  <BookMarked className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                    <span
-                      className="text-xs font-bold"
-                      style={{ color: 'var(--brand-primary-text)' }}
-                    >
-                      Kaldığım Yerden Devam Et
-                    </span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      · {modeLabel}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mt-0.5">
-                    <h3 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
-                      {lastSurahMeta?.nameTr ?? `${lastRead.surah}. Sure`}
-                    </h3>
-                    {lastSurahMeta?.nameAr && (
-                      <span
-                        className="arabic-title text-base leading-none"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        {formatSafeArabicTitle(lastSurahMeta.nameAr)}
-                      </span>
-                    )}
-                    <span
-                      className="text-xs font-semibold tabular-nums"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {lastRead.ayah}. Ayet · Sayfa {lastRead.page}
-                    </span>
-                    {hatimBookmark && (
-                      <span
-                        className="text-xs font-semibold tabular-nums"
-                        style={{ color: 'var(--brand-accent-text)' }}
-                      >
-                        · Hatim Ayracı: S.{hatimBookmark.page}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                  Muallimun Kur&apos;an, Meal &amp; Araştırma
+                </p>
+                <h2 className="text-base sm:text-lg font-extrabold tracking-tight leading-snug text-balance">
+                  Tefekkür &amp; İlahî Çağrı
+                </h2>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2.5 shrink-0">
+                <div
+                  className="hidden lg:flex items-center gap-2 text-xs tabular-nums"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <span className="font-semibold">
+                    Seri:{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {formatNumberTr(gamification.streakDays)} gün
+                    </strong>
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span className="font-semibold">
+                    Puan:{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {formatNumberTr(gamification.totalXp)}
+                    </strong>
+                  </span>
+                </div>
+
                 <button
                   type="button"
-                  onClick={openBookmarksDrawer}
-                  className="min-h-[40px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 transition-colors cursor-pointer whitespace-nowrap"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
-                  }}
+                  onClick={openIntroSplash}
+                  className="text-xs font-bold underline underline-offset-4 cursor-pointer whitespace-nowrap"
+                  style={{ color: 'var(--brand-primary-text)' }}
                 >
-                  <Bookmark className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-accent-text)' }} />
-                  <span>
-                    Ayraçlar
-                    {studyProgress.pageBookmarks.length > 0
-                      ? ` (${studyProgress.pageBookmarks.length})`
-                      : ''}
-                  </span>
+                  Platform Tanıtımı
                 </button>
 
                 <button
                   type="button"
                   onClick={() => {
                     sfxService.play('click');
-                    navigateToStudy({
-                      surah: lastRead.surah,
-                      ayah: lastRead.ayah,
-                      page: lastRead.page,
-                      viewMode: lastRead.viewMode,
-                    });
+                    setIsReflectionCollapsedMobile((prev) => !prev);
                   }}
-                  className="flex-1 sm:flex-initial min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-1.5 shrink-0 transition-transform active:scale-[0.99] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 whitespace-nowrap"
-                  style={{ backgroundColor: 'var(--brand-primary)' }}
-                >
-                  <BookOpen className="w-4 h-4 shrink-0" />
-                  <span>Okumaya Devam Et</span>
-                  <ArrowRight className="w-4 h-4 shrink-0" />
-                </button>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* ====================================================================
-          1.6. Hata Kampı Hatırlatma Kartı (Yanlış Soru Varsa)
-          ==================================================================== */}
-      {gamification.wrongQuestionIds.length > 0 && (
-        <section aria-label="Hata kampı hatırlatması">
-          <div
-            className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-            style={{
-              borderColor: 'rgba(239, 68, 68, 0.28)',
-              backgroundColor: 'rgba(239, 68, 68, 0.03)',
-            }}
-          >
-            <div className="flex items-start sm:items-center gap-3 min-w-0">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                  color: '#DC2626',
-                }}
-              >
-                <Target className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold" style={{ color: '#DC2626' }}>
-                  Hata Kampı Hatırlatması
-                </p>
-                <h3 className="text-sm sm:text-base font-extrabold tracking-tight">
-                  Hata Kampında Seni Bekleyen {formatNumberTr(gamification.wrongQuestionIds.length)}{' '}
-                  Soru Var
-                </h3>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Kısa bir telafi çalışmasıyla yanlışlarını kalıcı öğrenmeye dönüştür.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('mistakes')}
-              className="min-h-[40px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-1.5 shrink-0 transition-transform active:scale-[0.99] cursor-pointer whitespace-nowrap"
-              style={{ backgroundColor: '#DC2626' }}
-            >
-              <span>Hemen Temizle</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* ====================================================================
-          1.7. PWA Kurulum Önerisi (Sadece kurulabilir tarayıcı / iOS'ta görünür)
-          ==================================================================== */}
-      <PwaInstallControl variant="banner" />
-
-      {/* ====================================================================
-          1.8. Dinleme & Çalma Listelerim Hızlı Erişim Kartı
-          ==================================================================== */}
-      {meta && manifest && audioPlaylists.length > 0 && (
-        <section aria-label="Dinleme ve çalma listelerim">
-          <div className="surface-card rounded-2xl p-4 sm:p-5 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{
-                    backgroundColor: 'var(--brand-primary-soft)',
-                    color: 'var(--brand-primary-text)',
-                  }}
-                >
-                  <ListMusic className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm sm:text-base font-extrabold tracking-tight">
-                    Dinleme &amp; Çalma Listelerim
-                  </h3>
-                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                    Sure, sayfa, cüz veya özel listelerle döngülü tilavet
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  openListeningDrawer({ initialTab: 'quick' });
-                }}
-                className="min-h-[38px] px-3.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                <span>Hızlı Dinle &amp; Listeler</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {audioPlaylists.slice(0, 3).map((playlist) => (
-                <div
-                  key={playlist.id}
-                  className="p-3 rounded-xl border flex items-center justify-between gap-2.5 min-w-0"
+                  aria-expanded={!isReflectionCollapsedMobile}
+                  aria-label={
+                    isReflectionCollapsedMobile
+                      ? 'Tefekkür çerçevesini genişlet'
+                      : 'Tefekkür çerçevesini daralt'
+                  }
+                  className="lg:hidden w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer shrink-0"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-secondary)',
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      openListeningDrawer({ initialTab: 'playlists' });
-                    }}
-                    className="min-w-0 flex-1 text-left cursor-pointer"
-                  >
-                    <p className="text-xs sm:text-sm font-extrabold truncate">
-                      {playlist.name}
-                    </p>
-                    <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      {playlist.items.length} bölüm ·{' '}
-                      {playlist.items.map((i) => i.label).slice(0, 2).join(', ')}
-                    </p>
-                  </button>
+                  {isReflectionCollapsedMobile ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronUp className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!playlist.items.length) return;
-                      sfxService.play('click');
-                      if (audioPrefs.showTextOnStart) {
-                        navigateToStudy(
-                          resolvePlaylistItemStartLocation(playlist.items[0], meta),
-                        );
-                      }
-                      void audioQueueService.startSegmentQueue({
-                        items: playlist.items,
-                        title: playlist.name,
-                        context: 'playlist',
-                        contextKey: `playlist:${playlist.id}`,
-                        manifest,
-                        meta,
-                        prefs: audioPrefs,
-                      });
-                    }}
-                    disabled={playlist.items.length === 0}
-                    aria-label={`${playlist.name} listesini dinle`}
-                    title={`${playlist.name} listesini dinle`}
-                    className="h-9 px-3 rounded-xl text-xs font-bold text-white flex items-center gap-1 shrink-0 cursor-pointer disabled:opacity-45 transition-transform active:scale-95"
-                    style={{ backgroundColor: 'var(--brand-primary)' }}
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Dinle</span>
-                  </button>
+            {/* Ortak Özlü Mesaj + Ayet Kartları */}
+            <div className={isReflectionCollapsedMobile ? 'hidden lg:block space-y-3.5' : 'space-y-3.5'}>
+              <p
+                className="text-xs sm:text-sm leading-relaxed max-w-4xl"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Kur&apos;an-ı Kerim, anlaşılması ve öğüt alınması bizzat Yüce Allah tarafından
+                kolaylaştırılmış bir hidayet rehberidir. Onu yalnız lafzıyla değil, manası ve
+                mesajıyla da hayatımızın merkezinde tutmak mümin sorumluluğumuzdur.
+              </p>
+
+              {/* Masaüstü (lg+): İki Ayet Yan Yana */}
+              <div className="hidden lg:grid lg:grid-cols-2 gap-4 items-stretch">
+                {renderReflectionVerseCard(REFLECTION_VERSES.kamer, 'primary')}
+                {renderReflectionVerseCard(REFLECTION_VERSES.furkan, 'accent')}
+              </div>
+
+              {/* Mobil (< lg): 2'li Geçiş Çipi + Tek Ferah Ayet Kartı */}
+              <div className="lg:hidden space-y-2.5">
+                <div
+                  className="grid grid-cols-2 gap-1 p-1 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                  role="tablist"
+                  aria-label="Tefekkür ayetleri"
+                >
+                  {(
+                    [
+                      { id: 'kamer', label: REFLECTION_VERSES.kamer.tabLabel },
+                      { id: 'furkan', label: REFLECTION_VERSES.furkan.tabLabel },
+                    ] as const
+                  ).map((tab) => {
+                    const active = activeReflectionTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => {
+                          sfxService.play('click');
+                          setActiveReflectionTab(tab.id);
+                        }}
+                        className="min-h-[36px] px-2 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer truncate"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+
+                {renderReflectionVerseCard(
+                  activeMobileVerse,
+                  activeReflectionTab === 'kamer' ? 'primary' : 'accent',
+                )}
+              </div>
             </div>
           </div>
-        </section>
-      )}
+
+          {/* Kompakt Tek Satırlık Mini Özet Şeridi (4'lü İstatistik Özeti) */}
+          <div
+            className="grid grid-cols-2 sm:grid-cols-4 border-t"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b sm:border-b-0 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+              <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                <Flame className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-accent-text)' }} />
+                <span>Günlük Seri</span>
+              </span>
+              <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                {formatNumberTr(gamification.streakDays)} gün
+              </span>
+            </div>
+
+            <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b sm:border-b-0 sm:border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+              <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                <Star className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                <span>Toplam Puan</span>
+              </span>
+              <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                {formatNumberTr(gamification.totalXp)}
+              </span>
+            </div>
+
+            <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+              <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                <span>Çözülen</span>
+              </span>
+              <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                {formatNumberTr(gamification.solvedCount)} soru
+              </span>
+            </div>
+
+            <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                <Target className="w-3.5 h-3.5 shrink-0" style={{ color: '#10B981' }} />
+                <span>Doğruluk</span>
+              </span>
+              <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                {accuracyPercent !== null ? `%${accuracyPercent}` : '—'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PWA Kurulum Önerisi (Sadece kurulabilir tarayıcı / iOS'ta görünür) */}
+      <PwaInstallControl variant="banner" />
 
       {/* ====================================================================
-          1.9. Platform Modülleri Hızlı Erişim Izgarası (4 Dengeli Kart)
+          1.5. Platform Modülleri Hızlı Erişim Izgarası (4 Dengeli Kart)
           ==================================================================== */}
       <section aria-label="Platform modülleri">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-          {/* 1. Meal & Okuma */}
           <button
             type="button"
             onClick={handleOpenPoolReader}
-            className="surface-card rounded-2xl p-3 sm:p-4 text-left flex flex-col justify-between gap-2.5 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
+            className="surface-card rounded-2xl p-3 sm:p-3.5 text-left flex flex-col justify-between gap-2 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
           >
             <div className="flex items-center justify-between gap-2">
               <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
                   color: 'var(--brand-primary-text)',
                 }}
               >
-                <BookOpen className="w-4.5 h-4.5" />
+                <BookOpen className="w-4 h-4" />
               </span>
               <ArrowRight
                 className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
@@ -779,32 +815,31 @@ export const HomePage: React.FC = () => {
                 Meal &amp; Okuma
               </h3>
               <p
-                className="text-[11px] sm:text-xs mt-1 leading-relaxed line-clamp-2"
+                className="text-[11px] mt-0.5 leading-relaxed line-clamp-2"
                 style={{ color: 'var(--text-muted)' }}
               >
-                Mushaf · Renkli Tecvit · {MEALS_CATALOG.length} Meal &amp; Tefsir · Kelime Takibi
+                Mushaf · Renkli Tecvit · {MEALS_CATALOG.length} Meal &amp; Tefsir
               </p>
             </div>
           </button>
 
-          {/* 2. Fihrist & Araştırma */}
           <button
             type="button"
             onClick={() => {
               sfxService.play('click');
               setActiveTab('fihrist');
             }}
-            className="surface-card rounded-2xl p-3 sm:p-4 text-left flex flex-col justify-between gap-2.5 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
+            className="surface-card rounded-2xl p-3 sm:p-3.5 text-left flex flex-col justify-between gap-2 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
           >
             <div className="flex items-center justify-between gap-2">
               <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
                   color: 'var(--brand-primary-text)',
                 }}
               >
-                <Compass className="w-4.5 h-4.5" />
+                <Compass className="w-4 h-4" />
               </span>
               <ArrowRight
                 className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
@@ -816,32 +851,31 @@ export const HomePage: React.FC = () => {
                 Fihrist &amp; Araştırma
               </h3>
               <p
-                className="text-[11px] sm:text-xs mt-1 leading-relaxed line-clamp-2"
+                className="text-[11px] mt-0.5 leading-relaxed line-clamp-2"
                 style={{ color: 'var(--text-muted)' }}
               >
-                601 Konu · Sure &amp; Nüzul Rehberi · Bazergan Kronolojisi · Defterim
+                601 Konu · Sure &amp; Nüzul · Kronoloji · Defterim
               </p>
             </div>
           </button>
 
-          {/* 3. Ezber Modu */}
           <button
             type="button"
             onClick={() => {
               sfxService.play('click');
               setActiveTab('memorize');
             }}
-            className="surface-card rounded-2xl p-3 sm:p-4 text-left flex flex-col justify-between gap-2.5 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
+            className="surface-card rounded-2xl p-3 sm:p-3.5 text-left flex flex-col justify-between gap-2 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
           >
             <div className="flex items-center justify-between gap-2">
               <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: 'var(--brand-accent-soft)',
                   color: 'var(--brand-accent-text)',
                 }}
               >
-                <BookMarked className="w-4.5 h-4.5" />
+                <BookMarked className="w-4 h-4" />
               </span>
               <ArrowRight
                 className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
@@ -853,29 +887,28 @@ export const HomePage: React.FC = () => {
                 Ezber Modu
               </h3>
               <p
-                className="text-[11px] sm:text-xs mt-1 leading-relaxed line-clamp-2"
+                className="text-[11px] mt-0.5 leading-relaxed line-clamp-2"
                 style={{ color: 'var(--text-muted)' }}
               >
-                556 Rükû &amp; Ayet Havuzları · Müteşâbihât Uyarısı · Öğretici Kurrâlar
+                556 Rükû &amp; Ayet Havuzları · Müteşâbihât
               </p>
             </div>
           </button>
 
-          {/* 4. Sınav Merkezi */}
           <button
             type="button"
             onClick={handleStartExam}
-            className="surface-card rounded-2xl p-3 sm:p-4 text-left flex flex-col justify-between gap-2.5 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
+            className="surface-card rounded-2xl p-3 sm:p-3.5 text-left flex flex-col justify-between gap-2 transition-colors hover:border-[var(--brand-primary)] cursor-pointer group"
           >
             <div className="flex items-center justify-between gap-2">
               <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: 'var(--brand-accent-soft)',
                   color: 'var(--brand-accent-text)',
                 }}
               >
-                <Trophy className="w-4.5 h-4.5" />
+                <Trophy className="w-4 h-4" />
               </span>
               <ArrowRight
                 className="w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity"
@@ -887,10 +920,10 @@ export const HomePage: React.FC = () => {
                 Sınav Merkezi
               </h3>
               <p
-                className="text-[11px] sm:text-xs mt-1 leading-relaxed line-clamp-2"
+                className="text-[11px] mt-0.5 leading-relaxed line-clamp-2"
                 style={{ color: 'var(--text-muted)' }}
               >
-                Doğrulanmış Soru Bankası · Hata Kampı · A4 PDF Sınav Çıktısı
+                Doğrulanmış Soru Bankası · A4 PDF Çıktı
               </p>
             </div>
           </button>
@@ -898,14 +931,15 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ====================================================================
-          2. Ana 2-Sütunlu Alan: Aktif Çalışma Havuzu + Rastgele Ayet Önizleme
+          2. Ana 2-Sütunlu Alan: Çalışma Masam (Sol 7) + Havuzdan Bir Ayet (Sağ 5)
           ==================================================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-        {/* SOL (7 sütun): Aktif Çalışma Havuzu Kartı */}
-        <div className="lg:col-span-7 surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3.5">
-              <div className="flex items-center gap-2.5">
+        {/* SOL (7 sütun): Birleşik Çalışma Masam Merkezi */}
+        <div className="lg:col-span-7 surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4">
+          {/* BÖLÜM A: Kaldığım Yer & Hızlı Devam (Okuma + Ezber + Dinleme) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                   style={{
@@ -915,76 +949,341 @@ export const HomePage: React.FC = () => {
                 >
                   <Layers className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
-                    Aktif Çalışma Havuzum
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-extrabold tracking-tight truncate">
+                    Çalışma Masam
                   </h3>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    Okuma, dinleme ve sınav kapsamınız
+                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                    Okuma, ezber, dinleme ve aktif çalışma havuzunuz
                   </p>
+                </div>
+              </div>
+
+              {gamification.wrongQuestionIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setActiveTab('mistakes');
+                  }}
+                  className="min-h-[34px] px-2.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90"
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderColor: 'rgba(239, 68, 68, 0.3)',
+                    color: '#DC2626',
+                  }}
+                >
+                  <Target className="w-3.5 h-3.5 shrink-0" />
+                  <span>Hata Kampı ({formatNumberTr(gamification.wrongQuestionIds.length)})</span>
+                </button>
+              )}
+            </div>
+
+            {/* 3 Kompakt Devam Satırı (Temiz Çizgisel Ayırıcılarla) */}
+            <div
+              className="rounded-xl border divide-y overflow-hidden"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              {/* Satır 1: Okuma */}
+              <div
+                className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <BookOpen className="w-4 h-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                      <span className="text-xs font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                        Okuma
+                      </span>
+                      <span className="text-xs sm:text-sm font-extrabold truncate">
+                        {lastRead
+                          ? `${lastSurahMeta?.nameTr ?? `${lastRead.surah}. Sure`}`
+                          : 'Okumaya Başla'}
+                      </span>
+                      {lastSurahMeta?.nameAr && (
+                        <span
+                          className="arabic-title text-sm leading-none hidden sm:inline"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          {formatSafeArabicTitle(lastSurahMeta.nameAr)}
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className="text-[11px] tabular-nums truncate mt-0.5"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {lastRead ? (
+                        <>
+                          {lastRead.ayah}. Ayet · Sayfa {lastRead.page} · {lastReadModeLabel}
+                          {hatimBookmark ? ` · Hatim S.${hatimBookmark.page}` : ''}
+                        </>
+                      ) : (
+                        'Kaldığınız yer otomatik olarak burada kaydedilir'
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={openBookmarksDrawer}
+                    className="min-h-[36px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <Bookmark
+                      className="w-3.5 h-3.5 shrink-0"
+                      style={{ color: 'var(--brand-accent-text)' }}
+                    />
+                    <span>
+                      Ayraçlar
+                      {studyProgress.pageBookmarks.length > 0
+                        ? ` (${studyProgress.pageBookmarks.length})`
+                        : ''}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      if (lastRead) {
+                        navigateToStudy({
+                          surah: lastRead.surah,
+                          ayah: lastRead.ayah,
+                          page: lastRead.page,
+                          viewMode: lastRead.viewMode,
+                        });
+                      } else {
+                        handleOpenPoolReader();
+                      }
+                    }}
+                    className="flex-1 sm:flex-initial min-h-[36px] px-3 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <span>Okumaya Devam Et</span>
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Satır 2: Ezber */}
+              <div
+                className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                  >
+                    <BookMarked className="w-4 h-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                      <span className="text-xs font-extrabold" style={{ color: 'var(--brand-accent-text)' }}>
+                        Ezber
+                      </span>
+                      <span className="text-xs sm:text-sm font-extrabold truncate">
+                        {memorizationSummary.title}
+                      </span>
+                    </div>
+                    <p
+                      className="text-[11px] tabular-nums truncate mt-0.5"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {memorizationSummary.detail}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setActiveTab('memorize');
+                  }}
+                  className="min-h-[36px] px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-strong)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <span>{memorizationSummary.hasProgress ? 'Ezbere Devam Et' : 'Ezbere Başla'}</span>
+                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                </button>
+              </div>
+
+              {/* Satır 3: Dinleme & Hızlı Çalma Listeleri */}
+              <div
+                className="p-3 space-y-2"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: 'var(--brand-primary-soft)',
+                        color: 'var(--brand-primary-text)',
+                      }}
+                    >
+                      <ListMusic className="w-4 h-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                        <span className="text-xs font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                          Dinleme &amp; Listeler
+                        </span>
+                        <span
+                          className="text-[11px] font-semibold truncate"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          · {activeReciter?.shortLabel ?? 'Kurrâ'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      openListeningDrawer({ initialTab: 'playlists' });
+                    }}
+                    className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <span>Listeler</span>
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                  </button>
+                </div>
+
+                {meta && manifest && audioPlaylists.length > 0 && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                    {audioPlaylists.slice(0, 4).map((playlist) => (
+                      <button
+                        key={playlist.id}
+                        type="button"
+                        disabled={playlist.items.length === 0}
+                        onClick={() => {
+                          if (!playlist.items.length) return;
+                          sfxService.play('click');
+                          if (audioPrefs.showTextOnStart) {
+                            navigateToStudy(
+                              resolvePlaylistItemStartLocation(playlist.items[0], meta),
+                            );
+                          }
+                          void audioQueueService.startSegmentQueue({
+                            items: playlist.items,
+                            title: playlist.name,
+                            context: 'playlist',
+                            contextKey: `playlist:${playlist.id}`,
+                            manifest,
+                            meta,
+                            prefs: audioPrefs,
+                          });
+                        }}
+                        title={`${playlist.name} listesini dinle`}
+                        className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors hover:border-[var(--brand-primary)] disabled:opacity-45 whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <Play
+                          className="w-3 h-3 fill-current shrink-0"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        />
+                        <span className="max-w-[165px] truncate">{playlist.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* BÖLÜM B: Entegre Aktif Çalışma Havuzum Özeti & Aksiyonlar */}
+          <div
+            className="pt-3.5 border-t space-y-3"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h4 className="text-sm sm:text-base font-extrabold tracking-tight">
+                  Aktif Çalışma Havuzum
+                </h4>
+                <div
+                  className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs tabular-nums mt-0.5"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <span>
+                    Seçili Sure:{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {formatNumberTr(poolStats.surahCount)}
+                    </strong>
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>
+                    Toplam Ayet:{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {formatNumberTr(poolStats.ayahCount)}
+                    </strong>
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>
+                    Hazır Soru:{' '}
+                    <strong style={{ color: 'var(--brand-primary-text)' }}>
+                      {formatNumberTr(poolStats.questionCount)}
+                    </strong>
+                  </span>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={openPoolModal}
-                className="min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-bold border flex items-center gap-2 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
+                className="min-h-[38px] px-3.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
                   color: 'var(--brand-primary-text)',
                 }}
               >
-                <SlidersHorizontal className="w-4 h-4 shrink-0" />
-                <span className="whitespace-nowrap">Havuzu Düzenle</span>
+                <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                <span>Havuzu Düzenle</span>
               </button>
             </div>
 
-            {/* 3 Havuz Sayacı */}
-            <div
-              className="grid grid-cols-3 gap-3 p-4 rounded-xl mb-5 border"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              <div>
-                <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Seçili Sure
-                </p>
-                <p className="text-xl sm:text-2xl font-extrabold tabular-nums">
-                  {formatNumberTr(poolStats.surahCount)}
-                </p>
-              </div>
-              <div
-                className="border-l pl-3"
-                style={{ borderColor: 'var(--border-subtle)' }}
-              >
-                <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Toplam Ayet
-                </p>
-                <p className="text-xl sm:text-2xl font-extrabold tabular-nums">
-                  {formatNumberTr(poolStats.ayahCount)}
-                </p>
-              </div>
-              <div
-                className="border-l pl-3"
-                style={{ borderColor: 'var(--border-subtle)' }}
-              >
-                <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>
-                  Hazır Soru
-                </p>
-                <p
-                  className="text-xl sm:text-2xl font-extrabold tabular-nums"
-                  style={{ color: 'var(--brand-primary-text)' }}
-                >
-                  {formatNumberTr(poolStats.questionCount)}
-                </p>
-              </div>
-            </div>
-
-            {/* Seçili Sure ve Cüzlerin Metin Özeti (Zero-Pill Temiz Tipografi) */}
-            <div className="space-y-1.5 mb-6 text-sm">
+            {/* Kapsam Özeti */}
+            <div className="space-y-1 text-xs sm:text-sm">
               <p style={{ color: 'var(--text-secondary)' }}>
                 <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                   Kapsam:{' '}
@@ -995,7 +1294,7 @@ export const HomePage: React.FC = () => {
                     {remainingSurahCount > 0 && (
                       <span style={{ color: 'var(--text-muted)' }}>
                         {' '}
-                        ve +{formatNumberTr(remainingSurahCount)} sure daha
+                        +{formatNumberTr(remainingSurahCount)} sure
                       </span>
                     )}
                   </>
@@ -1010,39 +1309,53 @@ export const HomePage: React.FC = () => {
               )}
               {poolStats.questionCount === 0 && (
                 <p className="text-xs font-medium" style={{ color: 'var(--brand-accent-text)' }}>
-                  Bu seçimde henüz hazır sınav sorusu yok; okuma ve meal çalışması yapabilir veya
-                  soru bankası bulunan sureleri havuza ekleyebilirsiniz.
+                  Bu seçimde henüz hazır sınav sorusu yok; okuma ve dinleme yapabilir veya soru
+                  bankası bulunan sureleri havuza ekleyebilirsiniz.
                 </p>
               )}
             </div>
-          </div>
 
-          {/* Ana Aksiyonlar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-            <button
-              type="button"
-              onClick={handleStartExam}
-              className="flex-1 min-h-[48px] px-5 py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-transform active:scale-[0.99] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-              style={{ backgroundColor: 'var(--brand-primary)' }}
-            >
-              <Trophy className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Sınav Başlat</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
-            </button>
+            {/* Alt Aksiyon Satırı: Sınav Başlat · Havuzu Oku · Havuzu Dinle */}
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={handleStartExam}
+                className="flex-1 min-w-[140px] min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-1.5 transition-transform active:scale-[0.99] cursor-pointer whitespace-nowrap"
+                style={{ backgroundColor: 'var(--brand-primary)' }}
+              >
+                <Trophy className="w-4 h-4 shrink-0" />
+                <span>Sınav Başlat</span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </button>
 
-            <button
-              type="button"
-              onClick={handleOpenPoolReader}
-              className="flex-1 sm:flex-initial min-h-[48px] px-5 py-3 rounded-xl text-sm font-bold border flex items-center justify-center gap-2 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-strong)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              <BookOpen className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">Meal &amp; Okuma</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleOpenPoolReader}
+                className="min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-strong)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <BookOpen className="w-4 h-4 shrink-0" />
+                <span>Havuzu Oku</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleListenActivePool}
+                className="min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <Headphones className="w-4 h-4 shrink-0" />
+                <span>Havuzu Dinle</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1050,10 +1363,10 @@ export const HomePage: React.FC = () => {
         <div className="lg:col-span-5 surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-base font-extrabold tracking-tight">Havuzdan Bir Ayet</h3>
                 {previewAyah && (
-                  <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-xs tabular-nums truncate" style={{ color: 'var(--text-muted)' }}>
                     {previewAyah.surahNameTr} · {previewAyah.ayahNo}. Ayet · {previewAyah.cuzNo}.
                     Cüz
                   </p>
@@ -1065,7 +1378,7 @@ export const HomePage: React.FC = () => {
                 onClick={() => fetchRandomAyahFromPool(true)}
                 disabled={isLoadingAyah}
                 aria-label="Havuzdan yeni rastgele ayet getir"
-                className="min-h-[44px] min-w-[44px] px-3 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-teal-600"
+                className="min-h-[40px] min-w-[40px] px-3 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
@@ -1106,7 +1419,6 @@ export const HomePage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Arapça Metin (Anlık Font & Punto Uyumlu) */}
                 <div
                   className="p-4 rounded-xl border"
                   style={{
@@ -1115,6 +1427,8 @@ export const HomePage: React.FC = () => {
                   }}
                 >
                   <p
+                    dir="rtl"
+                    lang="ar"
                     className="arabic-text text-right break-words"
                     style={{
                       fontSize: `${settings.arabicFontSize}px`,
@@ -1125,7 +1439,6 @@ export const HomePage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Türkçe Meal(ler) (Anlık Meal Tercihi, Font ve Punto Uyumlu) */}
                 <div className="space-y-3">
                   {(settings.preferredMeal === 'm1' || settings.preferredMeal === 'both') &&
                     previewAyah.tdvText && (
@@ -1199,7 +1512,7 @@ export const HomePage: React.FC = () => {
                     ensureMealVisible: true,
                   });
                 }}
-                className="min-h-[40px] px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-teal-600"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
                   color: 'var(--brand-primary-text)',
@@ -1229,145 +1542,228 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ====================================================================
-          3. Soru Bankası Bulunan Sureler Hızlı Erişim Kartları
+          3. Soru Bankası Bulunan Sureler — 114 Sureye Ölçeklenebilir 4'lü Vitrin
           ==================================================================== */}
-      <section aria-label="Soru bankası bulunan sureler">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-4">
+      <section aria-label="Soru bankası bulunan sureler" className="space-y-3.5">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-2.5">
           <div>
             <h3 className="text-lg sm:text-xl font-extrabold tracking-tight">
               Soru Bankası Bulunan Sureler
             </h3>
             <p className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
-              Editoryal soru havuzuna eklenen sureler burada otomatik olarak listelenir.
+              Havuzunuzdaki sureler öncelikli olarak listelenir; tüm soru bankasına arama veya Sınav
+              Merkezi üzerinden ulaşabilirsiniz.
             </p>
           </div>
-          <span
-            className="text-xs font-semibold tabular-nums"
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* Kompakt Anlık Sure Arama Kutusu */}
+            <div className="relative flex-1 sm:flex-initial sm:w-48">
+              <Search
+                className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: 'var(--text-muted)' }}
+              />
+              <input
+                type="search"
+                value={quizSurahQuery}
+                onChange={(e) => setQuizSurahQuery(e.target.value)}
+                placeholder="Sure ara..."
+                aria-label="Soru bankası bulunan surelerde ara"
+                className="w-full h-9 pl-8 pr-7 rounded-xl border text-xs font-medium outline-none focus:border-[var(--brand-primary)]"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+              {quizSurahQuery && (
+                <button
+                  type="button"
+                  onClick={() => setQuizSurahQuery('')}
+                  aria-label="Sure filtresini temizle"
+                  className="w-6 h-6 rounded-md flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStartExam}
+              className="min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-strong)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <span className="tabular-nums">
+                Tüm Soru Bankaları ({formatNumberTr(availableQuestionSurahs.length)} Sure ·{' '}
+                {formatNumberTr(questionIndex?.items.length ?? 0)} Soru)
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+            </button>
+          </div>
+        </div>
+
+        {visibleQuizSurahs.length === 0 ? (
+          <div
+            className="surface-card rounded-2xl p-6 text-center space-y-2"
             style={{ color: 'var(--text-muted)' }}
           >
-            {formatNumberTr(availableQuestionSurahs.length)} Sure ·{' '}
-            {formatNumberTr(questionIndex?.items.length ?? 0)} Doğrulanmış Soru
-          </span>
-        </div>
+            <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>
+              &ldquo;{quizSurahQuery.trim()}&rdquo; ile eşleşen soru bankalı sure bulunamadı.
+            </p>
+            <button
+              type="button"
+              onClick={() => setQuizSurahQuery('')}
+              className="text-xs font-bold underline underline-offset-4 cursor-pointer"
+              style={{ color: 'var(--brand-primary-text)' }}
+            >
+              Filtreyi Temizle
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1.5 -mx-1 px-1 no-scrollbar sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible sm:pb-0 sm:mx-0 sm:px-0">
+              {visibleQuizSurahs.map((surah) => {
+                const qCount = questionCountBySurah.get(surah.no) ?? surah.questionCount;
+                const inPool = poolStats.effectiveSurahs.includes(surah.no);
+                const directlySelected = studyPool.selectedSurahs.includes(surah.no);
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {availableQuestionSurahs.map((surah) => {
-            const qCount = questionCountBySurah.get(surah.no) ?? surah.questionCount;
-            const inPool = poolStats.effectiveSurahs.includes(surah.no);
-            const directlySelected = studyPool.selectedSurahs.includes(surah.no);
-
-            return (
-              <article
-                key={surah.no}
-                className="surface-card rounded-2xl p-4 flex flex-col justify-between transition-transform hover:-translate-y-0.5"
-              >
-                <div>
-                  {/* Üst Satır: Sure No + Arapça İsim */}
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-extrabold tabular-nums shrink-0"
-                      style={{
-                        backgroundColor: 'var(--brand-primary-soft)',
-                        color: 'var(--brand-primary-text)',
-                      }}
-                    >
-                      {surah.no}
-                    </span>
-
-                    <span
-                      className="arabic-title text-xl leading-none pt-0.5"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {formatSafeArabicTitle(surah.nameAr)}
-                    </span>
-                  </div>
-
-                  {/* Sure Adı ve Yalın Metaveri */}
-                  <h4 className="text-base font-extrabold tracking-tight mb-1">
-                    {surah.nameTr}
-                  </h4>
-                  <p
-                    className="text-xs tabular-nums mb-3"
-                    style={{ color: 'var(--text-muted)' }}
+                return (
+                  <article
+                    key={surah.no}
+                    className="surface-card rounded-2xl p-4 flex flex-col justify-between transition-transform hover:-translate-y-0.5 min-w-[272px] w-[82vw] max-w-[310px] snap-start shrink-0 sm:min-w-0 sm:w-auto sm:max-w-none sm:shrink"
                   >
-                    {surah.type} · {formatNumberTr(surah.ayahCount)} Ayet ·{' '}
-                    {surah.cuzs.join(', ')}. Cüz
-                  </p>
+                    <div>
+                      {/* Üst Satır: Sure No + Arapça İsim */}
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <span
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-extrabold tabular-nums shrink-0"
+                          style={{
+                            backgroundColor: 'var(--brand-primary-soft)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          {surah.no}
+                        </span>
 
-                  {/* Soru Sayısı Vurgusu (Tıklanabilir Sınav Kısayolu) */}
-                  <button
-                    type="button"
-                    onClick={() => handleFocusSurahAction(surah.no, 'exam')}
-                    className="w-full py-2 px-3 rounded-xl flex items-center justify-between text-xs font-bold mb-4 cursor-pointer transition-opacity hover:opacity-90"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      color: 'var(--brand-primary-text)',
-                    }}
-                  >
-                    <span>Hazır Soru Bankası</span>
-                    <span className="tabular-nums">{formatNumberTr(qCount)} Soru →</span>
-                  </button>
-                </div>
+                        <span
+                          className="arabic-title text-xl leading-none pt-0.5"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {formatSafeArabicTitle(surah.nameAr)}
+                        </span>
+                      </div>
 
-                {/* Kart Aksiyonları */}
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleFocusSurahAction(surah.no, 'exam')}
-                      className="min-h-[44px] px-3 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-opacity hover:opacity-95 cursor-pointer"
-                      style={{ backgroundColor: 'var(--brand-primary)' }}
-                    >
-                      <Trophy className="w-3.5 h-3.5 shrink-0" />
-                      <span className="whitespace-nowrap">Sınava Gir</span>
-                    </button>
+                      {/* Sure Adı ve Yalın Metaveri */}
+                      <h4 className="text-base font-extrabold tracking-tight mb-1">
+                        {surah.nameTr}
+                      </h4>
+                      <p
+                        className="text-xs tabular-nums mb-3"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {surah.type} · {formatNumberTr(surah.ayahCount)} Ayet ·{' '}
+                        {surah.cuzs.join(', ')}. Cüz
+                      </p>
 
-                    <button
-                      type="button"
-                      onClick={() => handleFocusSurahAction(surah.no, 'reader')}
-                      className="min-h-[44px] px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                      style={{
-                        backgroundColor: 'var(--bg-surface)',
-                        borderColor: 'var(--border-strong)',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                      <span className="whitespace-nowrap">Meal Oku</span>
-                    </button>
-                  </div>
+                      {/* Soru Sayısı Vurgusu */}
+                      <button
+                        type="button"
+                        onClick={() => handleFocusSurahAction(surah.no, 'exam')}
+                        className="w-full py-2 px-3 rounded-xl flex items-center justify-between text-xs font-bold mb-4 cursor-pointer transition-opacity hover:opacity-90"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <span>Hazır Soru Bankası</span>
+                        <span className="tabular-nums">{formatNumberTr(qCount)} Soru →</span>
+                      </button>
+                    </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleToggleSurahInPool(surah.no)}
-                    disabled={
-                      directlySelected &&
-                      studyPool.selectedSurahs.length === 1 &&
-                      studyPool.selectedJuzs.length === 0
-                    }
-                    className="w-full min-h-[38px] px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                    style={{
-                      backgroundColor: inPool ? 'var(--brand-primary-soft)' : 'transparent',
-                      color: inPool ? 'var(--brand-primary-text)' : 'var(--text-muted)',
-                    }}
-                  >
-                    {inPool ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 shrink-0" />
-                        <span>Çalışma Havuzunda</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-3.5 h-3.5 shrink-0" />
-                        <span>Havuza Ekle</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                    {/* Kart Aksiyonları */}
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleFocusSurahAction(surah.no, 'exam')}
+                          className="min-h-[42px] px-3 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-opacity hover:opacity-95 cursor-pointer"
+                          style={{ backgroundColor: 'var(--brand-primary)' }}
+                        >
+                          <Trophy className="w-3.5 h-3.5 shrink-0" />
+                          <span className="whitespace-nowrap">Sınava Gir</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleFocusSurahAction(surah.no, 'reader')}
+                          className="min-h-[42px] px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          style={{
+                            backgroundColor: 'var(--bg-surface)',
+                            borderColor: 'var(--border-strong)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                          <span className="whitespace-nowrap">Meal Oku</span>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSurahInPool(surah.no)}
+                        disabled={
+                          directlySelected &&
+                          studyPool.selectedSurahs.length === 1 &&
+                          studyPool.selectedJuzs.length === 0
+                        }
+                        className="w-full min-h-[36px] px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                        style={{
+                          backgroundColor: inPool ? 'var(--brand-primary-soft)' : 'transparent',
+                          color: inPool ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {inPool ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 shrink-0" />
+                            <span>Çalışma Havuzunda</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3.5 h-3.5 shrink-0" />
+                            <span>Havuza Ekle</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {totalMatchedQuizSurahs > MAX_HOME_QUIZ_CARDS && (
+              <div className="flex justify-center pt-1">
+                <button
+                  type="button"
+                  onClick={handleStartExam}
+                  className="text-xs font-bold inline-flex items-center gap-1.5 hover:underline cursor-pointer"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  <span>
+                    +{formatNumberTr(totalMatchedQuizSurahs - MAX_HOME_QUIZ_CARDS)} sure daha var ·
+                    Tümünü Sınav Merkezinde Gör
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </section>
     </div>
   );
