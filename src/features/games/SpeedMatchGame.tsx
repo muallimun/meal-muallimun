@@ -25,10 +25,6 @@ interface SpeedWaveData {
 const TOTAL_CALM_WAVES = 4;
 const TIMED_LIMIT_SEC = 60;
 
-/**
- * Bir dalgada yer alan 4–5 sure için çakışmasız (her biri kesinlikle tek bir sureye ait)
- * Künye / Anlam / Mukattaa kartları üretir.
- */
 function buildSpeedWave(
   waveIndex: number,
   tierId: GameComponentProps['tierId'],
@@ -41,10 +37,8 @@ function buildSpeedWave(
   const facts: SpeedFactCard[] = picked.map((surah, idx) => {
     const others = picked.filter((o) => o.no !== surah.no);
 
-    // Kademe 4'te veya özel grubu olan surelerde öncelikle Ulûmu'l-Kur'ân niteliğini dene
     if (surah.primaryTrait && (tierId === 'kademe_4' || idx % 3 === 0)) {
       const trait = surah.primaryTrait;
-      // Başka bir sure bu dalgada aynı özel grup rozetine/mukattaasına sahip değilse benzersizdir!
       const isAmbiguous =
         usedTraitBadges.has(trait.label) ||
         others.some(
@@ -65,9 +59,7 @@ function buildSpeedWave(
       }
     }
 
-    // Anlam veya Künye (Mushaf sırası + ayet sayısı + Mekkî/Medenî) arasında dengeli dağıt
-    const preferIdentity = idx % 2 === 1;
-    if (preferIdentity) {
+    if (idx % 2 === 1) {
       return {
         surahNo: surah.no,
         tag: `${surah.type} · Künye`,
@@ -83,7 +75,6 @@ function buildSpeedWave(
     };
   });
 
-  // Sağ sütunu karıştır
   let rightFacts = shuffleArray(facts);
   if (
     rightFacts.length > 1 &&
@@ -100,11 +91,10 @@ function buildSpeedWave(
 }
 
 interface SpeedBoardProps {
-  accentColor: string;
-  accentSoft: string;
-  accentText: string;
   headerLabel?: string;
   headerScore?: number;
+  headerAccent?: 'amber' | 'teal';
+  ownerTag: string;
   wave: SpeedWaveData;
   waveNumber: number;
   totalWavesLabel: string;
@@ -115,11 +105,10 @@ interface SpeedBoardProps {
 }
 
 const SpeedBoard: React.FC<SpeedBoardProps> = ({
-  accentColor,
-  accentSoft,
-  accentText,
   headerLabel,
   headerScore,
+  headerAccent = 'amber',
+  ownerTag,
   wave,
   waveNumber,
   totalWavesLabel,
@@ -204,33 +193,26 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
-      {/* Oyuncu / Dalga Başlığı */}
       <div className="shrink-0 space-y-1">
         {headerLabel && (
           <div
-            className="rounded-xl border px-3 py-1.5 flex items-center justify-between"
-            style={{
-              backgroundColor: accentSoft,
-              borderColor: accentColor,
-            }}
+            className={`rounded-xl px-3 py-1.5 flex items-center justify-between border ${
+              headerAccent === 'amber'
+                ? 'bg-amber-400/20 border-amber-300/45 text-amber-100'
+                : 'bg-teal-950/40 border-teal-300/35 text-teal-100'
+            }`}
           >
-            <span className="text-xs sm:text-sm font-extrabold" style={{ color: accentText }}>
-              {headerLabel}
-            </span>
-            <div className="flex items-center gap-2.5">
-              <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                {totalWavesLabel}
-              </span>
-              <span className="text-base font-black tabular-nums" style={{ color: accentText }}>
-                {headerScore ?? 0}
-              </span>
+            <span className="text-xs sm:text-sm font-extrabold">{headerLabel}</span>
+            <div className="flex items-center gap-2.5 tabular-nums">
+              <span className="text-xs opacity-80">{totalWavesLabel}</span>
+              <span className="text-base font-black">{headerScore ?? 0}p</span>
             </div>
           </div>
         )}
 
-        <div className="flex items-center justify-between text-[11px] sm:text-xs px-0.5" style={{ color: 'var(--text-muted)' }}>
-          <span>Sol sütundaki sureyi sağdaki doğru künyeyle eşleştirin.</span>
-          <span className="inline-flex items-center gap-1 font-bold tabular-nums shrink-0" style={{ color: accentText }}>
+        <div className="flex items-center justify-between text-[11px] sm:text-xs px-0.5 text-white/85">
+          <span>Sol sütundan sureyi, sağ sütundan künyesini seçin.</span>
+          <span className="inline-flex items-center gap-1 font-extrabold tabular-nums text-amber-200 shrink-0">
             <Sparkles className="w-3.5 h-3.5" />
             <span>
               Dalga {waveNumber}
@@ -240,32 +222,29 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
         </div>
       </div>
 
-      {/* Eşleştirme Matrisi */}
       {isFinished ? (
-        <div
-          className="flex-1 min-h-0 rounded-2xl border flex flex-col items-center justify-center gap-2 p-4 text-center"
-          style={{
-            backgroundColor: accentSoft,
-            borderColor: accentColor,
-          }}
-        >
-          <CheckCircle2 className="w-8 h-8" style={{ color: accentText }} />
-          <p className="text-base font-extrabold" style={{ color: 'var(--text-primary)' }}>
-            Tüm Dalgalar Tamamlandı
-          </p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            Diğer oyuncunun tamamlaması bekleniyor...
-          </p>
+        <div className="flex-1 min-h-0 rounded-2xl border border-emerald-300/35 bg-emerald-950/35 flex flex-col items-center justify-center gap-2 p-4 text-center text-white">
+          <CheckCircle2 className="w-8 h-8 text-amber-300" />
+          <p className="text-base font-extrabold">Tüm Dalgalar Tamamlandı</p>
+          <p className="text-xs text-white/75">Diğer oyuncunun tamamlaması bekleniyor...</p>
         </div>
       ) : (
         <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 sm:gap-3">
-          {/* Sol Sütun: Sureler */}
+          {/* Sol Sütun: 3B Parşömen / Zümrüt Sure Kartları */}
           <div className="min-h-0 flex flex-col gap-2">
-            {wave.leftSurahs.map((surah) => {
+            {wave.leftSurahs.map((surah, idx) => {
               const isMatched = matchedNos.includes(surah.no);
               const isSelected = selectedLeft === surah.no;
               const isWrong = wrongPair?.left === surah.no;
               const isPop = justMatchedNo === surah.no;
+
+              const cardStyle = isWrong
+                ? 'bg-red-800 border-2 border-red-400 border-b-4 border-b-red-950 text-white game-shake'
+                : isMatched
+                  ? 'game-bevel-emerald opacity-80'
+                  : isSelected
+                    ? 'game-bevel-amber'
+                    : 'game-bevel-parchment';
 
               return (
                 <button
@@ -273,50 +252,51 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
                   type="button"
                   disabled={isMatched}
                   onClick={() => handleLeftTap(surah.no)}
-                  className={`flex-1 min-h-[54px] rounded-xl sm:rounded-2xl border-2 px-2.5 sm:px-3.5 py-2 flex flex-col items-center justify-center text-center cursor-pointer transition-all select-none ${
-                    isWrong ? 'game-shake' : isPop ? 'game-pop' : ''
+                  className={`flex-1 min-h-[54px] rounded-xl sm:rounded-2xl px-2.5 sm:px-3 py-1.5 flex flex-col justify-between cursor-pointer transition-all select-none ${cardStyle} ${
+                    isPop ? 'game-pop' : ''
                   }`}
-                  style={{
-                    backgroundColor: isMatched
-                      ? 'var(--brand-primary-soft)'
-                      : isSelected
-                        ? accentSoft
-                        : 'var(--bg-surface)',
-                    borderColor: isWrong
-                      ? '#DC2626'
-                      : isMatched
-                        ? '#0D9488'
-                        : isSelected
-                          ? accentColor
-                          : 'var(--border-strong)',
-                    opacity: isMatched ? 0.42 : 1,
-                    boxShadow: isSelected
-                      ? `0 0 0 2px ${accentColor}`
-                      : '0 2px 8px -3px rgba(15, 23, 42, 0.08)',
-                  }}
                 >
-                  <div className="flex items-center justify-center gap-1.5">
-                    {isMatched && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: '#0D9488' }} />}
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <span
+                      className={`text-[9px] font-black tabular-nums px-1.5 py-0.5 rounded ${
+                        isMatched
+                          ? 'bg-white/15 text-amber-200'
+                          : 'bg-amber-900/10 text-slate-600'
+                      }`}
+                    >
+                      #{idx + 1} · SURE
+                    </span>
+                    {isMatched && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-400 text-amber-950">
+                        <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                        {ownerTag}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <span
                       dir="rtl"
-                      className="font-arabic text-lg sm:text-2xl leading-tight"
-                      style={{ color: 'var(--text-primary)' }}
+                      className={`font-arabic text-lg sm:text-2xl leading-tight ${
+                        isMatched || isWrong ? 'text-amber-200' : 'text-teal-900'
+                      }`}
                     >
                       {surah.nameAr}
                     </span>
+                    <span
+                      className={`text-xs sm:text-sm font-extrabold leading-tight line-clamp-1 ${
+                        isMatched || isWrong ? 'text-white' : 'text-slate-900'
+                      }`}
+                    >
+                      {surah.shortNameTr}
+                    </span>
                   </div>
-                  <span
-                    className="text-xs sm:text-sm font-extrabold leading-tight line-clamp-1"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {surah.shortNameTr}
-                  </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Sağ Sütun: Künye & Anlam Kartları */}
+          {/* Sağ Sütun: 3B Parşömen / Zümrüt Künye & Mukattaa Kartları */}
           <div className="min-h-0 flex flex-col gap-2">
             {wave.rightFacts.map((fact) => {
               const isMatched = matchedNos.includes(fact.surahNo);
@@ -324,60 +304,55 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
               const isWrong = wrongPair?.right === fact.surahNo;
               const isPop = justMatchedNo === fact.surahNo;
 
+              const cardStyle = isWrong
+                ? 'bg-red-800 border-2 border-red-400 border-b-4 border-b-red-950 text-white game-shake'
+                : isMatched
+                  ? 'game-bevel-emerald opacity-80'
+                  : isSelected
+                    ? 'game-bevel-amber'
+                    : 'game-bevel-parchment';
+
               return (
                 <button
                   key={`R-${fact.surahNo}`}
                   type="button"
                   disabled={isMatched}
                   onClick={() => handleRightTap(fact.surahNo)}
-                  className={`flex-1 min-h-[54px] rounded-xl sm:rounded-2xl border-2 px-2.5 sm:px-3.5 py-2 flex flex-col items-center justify-center text-center gap-0.5 cursor-pointer transition-all select-none ${
-                    isWrong ? 'game-shake' : isPop ? 'game-pop' : ''
+                  className={`flex-1 min-h-[54px] rounded-xl sm:rounded-2xl px-2.5 sm:px-3 py-1.5 flex flex-col justify-between cursor-pointer transition-all select-none ${cardStyle} ${
+                    isPop ? 'game-pop' : ''
                   }`}
-                  style={{
-                    backgroundColor: isMatched
-                      ? 'var(--brand-primary-soft)'
-                      : isSelected
-                        ? 'var(--brand-accent-soft)'
-                        : 'var(--bg-surface)',
-                    borderColor: isWrong
-                      ? '#DC2626'
-                      : isMatched
-                        ? '#0D9488'
-                        : isSelected
-                          ? '#D97706'
-                          : 'var(--border-strong)',
-                    opacity: isMatched ? 0.42 : 1,
-                    boxShadow: isSelected
-                      ? '0 0 0 2px #D97706'
-                      : '0 2px 8px -3px rgba(15, 23, 42, 0.08)',
-                  }}
                 >
-                  <div className="flex items-center justify-center gap-1.5">
+                  <div className="flex items-center justify-between gap-1 w-full">
                     <span
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                      style={{
-                        backgroundColor: 'var(--brand-accent-soft)',
-                        color: 'var(--brand-accent-text)',
-                      }}
+                      className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded truncate ${
+                        isMatched
+                          ? 'bg-white/15 text-amber-200'
+                          : 'bg-teal-800/12 text-teal-900'
+                      }`}
                     >
                       {fact.tag}
                     </span>
                     {fact.arabicText && (
                       <span
                         dir="rtl"
-                        className="font-arabic text-sm sm:text-base font-bold leading-none"
-                        style={{ color: 'var(--brand-primary-text)' }}
+                        className={`font-arabic text-sm sm:text-base font-bold leading-none shrink-0 ${
+                          isMatched || isWrong ? 'text-amber-300' : 'text-amber-800'
+                        }`}
                       >
                         {fact.arabicText}
                       </span>
                     )}
                   </div>
-                  <span
-                    className="text-[11px] sm:text-xs font-bold leading-snug line-clamp-2"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {fact.mainText}
-                  </span>
+
+                  <div className="flex-1 flex items-center justify-center text-center">
+                    <span
+                      className={`text-[11px] sm:text-xs font-bold leading-snug line-clamp-2 ${
+                        isMatched || isWrong ? 'text-white' : 'text-slate-900'
+                      }`}
+                    >
+                      {fact.mainText}
+                    </span>
+                  </div>
                 </button>
               );
             })}
@@ -397,11 +372,10 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   onComplete,
 }) => {
   const isDuel = playerMode === 'duel';
-  const isDesktopSingle =
-    !isDuel && typeof window !== 'undefined' && window.innerWidth >= 768;
+  const isAi = playerMode === 'ai';
+  const isDesktopSingle = !isDuel && typeof window !== 'undefined' && window.innerWidth >= 768;
   const pairCount = isDesktopSingle ? 5 : 4;
 
-  // Tek oyuncu durumu
   const [waveIdx, setWaveIdx] = useState<number>(0);
   const [singleWave, setSingleWave] = useState<SpeedWaveData>(() =>
     buildSpeedWave(0, tierId, tierSurahs, pairCount),
@@ -409,11 +383,17 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   const [score, setScore] = useState<number>(0);
   const [combo, setCombo] = useState<number>(0);
   const [maxCombo, setMaxCombo] = useState<number>(0);
+  const [movesCount, setMovesCount] = useState<number>(0);
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [mistakeCount, setMistakeCount] = useState<number>(0);
   const [elapsedSec, setElapsedSec] = useState<number>(0);
 
-  // İkili Düello durumu
+  // Yapay Zekâ eşzamanlı rakip puanı
+  const [aiScore, setAiScore] = useState<number>(0);
+  const [aiCorrect, setAiCorrect] = useState<number>(0);
+  const [aiThinking, setAiThinking] = useState<boolean>(false);
+
+  // 2 Oyuncu durumu
   const [p1WaveIdx, setP1WaveIdx] = useState<number>(0);
   const [p2WaveIdx, setP2WaveIdx] = useState<number>(0);
   const [p1Wave, setP1Wave] = useState<SpeedWaveData>(() =>
@@ -428,6 +408,10 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   const [p2Correct, setP2Correct] = useState<number>(0);
   const [p1Done, setP1Done] = useState<boolean>(false);
   const [p2Done, setP2Done] = useState<boolean>(false);
+
+  // Canlı Bilgi Notu
+  const [featuredSurah, setFeaturedSurah] = useState<EnrichedGameSurah | null>(null);
+  const [featuredNote, setFeaturedNote] = useState<string | undefined>(undefined);
 
   const mistakenMapRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
   const finishedRef = useRef<boolean>(false);
@@ -467,23 +451,26 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
         durationSec: payload.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel: isDuel
-          ? {
-              p1Score: payload.p1Score,
-              p2Score: payload.p2Score,
-              p1Correct: payload.p1Correct,
-              p2Correct: payload.p2Correct,
-              winner:
-                payload.p1Score > payload.p2Score
-                  ? 'p1'
-                  : payload.p2Score > payload.p1Score
-                    ? 'p2'
-                    : 'draw',
-            }
-          : undefined,
+        duel:
+          isDuel || isAi
+            ? {
+                p1Score: payload.p1Score,
+                p2Score: payload.p2Score,
+                p1Correct: payload.p1Correct,
+                p2Correct: payload.p2Correct,
+                p1Label: isAi ? 'Sen' : '1. Oyuncu',
+                p2Label: isAi ? 'Yapay Zekâ' : '2. Oyuncu',
+                winner:
+                  payload.p1Score > payload.p2Score
+                    ? 'p1'
+                    : payload.p2Score > payload.p1Score
+                      ? 'p2'
+                      : 'draw',
+              }
+            : undefined,
       });
     },
-    [isDuel, onComplete, playerMode, tempo, tierId],
+    [isAi, isDuel, onComplete, playerMode, tempo, tierId],
   );
 
   // Zamanlayıcı
@@ -495,6 +482,35 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
     return () => window.clearInterval(interval);
   }, []);
 
+  // Yapay Zekâ eşzamanlı eşleştirme ritmi
+  useEffect(() => {
+    if (!isAi || finishedRef.current) return;
+    let active = true;
+    const scheduleNext = () => {
+      const delay = 2700 + Math.floor(Math.random() * 1900);
+      return window.setTimeout(() => {
+        if (!active || finishedRef.current) return;
+        setAiThinking(true);
+        window.setTimeout(() => {
+          if (!active || finishedRef.current) return;
+          if (Math.random() < 0.82) {
+            setAiScore((prev) => prev + 10);
+            setAiCorrect((prev) => prev + 1);
+          }
+          setAiThinking(false);
+          if (active && !finishedRef.current) {
+            timerRef = scheduleNext();
+          }
+        }, 500);
+      }, delay);
+    };
+    let timerRef = scheduleNext();
+    return () => {
+      active = false;
+      window.clearTimeout(timerRef);
+    };
+  }, [isAi]);
+
   // Süreli mod bitişi
   useEffect(() => {
     if (tempo === 'timed' && elapsedSec >= TIMED_LIMIT_SEC && !finishedRef.current) {
@@ -504,13 +520,15 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
         correctCount: isDuel ? p1Correct + p2Correct : correctCount,
         mistakeCount,
         elapsedSec,
-        p1Score,
-        p2Score,
-        p1Correct,
-        p2Correct,
+        p1Score: isDuel ? p1Score : score,
+        p2Score: isDuel ? p2Score : aiScore,
+        p1Correct: isDuel ? p1Correct : correctCount,
+        p2Correct: isDuel ? p2Correct : aiCorrect,
       });
     }
   }, [
+    aiCorrect,
+    aiScore,
     correctCount,
     elapsedSec,
     finishGame,
@@ -529,22 +547,43 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   useEffect(() => {
     const remaining = Math.max(0, TIMED_LIMIT_SEC - elapsedSec);
     onHudUpdate({
-      score: isDuel ? p1Score + p2Score : score,
+      score: isDuel ? p1Score : score,
+      p1Score: isDuel ? p1Score : score,
+      p2Score: isDuel ? p2Score : aiScore,
+      activeTurn: isDuel || isAi ? 'both' : 'p1',
+      aiThinking: isAi && aiThinking,
       combo,
+      movesCount,
       progressLabel:
         tempo === 'calm'
           ? isDuel
-            ? `Dalga ${Math.min(TOTAL_CALM_WAVES, Math.max(p1WaveIdx, p2WaveIdx) + 1)}/${TOTAL_CALM_WAVES}`
-            : `Dalga ${Math.min(TOTAL_CALM_WAVES, waveIdx + 1)}/${TOTAL_CALM_WAVES}`
+            ? `${Math.min(TOTAL_CALM_WAVES, Math.max(p1WaveIdx, p2WaveIdx) + 1)}/${TOTAL_CALM_WAVES}`
+            : `${Math.min(TOTAL_CALM_WAVES, waveIdx + 1)}/${TOTAL_CALM_WAVES}`
           : `${isDuel ? p1Correct + p2Correct : correctCount} Eşleşme`,
+      elapsedSec,
       timerText: tempo === 'timed' ? formatClock(remaining) : formatClock(elapsedSec),
       timerUrgent: tempo === 'timed' && remaining <= 10,
+      turnRemainingSec: tempo === 'timed' ? remaining : null,
+      turnDurationSec: TIMED_LIMIT_SEC,
+      statusMessage: isDuel
+        ? 'İki oyuncu aynı anda künye dalgalarını temizliyor!'
+        : isAi
+          ? 'Sureleri anlam ve mukattaalarıyla Yapay Zekâdan hızlı eşleştir.'
+          : 'Sol sütundan sureyi, sağ sütundan doğru künyesini seç.',
+      featuredSurah,
+      featuredNote,
     });
   }, [
+    aiScore,
+    aiThinking,
     combo,
     correctCount,
     elapsedSec,
+    featuredNote,
+    featuredSurah,
+    isAi,
     isDuel,
+    movesCount,
     onHudUpdate,
     p1Correct,
     p1Score,
@@ -557,28 +596,34 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
     waveIdx,
   ]);
 
-  const handleSingleCorrect = useCallback(() => {
-    const nextCombo = combo + 1;
-    const nextMaxCombo = Math.max(maxCombo, nextCombo);
-    const pts = 10 + Math.min(10, (nextCombo - 1) * 2);
-    gameAudioService.playMatch(nextCombo);
-    setCombo(nextCombo);
-    setMaxCombo(nextMaxCombo);
-    setScore((prev) => prev + pts);
-    setCorrectCount((prev) => prev + 1);
-  }, [combo, maxCombo]);
+  const handleSingleCorrect = useCallback(
+    (surah: EnrichedGameSurah) => {
+      const nextCombo = combo + 1;
+      const nextMaxCombo = Math.max(maxCombo, nextCombo);
+      const pts = 10 + Math.min(10, (nextCombo - 1) * 2);
+      gameAudioService.playMatch(nextCombo);
+      setCombo(nextCombo);
+      setMaxCombo(nextMaxCombo);
+      setScore((prev) => prev + pts);
+      setCorrectCount((prev) => prev + 1);
+      setMovesCount((prev) => prev + 1);
+      setFeaturedSurah(surah);
+      setFeaturedNote(`Doğru eşleşme (+${pts}p) · ${surah.no}. ${surah.shortNameTr}`);
+    },
+    [combo, maxCombo],
+  );
 
   const handleWrong = useCallback((surah: EnrichedGameSurah) => {
     mistakenMapRef.current.set(surah.no, surah);
     gameAudioService.playWrong();
     setCombo(0);
     setMistakeCount((prev) => prev + 1);
+    setMovesCount((prev) => prev + 1);
   }, []);
 
   const handleSingleWaveCleared = useCallback(() => {
     const nextWaveIdx = waveIdx + 1;
-    const waveBonus = 15;
-    const nextScore = score + waveBonus;
+    const nextScore = score + 15;
     setScore(nextScore);
 
     if (tempo === 'calm' && nextWaveIdx >= TOTAL_CALM_WAVES) {
@@ -588,10 +633,10 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
         correctCount,
         mistakeCount,
         elapsedSec,
-        p1Score: 0,
-        p2Score: 0,
-        p1Correct: 0,
-        p2Correct: 0,
+        p1Score: nextScore,
+        p2Score: aiScore,
+        p1Correct: correctCount,
+        p2Correct: aiCorrect,
       });
       return;
     }
@@ -599,6 +644,8 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
     setWaveIdx(nextWaveIdx);
     setSingleWave(buildSpeedWave(nextWaveIdx, tierId, tierSurahs, pairCount));
   }, [
+    aiCorrect,
+    aiScore,
     correctCount,
     elapsedSec,
     finishGame,
@@ -612,8 +659,11 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
     waveIdx,
   ]);
 
-  const handleDuelCorrect = useCallback((player: 'p1' | 'p2') => {
+  const handleDuelCorrect = useCallback((player: 'p1' | 'p2', surah: EnrichedGameSurah) => {
     gameAudioService.playMatch(2);
+    setMovesCount((prev) => prev + 1);
+    setFeaturedSurah(surah);
+    setFeaturedNote(`${player === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} eşleştirdi (+10p)`);
     if (player === 'p1') {
       setP1Score((prev) => prev + 10);
       setP1Correct((prev) => prev + 1);
@@ -635,7 +685,7 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
           setP1Done(true);
           if (p2Done) {
             finishGame({
-              score: nextP1Score + p2Score,
+              score: nextP1Score,
               maxCombo: Math.max(maxCombo, 2),
               correctCount: p1Correct + p2Correct,
               mistakeCount,
@@ -660,7 +710,7 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
           setP2Done(true);
           if (p1Done) {
             finishGame({
-              score: p1Score + nextP2Score,
+              score: p1Score,
               maxCombo: Math.max(maxCombo, 2),
               correctCount: p1Correct + p2Correct,
               mistakeCount,
@@ -698,20 +748,13 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
 
   if (isDuel) {
     return (
-      <div className="flex-1 min-h-0 w-full max-w-[1440px] mx-auto px-3 py-2.5 grid grid-cols-2 gap-3 overflow-hidden">
-        <div
-          className="min-h-0 flex flex-col rounded-2xl border p-3 overflow-hidden"
-          style={{
-            backgroundColor: 'var(--bg-surface)',
-            borderColor: 'rgba(13, 148, 136, 0.35)',
-          }}
-        >
+      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 overflow-hidden">
+        <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-hidden">
           <SpeedBoard
-            accentColor="#0D9488"
-            accentSoft="var(--brand-primary-soft)"
-            accentText="var(--brand-primary-text)"
-            headerLabel="1. Oyuncu · Zümrüt"
+            headerLabel="1. Oyuncu"
             headerScore={p1Score}
+            headerAccent="amber"
+            ownerTag="P1"
             wave={p1Wave}
             waveNumber={p1WaveIdx + 1}
             totalWavesLabel={
@@ -720,25 +763,18 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
                 : `${p1Correct} Eşleşme`
             }
             isFinished={p1Done}
-            onMatchCorrect={() => handleDuelCorrect('p1')}
+            onMatchCorrect={(s) => handleDuelCorrect('p1', s)}
             onMatchWrong={handleWrong}
             onWaveCleared={() => handleDuelWaveCleared('p1')}
           />
         </div>
 
-        <div
-          className="min-h-0 flex flex-col rounded-2xl border p-3 overflow-hidden"
-          style={{
-            backgroundColor: 'var(--bg-surface)',
-            borderColor: 'rgba(217, 119, 6, 0.38)',
-          }}
-        >
+        <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/30 bg-black/15 p-2.5 overflow-hidden">
           <SpeedBoard
-            accentColor="#D97706"
-            accentSoft="var(--brand-accent-soft)"
-            accentText="var(--brand-accent-text)"
-            headerLabel="2. Oyuncu · Kehribar"
+            headerLabel="2. Oyuncu"
             headerScore={p2Score}
+            headerAccent="teal"
+            ownerTag="P2"
             wave={p2Wave}
             waveNumber={p2WaveIdx + 1}
             totalWavesLabel={
@@ -747,7 +783,7 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
                 : `${p2Correct} Eşleşme`
             }
             isFinished={p2Done}
-            onMatchCorrect={() => handleDuelCorrect('p2')}
+            onMatchCorrect={(s) => handleDuelCorrect('p2', s)}
             onMatchWrong={handleWrong}
             onWaveCleared={() => handleDuelWaveCleared('p2')}
           />
@@ -757,11 +793,9 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   }
 
   return (
-    <div className="flex-1 min-h-0 w-full max-w-3xl mx-auto px-2.5 sm:px-5 py-2.5 sm:py-4 flex flex-col overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       <SpeedBoard
-        accentColor="var(--brand-primary)"
-        accentSoft="var(--brand-primary-soft)"
-        accentText="var(--brand-primary-text)"
+        ownerTag="SEN"
         wave={singleWave}
         waveNumber={waveIdx + 1}
         totalWavesLabel={tempo === 'calm' ? String(TOTAL_CALM_WAVES) : ''}

@@ -12,6 +12,8 @@ export interface GameTierProgressEntry {
 
 export type GameProgressMap = Record<string, GameTierProgressEntry>;
 
+const ALL_GAME_IDS: readonly GameId[] = ['memory', 'chain', 'speed', 'compass', 'detective'];
+
 export function makeGameProgressKey(gameId: GameId, tierId: GameTierId): string {
   return `${gameId}:${tierId}`;
 }
@@ -65,8 +67,10 @@ export function saveGameProgressResult(input: {
 }
 
 export function getTierEarnedStars(map: GameProgressMap, tierId: GameTierId): number {
-  const games: GameId[] = ['memory', 'chain', 'speed'];
-  return games.reduce((acc, g) => acc + (map[makeGameProgressKey(g, tierId)]?.bestStars ?? 0), 0);
+  return ALL_GAME_IDS.reduce(
+    (acc, g) => acc + (map[makeGameProgressKey(g, tierId)]?.bestStars ?? 0),
+    0,
+  );
 }
 
 export function getTotalEarnedGameStars(map: GameProgressMap): number {

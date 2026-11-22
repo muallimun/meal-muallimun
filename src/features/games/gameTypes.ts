@@ -1,3 +1,4 @@
+import type { SurahExtraInfo } from '../../types/fihrist';
 import type { SurahMeta } from '../../types/quran';
 import type { MukattaaEntry, SpecialSurahFamilyInfo } from './surahSpecialGroups';
 import {
@@ -9,9 +10,8 @@ import {
   getSurahMukattaa,
   getSurahPrimarySpecialTrait,
 } from './surahSpecialGroups';
-import type { SurahExtraInfo } from '../../types/fihrist';
 
-export type GameId = 'memory' | 'chain' | 'speed';
+export type GameId = 'memory' | 'chain' | 'speed' | 'compass' | 'detective';
 
 export type GameTierId =
   | 'kademe_1'
@@ -23,7 +23,7 @@ export type GameTierId =
 
 export type GameTempo = 'calm' | 'timed';
 
-export type GamePlayerMode = 'single' | 'duel';
+export type GamePlayerMode = 'single' | 'ai' | 'duel';
 
 export interface GameTierMeta {
   id: GameTierId;
@@ -32,6 +32,7 @@ export interface GameTierMeta {
   shortTitle: string;
   subtitle: string;
   surahCountLabel: string;
+  tipText: string;
   isSpecialGroups?: boolean;
   isActivePool?: boolean;
 }
@@ -44,6 +45,7 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: 'Namaz Sureleri',
     subtitle: 'Fâtiha ve Fîl–Nâs arası 11 temel sure',
     surahCountLabel: '11 Sure',
+    tipText: 'Fâtiha (1) ve Fîl (105) – Nâs (114) arasındaki kısa surelerin tertibini ve anlamlarını pekiştirin.',
   },
   {
     id: 'kademe_2',
@@ -52,6 +54,7 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: '30. Cüz (Amme)',
     subtitle: 'Nebe’den Nâs’a kısa sureler bütünü',
     surahCountLabel: '37 Sure',
+    tipText: 'Nebe (78) ile başlayıp Nâs (114) ile son bulan 37 surenin tamamı bu kademede yer alır.',
   },
   {
     id: 'kademe_3',
@@ -60,6 +63,7 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: 'Meşhur Sureler',
     subtitle: 'Yâsîn, Mülk, Kehf, Rahmân, Fetih ve seçkin sureler',
     surahCountLabel: '18 Sure',
+    tipText: 'Günlük tilavette en çok okunan 18 seçkin surenin anlamı, ayet sayısı ve komşulukları.',
   },
   {
     id: 'kademe_4',
@@ -68,6 +72,7 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: 'Özel Gruplar',
     subtitle: 'Havâmîm, Mukattaa, Müsebbihât, Hâmidât & Secde',
     surahCountLabel: 'Özel Müfredat',
+    tipText: '7 Hâ-Mîm (40–46), 29 Mukattaa, Müsebbihât, Hâmidât, Kul ve Tilâvet Secdesi sureleri.',
     isSpecialGroups: true,
   },
   {
@@ -77,6 +82,7 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: 'Çalışma Havuzum',
     subtitle: 'Seçili çalışma havuzunuzdaki surelerden oyun',
     surahCountLabel: 'Kişisel Havuz',
+    tipText: 'Uygulamada belirlediğiniz kişisel çalışma havuzundaki sureler öncelikli olarak seçilir.',
     isActivePool: true,
   },
   {
@@ -86,6 +92,7 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     shortTitle: 'Tüm Mushaf',
     subtitle: 'Fâtiha’dan Nâs’a 114 surenin tamamı',
     surahCountLabel: '114 Sure',
+    tipText: 'Fâtiha’dan Nâs’a 114 surenin tamamında Mushaf tertibi, anlam ve Ulûmu’l-Kur’ân ustalığı.',
   },
 ];
 
@@ -93,17 +100,23 @@ export interface GameDefinitionMeta {
   id: GameId;
   title: string;
   shortTitle: string;
+  arabicTitle: string;
   subtitle: string;
+  howToPlay: string;
   focusLabel: string;
   duelLabel: string;
+  stageTag?: string;
 }
 
 export const GAME_DEFINITIONS: readonly GameDefinitionMeta[] = [
   {
     id: 'memory',
-    title: 'Hafıza Kartları',
-    shortTitle: 'Hafıza Kartları',
-    subtitle: 'Sure adını anlamı veya özel grup niteliğiyle 3B çevirmeli kartlarda eşleştirin.',
+    title: 'Hafızanı Yokla',
+    shortTitle: 'Hafızanı Yokla',
+    arabicTitle: 'لُعْبَةُ الذَّاكِرَةِ',
+    subtitle: 'Numaralı 3B kartları çevirerek sure adını anlamı veya özel grup niteliğiyle eşleştirin.',
+    howToPlay:
+      'Açılışta kartları kısa süre gözlemleyin. İki kart çevirerek sureyi Türkçe anlamı veya Ulûmu’l-Kur’ân özelliğiyle eşleştirin. Doğru eşleştiren 10 puan alır ve sıra hakkını korur.',
     focusLabel: 'Sure · Anlam · Özel Grup',
     duelLabel: 'Sıralı Düello (Bilen Devam Eder)',
   },
@@ -111,17 +124,47 @@ export const GAME_DEFINITIONS: readonly GameDefinitionMeta[] = [
     id: 'chain',
     title: 'Mushaf Zinciri',
     shortTitle: 'Mushaf Zinciri',
-    subtitle: 'Komşu sureleri (öncesi–sonrası) yerleştirin ve karışık sureleri Mushaf sırasına dizin.',
+    arabicTitle: 'سِلْسِلَةُ الْمُصْحَفِ',
+    subtitle: 'Komşu sureleri (öncesi–sonrası) yuvalara oturtun ve karışık sureleri Mushaf sırasına dizin.',
+    howToPlay:
+      'Komşu Sure turlarında merkez surenin bir önceki ve bir sonraki suresini yuvalara sürükleyin veya dokunup yerleştirin. Mushaf Treni turlarında 4 sureyi baştan sona sıralayın.',
     focusLabel: 'Tertip · Komşu Sure · Sıralama',
     duelLabel: 'Eşzamanlı Bölünmüş Ekran',
   },
   {
     id: 'speed',
-    title: 'Hızlı Künye Eşleştirme',
-    shortTitle: 'Hızlı Künye',
+    title: 'Künye Eşleştir',
+    shortTitle: 'Künye Eşleştir',
+    arabicTitle: 'مُطَابَقَةُ السُّوَرِ',
     subtitle: 'Sol sütundaki sureyi sağdaki anlam, ayet sayısı veya Mukattaa künyesiyle eşleştirin.',
+    howToPlay:
+      'Sol sütundan bir sureye, sağ sütundan ona ait anlam, ayet sayısı veya özel grup kartına dokunarak eşleştirin. Hızlı seri eşleştirmeler kombo puanı kazandırır.',
     focusLabel: 'Anlam · Ayet Sayısı · Mukattaa',
     duelLabel: 'Eşzamanlı Bölünmüş Ekran',
+  },
+  {
+    id: 'compass',
+    title: 'Mushaf Pusulası',
+    shortTitle: 'Mushaf Pusulası',
+    arabicTitle: 'بَوْصَلَةُ الْمُصْحَفِ',
+    subtitle: 'Mushaf cetvelinde surenin yerini (1–114) ibreyle tahmin edin ve sure uzunluklarını tartın.',
+    howToPlay:
+      'Konum Kadranı turlarında ibreyi sürükleyerek surenin Mushaf sırasını tahmin edip kilitleyin (tam isabet 100p). Ayet Tartısı turlarında ayet sayısı daha fazla olan sureyi seçin.',
+    focusLabel: '1–114 Konum · Ayet Tartısı',
+    duelLabel: 'İbre Yarışı & Sıralı Tartı',
+    stageTag: 'Yeni',
+  },
+  {
+    id: 'detective',
+    title: 'Sure Dedektifi',
+    shortTitle: 'Sure Dedektifi',
+    arabicTitle: 'كَاشِفُ السُّوَرِ',
+    subtitle: 'Dönem, ayet sayısı, komşu sure ve anlam ipuçlarını birleştirip gizli sureyi en az ipucuyla bulun.',
+    howToPlay:
+      'İlk ipucu açık başlar (100p). İhtiyaç duydukça 2., 3. ve 4. ipuçlarını açabilirsiniz (75p / 50p / 30p). 6 aday sure arasından gizli sureyi en az ipucuyla tahmin edin.',
+    focusLabel: 'Çoklu İpucu · Muhakeme',
+    duelLabel: 'Sıralı Dedektif Yarışı',
+    stageTag: 'Yeni',
   },
 ];
 
@@ -148,6 +191,8 @@ export interface GameDuelSummary {
   p2Score: number;
   p1Correct: number;
   p2Correct: number;
+  p1Label: string;
+  p2Label: string;
   winner: 'p1' | 'p2' | 'draw';
 }
 
@@ -170,10 +215,21 @@ export interface GameResultPayload {
 
 export interface GameHudUpdate {
   score: number;
+  p1Score: number;
+  p2Score: number;
+  activeTurn: 'p1' | 'p2' | 'both';
+  aiThinking?: boolean;
   combo: number;
+  movesCount: number;
   progressLabel: string;
+  elapsedSec: number;
   timerText: string;
   timerUrgent?: boolean;
+  turnRemainingSec?: number | null;
+  turnDurationSec?: number;
+  statusMessage: string;
+  featuredSurah?: EnrichedGameSurah | null;
+  featuredNote?: string;
 }
 
 export interface GameComponentProps {
@@ -186,9 +242,6 @@ export interface GameComponentProps {
   onComplete: (result: GameResultPayload) => void;
 }
 
-/**
- * Meta + SurahExtraInfo + Ulûmu'l-Kur'ân sözlüğünü birleştirerek 114 surelik zengin listeyi kurar.
- */
 export function buildEnrichedGameSurahs(
   surahs: SurahMeta[],
   extrasMap: Map<number, SurahExtraInfo>,
@@ -218,10 +271,6 @@ export function buildEnrichedGameSurahs(
     });
 }
 
-/**
- * Seçili kademeye göre oyun sure havuzunu döndürür.
- * Kademe 5'te aktif havuz 8'den az sure içeriyorsa komşu surelerle dengeli biçimde tamamlar.
- */
 export function resolveTierSurahs(
   tierId: GameTierId,
   allSurahs: EnrichedGameSurah[],
@@ -252,7 +301,6 @@ export function resolveTierSurahs(
         return pickByNos(unique);
       }
 
-      // 4 veya 8'den az sure seçilmişse komşu surelerle nazikçe tamamla
       const padded = new Set<number>(unique.length > 0 ? unique : NAMAZ_SURAH_NOS);
       const seeds = unique.length > 0 ? unique : [105];
       let radius = 1;
@@ -291,21 +339,27 @@ export function shuffleArray<T>(items: readonly T[]): T[] {
 }
 
 export function calculateGameStars(accuracyPct: number, score: number): 1 | 2 | 3 {
-  if (accuracyPct >= 88 && score >= 60) return 3;
-  if (accuracyPct >= 65 && score >= 30) return 2;
+  if (accuracyPct >= 85 && score >= 50) return 3;
+  if (accuracyPct >= 62 && score >= 25) return 2;
   return 1;
 }
 
 export function calculateGameXp(score: number, stars: 1 | 2 | 3, maxCombo: number): number {
-  const base = Math.max(10, Math.round(score * 0.45));
+  const base = Math.max(12, Math.round(score * 0.35));
   const starBonus = stars * 10;
   const comboBonus = maxCombo >= 3 ? maxCombo * 3 : 0;
-  return Math.min(180, base + starBonus + comboBonus);
+  return Math.min(200, base + starBonus + comboBonus);
 }
 
 export function formatClock(sec: number): string {
   const safe = Math.max(0, Math.floor(sec));
   const m = Math.floor(safe / 60);
   const s = safe % 60;
-  return `${m}:${s < 10 ? '0' : ''}${s}`;
+  return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+export function getAiMemoryCapacity(tierId: GameTierId): number {
+  if (tierId === 'kademe_1' || tierId === 'kademe_2') return 3;
+  if (tierId === 'kademe_3' || tierId === 'kademe_4') return 5;
+  return 7;
 }

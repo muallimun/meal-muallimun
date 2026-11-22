@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Bot,
   Clock,
   Compass,
   Grid2x2,
   Layers,
   Play,
+  Search,
   Sparkles,
   Star,
   User,
@@ -36,7 +38,8 @@ import {
   buildEnrichedGameSurahs,
 } from './gameTypes';
 
-const MAX_TOTAL_STARS = GAME_TIERS.length * GAME_DEFINITIONS.length * 3; // 54 yıldız
+const MAX_TIER_STARS = GAME_DEFINITIONS.length * 3; // 15 yıldız / kademe
+const MAX_TOTAL_STARS = GAME_TIERS.length * MAX_TIER_STARS; // 90 yıldız toplam
 
 export const GamesHubTab: React.FC = () => {
   const { meta, poolStats } = useAppStore();
@@ -45,11 +48,11 @@ export const GamesHubTab: React.FC = () => {
   const [isLoadingExtras, setIsLoadingExtras] = useState<boolean>(true);
   const [selectedTier, setSelectedTier] = useState<GameTierId>('kademe_1');
   const [tempo, setTempo] = useState<GameTempo>('calm');
-  const [playerMode, setPlayerMode] = useState<GamePlayerMode>('single');
+  // Varsayılan önerilen mod: Yapay Zekâya Karşı (hem mobil hem masaüstünde aktif)
+  const [playerMode, setPlayerMode] = useState<GamePlayerMode>('ai');
   const [progressMap, setProgressMap] = useState<GameProgressMap>(() => loadGameProgress());
   const [activeGameId, setActiveGameId] = useState<GameId | null>(null);
 
-  // 114 surenin Türkçe anlam & nüzul ek verilerini yükle
   useEffect(() => {
     let alive = true;
     dataService
@@ -68,11 +71,10 @@ export const GamesHubTab: React.FC = () => {
     };
   }, []);
 
-  // Ekran 1024px altına daralırsa İkili Düello seçimini Tek Oyuncu'ya indirge
   useEffect(() => {
     const onResize = () => {
       if (window.innerWidth < 1024) {
-        setPlayerMode('single');
+        setPlayerMode((prev) => (prev === 'duel' ? 'ai' : prev));
       }
     };
     window.addEventListener('resize', onResize);
@@ -92,7 +94,9 @@ export const GamesHubTab: React.FC = () => {
     sfxService.play('click');
     audioQueueService.pause();
     const effectiveMode: GamePlayerMode =
-      typeof window !== 'undefined' && window.innerWidth >= 1024 ? playerMode : 'single';
+      typeof window !== 'undefined' && window.innerWidth < 1024 && playerMode === 'duel'
+        ? 'ai'
+        : playerMode;
     setPlayerMode(effectiveMode);
     setActiveGameId(gameId);
   };
@@ -104,13 +108,17 @@ export const GamesHubTab: React.FC = () => {
       case 'chain':
         return <Layers className="w-5 h-5" />;
       case 'speed':
-      default:
         return <Zap className="w-5 h-5" />;
+      case 'compass':
+        return <Compass className="w-5 h-5" />;
+      case 'detective':
+      default:
+        return <Search className="w-5 h-5" />;
     }
   };
 
   const renderGameAccent = (id: GameId) => {
-    if (id === 'chain') {
+    if (id === 'chain' || id === 'compass') {
       return {
         soft: 'var(--brand-accent-soft)',
         text: 'var(--brand-accent-text)',
@@ -123,6 +131,13 @@ export const GamesHubTab: React.FC = () => {
       border: 'rgba(13, 148, 136, 0.24)',
     };
   };
+
+  const launchCtaText =
+    playerMode === 'ai'
+      ? 'Yapay Zekâya Karşı Oyna'
+      : playerMode === 'duel'
+        ? '2 Oyunculu Başlat'
+        : 'Tek Başına Oyna';
 
   return (
     <div className="space-y-5">
@@ -140,10 +155,10 @@ export const GamesHubTab: React.FC = () => {
             <span>Kur’ân &amp; Mushaf Eğitsel Oyunlar Atölyesi</span>
           </div>
           <h2 className="text-lg sm:text-xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Sure Tertibi, Anlamı ve Özel Grupları Uygulayarak Pekiştirin
+            5 Zümrüt Masa Oyunu ile Sureleri Uygulayarak Pekiştirin
           </h2>
           <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Namaz surelerinden 7 Hâ-Mîm’lere ve tüm Mushaf’a uzanan 6 kademeli atölye.
+            Tek başına, Yapay Zekâya karşı veya Akıllı Tahtada 2 oyunculu — canlı Bilgi Notu ve tilavet desteğiyle.
           </p>
         </div>
 
@@ -229,11 +244,10 @@ export const GamesHubTab: React.FC = () => {
                         color: earned > 0 ? '#D97706' : 'var(--text-muted)',
                       }}
                     >
-                      <Star
-                        className="w-3 h-3"
-                        fill={earned > 0 ? 'currentColor' : 'none'}
-                      />
-                      <span>{earned}/9</span>
+                      <Star className="w-3 h-3" fill={earned > 0 ? 'currentColor' : 'none'} />
+                      <span>
+                        {earned}/{MAX_TIER_STARS}
+                      </span>
                     </span>
                   </div>
 
@@ -263,10 +277,7 @@ export const GamesHubTab: React.FC = () => {
                     {countText}
                   </span>
                   {tier.isSpecialGroups && (
-                    <Sparkles
-                      className="w-3.5 h-3.5"
-                      style={{ color: 'var(--brand-accent-text)' }}
-                    />
+                    <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--brand-accent-text)' }} />
                   )}
                 </div>
               </button>
@@ -275,8 +286,69 @@ export const GamesHubTab: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. Tempo & Akıllı Tahta Oyuncu Modu Kontrolleri */}
-      <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+      {/* 2. Üçlü Rakip Sistemi & Tempo Seçimi */}
+      <section className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+        {/* 3'lü Rakip Seçici: Tek Başına | Yapay Zekâya Karşı | 2 Oyuncu (Akıllı Tahta) */}
+        <div
+          className="grid grid-cols-2 lg:inline-flex p-1 rounded-xl border gap-1"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setPlayerMode('single');
+            }}
+            className="min-h-[38px] px-3 sm:px-3.5 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            style={{
+              backgroundColor: playerMode === 'single' ? 'var(--bg-surface)' : 'transparent',
+              color:
+                playerMode === 'single' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+              boxShadow: playerMode === 'single' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+            }}
+          >
+            <User className="w-3.5 h-3.5 shrink-0" />
+            <span>Tek Başına</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setPlayerMode('ai');
+            }}
+            className="min-h-[38px] px-3 sm:px-3.5 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            style={{
+              backgroundColor: playerMode === 'ai' ? 'var(--bg-surface)' : 'transparent',
+              color: playerMode === 'ai' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+              boxShadow: playerMode === 'ai' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+            }}
+          >
+            <Bot className="w-3.5 h-3.5 shrink-0" />
+            <span>Yapay Zekâya Karşı</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setPlayerMode('duel');
+            }}
+            className="hidden lg:inline-flex min-h-[38px] px-3.5 rounded-lg text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            style={{
+              backgroundColor: playerMode === 'duel' ? 'var(--bg-surface)' : 'transparent',
+              color: playerMode === 'duel' ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
+              boxShadow: playerMode === 'duel' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+            }}
+          >
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            <span>2 Oyuncu (Akıllı Tahta)</span>
+          </button>
+        </div>
+
         {/* Tempo Seçimi */}
         <div
           className="grid grid-cols-2 sm:inline-flex p-1 rounded-xl border gap-1"
@@ -319,59 +391,15 @@ export const GamesHubTab: React.FC = () => {
             <span>Zaman Yarışı (Süreli)</span>
           </button>
         </div>
-
-        {/* Akıllı Tahta / Geniş Ekran İkili Düello Anahtarı (lg+ görünür) */}
-        <div
-          className="hidden lg:inline-flex p-1 rounded-xl border gap-1"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setPlayerMode('single');
-            }}
-            className="min-h-[38px] px-3.5 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            style={{
-              backgroundColor: playerMode === 'single' ? 'var(--bg-surface)' : 'transparent',
-              color:
-                playerMode === 'single' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-              boxShadow: playerMode === 'single' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-            }}
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>Tek Oyuncu</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setPlayerMode('duel');
-            }}
-            className="min-h-[38px] px-3.5 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            style={{
-              backgroundColor: playerMode === 'duel' ? 'var(--bg-surface)' : 'transparent',
-              color: playerMode === 'duel' ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
-              boxShadow: playerMode === 'duel' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-            }}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>İkili Düello (Akıllı Tahta)</span>
-          </button>
-        </div>
       </section>
 
-      {/* 3. Oyun Kartları */}
+      {/* 3. 5 Oyun Kartı (Aşama 1 + Aşama 2) */}
       <section className="space-y-2.5">
         <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider px-0.5" style={{ color: 'var(--text-muted)' }}>
-          2. Oyun Seçin ve Başlayın
+          2. Oyun Seçin ve Masaya Geçin
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {GAME_DEFINITIONS.map((game) => {
             const accent = renderGameAccent(game.id);
             const record = progressMap[makeGameProgressKey(game.id, selectedTier)];
@@ -390,15 +418,28 @@ export const GamesHubTab: React.FC = () => {
                 <div className="space-y-3">
                   {/* Üst İkon & Yıldız Durumu */}
                   <div className="flex items-start justify-between gap-2">
-                    <div
-                      className="w-11 h-11 rounded-xl border flex items-center justify-center shrink-0"
-                      style={{
-                        backgroundColor: accent.soft,
-                        borderColor: accent.border,
-                        color: accent.text,
-                      }}
-                    >
-                      {renderGameIcon(game.id)}
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-11 h-11 rounded-xl border flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: accent.soft,
+                          borderColor: accent.border,
+                          color: accent.text,
+                        }}
+                      >
+                        {renderGameIcon(game.id)}
+                      </div>
+                      {game.stageTag && (
+                        <span
+                          className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider"
+                          style={{
+                            backgroundColor: 'var(--brand-accent-soft)',
+                            color: 'var(--brand-accent-text)',
+                          }}
+                        >
+                          {game.stageTag}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-0.5 pt-1" aria-label={`${earnedStars} yıldız`}>
@@ -415,14 +456,23 @@ export const GamesHubTab: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Başlık & Açıklama */}
+                  {/* Başlık, Arapça Alt Başlık & Açıklama */}
                   <div className="space-y-1">
-                    <h4
-                      className="text-base font-extrabold tracking-tight"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {game.title}
-                    </h4>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h4
+                        className="text-base font-extrabold tracking-tight"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {game.title}
+                      </h4>
+                      <span
+                        dir="rtl"
+                        className="font-arabic text-sm font-semibold shrink-0"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        {game.arabicTitle}
+                      </span>
+                    </div>
                     <p
                       className="text-xs sm:text-[13px] leading-relaxed"
                       style={{ color: 'var(--text-secondary)' }}
@@ -431,12 +481,12 @@ export const GamesHubTab: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Odak & İkili Düello Bilgisi */}
+                  {/* Odak & Kayıt Bilgisi */}
                   <div className="space-y-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     <div>Odak: {game.focusLabel}</div>
                     {playerMode === 'duel' && (
                       <div className="font-semibold" style={{ color: 'var(--brand-accent-text)' }}>
-                        Düello: {game.duelLabel}
+                        2 Oyuncu: {game.duelLabel}
                       </div>
                     )}
                     {record && (
@@ -454,12 +504,12 @@ export const GamesHubTab: React.FC = () => {
                   onClick={() => handleLaunchGame(game.id)}
                   className="w-full min-h-[44px] rounded-xl text-sm font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-95 disabled:opacity-50"
                   style={{
-                    backgroundColor: 'var(--brand-primary)',
+                    backgroundColor: '#0F766E',
                     color: '#FFFFFF',
                   }}
                 >
                   <Play className="w-4 h-4" fill="currentColor" />
-                  <span>{playerMode === 'duel' ? 'Düelloyu Başlat' : 'Oyna'}</span>
+                  <span>{launchCtaText}</span>
                 </button>
               </div>
             );
@@ -467,17 +517,21 @@ export const GamesHubTab: React.FC = () => {
         </div>
       </section>
 
-      {/* Tam Ekran Sıfır-Kaydırma Oyun Sahnesi */}
+      {/* Zümrüt Masa Tam Ekran Oyun Sahnesi */}
       {activeGameId && enrichedSurahs.length > 0 && (
         <GameStageModal
           gameId={activeGameId}
           initialTierId={selectedTier}
-          tempo={tempo}
-          playerMode={playerMode}
+          initialTempo={tempo}
+          initialPlayerMode={playerMode}
           allSurahs={enrichedSurahs}
           activePoolSurahNos={poolStats.effectiveSurahs}
           onProgressUpdated={(nextMap) => setProgressMap(nextMap)}
-          onTierChanged={(nextTier) => setSelectedTier(nextTier)}
+          onConfigSynced={(patch) => {
+            if (patch.tierId) setSelectedTier(patch.tierId);
+            if (patch.tempo) setTempo(patch.tempo);
+            if (patch.playerMode) setPlayerMode(patch.playerMode);
+          }}
           onClose={() => setActiveGameId(null)}
         />
       )}

@@ -1,14 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ArrowLeft,
-  Clock,
-  Flame,
-  RotateCcw,
-  Star,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { GameArenaShell } from './GameArenaShell';
 import { gameAudioService } from './gameAudioService';
 import type { GameProgressMap } from './gameProgressStorage';
 import { saveGameProgressResult } from './gameProgressStorage';
@@ -22,50 +14,67 @@ import type {
   GameTempo,
   GameTierId,
 } from './gameTypes';
-import { GAME_DEFINITIONS, GAME_TIERS, resolveTierSurahs } from './gameTypes';
+import { resolveTierSurahs } from './gameTypes';
 import { MemoryMatchGame } from './MemoryMatchGame';
 import { MushafChainGame } from './MushafChainGame';
+import { MushafCompassGame } from './MushafCompassGame';
 import { SpeedMatchGame } from './SpeedMatchGame';
+import { SurahDetectiveGame } from './SurahDetectiveGame';
 
 interface GameStageModalProps {
   gameId: GameId;
   initialTierId: GameTierId;
-  tempo: GameTempo;
-  playerMode: GamePlayerMode;
+  initialTempo: GameTempo;
+  initialPlayerMode: GamePlayerMode;
   allSurahs: EnrichedGameSurah[];
   activePoolSurahNos: number[];
   onProgressUpdated: (nextMap: GameProgressMap) => void;
-  onTierChanged: (tierId: GameTierId) => void;
+  onConfigSynced: (patch: {
+    tierId?: GameTierId;
+    tempo?: GameTempo;
+    playerMode?: GamePlayerMode;
+  }) => void;
   onClose: () => void;
 }
+
+const DEFAULT_HUD: GameHudUpdate = {
+  score: 0,
+  p1Score: 0,
+  p2Score: 0,
+  activeTurn: 'p1',
+  combo: 0,
+  movesCount: 0,
+  progressLabel: '',
+  elapsedSec: 0,
+  timerText: '00:00',
+  timerUrgent: false,
+  turnRemainingSec: null,
+  statusMessage: 'Oyuna başlamak için ilk hamlenizi yapın.',
+  featuredSurah: null,
+};
 
 export const GameStageModal: React.FC<GameStageModalProps> = ({
   gameId,
   initialTierId,
-  tempo,
-  playerMode,
+  initialTempo,
+  initialPlayerMode,
   allSurahs,
   activePoolSurahNos,
   onProgressUpdated,
-  onTierChanged,
+  onConfigSynced,
   onClose,
 }) => {
   const { setIsExamActive, awardGameXp } = useAppStore();
 
   const [currentTierId, setCurrentTierId] = useState<GameTierId>(initialTierId);
+  const [currentTempo, setCurrentTempo] = useState<GameTempo>(initialTempo);
+  const [currentPlayerMode, setCurrentPlayerMode] = useState<GamePlayerMode>(initialPlayerMode);
   const [runNonce, setRunNonce] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(() => gameAudioService.isMuted());
   const [result, setResult] = useState<GameResultPayload | null>(null);
   const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
-  const [hud, setHud] = useState<GameHudUpdate>({
-    score: 0,
-    combo: 0,
-    progressLabel: '',
-    timerText: '0:00',
-    timerUrgent: false,
-  });
+  const [hud, setHud] = useState<GameHudUpdate>(DEFAULT_HUD);
 
-  // Tam ekran oyun sahnesi açıkken gövde kaydırmasını ve mobil alt barı gizle
   useEffect(() => {
     setIsExamActive(true);
     const prevOverflow = document.body.style.overflow;
@@ -96,9 +105,6 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
     [activePoolSurahNos, allSurahs, currentTierId],
   );
 
-  const gameMeta = GAME_DEFINITIONS.find((g) => g.id === gameId);
-  const tierMeta = GAME_TIERS.find((t) => t.id === currentTierId);
-
   const handleToggleMute = () => {
     const nextMuted = gameAudioService.toggleMute();
     setIsMuted(nextMuted);
@@ -111,33 +117,41 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
     gameAudioService.playFlip();
     setResult(null);
     setIsNewRecord(false);
-    setHud({
-      score: 0,
-      combo: 0,
-      progressLabel: '',
-      timerText: '0:00',
-      timerUrgent: false,
-    });
+    setHud(DEFAULT_HUD);
     setRunNonce((n) => n + 1);
   }, []);
 
-  const handleNextTier = useCallback(
-    (nextTierId: GameTierId) => {
+  const handleChangeConfig = useCallback(
+    (patch: {
+      tierId?: GameTierId;
+      tempo?: GameTempo;
+      playerMode?: GamePlayerMode;
+    }) => {
       gameAudioService.playFlip();
-      setCurrentTierId(nextTierId);
-      onTierChanged(nextTierId);
+      if (patch.tierId) setCurrentTierId(patch.tierId);
+      if (patch.tempo) setCurrentTempo(patch.tempo);
+      if (patch.playerMode) setCurrentPlayerMode(patch.playerMode);
+      onConfigSynced(patch);
       setResult(null);
       setIsNewRecord(false);
+      setHud(DEFAULT_HUD);
       setRunNonce((n) => n + 1);
     },
-    [onTierChanged],
+    [onConfigSynced],
+  );
+
+  const handleNextTier = useCallback(
+    (nextTierId: GameTierId) => {
+      handleChangeConfig({ tierId: nextTierId });
+    },
+    [handleChangeConfig],
   );
 
   const handleComplete = useCallback(
     (payload: GameResultPayload) => {
       setResult(payload);
 
-      if (payload.playerMode === 'single') {
+      if (payload.playerMode !== 'duel') {
         const saved = saveGameProgressResult({
           gameId: payload.gameId,
           tierId: payload.tierId,
@@ -156,143 +170,23 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
     [awardGameXp, onProgressUpdated],
   );
 
-  const stageKey = `${gameId}-${currentTierId}-${tempo}-${playerMode}-${runNonce}`;
+  const stageKey = `${gameId}-${currentTierId}-${currentTempo}-${currentPlayerMode}-${runNonce}`;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${gameMeta?.title ?? 'Oyun'} Sahnesi`}
-      className="fixed inset-0 z-50 w-full h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col"
-      style={{ backgroundColor: 'var(--bg-canvas)' }}
+    <GameArenaShell
+      gameId={gameId}
+      tierId={currentTierId}
+      tempo={currentTempo}
+      playerMode={currentPlayerMode}
+      isMuted={isMuted}
+      isSummaryOpen={Boolean(result)}
+      hud={hud}
+      allSurahsMap={allSurahsMap}
+      onToggleMute={handleToggleMute}
+      onRestart={handleRestart}
+      onChangeConfig={handleChangeConfig}
+      onClose={onClose}
     >
-      {/* Tek İnce Üst HUD Barı (48px) */}
-      <header
-        className="shrink-0 h-12 px-2.5 sm:px-4 border-b flex items-center justify-between gap-2"
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          borderColor: 'var(--border-subtle)',
-        }}
-      >
-        {/* Sol: Çıkış + Oyun & Kademe */}
-        <div className="flex items-center gap-2 min-w-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-[36px] px-2.5 rounded-xl border inline-flex items-center gap-1 text-xs font-bold cursor-pointer shrink-0 transition-colors"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-            }}
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Çık</span>
-          </button>
-
-          <div className="min-w-0 leading-tight">
-            <div
-              className="text-xs sm:text-sm font-extrabold truncate"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              {gameMeta?.shortTitle}
-            </div>
-            <div
-              className="text-[10px] sm:text-[11px] font-medium truncate"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              {tierMeta?.shortTitle}
-              {playerMode === 'duel' ? ' · İkili Düello' : ''}
-            </div>
-          </div>
-        </div>
-
-        {/* Sağ: Süre + Kombo + Puan + Ses + Yeniden */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {!result && (
-            <>
-              <div
-                className="h-8 px-2 rounded-lg border inline-flex items-center gap-1 text-xs font-bold tabular-nums"
-                style={{
-                  backgroundColor: hud.timerUrgent
-                    ? 'rgba(220, 38, 38, 0.12)'
-                    : 'var(--bg-surface-soft)',
-                  borderColor: hud.timerUrgent
-                    ? 'rgba(220, 38, 38, 0.35)'
-                    : 'var(--border-subtle)',
-                  color: hud.timerUrgent ? '#DC2626' : 'var(--text-primary)',
-                }}
-                title="Süre"
-              >
-                <Clock className="w-3.5 h-3.5 shrink-0" />
-                <span>{hud.timerText}</span>
-              </div>
-
-              {playerMode === 'single' && hud.combo >= 2 && (
-                <div
-                  className="hidden sm:inline-flex h-8 px-2 rounded-lg border items-center gap-1 text-xs font-extrabold tabular-nums"
-                  style={{
-                    backgroundColor: 'var(--brand-accent-soft)',
-                    borderColor: 'rgba(217, 119, 6, 0.3)',
-                    color: 'var(--brand-accent-text)',
-                  }}
-                  title="Seri Çarpanı"
-                >
-                  <Flame className="w-3.5 h-3.5" />
-                  <span>{hud.combo}x</span>
-                </div>
-              )}
-
-              {playerMode === 'single' && (
-                <div
-                  className="h-8 px-2 rounded-lg border inline-flex items-center gap-1 text-xs font-extrabold tabular-nums"
-                  style={{
-                    backgroundColor: 'var(--brand-primary-soft)',
-                    borderColor: 'rgba(13, 148, 136, 0.25)',
-                    color: 'var(--brand-primary-text)',
-                  }}
-                  title="Puan"
-                >
-                  <Star className="w-3.5 h-3.5" fill="currentColor" />
-                  <span>{hud.score}</span>
-                </div>
-              )}
-            </>
-          )}
-
-          <button
-            type="button"
-            onClick={handleToggleMute}
-            aria-label={isMuted ? 'Oyun sesini aç' : 'Oyun sesini kapat'}
-            title={isMuted ? 'Sesi Aç' : 'Sesi Kapat'}
-            className="w-9 h-9 rounded-xl border inline-flex items-center justify-center cursor-pointer transition-colors"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              borderColor: 'var(--border-subtle)',
-              color: isMuted ? 'var(--text-muted)' : 'var(--text-primary)',
-            }}
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleRestart}
-            aria-label="Yeniden başlat"
-            title="Yeniden Başlat"
-            className="w-9 h-9 rounded-xl border inline-flex items-center justify-center cursor-pointer transition-colors"
-            style={{
-              backgroundColor: 'var(--bg-surface-soft)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-            }}
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
-
-      {/* Oyun Alanı veya Pedagojik Özet Ekranı */}
       {result ? (
         <GameSummaryOverlay
           result={result}
@@ -302,13 +196,13 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
           onExit={onClose}
         />
       ) : (
-        <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <>
           {gameId === 'memory' && (
             <MemoryMatchGame
               key={stageKey}
               tierId={currentTierId}
-              tempo={tempo}
-              playerMode={playerMode}
+              tempo={currentTempo}
+              playerMode={currentPlayerMode}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
               onHudUpdate={setHud}
@@ -319,8 +213,8 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
             <MushafChainGame
               key={stageKey}
               tierId={currentTierId}
-              tempo={tempo}
-              playerMode={playerMode}
+              tempo={currentTempo}
+              playerMode={currentPlayerMode}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
               onHudUpdate={setHud}
@@ -331,16 +225,40 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
             <SpeedMatchGame
               key={stageKey}
               tierId={currentTierId}
-              tempo={tempo}
-              playerMode={playerMode}
+              tempo={currentTempo}
+              playerMode={currentPlayerMode}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
               onHudUpdate={setHud}
               onComplete={handleComplete}
             />
           )}
-        </main>
+          {gameId === 'compass' && (
+            <MushafCompassGame
+              key={stageKey}
+              tierId={currentTierId}
+              tempo={currentTempo}
+              playerMode={currentPlayerMode}
+              tierSurahs={tierSurahs}
+              allSurahsMap={allSurahsMap}
+              onHudUpdate={setHud}
+              onComplete={handleComplete}
+            />
+          )}
+          {gameId === 'detective' && (
+            <SurahDetectiveGame
+              key={stageKey}
+              tierId={currentTierId}
+              tempo={currentTempo}
+              playerMode={currentPlayerMode}
+              tierSurahs={tierSurahs}
+              allSurahsMap={allSurahsMap}
+              onHudUpdate={setHud}
+              onComplete={handleComplete}
+            />
+          )}
+        </>
       )}
-    </div>
+    </GameArenaShell>
   );
 };

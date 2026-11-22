@@ -17,9 +17,8 @@ interface ChainRoundData {
   kind: ChainRoundKind;
   promptTitle: string;
   centerSurah?: EnrichedGameSurah;
-  /** Sıralı doğru sure numaraları (neighbors: [prevNo, nextNo], train: [s1, s2, s3, s4]) */
+  focusSurah: EnrichedGameSurah;
   expectedNos: number[];
-  /** Alt havuzda gösterilecek aday sureler */
   candidates: EnrichedGameSurah[];
 }
 
@@ -36,7 +35,6 @@ function generateChainRound(
   const kind: ChainRoundKind = roundIndex % 2 === 0 ? 'neighbors' : 'train';
 
   if (kind === 'neighbors') {
-    // 2..113 aralığında hem öncesi hem sonrası bulunan bir merkez sure seç
     const eligible = tierSurahs.filter(
       (s) => s.no >= 2 && s.no <= 113 && allSurahsMap.has(s.no - 1) && allSurahsMap.has(s.no + 1),
     );
@@ -51,10 +49,8 @@ function generateChainRound(
     const prevSurah = allSurahsMap.get(center.no - 1)!;
     const nextSurah = allSurahsMap.get(center.no + 1)!;
 
-    // 3 akıllı çeldirici seç (yakın komşular + kademe havuzu)
     const distractorMap = new Map<number, EnrichedGameSurah>();
-    const nearOffsets = [-3, -2, 2, 3, -4, 4, -5, 5];
-    for (const off of shuffleArray(nearOffsets)) {
+    for (const off of shuffleArray([-3, -2, 2, 3, -4, 4, -5, 5])) {
       if (distractorMap.size >= 2) break;
       const cand = allSurahsMap.get(center.no + off);
       if (
@@ -87,17 +83,15 @@ function generateChainRound(
     return {
       id: `n-${roundIndex}-${center.no}-${Math.random().toString(36).slice(2, 6)}`,
       kind: 'neighbors',
-      promptTitle: 'Önceki ve Sonraki Komşu Sureleri Yerleştirin',
+      promptTitle: 'Önceki ve Sonraki Komşu Sureleri Yuvalara Yerleştirin',
       centerSurah: center,
+      focusSurah: center,
       expectedNos: [prevSurah.no, nextSurah.no],
       candidates,
     };
   }
 
-  // Round Type B: Mushaf Treni (4 sureyi baştan sona sırala)
   let picked: EnrichedGameSurah[] = [];
-
-  // Kademe 4'te yüksek olasılıkla 7 Hâ-Mîm'lerden (Havâmîm) peş peşe 4 sure sor
   if (tierId === 'kademe_4' && Math.random() < 0.55) {
     const hawamimSurahs = SPECIAL_SURAH_FAMILIES.hawamim.surahs
       .map((no) => allSurahsMap.get(no))
@@ -109,11 +103,9 @@ function generateChainRound(
   }
 
   if (picked.length < 4) {
-    const uniqueSorted = shuffleArray(tierSurahs).slice(0, 4).sort((a, b) => a.no - b.no);
-    picked = uniqueSorted;
+    picked = shuffleArray(tierSurahs).slice(0, 4).sort((a, b) => a.no - b.no);
   }
 
-  // Karıştırılmış adayların zaten sıralı gelmemesini sağla
   let candidates = shuffleArray(picked);
   const expectedNos = picked.map((s) => s.no);
   if (candidates.every((c, idx) => c.no === expectedNos[idx]) && candidates.length >= 2) {
@@ -127,6 +119,7 @@ function generateChainRound(
       tierId === 'kademe_4' && picked.every((p) => p.no >= 40 && p.no <= 46)
         ? "7 Hâ-Mîm'leri (Havâmîm) Mushaf Sırasına Dizin"
         : '4 Sureyi Mushaf Sırasına Göre Baştan Sona Dizin',
+    focusSurah: picked[0],
     expectedNos,
     candidates,
   };
@@ -141,26 +134,22 @@ interface FloatingDragState {
 
 interface ChainBoardProps {
   boardId: 'single' | 'p1' | 'p2';
-  accentColor: string;
-  accentSoft: string;
-  accentText: string;
   headerLabel?: string;
   headerScore?: number;
+  headerAccent?: 'amber' | 'teal';
   round: ChainRoundData;
   roundNumber: number;
   totalRoundsLabel: string;
   isFinished?: boolean;
-  onRoundCleared: (hadMistake: boolean, roundMistakes: EnrichedGameSurah[]) => void;
+  onRoundCleared: (hadMistake: boolean, focusSurah: EnrichedGameSurah) => void;
   onMistakeStep: (surah: EnrichedGameSurah) => void;
 }
 
 const ChainBoard: React.FC<ChainBoardProps> = ({
   boardId,
-  accentColor,
-  accentSoft,
-  accentText,
   headerLabel,
   headerScore,
+  headerAccent = 'amber',
   round,
   roundNumber,
   totalRoundsLabel,
@@ -178,10 +167,8 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
   const [dragState, setDragState] = useState<FloatingDragState | null>(null);
 
   const hadMistakeRef = useRef<boolean>(false);
-  const roundMistakesRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
   const dragOriginRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
 
-  // Yeni turda tahta durumunu sıfırla
   useEffect(() => {
     setSlots(Array.from({ length: round.expectedNos.length }, () => null));
     setSelectedSurahNo(null);
@@ -189,7 +176,6 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
     setCleared(false);
     setDragState(null);
     hadMistakeRef.current = false;
-    roundMistakesRef.current = new Map();
   }, [round]);
 
   const placedNos = useMemo(
@@ -214,30 +200,18 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
         setSelectedSurahNo(null);
         gameAudioService.playMatch(hadMistakeRef.current ? 1 : 2);
         window.setTimeout(() => {
-          onRoundCleared(
-            hadMistakeRef.current,
-            Array.from(roundMistakesRef.current.values()),
-          );
+          onRoundCleared(hadMistakeRef.current, round.focusSurah);
         }, 420);
       } else {
         hadMistakeRef.current = true;
         setWrongSlots(wrongIdx);
         gameAudioService.playWrong();
-
-        // Hatalı sureleri pedagojik özet için kaydet
-        if (round.centerSurah) {
-          roundMistakesRef.current.set(round.centerSurah.no, round.centerSurah);
-          onMistakeStep(round.centerSurah);
-        }
+        if (round.centerSurah) onMistakeStep(round.centerSurah);
         wrongIdx.forEach((idx) => {
           const placed = nextSlots[idx];
-          if (placed) {
-            roundMistakesRef.current.set(placed.no, placed);
-            onMistakeStep(placed);
-          }
+          if (placed) onMistakeStep(placed);
         });
 
-        // Kısa sarsıntıdan sonra yalnızca hatalı slotları temizle (doğrular sabit kalır)
         window.setTimeout(() => {
           setSlots((prev) =>
             prev.map((item, idx) => (wrongIdx.includes(idx) ? null : item)),
@@ -268,11 +242,8 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
     if (cleared || isFinished || placedNos.has(surah.no)) return;
     gameAudioService.playFlip();
     if (selectedSurahNo === surah.no) {
-      // Çift dokunuşta ilk boş slota hızlı yerleştir
       const firstEmpty = slots.findIndex((s) => s === null);
-      if (firstEmpty >= 0) {
-        placeSurahInSlot(surah, firstEmpty);
-      }
+      if (firstEmpty >= 0) placeSurahInSlot(surah, firstEmpty);
       return;
     }
     setSelectedSurahNo(surah.no);
@@ -282,19 +253,15 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
     if (cleared || isFinished) return;
     if (selectedSurahNo !== null) {
       const cand = round.candidates.find((c) => c.no === selectedSurahNo);
-      if (cand) {
-        placeSurahInSlot(cand, slotIndex);
-      }
+      if (cand) placeSurahInSlot(cand, slotIndex);
       return;
     }
-    // Slotta kart varsa geri havuza çıkar
     if (slots[slotIndex]) {
       gameAudioService.playFlip();
       setSlots((prev) => prev.map((item, idx) => (idx === slotIndex ? null : item)));
     }
   };
 
-  // Çoklu dokunma destekli (pointerId izli) Hibrit Sürükle-Bırak
   const handlePointerDown = (
     e: React.PointerEvent<HTMLButtonElement>,
     surah: EnrichedGameSurah,
@@ -302,20 +269,14 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
     if (cleared || isFinished || placedNos.has(surah.no)) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     dragOriginRef.current = { x: e.clientX, y: e.clientY, moved: false };
-    setDragState({
-      pointerId: e.pointerId,
-      surah,
-      x: e.clientX,
-      y: e.clientY,
-    });
+    setDragState({ pointerId: e.pointerId, surah, x: e.clientX, y: e.clientY });
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!dragState || dragState.pointerId !== e.pointerId) return;
     const origin = dragOriginRef.current;
-    if (origin && !origin.moved) {
-      const dist = Math.hypot(e.clientX - origin.x, e.clientY - origin.y);
-      if (dist > 8) origin.moved = true;
+    if (origin && !origin.moved && Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > 8) {
+      origin.moved = true;
     }
     if (origin?.moved) {
       setDragState((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
@@ -336,7 +297,6 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
       return;
     }
 
-    // Bırakılan noktadaki slotu bul
     const elements = document.elementsFromPoint(e.clientX, e.clientY);
     for (const el of elements) {
       const slotAttr = (el as HTMLElement).dataset?.chainSlot;
@@ -351,82 +311,53 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
   };
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col justify-between gap-2 sm:gap-3 overflow-hidden relative">
-      {/* Oyuncu / Tur Başlığı */}
-      <div className="shrink-0 space-y-1">
+    <div className="flex-1 min-h-0 flex flex-col justify-between gap-2.5 overflow-hidden relative">
+      {/* Başlık */}
+      <div className="shrink-0 space-y-1.5">
         {headerLabel && (
           <div
-            className="rounded-xl border px-3 py-1.5 flex items-center justify-between"
-            style={{
-              backgroundColor: accentSoft,
-              borderColor: accentColor,
-            }}
+            className={`rounded-xl px-3 py-1.5 flex items-center justify-between border ${
+              headerAccent === 'amber'
+                ? 'bg-amber-400/20 border-amber-300/45 text-amber-100'
+                : 'bg-teal-950/40 border-teal-300/35 text-teal-100'
+            }`}
           >
-            <span className="text-xs sm:text-sm font-extrabold" style={{ color: accentText }}>
-              {headerLabel}
-            </span>
-            <div className="flex items-center gap-2.5">
-              <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                {totalRoundsLabel}
-              </span>
-              <span className="text-base font-black tabular-nums" style={{ color: accentText }}>
-                {headerScore ?? 0}
-              </span>
+            <span className="text-xs sm:text-sm font-extrabold">{headerLabel}</span>
+            <div className="flex items-center gap-2.5 tabular-nums">
+              <span className="text-xs opacity-80">{totalRoundsLabel}</span>
+              <span className="text-base font-black">{headerScore ?? 0}p</span>
             </div>
           </div>
         )}
 
         <div className="flex items-center justify-between gap-2 px-0.5">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span
-              className="text-[11px] font-extrabold px-2 py-0.5 rounded-md shrink-0 tabular-nums"
-              style={{
-                backgroundColor: accentSoft,
-                color: accentText,
-              }}
-            >
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-400/20 text-amber-200 border border-amber-300/30 shrink-0">
               {round.kind === 'neighbors' ? 'Komşu Sureler' : 'Mushaf Treni'}
             </span>
-            <span
-              className="text-xs sm:text-sm font-bold truncate"
-              style={{ color: 'var(--text-primary)' }}
-            >
+            <span className="text-xs sm:text-sm font-bold text-white/95 truncate">
               {round.promptTitle}
             </span>
           </div>
           {!headerLabel && (
-            <span
-              className="text-xs font-bold tabular-nums shrink-0"
-              style={{ color: 'var(--text-muted)' }}
-            >
+            <span className="text-xs font-extrabold tabular-nums text-amber-200 shrink-0">
               Tur {roundNumber}
-              {totalRoundsLabel ? ` / ${totalRoundsLabel}` : ''}
+              {totalRoundsLabel ? `/${totalRoundsLabel}` : ''}
             </span>
           )}
         </div>
       </div>
 
-      {/* Orta Alan: Hedef Slotlar */}
+      {/* Orta Alan: Hedef Yuvalar */}
       {isFinished ? (
-        <div
-          className="flex-1 min-h-0 rounded-2xl border flex flex-col items-center justify-center gap-2 p-4 text-center"
-          style={{
-            backgroundColor: accentSoft,
-            borderColor: accentColor,
-          }}
-        >
-          <CheckCircle2 className="w-8 h-8" style={{ color: accentText }} />
-          <p className="text-base font-extrabold" style={{ color: 'var(--text-primary)' }}>
-            Tüm Turlar Tamamlandı
-          </p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            Diğer oyuncunun tamamlaması bekleniyor...
-          </p>
+        <div className="flex-1 min-h-0 rounded-2xl border border-emerald-300/35 bg-emerald-950/35 flex flex-col items-center justify-center gap-2 p-4 text-center text-white">
+          <CheckCircle2 className="w-8 h-8 text-amber-300" />
+          <p className="text-base font-extrabold">Tüm Turlar Tamamlandı</p>
+          <p className="text-xs text-white/75">Diğer oyuncunun tamamlaması bekleniyor...</p>
         </div>
       ) : round.kind === 'neighbors' && round.centerSurah ? (
-        <div className="flex-1 min-h-0 flex flex-col justify-center gap-2.5">
+        <div className="flex-1 min-h-0 flex flex-col justify-center">
           <div className="grid grid-cols-3 gap-2 sm:gap-3 items-stretch">
-            {/* Sol Slot: Önceki Sure */}
             {renderSlotButton({
               boardId,
               slotIndex: 0,
@@ -436,55 +367,27 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
               isWrong: wrongSlots.includes(0),
               isCleared: cleared,
               isHighlighted: selectedSurahNo !== null && !slots[0],
-              accentColor,
-              accentSoft,
-              accentText,
               onClick: () => handleSlotTap(0),
             })}
 
-            {/* Merkez Sabit Sure Kartı */}
-            <div
-              className="rounded-2xl border-2 p-2 sm:p-3.5 flex flex-col items-center justify-center text-center gap-1"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: accentColor,
-                boxShadow: '0 6px 18px -6px rgba(15, 23, 42, 0.14)',
-              }}
-            >
-              <span
-                className="text-[10px] sm:text-xs font-extrabold tabular-nums px-2 py-0.5 rounded-md"
-                style={{
-                  backgroundColor: accentSoft,
-                  color: accentText,
-                }}
-              >
+            {/* Merkez Sabit 3B Zümrüt Sure Kartı */}
+            <div className="game-bevel-emerald rounded-2xl p-2 sm:p-3.5 flex flex-col items-center justify-center text-center gap-1">
+              <span className="text-[10px] sm:text-xs font-extrabold tabular-nums px-2 py-0.5 rounded bg-amber-400 text-amber-950">
                 {round.centerSurah.no}. Sure
               </span>
-              <span
-                dir="rtl"
-                className="font-arabic text-xl sm:text-2xl leading-tight"
-                style={{ color: 'var(--text-primary)' }}
-              >
+              <span dir="rtl" className="font-arabic text-xl sm:text-2xl leading-tight text-amber-200">
                 {round.centerSurah.nameAr}
               </span>
-              <span
-                className="text-xs sm:text-base font-extrabold leading-tight"
-                style={{ color: 'var(--text-primary)' }}
-              >
+              <span className="text-xs sm:text-base font-extrabold leading-tight text-white">
                 {round.centerSurah.shortNameTr}
               </span>
               {round.centerSurah.mukattaa && (
-                <span
-                  dir="rtl"
-                  className="font-arabic text-xs sm:text-sm font-bold"
-                  style={{ color: 'var(--brand-accent-text)' }}
-                >
+                <span dir="rtl" className="font-arabic text-xs sm:text-sm font-bold text-amber-300">
                   {round.centerSurah.mukattaa.arabic}
                 </span>
               )}
             </div>
 
-            {/* Sağ Slot: Sonraki Sure */}
             {renderSlotButton({
               boardId,
               slotIndex: 1,
@@ -494,15 +397,12 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
               isWrong: wrongSlots.includes(1),
               isCleared: cleared,
               isHighlighted: selectedSurahNo !== null && !slots[1],
-              accentColor,
-              accentSoft,
-              accentText,
               onClick: () => handleSlotTap(1),
             })}
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex flex-col justify-center gap-2">
+        <div className="flex-1 min-h-0 flex flex-col justify-center">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
             {slots.map((placed, idx) =>
               renderSlotButton({
@@ -514,9 +414,6 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
                 isWrong: wrongSlots.includes(idx),
                 isCleared: cleared,
                 isHighlighted: selectedSurahNo !== null && !placed,
-                accentColor,
-                accentSoft,
-                accentText,
                 onClick: () => handleSlotTap(idx),
               }),
             )}
@@ -524,21 +421,13 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
         </div>
       )}
 
-      {/* Alt Aday Kartlar Havuzu */}
+      {/* Alt 3B Parşömen Aday Kartlar Havuzu */}
       {!isFinished && (
-        <div
-          className="shrink-0 rounded-2xl border p-2 sm:p-3 space-y-1.5"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <div className="flex items-center justify-between text-[11px] font-medium px-0.5" style={{ color: 'var(--text-muted)' }}>
-            <span>
-              {selectedSurahNo !== null
-                ? 'Şimdi yukarıdaki hedef yuvaya dokunun'
-                : 'Kartı sürükleyin veya dokunup yuvaya yerleştirin'}
-            </span>
+        <div className="shrink-0 rounded-2xl bg-black/18 border border-white/15 p-2 sm:p-3 space-y-1.5">
+          <div className="text-[11px] font-semibold text-white/80 px-0.5">
+            {selectedSurahNo !== null
+              ? 'Şimdi yukarıdaki altın çerçeveli hedef yuvaya dokunun'
+              : 'Parşömen sure kartını sürükleyin veya dokunup yuvaya yerleştirin'}
           </div>
 
           <div
@@ -546,7 +435,7 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
               round.candidates.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-5'
             }`}
           >
-            {round.candidates.map((cand) => {
+            {round.candidates.map((cand, cIdx) => {
               const isUsed = placedNos.has(cand.no);
               const isSelected = selectedSurahNo === cand.no;
               const isDraggingThis =
@@ -566,31 +455,26 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
                   }}
                   style={{
                     touchAction: 'none',
-                    backgroundColor: isSelected ? accentSoft : 'var(--bg-surface)',
-                    borderColor: isSelected ? accentColor : 'var(--border-strong)',
-                    opacity: isUsed ? 0.32 : isDraggingThis ? 0.45 : 1,
-                    boxShadow: isSelected
-                      ? `0 0 0 2px ${accentColor}`
-                      : '0 2px 6px -2px rgba(15, 23, 42, 0.08)',
+                    opacity: isUsed ? 0.3 : isDraggingThis ? 0.45 : 1,
                   }}
-                  className="min-h-[54px] sm:min-h-[64px] rounded-xl border px-2 py-1.5 flex items-center justify-between gap-1.5 text-left cursor-grab active:cursor-grabbing select-none transition-opacity"
+                  className={`${
+                    isSelected ? 'game-bevel-amber' : 'game-bevel-parchment'
+                  } min-h-[54px] sm:min-h-[64px] rounded-xl px-2 py-1.5 flex items-center justify-between gap-1 cursor-grab active:cursor-grabbing select-none transition-opacity relative`}
                 >
-                  <GripVertical
-                    className="w-3.5 h-3.5 shrink-0 opacity-45"
-                    style={{ color: 'var(--text-muted)' }}
-                  />
+                  <div className="flex flex-col items-center gap-0.5 shrink-0">
+                    <span className="text-[9px] font-black tabular-nums text-slate-500">
+                      #{cIdx + 1}
+                    </span>
+                    <GripVertical className="w-3 h-3 text-slate-400" />
+                  </div>
                   <div className="flex-1 min-w-0 text-center">
                     <div
                       dir="rtl"
-                      className="font-arabic text-base sm:text-lg leading-tight truncate"
-                      style={{ color: 'var(--text-primary)' }}
+                      className="font-arabic text-base sm:text-lg leading-tight text-teal-900 truncate"
                     >
                       {cand.nameAr}
                     </div>
-                    <div
-                      className="text-xs font-extrabold truncate"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
+                    <div className="text-xs font-extrabold text-slate-800 truncate">
                       {cand.shortNameTr}
                     </div>
                   </div>
@@ -601,23 +485,21 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
         </div>
       )}
 
-      {/* Sürüklenen Kart Hayaleti (Floating Ghost) */}
+      {/* Sürüklenen Kart Hayaleti */}
       {dragState && dragOriginRef.current?.moved && (
         <div
-          className="fixed z-[80] pointer-events-none rounded-xl border-2 px-3 py-2 text-center shadow-xl"
+          className="fixed z-[80] pointer-events-none game-bevel-amber rounded-xl px-3 py-2 text-center shadow-2xl"
           style={{
             left: dragState.x,
             top: dragState.y,
-            transform: 'translate(-50%, -65%) scale(1.04)',
-            backgroundColor: 'var(--bg-surface)',
-            borderColor: accentColor,
+            transform: 'translate(-50%, -65%) scale(1.05)',
             minWidth: 112,
           }}
         >
-          <div dir="rtl" className="font-arabic text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>
+          <div dir="rtl" className="font-arabic text-lg leading-tight text-teal-950">
             {dragState.surah.nameAr}
           </div>
-          <div className="text-xs font-extrabold" style={{ color: accentText }}>
+          <div className="text-xs font-extrabold text-amber-950">
             {dragState.surah.shortNameTr}
           </div>
         </div>
@@ -635,9 +517,6 @@ function renderSlotButton(params: {
   isWrong: boolean;
   isCleared: boolean;
   isHighlighted: boolean;
-  accentColor: string;
-  accentSoft: string;
-  accentText: string;
   onClick: () => void;
 }) {
   const {
@@ -649,29 +528,18 @@ function renderSlotButton(params: {
     isWrong,
     isCleared,
     isHighlighted,
-    accentColor,
-    accentSoft,
-    accentText,
     onClick,
   } = params;
 
-  const borderColor = isWrong
-    ? '#DC2626'
+  const slotSurface = isWrong
+    ? 'bg-red-900/80 border-2 border-red-400 text-white game-shake'
     : isCleared
-      ? '#0D9488'
-      : placed || isHighlighted
-        ? accentColor
-        : 'var(--border-strong)';
-
-  const bgColor = isWrong
-    ? 'rgba(220, 38, 38, 0.08)'
-    : isCleared
-      ? 'var(--brand-primary-soft)'
+      ? 'game-bevel-emerald'
       : placed
-        ? 'var(--bg-surface)'
+        ? 'game-bevel-parchment'
         : isHighlighted
-          ? accentSoft
-          : 'var(--bg-surface-soft)';
+          ? 'bg-amber-400/20 border-2 border-dashed border-amber-300 text-amber-100'
+          : 'bg-black/20 border-2 border-dashed border-amber-200/45 text-amber-100/85';
 
   return (
     <button
@@ -679,17 +547,12 @@ function renderSlotButton(params: {
       type="button"
       data-chain-slot={`${boardId}:${slotIndex}`}
       onClick={onClick}
-      className={`min-h-[96px] sm:min-h-[120px] rounded-2xl border-2 px-2 py-2.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-colors ${
-        placed ? 'border-solid' : 'border-dashed'
-      } ${isWrong ? 'game-shake' : ''}`}
-      style={{
-        backgroundColor: bgColor,
-        borderColor,
-      }}
+      className={`min-h-[96px] sm:min-h-[120px] rounded-2xl px-2 py-2.5 flex flex-col items-center justify-center text-center gap-1 cursor-pointer transition-all ${slotSurface}`}
     >
       <span
-        className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold"
-        style={{ color: isWrong ? '#DC2626' : placed ? accentText : 'var(--text-muted)' }}
+        className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-extrabold ${
+          placed && !isCleared && !isWrong ? 'text-teal-800' : ''
+        }`}
       >
         {icon}
         <span>{label}</span>
@@ -699,32 +562,28 @@ function renderSlotButton(params: {
         <>
           <span
             dir="rtl"
-            className="font-arabic text-lg sm:text-xl leading-tight"
-            style={{ color: 'var(--text-primary)' }}
+            className={`font-arabic text-lg sm:text-xl leading-tight ${
+              isCleared ? 'text-amber-200' : isWrong ? 'text-white' : 'text-teal-900'
+            }`}
           >
             {placed.nameAr}
           </span>
           <span
-            className="text-xs sm:text-sm font-extrabold leading-tight line-clamp-1"
-            style={{ color: 'var(--text-primary)' }}
+            className={`text-xs sm:text-sm font-extrabold leading-tight line-clamp-1 ${
+              isCleared || isWrong ? 'text-white' : 'text-slate-900'
+            }`}
           >
             {placed.shortNameTr}
           </span>
           {isCleared && (
-            <span
-              className="text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded"
-              style={{
-                backgroundColor: 'var(--brand-primary-soft)',
-                color: 'var(--brand-primary-text)',
-              }}
-            >
+            <span className="text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded bg-amber-400 text-amber-950">
               {placed.no}. Sure
             </span>
           )}
         </>
       ) : (
-        <span className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
-          {isHighlighted ? 'Buraya bırak' : 'Boş yuva'}
+        <span className="text-[11px] font-medium opacity-80">
+          {isHighlighted ? 'Buraya bırak' : 'Altın yuva'}
         </span>
       )}
     </button>
@@ -741,8 +600,8 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   onComplete,
 }) => {
   const isDuel = playerMode === 'duel';
+  const isAi = playerMode === 'ai';
 
-  // Tek oyuncu durumu
   const usedSingleRef = useRef<Set<number>>(new Set());
   const [singleRoundIdx, setSingleRoundIdx] = useState<number>(0);
   const [singleRound, setSingleRound] = useState<ChainRoundData>(() =>
@@ -751,11 +610,17 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   const [score, setScore] = useState<number>(0);
   const [combo, setCombo] = useState<number>(0);
   const [maxCombo, setMaxCombo] = useState<number>(0);
+  const [movesCount, setMovesCount] = useState<number>(0);
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [mistakeCount, setMistakeCount] = useState<number>(0);
   const [elapsedSec, setElapsedSec] = useState<number>(0);
 
-  // İkili Düello (Eşzamanlı Bölünmüş Ekran) durumları
+  // Yapay Zekâ puanları (eşzamanlı yarış)
+  const [aiScore, setAiScore] = useState<number>(0);
+  const [aiCorrect, setAiCorrect] = useState<number>(0);
+  const [aiThinking, setAiThinking] = useState<boolean>(false);
+
+  // 2 Oyuncu Bölünmüş Ekran
   const usedP1Ref = useRef<Set<number>>(new Set());
   const usedP2Ref = useRef<Set<number>>(new Set());
   const [p1Idx, setP1Idx] = useState<number>(0);
@@ -772,6 +637,10 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   const [p2Correct, setP2Correct] = useState<number>(0);
   const [p1Done, setP1Done] = useState<boolean>(false);
   const [p2Done, setP2Done] = useState<boolean>(false);
+
+  // Canlı Bilgi Notu
+  const [featuredSurah, setFeaturedSurah] = useState<EnrichedGameSurah | null>(null);
+  const [featuredNote, setFeaturedNote] = useState<string | undefined>(undefined);
 
   const mistakenMapRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
   const finishedRef = useRef<boolean>(false);
@@ -811,23 +680,26 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
         durationSec: payload.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel: isDuel
-          ? {
-              p1Score: payload.p1Score,
-              p2Score: payload.p2Score,
-              p1Correct: payload.p1Correct,
-              p2Correct: payload.p2Correct,
-              winner:
-                payload.p1Score > payload.p2Score
-                  ? 'p1'
-                  : payload.p2Score > payload.p1Score
-                    ? 'p2'
-                    : 'draw',
-            }
-          : undefined,
+        duel:
+          isDuel || isAi
+            ? {
+                p1Score: payload.p1Score,
+                p2Score: payload.p2Score,
+                p1Correct: payload.p1Correct,
+                p2Correct: payload.p2Correct,
+                p1Label: isAi ? 'Sen' : '1. Oyuncu',
+                p2Label: isAi ? 'Yapay Zekâ' : '2. Oyuncu',
+                winner:
+                  payload.p1Score > payload.p2Score
+                    ? 'p1'
+                    : payload.p2Score > payload.p1Score
+                      ? 'p2'
+                      : 'draw',
+              }
+            : undefined,
       });
     },
-    [isDuel, onComplete, playerMode, tempo, tierId],
+    [isAi, isDuel, onComplete, playerMode, tempo, tierId],
   );
 
   // Zamanlayıcı
@@ -839,6 +711,36 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
     return () => window.clearInterval(interval);
   }, []);
 
+  // Yapay Zekâ eşzamanlı rakip döngüsü (gerçekçi tempo & doğruluk)
+  useEffect(() => {
+    if (!isAi || finishedRef.current) return;
+    let active = true;
+    const scheduleNext = () => {
+      const delay = 4600 + Math.floor(Math.random() * 2800);
+      return window.setTimeout(() => {
+        if (!active || finishedRef.current) return;
+        setAiThinking(true);
+        window.setTimeout(() => {
+          if (!active || finishedRef.current) return;
+          const success = Math.random() < 0.8;
+          if (success) {
+            setAiScore((prev) => prev + 18);
+            setAiCorrect((prev) => prev + 1);
+          }
+          setAiThinking(false);
+          if (active && !finishedRef.current) {
+            timerRef = scheduleNext();
+          }
+        }, 700);
+      }, delay);
+    };
+    let timerRef = scheduleNext();
+    return () => {
+      active = false;
+      window.clearTimeout(timerRef);
+    };
+  }, [isAi]);
+
   // Süreli mod bitişi
   useEffect(() => {
     if (tempo === 'timed' && elapsedSec >= TIMED_LIMIT_SEC && !finishedRef.current) {
@@ -848,13 +750,15 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
         correctCount: isDuel ? p1Correct + p2Correct : correctCount,
         mistakeCount,
         elapsedSec,
-        p1Score,
-        p2Score,
-        p1Correct,
-        p2Correct,
+        p1Score: isDuel ? p1Score : score,
+        p2Score: isDuel ? p2Score : aiScore,
+        p1Correct: isDuel ? p1Correct : correctCount,
+        p2Correct: isDuel ? p2Correct : aiCorrect,
       });
     }
   }, [
+    aiCorrect,
+    aiScore,
     correctCount,
     elapsedSec,
     finishGame,
@@ -873,22 +777,43 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   useEffect(() => {
     const remaining = Math.max(0, TIMED_LIMIT_SEC - elapsedSec);
     onHudUpdate({
-      score: isDuel ? p1Score + p2Score : score,
+      score: isDuel ? p1Score : score,
+      p1Score: isDuel ? p1Score : score,
+      p2Score: isDuel ? p2Score : aiScore,
+      activeTurn: isDuel || isAi ? 'both' : 'p1',
+      aiThinking: isAi && aiThinking,
       combo,
+      movesCount,
       progressLabel:
         tempo === 'calm'
           ? isDuel
-            ? `Tur ${Math.min(TOTAL_CALM_ROUNDS, Math.max(p1Idx, p2Idx) + 1)}/${TOTAL_CALM_ROUNDS}`
-            : `Tur ${Math.min(TOTAL_CALM_ROUNDS, singleRoundIdx + 1)}/${TOTAL_CALM_ROUNDS}`
+            ? `${Math.min(TOTAL_CALM_ROUNDS, Math.max(p1Idx, p2Idx) + 1)}/${TOTAL_CALM_ROUNDS}`
+            : `${Math.min(TOTAL_CALM_ROUNDS, singleRoundIdx + 1)}/${TOTAL_CALM_ROUNDS}`
           : `${isDuel ? p1Correct + p2Correct : correctCount} Tur`,
+      elapsedSec,
       timerText: tempo === 'timed' ? formatClock(remaining) : formatClock(elapsedSec),
       timerUrgent: tempo === 'timed' && remaining <= 10,
+      turnRemainingSec: tempo === 'timed' ? remaining : null,
+      turnDurationSec: TIMED_LIMIT_SEC,
+      statusMessage: isDuel
+        ? 'İki oyuncu aynı anda kendi zincirini tamamlıyor!'
+        : isAi
+          ? 'Komşu sureleri ve Mushaf trenini Yapay Zekâdan hızlı kur.'
+          : 'Komşu sureleri altın yuvalara sürükle veya dokunup yerleştir.',
+      featuredSurah,
+      featuredNote,
     });
   }, [
+    aiScore,
+    aiThinking,
     combo,
     correctCount,
     elapsedSec,
+    featuredNote,
+    featuredSurah,
+    isAi,
     isDuel,
+    movesCount,
     onHudUpdate,
     p1Correct,
     p1Idx,
@@ -904,11 +829,12 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   const handleRecordMistake = useCallback((surah: EnrichedGameSurah) => {
     mistakenMapRef.current.set(surah.no, surah);
     setMistakeCount((prev) => prev + 1);
+    setMovesCount((prev) => prev + 1);
     setCombo(0);
   }, []);
 
   const handleSingleCleared = useCallback(
-    (hadMistake: boolean) => {
+    (hadMistake: boolean, focusSurah: EnrichedGameSurah) => {
       const nextCombo = hadMistake ? 1 : combo + 1;
       const nextMaxCombo = Math.max(maxCombo, nextCombo);
       const pts = (hadMistake ? 15 : 22) + Math.min(12, (nextCombo - 1) * 4);
@@ -920,6 +846,9 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
       setCombo(nextCombo);
       setMaxCombo(nextMaxCombo);
       setCorrectCount(nextCorrect);
+      setMovesCount((prev) => prev + 1);
+      setFeaturedSurah(focusSurah);
+      setFeaturedNote(`Zincir tamamlandı (+${pts}p) · ${focusSurah.no}. ${focusSurah.shortNameTr}`);
 
       if (tempo === 'calm' && nextIdx >= TOTAL_CALM_ROUNDS) {
         finishGame({
@@ -928,10 +857,10 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
           correctCount: nextCorrect,
           mistakeCount,
           elapsedSec,
-          p1Score: 0,
-          p2Score: 0,
-          p1Correct: 0,
-          p2Correct: 0,
+          p1Score: nextScore,
+          p2Score: aiScore,
+          p1Correct: nextCorrect,
+          p2Correct: aiCorrect,
         });
         return;
       }
@@ -942,6 +871,8 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
       );
     },
     [
+      aiCorrect,
+      aiScore,
       allSurahsMap,
       combo,
       correctCount,
@@ -958,8 +889,13 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   );
 
   const handleDuelCleared = useCallback(
-    (player: 'p1' | 'p2', hadMistake: boolean) => {
+    (player: 'p1' | 'p2', hadMistake: boolean, focusSurah: EnrichedGameSurah) => {
       const pts = hadMistake ? 15 : 22;
+      setMovesCount((prev) => prev + 1);
+      setFeaturedSurah(focusSurah);
+      setFeaturedNote(
+        `${player === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} zinciri tamamladı (+${pts}p)`,
+      );
 
       if (player === 'p1') {
         const nextIdx = p1Idx + 1;
@@ -973,7 +909,7 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
           setP1Done(true);
           if (p2Done) {
             finishGame({
-              score: nextP1Score + p2Score,
+              score: nextP1Score,
               maxCombo: Math.max(maxCombo, 1),
               correctCount: nextP1Correct + p2Correct,
               mistakeCount,
@@ -986,7 +922,6 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
           }
           return;
         }
-
         setP1Idx(nextIdx);
         setP1Round(
           generateChainRound(nextIdx, tierId, tierSurahs, allSurahsMap, usedP1Ref.current),
@@ -1003,7 +938,7 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
           setP2Done(true);
           if (p1Done) {
             finishGame({
-              score: p1Score + nextP2Score,
+              score: p1Score,
               maxCombo: Math.max(maxCombo, 1),
               correctCount: p1Correct + nextP2Correct,
               mistakeCount,
@@ -1016,7 +951,6 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
           }
           return;
         }
-
         setP2Idx(nextIdx);
         setP2Round(
           generateChainRound(nextIdx, tierId, tierSurahs, allSurahsMap, usedP2Ref.current),
@@ -1045,53 +979,41 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
 
   if (isDuel) {
     return (
-      <div className="flex-1 min-h-0 w-full max-w-[1440px] mx-auto px-3 py-2.5 grid grid-cols-2 gap-3 overflow-hidden">
-        <div
-          className="min-h-0 flex flex-col rounded-2xl border p-3 overflow-hidden"
-          style={{
-            backgroundColor: 'var(--bg-surface)',
-            borderColor: 'rgba(13, 148, 136, 0.35)',
-          }}
-        >
+      <div className="flex-1 min-h-0 grid grid-cols-2 gap-3 overflow-hidden">
+        <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-hidden">
           <ChainBoard
             boardId="p1"
-            accentColor="#0D9488"
-            accentSoft="var(--brand-primary-soft)"
-            accentText="var(--brand-primary-text)"
-            headerLabel="1. Oyuncu · Zümrüt"
+            headerLabel="1. Oyuncu"
             headerScore={p1Score}
+            headerAccent="amber"
             round={p1Round}
             roundNumber={p1Idx + 1}
             totalRoundsLabel={
-              tempo === 'calm' ? `${Math.min(TOTAL_CALM_ROUNDS, p1Idx + 1)}/${TOTAL_CALM_ROUNDS}` : `${p1Correct} Tur`
+              tempo === 'calm'
+                ? `${Math.min(TOTAL_CALM_ROUNDS, p1Idx + 1)}/${TOTAL_CALM_ROUNDS}`
+                : `${p1Correct} Tur`
             }
             isFinished={p1Done}
-            onRoundCleared={(hadMistake) => handleDuelCleared('p1', hadMistake)}
+            onRoundCleared={(hadMistake, s) => handleDuelCleared('p1', hadMistake, s)}
             onMistakeStep={handleRecordMistake}
           />
         </div>
 
-        <div
-          className="min-h-0 flex flex-col rounded-2xl border p-3 overflow-hidden"
-          style={{
-            backgroundColor: 'var(--bg-surface)',
-            borderColor: 'rgba(217, 119, 6, 0.38)',
-          }}
-        >
+        <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/30 bg-black/15 p-2.5 overflow-hidden">
           <ChainBoard
             boardId="p2"
-            accentColor="#D97706"
-            accentSoft="var(--brand-accent-soft)"
-            accentText="var(--brand-accent-text)"
-            headerLabel="2. Oyuncu · Kehribar"
+            headerLabel="2. Oyuncu"
             headerScore={p2Score}
+            headerAccent="teal"
             round={p2Round}
             roundNumber={p2Idx + 1}
             totalRoundsLabel={
-              tempo === 'calm' ? `${Math.min(TOTAL_CALM_ROUNDS, p2Idx + 1)}/${TOTAL_CALM_ROUNDS}` : `${p2Correct} Tur`
+              tempo === 'calm'
+                ? `${Math.min(TOTAL_CALM_ROUNDS, p2Idx + 1)}/${TOTAL_CALM_ROUNDS}`
+                : `${p2Correct} Tur`
             }
             isFinished={p2Done}
-            onRoundCleared={(hadMistake) => handleDuelCleared('p2', hadMistake)}
+            onRoundCleared={(hadMistake, s) => handleDuelCleared('p2', hadMistake, s)}
             onMistakeStep={handleRecordMistake}
           />
         </div>
@@ -1100,16 +1022,13 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   }
 
   return (
-    <div className="flex-1 min-h-0 w-full max-w-3xl mx-auto px-2.5 sm:px-5 py-2.5 sm:py-4 flex flex-col overflow-hidden">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       <ChainBoard
         boardId="single"
-        accentColor="var(--brand-primary)"
-        accentSoft="var(--brand-primary-soft)"
-        accentText="var(--brand-primary-text)"
         round={singleRound}
         roundNumber={singleRoundIdx + 1}
         totalRoundsLabel={tempo === 'calm' ? String(TOTAL_CALM_ROUNDS) : ''}
-        onRoundCleared={(hadMistake) => handleSingleCleared(hadMistake)}
+        onRoundCleared={handleSingleCleared}
         onMistakeStep={handleRecordMistake}
       />
     </div>

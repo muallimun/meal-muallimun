@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Award,
   BookOpen,
+  Bot,
   Flame,
   RotateCcw,
   Sparkles,
@@ -35,12 +36,12 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
   const nextTierId = getNextTierId(result.tierId);
   const nextTierMeta = nextTierId ? GAME_TIERS.find((t) => t.id === nextTierId) : null;
 
-  const isDuel = result.playerMode === 'duel' && Boolean(result.duel);
+  const isVersus = (result.playerMode === 'duel' || result.playerMode === 'ai') && Boolean(result.duel);
 
-  const duelHeadline = (() => {
+  const versusHeadline = (() => {
     if (!result.duel) return '';
-    if (result.duel.winner === 'p1') return '1. Oyuncu (Zümrüt) Önde Tamamladı';
-    if (result.duel.winner === 'p2') return '2. Oyuncu (Kehribar) Önde Tamamladı';
+    if (result.duel.winner === 'p1') return `${result.duel.p1Label} Önde Tamamladı`;
+    if (result.duel.winner === 'p2') return `${result.duel.p2Label} Önde Tamamladı`;
     return 'Dostça Beraberlik';
   })();
 
@@ -61,13 +62,13 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
           boxShadow: '0 16px 40px -16px rgba(15, 23, 42, 0.16)',
         }}
       >
-        {/* Başlık ve Yıldızlar / Düello Sonucu */}
+        {/* Başlık ve Yıldızlar / Karşılaşma Sonucu */}
         <div className="text-center space-y-2.5">
           <div className="flex items-center justify-center gap-2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
             <span>{gameMeta?.title}</span>
             <span>·</span>
             <span>{tierMeta?.shortTitle}</span>
-            {isNewRecord && !isDuel && (
+            {isNewRecord && result.playerMode !== 'duel' && (
               <span
                 className="px-2 py-0.5 rounded-md text-[11px] font-bold"
                 style={{
@@ -80,28 +81,32 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
             )}
           </div>
 
-          {isDuel && result.duel ? (
+          {isVersus && result.duel ? (
             <>
               <div
                 className="mx-auto w-12 h-12 rounded-2xl flex items-center justify-center"
                 style={{
                   backgroundColor:
-                    result.duel.winner === 'p2'
+                    result.duel.winner === 'p1'
                       ? 'var(--brand-accent-soft)'
                       : 'var(--brand-primary-soft)',
                   color:
-                    result.duel.winner === 'p2'
+                    result.duel.winner === 'p1'
                       ? 'var(--brand-accent-text)'
                       : 'var(--brand-primary-text)',
                 }}
               >
-                <Users className="w-6 h-6" />
+                {result.playerMode === 'ai' ? (
+                  <Bot className="w-6 h-6" />
+                ) : (
+                  <Users className="w-6 h-6" />
+                )}
               </div>
               <h2
                 className="text-xl sm:text-2xl font-extrabold tracking-tight"
                 style={{ color: 'var(--text-primary)' }}
               >
-                {duelHeadline}
+                {versusHeadline}
               </h2>
             </>
           ) : (
@@ -112,7 +117,7 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
                   return (
                     <div
                       key={n}
-                      className="w-11 h-11 rounded-2xl flex items-center justify-center border transition-transform"
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center border"
                       style={{
                         backgroundColor: earned
                           ? 'var(--brand-accent-soft)'
@@ -142,30 +147,28 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
           )}
         </div>
 
-        {/* İkili Düello Karşılaştırma Tablosu veya Tek Oyuncu Metrik Şeridi */}
-        {isDuel && result.duel ? (
+        {/* Karşılaşma Tablosu veya Tek Oyuncu Metrik Şeridi */}
+        {isVersus && result.duel ? (
           <div className="grid grid-cols-2 gap-3">
             <div
-              className="rounded-xl border p-3.5 sm:p-4 text-center space-y-1"
+              className="rounded-xl border-2 p-3.5 sm:p-4 text-center space-y-1"
               style={{
                 backgroundColor:
                   result.duel.winner === 'p1'
-                    ? 'var(--brand-primary-soft)'
+                    ? 'var(--brand-accent-soft)'
                     : 'var(--bg-surface-soft)',
                 borderColor:
-                  result.duel.winner === 'p1'
-                    ? 'var(--brand-primary)'
-                    : 'var(--border-subtle)',
+                  result.duel.winner === 'p1' ? '#D97706' : 'var(--border-subtle)',
               }}
             >
-              <div className="text-xs font-bold" style={{ color: 'var(--brand-primary-text)' }}>
-                1. Oyuncu · Zümrüt
+              <div className="text-xs font-bold" style={{ color: 'var(--brand-accent-text)' }}>
+                {result.duel.p1Label}
               </div>
               <div
                 className="text-3xl font-black tabular-nums"
                 style={{ color: 'var(--text-primary)' }}
               >
-                {result.duel.p1Score}
+                {result.duel.p1Score}p
               </div>
               <div className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>
                 {result.duel.p1Correct} doğru hamle
@@ -173,26 +176,24 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
             </div>
 
             <div
-              className="rounded-xl border p-3.5 sm:p-4 text-center space-y-1"
+              className="rounded-xl border-2 p-3.5 sm:p-4 text-center space-y-1"
               style={{
                 backgroundColor:
                   result.duel.winner === 'p2'
-                    ? 'var(--brand-accent-soft)'
+                    ? 'var(--brand-primary-soft)'
                     : 'var(--bg-surface-soft)',
                 borderColor:
-                  result.duel.winner === 'p2'
-                    ? 'var(--brand-accent)'
-                    : 'var(--border-subtle)',
+                  result.duel.winner === 'p2' ? '#0D9488' : 'var(--border-subtle)',
               }}
             >
-              <div className="text-xs font-bold" style={{ color: 'var(--brand-accent-text)' }}>
-                2. Oyuncu · Kehribar
+              <div className="text-xs font-bold" style={{ color: 'var(--brand-primary-text)' }}>
+                {result.duel.p2Label}
               </div>
               <div
                 className="text-3xl font-black tabular-nums"
                 style={{ color: 'var(--text-primary)' }}
               >
-                {result.duel.p2Score}
+                {result.duel.p2Score}p
               </div>
               <div className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>
                 {result.duel.p2Correct} doğru hamle
@@ -277,9 +278,13 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
           <span>Doğru: {result.correctCount}</span>
           <span>·</span>
           <span>Hata: {result.mistakeCount}</span>
+          <span>·</span>
+          <span className="font-bold" style={{ color: 'var(--brand-primary-text)' }}>
+            +{result.earnedXp} XP
+          </span>
         </div>
 
-        {/* Öğrendiklerimizi Pekiştirelim (Pedagojik Tekrar Kartı) */}
+        {/* Öğrendiklerimizi Pekiştirelim */}
         <div
           className="rounded-xl border p-3.5 sm:p-4 space-y-2.5"
           style={{
@@ -329,10 +334,7 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
                         >
                           {surah.nameTr}
                         </span>
-                        <span
-                          className="text-xs shrink-0"
-                          style={{ color: 'var(--text-muted)' }}
-                        >
+                        <span className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>
                           ({surah.ayahCount} ayet · {surah.type})
                         </span>
                       </div>

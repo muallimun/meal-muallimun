@@ -1,16 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Eye, Sparkles } from 'lucide-react';
+import { BookOpen, Check, Eye, Sparkles } from 'lucide-react';
 import { gameAudioService } from './gameAudioService';
 import type { EnrichedGameSurah, GameComponentProps } from './gameTypes';
 import {
   calculateGameStars,
   calculateGameXp,
   formatClock,
+  getAiMemoryCapacity,
   shuffleArray,
 } from './gameTypes';
 
 interface MemoryCardItem {
   id: string;
+  slotNo: number;
   pairId: number;
   side: 'surah' | 'clue';
   surah: EnrichedGameSurah;
@@ -20,6 +22,7 @@ interface MemoryCardItem {
 }
 
 const PREVIEW_SECONDS = 2;
+const TURN_SECONDS = 15;
 
 function useIsCompactViewport(): boolean {
   const [compact, setCompact] = useState<boolean>(() =>
@@ -33,17 +36,18 @@ function useIsCompactViewport(): boolean {
   return compact;
 }
 
-/**
- * Her çiftin ipucu metninin tahtada tamamen benzersiz olmasını garantileyerek
- * Kademe 4 (Özel Gruplar) dahil tüm kademelerde adil hafıza kartı destesi oluşturur.
- */
 function buildMemoryDeck(
   tierSurahs: EnrichedGameSurah[],
   tierId: GameComponentProps['tierId'],
   pairCount: number,
 ): MemoryCardItem[] {
   const shuffledPool = shuffleArray(tierSurahs);
-  const chosen: { surah: EnrichedGameSurah; clueTitle: string; clueArabic?: string; clueTag: string }[] = [];
+  const chosen: {
+    surah: EnrichedGameSurah;
+    clueTitle: string;
+    clueArabic?: string;
+    clueTag: string;
+  }[] = [];
   const usedClueKeys = new Set<string>();
 
   for (const surah of shuffledPool) {
@@ -51,22 +55,21 @@ function buildMemoryDeck(
 
     let clueTitle = surah.meaningTr;
     let clueArabic: string | undefined;
-    let clueTag = 'Anlamı';
+    let clueTag = 'ANLAM · TÜRKÇE';
 
     if (tierId === 'kademe_4' && surah.primaryTrait) {
       const traitKey = `${surah.primaryTrait.badge}:${surah.primaryTrait.arabic ?? ''}`;
       if (!usedClueKeys.has(traitKey)) {
         clueTitle = surah.primaryTrait.label;
         clueArabic = surah.primaryTrait.arabic;
-        clueTag = surah.primaryTrait.badge;
+        clueTag = surah.primaryTrait.arabic ? 'MUKATTAA' : 'ÖZEL GRUP';
         usedClueKeys.add(traitKey);
       } else {
-        // Aynı gruptan ikinci bir sure gelirse anlamını da ekleyerek çakışmayı önle
         const comboKey = `meaning:${surah.meaningTr}`;
         if (usedClueKeys.has(comboKey)) continue;
-        clueTitle = `${surah.meaningTr}`;
+        clueTitle = surah.meaningTr;
         clueArabic = surah.primaryTrait.arabic;
-        clueTag = surah.primaryTrait.badge;
+        clueTag = surah.primaryTrait.badge.toUpperCase();
         usedClueKeys.add(comboKey);
       }
     } else {
@@ -74,16 +77,17 @@ function buildMemoryDeck(
       if (usedClueKeys.has(meaningKey)) continue;
       usedClueKeys.add(meaningKey);
       if (surah.mukattaa) {
-        clueTag = `Anlamı · ${surah.mukattaa.arabic}`;
+        clueArabic = surah.mukattaa.arabic;
+        clueTag = 'ANLAM · MUKATTAA';
       }
     }
 
     chosen.push({ surah, clueTitle, clueArabic, clueTag });
   }
 
-  const cards: MemoryCardItem[] = [];
+  const rawCards: Omit<MemoryCardItem, 'slotNo'>[] = [];
   for (const item of chosen) {
-    cards.push({
+    rawCards.push({
       id: `s-${item.surah.no}`,
       pairId: item.surah.no,
       side: 'surah',
@@ -92,7 +96,7 @@ function buildMemoryDeck(
       clueArabic: item.clueArabic,
       clueTag: item.clueTag,
     });
-    cards.push({
+    rawCards.push({
       id: `c-${item.surah.no}`,
       pairId: item.surah.no,
       side: 'clue',
@@ -103,7 +107,10 @@ function buildMemoryDeck(
     });
   }
 
-  return shuffleArray(cards);
+  return shuffleArray(rawCards).map((card, index) => ({
+    ...card,
+    slotNo: index + 1,
+  }));
 }
 
 export const MemoryMatchGame: React.FC<GameComponentProps> = ({
@@ -115,9 +122,10 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
   onComplete,
 }) => {
   const isCompact = useIsCompactViewport();
-  const isDuel = playerMode === 'duel';
-  const pairCount = isDuel ? 8 : isCompact ? 6 : 8;
-  const timedLimitSec = pairCount <= 6 ? 75 : 95;
+  const isVersus = playerMode === 'ai' || playerMode === 'duel';
+  const pairCount = isCompact ? 6 : tierId === 'kademe_1' ? 6 : 8;
+  const timedLimitSec = pairCount <= 6 ? 80 : 100;
+  const aiMemoryCapacity = getAiMemoryCapacity(tierId);
 
   const deck = useMemo(
     () => buildMemoryDeck(tierSurahs, tierId, pairCount),
@@ -135,23 +143,45 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
   const [score, setScore] = useState<number>(0);
   const [combo, setCombo] = useState<number>(0);
   const [maxCombo, setMaxCombo] = useState<number>(0);
+  const [movesCount, setMovesCount] = useState<number>(0);
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [mistakeCount, setMistakeCount] = useState<number>(0);
   const [elapsedSec, setElapsedSec] = useState<number>(0);
 
-  // İkili Düello Durumu (Sıralı: Bilen devam eder)
+  // Karşılaşma (Yapay Zekâ / 2 Oyuncu) Durumu
   const [activePlayer, setActivePlayer] = useState<'p1' | 'p2'>('p1');
+  const [aiThinking, setAiThinking] = useState<boolean>(false);
   const [p1Score, setP1Score] = useState<number>(0);
   const [p2Score, setP2Score] = useState<number>(0);
   const [p1Correct, setP1Correct] = useState<number>(0);
   const [p2Correct, setP2Correct] = useState<number>(0);
+  const [turnRemainingSec, setTurnRemainingSec] = useState<number>(TURN_SECONDS);
 
+  // Canlı Bilgi Notu
+  const [featuredSurah, setFeaturedSurah] = useState<EnrichedGameSurah | null>(null);
+  const [featuredNote, setFeaturedNote] = useState<string | undefined>(undefined);
+
+  // Yapay zekânın hatırladığı son N kart (gerçekçi insan hafızası)
+  const aiMemoryRef = useRef<string[]>([]);
   const mistakenMapRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
   const finishedRef = useRef<boolean>(false);
 
   const isPreview = previewLeft > 0;
+  const useTurnTimer = isVersus || tempo === 'timed';
 
-  // 2 saniyelik açılış gözlem geri sayımı
+  const rememberCardForAi = useCallback(
+    (cardId: string) => {
+      const next = aiMemoryRef.current.filter((id) => id !== cardId);
+      next.push(cardId);
+      if (next.length > aiMemoryCapacity) {
+        next.splice(0, next.length - aiMemoryCapacity);
+      }
+      aiMemoryRef.current = next;
+    },
+    [aiMemoryCapacity],
+  );
+
+  // 2 saniyelik açılış gözlemi
   useEffect(() => {
     if (previewLeft <= 0) return;
     const timer = window.setTimeout(() => {
@@ -179,10 +209,10 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
       const totalAttempts = Math.max(1, finalStats.correctCount + finalStats.mistakeCount);
       const accuracyPct = Math.round((finalStats.correctCount / totalAttempts) * 100);
       const timeBonus =
-        tempo === 'timed' && !isDuel
+        tempo === 'timed' && playerMode === 'single'
           ? Math.max(0, timedLimitSec - finalStats.elapsedSec)
           : 0;
-      const totalScore = finalStats.score + timeBonus;
+      const totalScore = playerMode === 'single' ? finalStats.score + timeBonus : finalStats.p1Score;
       const stars = calculateGameStars(accuracyPct, totalScore);
       const earnedXp = calculateGameXp(totalScore, stars, finalStats.maxCombo);
 
@@ -200,12 +230,14 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
         durationSec: finalStats.elapsedSec,
         earnedXp,
         mistakenSurahs: Array.from(mistakenMapRef.current.values()),
-        duel: isDuel
+        duel: isVersus
           ? {
               p1Score: finalStats.p1Score,
               p2Score: finalStats.p2Score,
               p1Correct: finalStats.p1Correct,
               p2Correct: finalStats.p2Correct,
+              p1Label: playerMode === 'ai' ? 'Sen' : '1. Oyuncu',
+              p2Label: playerMode === 'ai' ? 'Yapay Zekâ' : '2. Oyuncu',
               winner:
                 finalStats.p1Score > finalStats.p2Score
                   ? 'p1'
@@ -216,10 +248,10 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
           : undefined,
       });
     },
-    [isDuel, onComplete, playerMode, tempo, tierId, timedLimitSec],
+    [isVersus, onComplete, playerMode, tempo, tierId, timedLimitSec],
   );
 
-  // Zamanlayıcı (gözlem bittikten sonra başlar)
+  // Genel süre sayacı
   useEffect(() => {
     if (isPreview || finishedRef.current) return;
     const interval = window.setInterval(() => {
@@ -228,9 +260,37 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     return () => window.clearInterval(interval);
   }, [isPreview]);
 
-  // Zaman Yarışı süre dolumu kontrolü
+  // Tur geri sayımı (15s) — yalnızca insan sırası aktifken
   useEffect(() => {
-    if (tempo === 'timed' && !isPreview && elapsedSec >= timedLimitSec && !finishedRef.current) {
+    if (isPreview || finishedRef.current || !useTurnTimer) return;
+    if (playerMode === 'ai' && activePlayer === 'p2') return;
+
+    const interval = window.setInterval(() => {
+      setTurnRemainingSec((prev) => {
+        if (prev <= 1) {
+          if (isVersus) {
+            setFlippedIds([]);
+            setIsLocked(false);
+            gameAudioService.playTurnSwitch();
+            setActivePlayer((cur) => (cur === 'p1' ? 'p2' : 'p1'));
+          }
+          return TURN_SECONDS;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [activePlayer, isPreview, isVersus, playerMode, useTurnTimer]);
+
+  // Zaman Yarışı (tek oyuncu) genel süre bitişi
+  useEffect(() => {
+    if (
+      tempo === 'timed' &&
+      playerMode === 'single' &&
+      !isPreview &&
+      elapsedSec >= timedLimitSec &&
+      !finishedRef.current
+    ) {
       finishGame({
         score,
         maxCombo,
@@ -244,7 +304,6 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
       });
     }
   }, [
-    combo,
     correctCount,
     elapsedSec,
     finishGame,
@@ -255,368 +314,418 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     p1Score,
     p2Correct,
     p2Score,
+    playerMode,
     score,
     tempo,
     timedLimitSec,
   ]);
 
-  // HUD senkronizasyonu
+  // İki kart açıldığında eşleşme değerlendirmesi
+  const evaluatePair = useCallback(
+    (firstCard: MemoryCardItem, secondCard: MemoryCardItem, actor: 'p1' | 'p2') => {
+      setIsLocked(true);
+      setMovesCount((prev) => prev + 1);
+
+      if (firstCard.pairId === secondCard.pairId && firstCard.side !== secondCard.side) {
+        const nextCombo = actor === 'p1' ? combo + 1 : 0;
+        const nextMaxCombo = Math.max(maxCombo, nextCombo);
+        const earnedSinglePts = 12 + Math.min(12, Math.max(0, nextCombo - 1) * 4);
+        const nextScore = playerMode === 'single' ? score + earnedSinglePts : score;
+        const nextMatched = [...matchedPairIds, secondCard.pairId];
+
+        const nextP1Score = actor === 'p1' ? p1Score + 10 : p1Score;
+        const nextP2Score = actor === 'p2' ? p2Score + 10 : p2Score;
+        const nextP1Correct = actor === 'p1' ? p1Correct + 1 : p1Correct;
+        const nextP2Correct = actor === 'p2' ? p2Correct + 1 : p2Correct;
+        const nextCorrectTotal = correctCount + (actor === 'p1' || playerMode === 'duel' ? 1 : 0);
+
+        window.setTimeout(() => {
+          gameAudioService.playMatch(Math.max(1, nextCombo));
+          setMatchedPairIds(nextMatched);
+          setMatchedOwner((prev) => ({ ...prev, [secondCard.pairId]: actor }));
+          setScore(nextScore);
+          setP1Score(nextP1Score);
+          setP2Score(nextP2Score);
+          setP1Correct(nextP1Correct);
+          setP2Correct(nextP2Correct);
+          setCombo(nextCombo);
+          setMaxCombo(nextMaxCombo);
+          setCorrectCount(nextCorrectTotal);
+          setFeaturedSurah(secondCard.surah);
+          setFeaturedNote(
+            actor === 'p2' && playerMode === 'ai'
+              ? `Yapay Zekâ eşleştirdi (+10p) · ${secondCard.surah.no}. ${secondCard.surah.shortNameTr}`
+              : `${actor === 'p1' ? (playerMode === 'duel' ? '1. Oyuncu' : 'Sen') : '2. Oyuncu'} eşleştirdi (+10p)`,
+          );
+          setFlippedIds([]);
+          setTurnRemainingSec(TURN_SECONDS);
+          setIsLocked(false);
+          setAiThinking(false);
+
+          if (nextMatched.length >= deck.length / 2) {
+            window.setTimeout(() => {
+              finishGame({
+                score: nextScore,
+                maxCombo: nextMaxCombo,
+                correctCount: nextCorrectTotal,
+                mistakeCount,
+                elapsedSec,
+                p1Score: nextP1Score,
+                p2Score: nextP2Score,
+                p1Correct: nextP1Correct,
+                p2Correct: nextP2Correct,
+              });
+            }, 420);
+          }
+        }, 280);
+      } else {
+        if (actor === 'p1' || playerMode === 'duel') {
+          mistakenMapRef.current.set(firstCard.surah.no, firstCard.surah);
+          mistakenMapRef.current.set(secondCard.surah.no, secondCard.surah);
+          setMistakeCount((prev) => prev + 1);
+        }
+        setWrongIds([firstCard.id, secondCard.id]);
+        if (actor === 'p1') setCombo(0);
+        gameAudioService.playWrong();
+
+        window.setTimeout(() => {
+          setFlippedIds([]);
+          setWrongIds([]);
+          setIsLocked(false);
+          setAiThinking(false);
+          setTurnRemainingSec(TURN_SECONDS);
+          if (isVersus) {
+            gameAudioService.playTurnSwitch();
+            setActivePlayer((prev) => (prev === 'p1' ? 'p2' : 'p1'));
+          }
+        }, 720);
+      }
+    },
+    [
+      combo,
+      correctCount,
+      deck.length,
+      elapsedSec,
+      finishGame,
+      isVersus,
+      matchedPairIds,
+      maxCombo,
+      mistakeCount,
+      p1Correct,
+      p1Score,
+      p2Correct,
+      p2Score,
+      playerMode,
+      score,
+    ],
+  );
+
+  // Yapay Zekâ Hamle Motoru (Sıra YZ'de olduğunda gerçekçi hafızayla oynar)
+  useEffect(() => {
+    if (
+      playerMode !== 'ai' ||
+      activePlayer !== 'p2' ||
+      isPreview ||
+      isLocked ||
+      finishedRef.current
+    ) {
+      return;
+    }
+
+    const unmatchedCards = deck.filter((c) => !matchedPairIds.includes(c.pairId));
+    if (unmatchedCards.length < 2) return;
+
+    setAiThinking(true);
+    let cancelled = false;
+
+    const pickTimeout = window.setTimeout(() => {
+      if (cancelled || finishedRef.current) return;
+
+      // 1. Hafızada bilinen eşleşen bir çift var mı?
+      const memCards = aiMemoryRef.current
+        .map((id) => unmatchedCards.find((c) => c.id === id))
+        .filter((c): c is MemoryCardItem => Boolean(c));
+
+      let firstPick: MemoryCardItem | null = null;
+      let secondPick: MemoryCardItem | null = null;
+
+      for (let i = 0; i < memCards.length && !firstPick; i += 1) {
+        for (let j = i + 1; j < memCards.length; j += 1) {
+          if (memCards[i].pairId === memCards[j].pairId) {
+            firstPick = memCards[i];
+            secondPick = memCards[j];
+            break;
+          }
+        }
+      }
+
+      if (!firstPick) {
+        // Önce hafızasında olmayan bir kartı keşfet
+        const unseen = unmatchedCards.filter((c) => !aiMemoryRef.current.includes(c.id));
+        const pool = unseen.length > 0 ? unseen : unmatchedCards;
+        firstPick = pool[Math.floor(Math.random() * pool.length)];
+      }
+
+      gameAudioService.playFlip();
+      rememberCardForAi(firstPick.id);
+      setFlippedIds([firstPick.id]);
+
+      const secondTimeout = window.setTimeout(() => {
+        if (cancelled || finishedRef.current || !firstPick) return;
+
+        if (!secondPick) {
+          // İlk açtığı kartın eşi hafızasında var mı?
+          const mateInMem = memCards.find(
+            (c) => c.pairId === firstPick!.pairId && c.id !== firstPick!.id,
+          );
+          if (mateInMem) {
+            secondPick = mateInMem;
+          } else {
+            const others = unmatchedCards.filter((c) => c.id !== firstPick!.id);
+            secondPick = others[Math.floor(Math.random() * others.length)];
+          }
+        }
+
+        gameAudioService.playFlip();
+        rememberCardForAi(secondPick.id);
+        setFlippedIds([firstPick.id, secondPick.id]);
+        evaluatePair(firstPick, secondPick, 'p2');
+      }, 650);
+
+      return () => window.clearTimeout(secondTimeout);
+    }, 850);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(pickTimeout);
+    };
+  }, [
+    activePlayer,
+    deck,
+    evaluatePair,
+    isLocked,
+    isPreview,
+    matchedPairIds,
+    playerMode,
+    rememberCardForAi,
+  ]);
+
+  // HUD senkronizasyonu (Sağ panel & Mobil bar)
   useEffect(() => {
     const remaining = Math.max(0, timedLimitSec - elapsedSec);
+    const statusMessage = isPreview
+      ? `Kartları gözlemleyin... (${previewLeft} sn)`
+      : playerMode === 'ai' && activePlayer === 'p2'
+        ? 'Yapay zekâ hamlesini yapıyor...'
+        : playerMode === 'duel'
+          ? activePlayer === 'p1'
+            ? '1. Oyuncu sırada: iki kart çevir.'
+            : '2. Oyuncu sırada: iki kart çevir.'
+          : 'Sıra sende: iki kart çevir ve eşleştir.';
+
     onHudUpdate({
-      score: isDuel ? p1Score + p2Score : score,
+      score: playerMode === 'single' ? score : p1Score,
+      p1Score: playerMode === 'single' ? score : p1Score,
+      p2Score,
+      activeTurn: playerMode === 'single' ? 'p1' : activePlayer,
+      aiThinking: playerMode === 'ai' && aiThinking,
       combo,
-      progressLabel: `${matchedPairIds.length}/${deck.length / 2} Çift`,
-      timerText: tempo === 'timed' ? formatClock(remaining) : formatClock(elapsedSec),
-      timerUrgent: tempo === 'timed' && remaining <= 12,
+      movesCount,
+      progressLabel: `${matchedPairIds.length}/${deck.length / 2}`,
+      elapsedSec,
+      timerText:
+        tempo === 'timed' && playerMode === 'single'
+          ? formatClock(remaining)
+          : formatClock(elapsedSec),
+      timerUrgent: tempo === 'timed' && playerMode === 'single' && remaining <= 12,
+      turnRemainingSec: useTurnTimer && !isPreview ? turnRemainingSec : null,
+      turnDurationSec: TURN_SECONDS,
+      statusMessage,
+      featuredSurah,
+      featuredNote,
     });
   }, [
+    activePlayer,
+    aiThinking,
     combo,
     deck.length,
     elapsedSec,
-    isDuel,
+    featuredNote,
+    featuredSurah,
+    isPreview,
     matchedPairIds.length,
+    movesCount,
     onHudUpdate,
     p1Score,
     p2Score,
+    playerMode,
+    previewLeft,
     score,
     tempo,
     timedLimitSec,
+    turnRemainingSec,
+    useTurnTimer,
   ]);
 
   const handleCardTap = (card: MemoryCardItem) => {
     if (isPreview || isLocked || finishedRef.current) return;
+    if (playerMode === 'ai' && activePlayer === 'p2') return;
     if (matchedPairIds.includes(card.pairId)) return;
     if (flippedIds.includes(card.id)) return;
 
     gameAudioService.playFlip();
+    rememberCardForAi(card.id);
+
     const nextFlipped = [...flippedIds, card.id];
     setFlippedIds(nextFlipped);
 
     if (nextFlipped.length < 2) return;
 
     const firstCard = deck.find((c) => c.id === nextFlipped[0]);
-    const secondCard = card;
     if (!firstCard) return;
-
-    setIsLocked(true);
-
-    if (firstCard.pairId === secondCard.pairId && firstCard.side !== secondCard.side) {
-      // Doğru Eşleşme!
-      const nextCombo = combo + 1;
-      const nextMaxCombo = Math.max(maxCombo, nextCombo);
-      const earnedPts = isDuel ? 10 : 12 + Math.min(12, (nextCombo - 1) * 4);
-      const nextScore = score + earnedPts;
-      const nextMatched = [...matchedPairIds, card.pairId];
-      const nextCorrect = correctCount + 1;
-
-      const nextP1Score = isDuel && activePlayer === 'p1' ? p1Score + 10 : p1Score;
-      const nextP2Score = isDuel && activePlayer === 'p2' ? p2Score + 10 : p2Score;
-      const nextP1Correct = isDuel && activePlayer === 'p1' ? p1Correct + 1 : p1Correct;
-      const nextP2Correct = isDuel && activePlayer === 'p2' ? p2Correct + 1 : p2Correct;
-
-      window.setTimeout(() => {
-        gameAudioService.playMatch(nextCombo);
-        setMatchedPairIds(nextMatched);
-        if (isDuel) {
-          setMatchedOwner((prev) => ({ ...prev, [card.pairId]: activePlayer }));
-          setP1Score(nextP1Score);
-          setP2Score(nextP2Score);
-          setP1Correct(nextP1Correct);
-          setP2Correct(nextP2Correct);
-        }
-        setScore(nextScore);
-        setCombo(nextCombo);
-        setMaxCombo(nextMaxCombo);
-        setCorrectCount(nextCorrect);
-        setFlippedIds([]);
-        setIsLocked(false);
-
-        if (nextMatched.length >= deck.length / 2) {
-          window.setTimeout(() => {
-            finishGame({
-              score: nextScore,
-              maxCombo: nextMaxCombo,
-              correctCount: nextCorrect,
-              mistakeCount,
-              elapsedSec,
-              p1Score: nextP1Score,
-              p2Score: nextP2Score,
-              p1Correct: nextP1Correct,
-              p2Correct: nextP2Correct,
-            });
-          }, 360);
-        }
-      }, 240);
-    } else {
-      // Hatalı Eşleşme
-      mistakenMapRef.current.set(firstCard.surah.no, firstCard.surah);
-      mistakenMapRef.current.set(secondCard.surah.no, secondCard.surah);
-      setWrongIds(nextFlipped);
-      setCombo(0);
-      setMistakeCount((prev) => prev + 1);
-      gameAudioService.playWrong();
-
-      window.setTimeout(() => {
-        setFlippedIds([]);
-        setWrongIds([]);
-        setIsLocked(false);
-        if (isDuel) {
-          gameAudioService.playTurnSwitch();
-          setActivePlayer((prev) => (prev === 'p1' ? 'p2' : 'p1'));
-        }
-      }, 680);
-    }
+    evaluatePair(firstCard, card, playerMode === 'single' ? 'p1' : activePlayer);
   };
 
   const gridClasses =
     pairCount <= 6
-      ? 'grid-cols-3 grid-rows-4 gap-2'
+      ? 'grid-cols-3 grid-rows-4 sm:grid-cols-4 sm:grid-rows-3 gap-2 sm:gap-3'
       : 'grid-cols-4 grid-rows-4 gap-2 sm:gap-3';
 
   return (
-    <div className="flex-1 min-h-0 w-full max-w-4xl mx-auto px-2.5 sm:px-5 py-2 sm:py-3 flex flex-col gap-2 overflow-hidden">
-      {/* Üst Bilgi Şeridi: Gözlem Geri Sayımı veya İkili Düello Sıra Barı */}
-      {isPreview ? (
-        <div
-          className="shrink-0 rounded-xl border px-3 py-1.5 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
-          style={{
-            backgroundColor: 'var(--brand-accent-soft)',
-            borderColor: 'rgba(217, 119, 6, 0.28)',
-            color: 'var(--brand-accent-text)',
-          }}
-        >
+    <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+      {/* Açılış Gözlem Şeridi (Zümrüt Masa Üstünde Zarif Şerit) */}
+      {isPreview && (
+        <div className="shrink-0 rounded-xl px-3 py-1.5 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold bg-amber-100/95 text-amber-950 border border-amber-300 shadow-sm">
           <Eye className="w-4 h-4 shrink-0" />
           <span>Kartları Gözlemleyin...</span>
-          <span className="tabular-nums px-1.5 py-0.5 rounded-md bg-black/10">
+          <span className="tabular-nums px-1.5 py-0.5 rounded bg-amber-900/15">
             {previewLeft} sn
-          </span>
-        </div>
-      ) : isDuel ? (
-        <div className="shrink-0 grid grid-cols-2 gap-2.5">
-          <div
-            className="rounded-xl border px-3.5 py-2 flex items-center justify-between transition-all"
-            style={{
-              backgroundColor:
-                activePlayer === 'p1' ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
-              borderColor:
-                activePlayer === 'p1' ? 'var(--brand-primary)' : 'var(--border-subtle)',
-              boxShadow:
-                activePlayer === 'p1' ? '0 0 0 2px rgba(13, 148, 136, 0.18)' : 'none',
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ backgroundColor: '#0D9488' }}
-              />
-              <span className="text-sm font-extrabold" style={{ color: 'var(--text-primary)' }}>
-                1. Oyuncu (Zümrüt)
-              </span>
-              {activePlayer === 'p1' && (
-                <span
-                  className="text-[11px] font-bold px-2 py-0.5 rounded-md"
-                  style={{
-                    backgroundColor: 'var(--brand-primary)',
-                    color: '#FFFFFF',
-                  }}
-                >
-                  Sıra Sende
-                </span>
-              )}
-            </div>
-            <span
-              className="text-lg font-black tabular-nums"
-              style={{ color: 'var(--brand-primary-text)' }}
-            >
-              {p1Score}
-            </span>
-          </div>
-
-          <div
-            className="rounded-xl border px-3.5 py-2 flex items-center justify-between transition-all"
-            style={{
-              backgroundColor:
-                activePlayer === 'p2' ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
-              borderColor:
-                activePlayer === 'p2' ? 'var(--brand-accent)' : 'var(--border-subtle)',
-              boxShadow:
-                activePlayer === 'p2' ? '0 0 0 2px rgba(217, 119, 6, 0.18)' : 'none',
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ backgroundColor: '#D97706' }}
-              />
-              <span className="text-sm font-extrabold" style={{ color: 'var(--text-primary)' }}>
-                2. Oyuncu (Kehribar)
-              </span>
-              {activePlayer === 'p2' && (
-                <span
-                  className="text-[11px] font-bold px-2 py-0.5 rounded-md"
-                  style={{
-                    backgroundColor: '#D97706',
-                    color: '#FFFFFF',
-                  }}
-                >
-                  Sıra Sende
-                </span>
-              )}
-            </div>
-            <span
-              className="text-lg font-black tabular-nums"
-              style={{ color: 'var(--brand-accent-text)' }}
-            >
-              {p2Score}
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div
-          className="shrink-0 flex items-center justify-between px-1 text-[11px] sm:text-xs font-medium"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          <span>Sure adı ile anlamını veya özel grup niteliğini eşleştirin.</span>
-          <span className="inline-flex items-center gap-1 tabular-nums font-bold" style={{ color: 'var(--brand-primary-text)' }}>
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>
-              {matchedPairIds.length}/{deck.length / 2}
-            </span>
           </span>
         </div>
       )}
 
-      {/* Sıfır Kaydırmalı 3B Kart Izgarası */}
+      {/* 3B Kalınlıklı Numaralı Kart Izgarası */}
       <div className={`flex-1 min-h-0 grid ${gridClasses}`}>
         {deck.map((card) => {
           const isMatched = matchedPairIds.includes(card.pairId);
           const isFlipped = isPreview || isMatched || flippedIds.includes(card.id);
           const isWrong = wrongIds.includes(card.id);
           const owner = matchedOwner[card.pairId];
-
-          const frontBorderColor = isWrong
-            ? '#DC2626'
-            : isMatched
-              ? owner === 'p2'
-                ? '#D97706'
-                : '#0D9488'
-              : card.side === 'surah'
-                ? 'var(--brand-primary)'
-                : 'var(--brand-accent)';
-
-          const frontBgColor = isMatched
+          const ownerBadge = isMatched
             ? owner === 'p2'
-              ? 'var(--brand-accent-soft)'
-              : 'var(--brand-primary-soft)'
-            : 'var(--bg-surface)';
+              ? playerMode === 'ai'
+                ? 'YZ'
+                : 'P2'
+              : playerMode === 'duel'
+                ? 'P1'
+                : 'SEN'
+            : null;
 
           return (
             <button
               key={card.id}
               type="button"
               onClick={() => handleCardTap(card)}
-              disabled={isPreview || isMatched}
-              aria-label={isFlipped ? `${card.surah.nameTr}` : 'Kapalı hafıza kartı'}
+              disabled={isPreview || isMatched || (playerMode === 'ai' && activePlayer === 'p2')}
+              aria-label={isFlipped ? `${card.surah.nameTr}` : `Kart #${card.slotNo}`}
               className={`game-card-perspective w-full h-full min-h-0 cursor-pointer select-none focus:outline-none ${
                 isWrong ? 'game-shake' : ''
               }`}
             >
               <div className={`game-card-inner ${isFlipped ? 'is-flipped' : ''}`}>
-                {/* Arka Yüz — Geometrik Desen */}
-                <div
-                  className="game-card-face game-card-back-pattern rounded-xl sm:rounded-2xl border flex items-center justify-center p-2 transition-shadow hover:shadow-md"
-                  style={{
-                    borderColor: 'var(--border-strong)',
-                    boxShadow: '0 2px 8px -2px rgba(15, 23, 42, 0.08)',
-                  }}
-                >
-                  <div
-                    className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl border flex items-center justify-center"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                      color: 'var(--brand-primary-text)',
-                    }}
-                  >
+                {/* KAPALI YÜZ — 3B Parşömen Kalınlık + Madalyon + #1..#16 Sıra Numarası */}
+                <div className="game-card-face game-bevel-parchment rounded-xl sm:rounded-2xl flex items-center justify-center gap-1.5 sm:gap-2.5 p-2 transition-transform hover:brightness-[1.02]">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-amber-800/20 bg-amber-900/8 flex items-center justify-center shrink-0 text-teal-800">
                     <svg
                       viewBox="0 0 24 24"
-                      className="w-5 h-5 sm:w-6 sm:h-6"
+                      className="w-4 h-4 sm:w-5 sm:h-5"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="1.5"
+                      strokeWidth="1.6"
                       aria-hidden="true"
                     >
                       <polygon points="12 2 15 9 22 12 15 15 12 22 9 15 2 12 9 9 12 2" />
-                      <circle cx="12" cy="12" r="2.2" />
+                      <circle cx="12" cy="12" r="2.1" />
                     </svg>
                   </div>
+                  <span className="text-sm sm:text-lg font-black tabular-nums tracking-tight text-slate-700">
+                    #{card.slotNo}
+                  </span>
                 </div>
 
-                {/* Ön Yüz — Sure veya İpucu */}
+                {/* AÇIK / EŞLEŞMİŞ YÜZ — Koyu Zümrüt 3B Kart + İkon Kutusu + Etiketler */}
                 <div
-                  className="game-card-face game-card-face-front rounded-xl sm:rounded-2xl border-2 px-1.5 sm:px-2.5 py-1.5 flex flex-col items-center justify-center text-center overflow-hidden"
-                  style={{
-                    backgroundColor: frontBgColor,
-                    borderColor: frontBorderColor,
-                    boxShadow: isMatched
-                      ? 'inset 0 0 0 1px rgba(13, 148, 136, 0.14)'
-                      : '0 4px 12px -4px rgba(15, 23, 42, 0.1)',
-                  }}
+                  className={`game-card-face game-card-face-front rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5 flex flex-col justify-between text-left overflow-hidden ${
+                    isWrong
+                      ? 'bg-red-800 border-2 border-red-400 border-b-4 border-b-red-950 text-white'
+                      : 'game-bevel-emerald'
+                  }`}
                 >
-                  {card.side === 'surah' ? (
-                    <div className="flex flex-col items-center justify-center gap-0.5 min-w-0 w-full">
-                      <span
-                        className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                        style={{
-                          backgroundColor: 'var(--brand-primary-soft)',
-                          color: 'var(--brand-primary-text)',
-                        }}
-                      >
-                        {card.surah.no}. Sure
+                  {/* Üst Etiket Satırı: Tip + SEN/YZ + Onay */}
+                  <div className="flex items-center justify-between gap-1 shrink-0">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="text-[8px] sm:text-[9px] font-extrabold tracking-wide uppercase px-1.5 py-0.5 rounded bg-white/12 text-amber-200 truncate">
+                        {card.side === 'surah' ? 'SURE · عربي' : card.clueTag}
                       </span>
-                      <span
-                        dir="rtl"
-                        className="font-arabic text-base sm:text-xl leading-tight line-clamp-1"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {card.surah.nameAr}
-                      </span>
-                      <span
-                        className="text-xs sm:text-sm font-extrabold leading-tight line-clamp-1 w-full"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {card.surah.shortNameTr}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-1 min-w-0 w-full">
-                      <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded line-clamp-1 max-w-full"
-                        style={{
-                          backgroundColor: 'var(--brand-accent-soft)',
-                          color: 'var(--brand-accent-text)',
-                        }}
-                      >
-                        {card.clueTag}
-                      </span>
-                      {card.clueArabic && (
+                      {ownerBadge && (
                         <span
-                          dir="rtl"
-                          className="font-arabic text-base sm:text-lg font-bold leading-none"
-                          style={{ color: 'var(--brand-primary-text)' }}
+                          className={`text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded shrink-0 ${
+                            owner === 'p2'
+                              ? 'bg-teal-200 text-teal-950'
+                              : 'bg-amber-400 text-amber-950'
+                          }`}
                         >
-                          {card.clueArabic}
+                          {ownerBadge}
                         </span>
                       )}
-                      <span
-                        className="text-[11px] sm:text-xs font-bold leading-snug line-clamp-3 w-full"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {card.clueTitle}
-                      </span>
                     </div>
-                  )}
+                    {isMatched && (
+                      <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-400/25 text-emerald-200 inline-flex items-center justify-center shrink-0">
+                        <Check className="w-3 h-3" strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Orta Gövde: Sol İkon Kutusu + Sağ Yüksek Kontrast Tipografi */}
+                  <div className="flex-1 min-h-0 flex items-center gap-1.5 sm:gap-2.5 py-0.5">
+                    <div className="hidden sm:flex w-8 h-8 rounded-lg bg-white/10 border border-white/15 items-center justify-center shrink-0 text-amber-300">
+                      {card.side === 'surah' ? (
+                        <BookOpen className="w-4 h-4" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0 text-center sm:text-left">
+                      {card.side === 'surah' ? (
+                        <>
+                          <div
+                            dir="rtl"
+                            className="font-arabic text-base sm:text-xl leading-tight text-amber-200 line-clamp-1"
+                          >
+                            {card.surah.nameAr}
+                          </div>
+                          <div className="text-[11px] sm:text-sm font-extrabold leading-tight text-white line-clamp-1">
+                            {card.surah.no}. {card.surah.shortNameTr}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {card.clueArabic && (
+                            <div
+                              dir="rtl"
+                              className="font-arabic text-sm sm:text-base font-bold leading-none text-amber-300 mb-0.5"
+                            >
+                              {card.clueArabic}
+                            </div>
+                          )}
+                          <div className="text-[10px] sm:text-xs font-bold leading-snug text-white line-clamp-3">
+                            {card.clueTitle}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </button>
