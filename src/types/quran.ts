@@ -561,6 +561,7 @@ export interface ExamNavigationTarget {
   surahNo?: number; // Tek sure filtresi ile Sınav Merkezini aç
   mode?: ExamMode;
   openMistakeCamp?: boolean; // Sınav Merkezi içindeki Hata Kampı alt sekmesini aç
+  openGames?: boolean; // Sınav Merkezi içindeki Eğitsel Oyunlar alt sekmesini aç
   autoStartMistakeCamp?: boolean;
   mistakeLimit?: number; // 0 = tümü
   nonce: number;

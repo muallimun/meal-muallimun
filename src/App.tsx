@@ -12,6 +12,7 @@ import { MealSelectorModal } from './components/MealSelectorModal';
 import { MutashabihatModal } from './components/MutashabihatModal';
 import { ReciterSelectorModal } from './components/ReciterSelectorModal';
 import { SettingsModal } from './components/SettingsModal';
+import { UserGuideModal } from './components/UserGuideModal';
 import { WaqfGuideModal } from './components/WaqfGuideModal';
 import { ExamCenterPage } from './features/exam/ExamCenterPage';
 import { FihristHubPage } from './features/fihrist/FihristHubPage';
@@ -64,6 +65,7 @@ const MainRouter: React.FC = () => {
         <QuickAddToResearchModal />
         <PageBookmarksDrawer />
         <GlobalSearchModal />
+        <UserGuideModal />
         <IntroSplash />
       </ErrorBoundary>
     </AppShell>

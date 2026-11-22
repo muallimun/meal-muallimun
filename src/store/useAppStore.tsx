@@ -72,6 +72,9 @@ import {
   subscribeInstallPrompt,
   triggerPwaInstallPrompt,
 } from '../utils/pwaUtils';
+import { hasInitialDeepLinkTarget, parseInitialUrlTarget } from '../utils/urlDeepLink';
+
+export type UserGuideTabId = 'quickstart' | 'modules' | 'offline_backup' | 'shortcuts';
 
 export const STORAGE_KEY = 'muallimun_meal_v1';
 export const INTRO_DISMISSED_KEY = 'muallimun_intro_dismissed_v1';
@@ -1010,6 +1013,10 @@ interface AppContextValue {
   isSearchModalOpen: boolean;
   openSearchModal: () => void;
   closeSearchModal: () => void;
+  isUserGuideOpen: boolean;
+  userGuideTab: UserGuideTabId;
+  openUserGuide: (tab?: UserGuideTabId) => void;
+  closeUserGuide: () => void;
   isListeningDrawerOpen: boolean;
   listeningDrawerSeed: ListeningDrawerSeed | null;
   openListeningDrawer: (seed?: Omit<ListeningDrawerSeed, 'nonce'>) => void;
@@ -1144,8 +1151,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isWaqfGuideOpen, setIsWaqfGuideOpen] = useState(false);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isUserGuideOpen, setIsUserGuideOpen] = useState(false);
+  const [userGuideTab, setUserGuideTab] = useState<UserGuideTabId>('quickstart');
+  const initialUrlHandledRef = useRef(false);
   const [introDismissed, setIntroDismissed] = useState<boolean>(() => readIntroDismissed());
-  const [isIntroOpen, setIsIntroOpen] = useState<boolean>(() => !readIntroDismissed());
+  const [isIntroOpen, setIsIntroOpen] = useState<boolean>(
+    () => !readIntroDismissed() && !hasInitialDeepLinkTarget(),
+  );
 
   const [manifest, setManifest] = useState<ManifestData | null>(null);
   const [meta, setMeta] = useState<MetaData | null>(null);
@@ -2395,6 +2407,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   }, []);
 
+  const openUserGuide = useCallback((tab: UserGuideTabId = 'quickstart') => {
+    setUserGuideTab(tab);
+    setIsUserGuideOpen(true);
+  }, []);
+
+  const closeUserGuide = useCallback(() => {
+    setIsUserGuideOpen(false);
+  }, []);
+
+  // Açılışta URL doğrudan bağlantı (Deep-Link) parametrelerini tek seferlik çözümle
+  useEffect(() => {
+    if (initialUrlHandledRef.current) return;
+    if (typeof window === 'undefined') return;
+    const target = parseInitialUrlTarget(window.location.search);
+    if (!target) {
+      initialUrlHandledRef.current = true;
+      return;
+    }
+
+    if ((target.kind === 'verse' || target.kind === 'juz') && !meta) {
+      return;
+    }
+
+    initialUrlHandledRef.current = true;
+    setIsIntroOpen(false);
+
+    if (target.kind === 'verse') {
+      const page = meta
+        ? dataService.findPageForSurahAyah(meta, target.surah, target.ayah)
+        : undefined;
+      navigateToStudy({
+        surah: target.surah,
+        ayah: target.ayah,
+        page,
+        ensureMealVisible: true,
+      });
+    } else if (target.kind === 'page') {
+      navigateToStudy({
+        page: target.page,
+        viewMode: 'mushaf',
+      });
+    } else if (target.kind === 'juz' && meta) {
+      const loc = dataService.findFirstLocationForJuz(meta, target.juz);
+      navigateToStudy({
+        surah: loc.surah,
+        ayah: loc.ayah,
+        page: loc.page,
+      });
+    } else if (target.kind === 'tab') {
+      if (target.tab === 'games') {
+        navigateToExam({ openGames: true });
+      } else {
+        setActiveTab(target.tab);
+      }
+    } else if (target.kind === 'guide') {
+      openUserGuide(target.guideTab);
+    }
+
+    try {
+      if (window.self === window.top && window.location.search) {
+        window.history.replaceState(
+          window.history.state,
+          '',
+          `${window.location.pathname}${window.location.hash}`,
+        );
+      }
+    } catch {
+      // Çapraz kaynak iframe ortamında sessiz geç
+    }
+  }, [meta, navigateToStudy, navigateToExam, setActiveTab, openUserGuide]);
+
   const poolStats = useMemo(
     () => computePoolStats(persisted.studyPool, meta, questionIndex),
     [persisted.studyPool, meta, questionIndex],
@@ -2505,6 +2588,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSearchModalOpen,
       openSearchModal,
       closeSearchModal,
+      isUserGuideOpen,
+      userGuideTab,
+      openUserGuide,
+      closeUserGuide,
       isListeningDrawerOpen,
       listeningDrawerSeed,
       openListeningDrawer,
@@ -2630,6 +2717,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSearchModalOpen,
       openSearchModal,
       closeSearchModal,
+      isUserGuideOpen,
+      userGuideTab,
+      openUserGuide,
+      closeUserGuide,
       isListeningDrawerOpen,
       listeningDrawerSeed,
       openListeningDrawer,

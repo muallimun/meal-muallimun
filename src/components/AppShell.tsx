@@ -6,7 +6,9 @@ import {
   Bookmark,
   ChevronDown,
   Compass,
+  ExternalLink,
   Flame,
+  HelpCircle,
   Home,
   Layers,
   Maximize2,
@@ -76,6 +78,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     poolStats,
     openPoolModal,
     openSettingsModal,
+    openUserGuide,
     openBookmarksDrawer,
     openSearchModal,
     dataSourceMode,
@@ -396,12 +399,42 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             </div>
           </nav>
 
-          {/* Alt Kurulum & Ayarlar Tetikleyicisi */}
+          {/* Alt Kurulum, Rehber, Ekosistem & Ayarlar Tetikleyicisi */}
           <div
             className="p-3 border-t shrink-0 space-y-2"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
             <PwaInstallControl variant="sidebar" />
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openUserGuide('quickstart');
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-bold transition-colors cursor-pointer hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <HelpCircle className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">Kullanım Kılavuzu</span>
+            </button>
+            <a
+              href="https://kelime.muallimun.net"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs font-bold transition-colors hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-secondary)',
+              }}
+              title="Kur'an Kelimeleri Öğrenme Asistanı"
+            >
+              <span className="truncate">Kelime Asistanı</span>
+              <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-75" />
+            </a>
             <button
               type="button"
               onClick={openSettingsModal}
@@ -742,7 +775,26 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 )}
               </button>
 
-              {/* 5. Ayarlar Butonu */}
+              {/* 5. Kullanım Rehberi Butonu */}
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  openUserGuide('quickstart');
+                }}
+                title="Kullanım Rehberi"
+                aria-label="Kullanım Rehberi"
+                className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer hover:border-teal-600/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+
+              {/* 6. Ayarlar Butonu */}
               <button
                 type="button"
                 onClick={openSettingsModal}
@@ -927,9 +979,21 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             <p style={{ color: 'var(--text-muted)' }}>
               © {currentYear} kuran.muallimun.net — Muallimun Kur&apos;an &amp; Meal Eğitim Platformu
             </p>
-            <p style={{ color: 'var(--text-muted)' }}>
-              {MEALS_CATALOG.length} Meal &amp; Tefsir · {RECITERS_CATALOG.length} Kurrâ · Fihrist, Ezber, Sınav &amp; Oyunlar
-            </p>
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1">
+              <p style={{ color: 'var(--text-muted)' }}>
+                {MEALS_CATALOG.length} Meal &amp; Tefsir · {RECITERS_CATALOG.length} Kurrâ · Fihrist, Ezber, Sınav &amp; Oyunlar
+              </p>
+              <a
+                href="https://kelime.muallimun.net"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-bold hover:underline"
+                style={{ color: 'var(--brand-primary-text)' }}
+              >
+                <span>kelime.muallimun.net</span>
+                <ExternalLink className="w-3 h-3 shrink-0" />
+              </a>
+            </div>
           </div>
         </footer>
       </div>

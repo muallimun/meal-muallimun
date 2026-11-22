@@ -9,6 +9,7 @@ import {
   Clock,
   Download,
   Headphones,
+  HelpCircle,
   Layers,
   Link2,
   Map as MapIcon,
@@ -71,6 +72,7 @@ export const MemorizationHubPage: React.FC = () => {
     manifest,
     audioPrefs,
     openReciterSelector,
+    openUserGuide,
     memorizeLaunchTarget,
     clearMemorizeLaunchTarget,
   } = useAppStore();
@@ -478,6 +480,24 @@ export const MemorizationHubPage: React.FC = () => {
           >
             <ArrowUpDown className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
             <span>Yedekle</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              openUserGuide('modules');
+            }}
+            title="Ezber Modu Kullanım Rehberi"
+            className="min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shrink-0 hover:opacity-90 touch-manipulation"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--brand-primary-text)',
+            }}
+          >
+            <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+            <span>Rehber</span>
           </button>
 
           <button

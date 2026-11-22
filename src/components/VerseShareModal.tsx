@@ -3,6 +3,7 @@ import {
   Check,
   Copy,
   Download,
+  Link2,
   Loader2,
   Share2,
   Sparkles,
@@ -23,6 +24,7 @@ import { useAppStore } from '../store/useAppStore';
 import type { CombinedVerse, SurahMeta } from '../types/quran';
 import { formatSafeArabicTitle, formatSurahTitle } from '../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
+import { buildVerseShareUrl, formatVerseShareDisplayUrl } from '../utils/urlDeepLink';
 
 type ShareContentMode = 'both' | 'ar' | 'meal';
 type ShareCardTheme = 'cream' | 'emerald' | 'dark';
@@ -157,6 +159,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
   const [cardTheme, setCardTheme] = useState<ShareCardTheme>('cream');
   const [mealPick, setMealPick] = useState<string>(settings.primaryMealId || 'm1');
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -164,6 +167,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     if (!verse) return;
     setMealPick(settings.primaryMealId || 'm1');
     setCopied(false);
+    setCopiedLink(false);
     setStatusMessage(null);
   }, [verse, settings.primaryMealId]);
 
@@ -201,6 +205,16 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
       : '';
   const safeArabicSurah = surahMeta ? formatSafeArabicTitle(surahMeta.nameAr) : '';
 
+  const verseShareUrl = useMemo(
+    () => (verse ? buildVerseShareUrl(verse.surah, verse.ayah) : 'https://kuran.muallimun.net'),
+    [verse],
+  );
+
+  const verseDisplayUrl = useMemo(
+    () => (verse ? formatVerseShareDisplayUrl(verse.surah, verse.ayah) : 'kuran.muallimun.net'),
+    [verse],
+  );
+
   const shareTextPayload = useMemo(() => {
     if (!verse) return '';
     const parts: string[] = [];
@@ -214,9 +228,9 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     }
     const mealSuffix = contentMode === 'ar' ? '' : ` • ${selectedMealDef.label}`;
     parts.push(`— ${surahLabel}${mealSuffix}`);
-    parts.push('https://kuran.muallimun.net');
+    parts.push(verseShareUrl);
     return parts.join('\n\n');
-  }, [verse, contentMode, activeMealText, surahLabel, selectedMealDef.label]);
+  }, [verse, contentMode, activeMealText, surahLabel, selectedMealDef.label, verseShareUrl]);
 
   if (!verse) return null;
 
@@ -425,7 +439,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
 
     ctx.font = `500 20px ${turkishFontStack}`;
     ctx.fillStyle = palette.mutedColor;
-    ctx.fillText('https://kuran.muallimun.net', width / 2, footerY + 38);
+    ctx.fillText(verseDisplayUrl, width / 2, footerY + 38);
 
     return new Promise<Blob | null>((resolve) => {
       canvas.toBlob((blob) => resolve(blob), 'image/png', 1);
@@ -463,8 +477,20 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
       await navigator.clipboard.writeText(shareTextPayload);
       sfxService.play('click');
       setCopied(true);
-      setStatusMessage('Ayet metni panoya kopyalandı.');
+      setStatusMessage('Ayet metni ve doğrudan bağlantısı panoya kopyalandı.');
       window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setStatusMessage('Panoya kopyalama izni verilemedi.');
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(verseShareUrl);
+      sfxService.play('click');
+      setCopiedLink(true);
+      setStatusMessage('Doğrudan ayet bağlantısı panoya kopyalandı.');
+      window.setTimeout(() => setCopiedLink(false), 2000);
     } catch {
       setStatusMessage('Panoya kopyalama izni verilemedi.');
     }
@@ -717,7 +743,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                   Muallimun Kur’an &amp; Meal
                 </span>
                 <span className="text-[11px]" style={{ color: palette.mutedColor }}>
-                  https://kuran.muallimun.net
+                  {verseDisplayUrl}
                 </span>
               </div>
             </div>
@@ -760,6 +786,24 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
               <>
                 <Copy className="w-4 h-4" />
                 <span>Metni Kopyala</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void handleCopyLink()}
+            className="min-h-[46px] px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--brand-primary)] text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            {copiedLink ? (
+              <>
+                <Check className="w-4 h-4 text-[var(--state-success)]" />
+                <span>Link Kopyalandı</span>
+              </>
+            ) : (
+              <>
+                <Link2 className="w-4 h-4" />
+                <span>Ayet Linkini Kopyala</span>
               </>
             )}
           </button>

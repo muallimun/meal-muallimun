@@ -168,11 +168,23 @@ const CORE_OFFLINE_JSON_PATHS = new Set<string>([
   'fihrist/topics.json',
 ]);
 
-async function fetchWithTimeout(url: string, timeoutMs = 9000): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  timeoutMs = 9000,
+  externalSignal?: AbortSignal,
+): Promise<Response> {
   if (typeof AbortController === 'undefined') {
     return fetch(url, { headers: { Accept: 'application/json' } });
   }
   const controller = new AbortController();
+  const onExternalAbort = () => controller.abort();
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+  }
   const timerId = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, {
@@ -181,6 +193,7 @@ async function fetchWithTimeout(url: string, timeoutMs = 9000): Promise<Response
     });
   } finally {
     clearTimeout(timerId);
+    externalSignal?.removeEventListener('abort', onExternalAbort);
   }
 }
 
@@ -197,14 +210,19 @@ async function readPersistentJsonCache<T>(cleanPath: string): Promise<T | null> 
   }
 }
 
-async function writePersistentJsonCache(cleanPath: string, rawText: string): Promise<void> {
+async function writePersistentJsonCache(
+  cleanPath: string,
+  rawText: string,
+  forcePersist = false,
+): Promise<void> {
   if (typeof window === 'undefined' || !('caches' in window)) return;
 
   // Aktif Service Worker (Workbox) sure parçalarını zaten kendi önbelleğinde tutuyorsa
-  // yalnızca çekirdek meta dosyalarını ikincil önbelleğe yaz (çift depolamayı önle)
+  // normal gezinmede yalnızca çekirdek meta dosyalarını ikincil önbelleğe yaz (çift depolamayı önle).
+  // Toplu çevrimdışı paket indirmede (forcePersist = true) her zaman kalıcı önbelleğe yaz.
   const hasSwController =
     typeof navigator !== 'undefined' && Boolean(navigator.serviceWorker?.controller);
-  if (hasSwController && !CORE_OFFLINE_JSON_PATHS.has(cleanPath)) {
+  if (!forcePersist && hasSwController && !CORE_OFFLINE_JSON_PATHS.has(cleanPath)) {
     return;
   }
 
@@ -220,6 +238,72 @@ async function writePersistentJsonCache(cleanPath: string, rawText: string): Pro
   } catch {
     // Depolama kısıtlıysa sessizce geç
   }
+}
+
+/**
+ * Toplu çevrimdışı paket indirme için JSON dosyasını RAM haritasına (memoryCache)
+ * doldurmadan indirir, geçerli JSON olduğunu doğrular ve kalıcı Cache API'ye yazar.
+ */
+export async function prefetchJsonForOffline(
+  relativePath: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  if (demoMode) return false;
+  const cleanPath = relativePath.replace(/^\/+/, '');
+  if (signal?.aborted) {
+    const err = new Error('Çevrimdışı indirme iptal edildi.');
+    err.name = 'AbortError';
+    throw err;
+  }
+
+  // Zaten kalıcı önbellekte varsa tekrar ağa çıkma
+  if (typeof window !== 'undefined' && 'caches' in window) {
+    try {
+      const cache = await window.caches.open(PERSISTENT_DATA_CACHE_NAME);
+      const existing = await cache.match(`/__offline_cache__/data/${cleanPath}`);
+      if (existing) return true;
+    } catch {
+      // Okuma başarısızsa ağdan devam et
+    }
+  }
+
+  const candidates = getCandidateBaseUrls();
+  for (const base of candidates) {
+    if (signal?.aborted) {
+      const err = new Error('Çevrimdışı indirme iptal edildi.');
+      err.name = 'AbortError';
+      throw err;
+    }
+    const url = `${base.replace(/\/+$/, '')}/${cleanPath}`;
+    try {
+      const res = await fetchWithTimeout(url, 12000, signal);
+      if (!res.ok) continue;
+      const text = await res.text();
+      const trimmed = text.trimStart();
+      if (trimmed.startsWith('<!doctype') || trimmed.startsWith('<html')) {
+        continue;
+      }
+      // Geçerli JSON doğrulaması (bozuk içerik önbelleğe yazılmaz)
+      JSON.parse(text);
+      resolvedBaseUrl = base;
+      activeSourceMode = base === LOCAL_DATA_BASE_URL ? 'local' : 'remote';
+      await writePersistentJsonCache(cleanPath, text, true);
+      return true;
+    } catch (err) {
+      if (signal?.aborted) {
+        const abortErr = new Error('Çevrimdışı indirme iptal edildi.');
+        abortErr.name = 'AbortError';
+        throw abortErr;
+      }
+      if (err && typeof err === 'object' && (err as { name?: string }).name === 'AbortError') {
+        // Zaman aşımı olduysa sonraki aday kaynağa geç
+        continue;
+      }
+      // Sonraki aday kaynağa geç
+    }
+  }
+
+  return false;
 }
 
 async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
@@ -905,6 +989,7 @@ export const dataService = {
   getTajweedSurah,
   getSegMeta,
   getSegSurah,
+  prefetchJsonForOffline,
   enableDemoMode,
   disableDemoMode,
   isDemoMode,

@@ -5,6 +5,7 @@ import {
   Check,
   Clock,
   Compass,
+  HelpCircle,
   ListOrdered,
   NotebookPen,
 } from 'lucide-react';
@@ -19,7 +20,7 @@ import { TopicFihristTab } from './TopicFihristTab';
 type FihristSubTab = 'topics' | 'surah_nuzul' | 'timeline' | 'notebook';
 
 export const FihristHubPage: React.FC = () => {
-  const { fihristNavTarget, clearFihristNavTarget } = useAppStore();
+  const { fihristNavTarget, clearFihristNavTarget, openUserGuide } = useAppStore();
   const researchTopics = useSyncExternalStore(
     researchStorage.subscribe,
     researchStorage.getSnapshot,
@@ -58,24 +59,44 @@ export const FihristHubPage: React.FC = () => {
     <div className="space-y-4 pb-6">
       {/* Üst Başlık + 4 Bölmeli Birleşik Alt Sekme Çubuğu */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+        <div className="flex items-center justify-between gap-2.5 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <Compass className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-xl font-extrabold tracking-tight truncate">
+                Fihrist &amp; Araştırma
+              </h2>
+              <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                601 Konu · 114 Sure Künyesi · Mehdi Bazergan Kronolojisi · Kişisel Defterim
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              openUserGuide('modules');
+            }}
+            title="Fihrist & Araştırma Rehberi"
+            className="min-h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shrink-0 hover:opacity-90 touch-manipulation"
             style={{
-              backgroundColor: 'var(--brand-primary-soft)',
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
               color: 'var(--brand-primary-text)',
             }}
           >
-            <Compass className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-base sm:text-xl font-extrabold tracking-tight truncate">
-              Fihrist &amp; Araştırma
-            </h2>
-            <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-              601 Konu · 114 Sure Künyesi · Mehdi Bazergan Kronolojisi · Kişisel Defterim
-            </p>
-          </div>
+            <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+            <span>Rehber</span>
+          </button>
         </div>
 
         {/* 4 Bölmeli Segmented Switcher — 360px mobilde taşmasız tek satır */}

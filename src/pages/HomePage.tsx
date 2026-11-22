@@ -10,8 +10,10 @@ import {
   ChevronDown,
   ChevronUp,
   Compass,
+  ExternalLink,
   Flame,
   Headphones,
+  HelpCircle,
   Layers,
   ListMusic,
   Play,
@@ -113,6 +115,7 @@ export const HomePage: React.FC = () => {
     navigateToExam,
     openPoolModal,
     openSettingsModal,
+    openUserGuide,
     openIntroSplash,
     openBookmarksDrawer,
     openListeningDrawer,
@@ -750,6 +753,19 @@ export const HomePage: React.FC = () => {
                     </strong>
                   </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    openUserGuide('quickstart');
+                  }}
+                  className="inline-flex items-center gap-1 text-xs font-bold underline underline-offset-4 cursor-pointer whitespace-nowrap"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Kullanım Rehberi</span>
+                </button>
 
                 <button
                   type="button"
@@ -1989,6 +2005,51 @@ export const HomePage: React.FC = () => {
             )}
           </>
         )}
+      </section>
+
+      {/* Muallimun Ekosistem Köprüsü: Kur'an Kelimeleri Öğrenme Asistanı */}
+      <section
+        className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        aria-label="Muallimun Kelime Asistanı bağlantısı"
+      >
+        <div className="flex items-start gap-3 min-w-0">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{
+              backgroundColor: 'var(--brand-primary-soft)',
+              color: 'var(--brand-primary-text)',
+            }}
+          >
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--brand-primary-text)' }}>
+              Muallimun Ekosistemi
+            </p>
+            <p className="text-xs sm:text-sm mt-0.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Kur&apos;an kelimelerini sıklık sırasına ve surelere göre etkileşimli kartlarla
+              çalışmak için:{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>
+                Kur&apos;an Kelimeleri Öğrenme Asistanı (kelime.muallimun.net)
+              </strong>
+            </p>
+          </div>
+        </div>
+
+        <a
+          href="https://kelime.muallimun.net"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="min-h-[42px] px-4 rounded-xl border text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-1.5 shrink-0 transition-colors hover:opacity-90"
+          style={{
+            backgroundColor: 'var(--brand-primary-soft)',
+            borderColor: 'var(--brand-primary)',
+            color: 'var(--brand-primary-text)',
+          }}
+        >
+          <span>kelime.muallimun.net</span>
+          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+        </a>
       </section>
     </div>
   );

@@ -56,6 +56,7 @@ import {
   validateExamSessionPayload,
 } from '../utils/examUtils';
 import { PwaInstallControl } from './PwaInstallControl';
+import { OfflinePackCard } from './OfflinePackCard';
 
 const MAX_BACKUP_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
 
@@ -1245,6 +1246,11 @@ export const SettingsModal: React.FC = () => {
                     {backupStatus.text}
                   </p>
                 )}
+              </section>
+
+              {/* Tek Tıkla Çevrimdışı Metin Paketi */}
+              <section>
+                <OfflinePackCard compact />
               </section>
 
               {/* İntro & Uygulama Kurulumu */}
