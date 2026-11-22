@@ -8,7 +8,7 @@
   font-family: "Elif Mushaf Hattı";
   src:
     url("/fonts/elfmshf.ttf") format("truetype"),
-    url("https://meal-muallimun.vercel.app/fonts/elfmshf.ttf") format("truetype");
+    url("https://kuran.muallimun.net/fonts/elfmshf.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -18,7 +18,7 @@
   font-family: "Şeyh Hamdullah Kitap";
   src:
     url("/fonts/ShaikhHamdullahBook.ttf") format("truetype"),
-    url("https://meal-muallimun.vercel.app/fonts/ShaikhHamdullahBook.ttf") format("truetype");
+    url("https://kuran.muallimun.net/fonts/ShaikhHamdullahBook.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -28,7 +28,7 @@
   font-family: "Şeyh Hamdullah Klasik";
   src:
     url("/fonts/ShaikhHamdullahBasic.ttf") format("truetype"),
-    url("https://meal-muallimun.vercel.app/fonts/ShaikhHamdullahBasic.ttf") format("truetype");
+    url("https://kuran.muallimun.net/fonts/ShaikhHamdullahBasic.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -38,7 +38,7 @@
   font-family: "Süleyman Feyzullah Hattı";
   src:
     url("/fonts/slymnfyzlgl.ttf") format("truetype"),
-    url("https://meal-muallimun.vercel.app/fonts/slymnfyzlgl.ttf") format("truetype");
+    url("https://kuran.muallimun.net/fonts/slymnfyzlgl.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -48,7 +48,7 @@
   font-family: "Hasenât Mushaf Hattı";
   src:
     url("/fonts/hsnt.TTF") format("truetype"),
-    url("https://meal-muallimun.vercel.app/fonts/hsnt.TTF") format("truetype");
+    url("https://kuran.muallimun.net/fonts/hsnt.TTF") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -58,7 +58,7 @@
   font-family: "Arakom Nesih";
   src:
     url("/fonts/Arakom.ttf") format("truetype"),
-    url("https://meal-muallimun.vercel.app/fonts/Arakom.ttf") format("truetype");
+    url("https://kuran.muallimun.net/fonts/Arakom.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -68,7 +68,7 @@
   font-family: "Edvâü's-Selef";
   src:
     url("/fonts/adwa-assalaf.ttf") format("truetype"),
-    url("https://meal-muallimun.vercel.app/fonts/adwa-assalaf.ttf") format("truetype");
+    url("https://kuran.muallimun.net/fonts/adwa-assalaf.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -78,7 +78,7 @@
   font-family: "Abdo Line Modern";
   src:
     url("/fonts/AbdoLineNormal-Regular.otf") format("opentype"),
-    url("https://meal-muallimun.vercel.app/fonts/AbdoLineNormal-Regular.otf") format("opentype");
+    url("https://kuran.muallimun.net/fonts/AbdoLineNormal-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -88,7 +88,7 @@
   font-family: "WinSoft Pro";
   src:
     url("/fonts/WinSoftPro-Med.otf") format("opentype"),
-    url("https://meal-muallimun.vercel.app/fonts/WinSoftPro-Med.otf") format("opentype");
+    url("https://kuran.muallimun.net/fonts/WinSoftPro-Med.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;

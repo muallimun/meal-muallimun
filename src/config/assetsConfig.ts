@@ -2,7 +2,7 @@ import type { ManifestData, ReciterFilePattern } from '../types/quran';
 import { getAllMeals } from './mealsConfig';
 import { getAllReciters } from './recitersConfig';
 
-export const LIVE_ASSETS_ORIGIN = 'https://meal-muallimun.vercel.app';
+export const LIVE_ASSETS_ORIGIN = 'https://kuran.muallimun.net';
 export const LIVE_DATA_BASE_URL = `${LIVE_ASSETS_ORIGIN}/data`;
 export const LOCAL_DATA_BASE_URL = '/data';
 

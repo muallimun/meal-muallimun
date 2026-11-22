@@ -779,10 +779,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             className={`${contentWidthClass} mx-auto px-4 py-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs`}
           >
             <p style={{ color: 'var(--text-muted)' }}>
-              © {currentYear} Muallimun.Net — Kur&apos;an &amp; Meal Eğitim Platformu
+              © {currentYear} kuran.muallimun.net — Muallimun Kur&apos;an &amp; Meal Eğitim Platformu
             </p>
             <p style={{ color: 'var(--text-muted)' }}>
-              {MEALS_CATALOG.length} Meal &amp; Tefsir · {RECITERS_CATALOG.length} Kurrâ · Fihrist, Ezber &amp; Sınav
+              {MEALS_CATALOG.length} Meal &amp; Tefsir · {RECITERS_CATALOG.length} Kurrâ · Fihrist, Ezber, Sınav &amp; Oyunlar
             </p>
           </div>
         </footer>
