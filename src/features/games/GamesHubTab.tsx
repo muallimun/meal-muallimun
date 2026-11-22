@@ -33,6 +33,7 @@ import { GameStageModal } from './GameStageModal';
 import type {
   GameId,
   GamePlayerMode,
+  GamePlayerNames,
   GameTempo,
   GameTierId,
 } from './gameTypes';
@@ -57,6 +58,7 @@ export const GamesHubTab: React.FC = () => {
   const [tempo, setTempo] = useState<GameTempo>('calm');
   // Varsayılan mod her zaman Tek Oyuncu (eski localStorage 'ai' kaydı otomatik göç ettirilir)
   const [playerMode, setPlayerMode] = useState<GamePlayerMode>(() => loadGamePlayerMode());
+  const [playerNames, setPlayerNames] = useState<GamePlayerNames>({ p1: '', p2: '' });
   const [progressMap, setProgressMap] = useState<GameProgressMap>(() => loadGameProgress());
   const [activeGameId, setActiveGameId] = useState<GameId | null>(null);
   const [activeFocusGroupId, setActiveFocusGroupId] = useState<SurahGroupId | null>(null);
@@ -406,6 +408,54 @@ export const GamesHubTab: React.FC = () => {
         </div>
       </section>
 
+      {/* 2 Oyuncu İsteğe Bağlı Özel İsim Şeridi */}
+      {playerMode === 'duel' && (
+        <section
+          className="rounded-xl border px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <span
+            className="text-[11px] font-extrabold uppercase tracking-wider shrink-0"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Oyuncu İsimleri (İsteğe Bağlı):
+          </span>
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input
+              type="text"
+              maxLength={20}
+              value={playerNames.p1}
+              onChange={(e) => setPlayerNames((prev) => ({ ...prev, p1: e.target.value }))}
+              placeholder="1. Oyuncu (ör. Zeynep)"
+              aria-label="1. Oyuncu adı"
+              className="w-full min-h-[38px] px-3 rounded-lg border text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500/35"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            />
+            <input
+              type="text"
+              maxLength={20}
+              value={playerNames.p2}
+              onChange={(e) => setPlayerNames((prev) => ({ ...prev, p2: e.target.value }))}
+              placeholder="2. Oyuncu (ör. Ömer)"
+              aria-label="2. Oyuncu adı"
+              className="w-full min-h-[38px] px-3 rounded-lg border text-xs font-semibold outline-none focus:ring-2 focus:ring-amber-500/35"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            />
+          </div>
+        </section>
+      )}
+
       {/* 3. 7 Oyun Kartı (Aşama 1 + Aşama 2 + Aşama 3) */}
       <section className="space-y-2.5">
         <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider px-0.5" style={{ color: 'var(--text-muted)' }}>
@@ -546,6 +596,7 @@ export const GamesHubTab: React.FC = () => {
           initialTierId={selectedTier}
           initialTempo={tempo}
           initialPlayerMode={playerMode}
+          initialPlayerNames={playerNames}
           focusGroupId={activeFocusGroupId}
           allSurahs={enrichedSurahs}
           activePoolSurahNos={poolStats.effectiveSurahs}
@@ -554,6 +605,7 @@ export const GamesHubTab: React.FC = () => {
             if (patch.tierId) setSelectedTier(patch.tierId);
             if (patch.tempo) setTempo(patch.tempo);
             if (patch.playerMode) handleSelectPlayerMode(patch.playerMode);
+            if (patch.playerNames) setPlayerNames(patch.playerNames);
           }}
           onClose={() => {
             setActiveGameId(null);

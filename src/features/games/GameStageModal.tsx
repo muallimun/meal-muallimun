@@ -12,6 +12,7 @@ import type {
   GameHudUpdate,
   GameId,
   GamePlayerMode,
+  GamePlayerNames,
   GameResultPayload,
   GameTempo,
   GameTierId,
@@ -32,6 +33,7 @@ interface GameStageModalProps {
   initialTierId: GameTierId;
   initialTempo: GameTempo;
   initialPlayerMode: GamePlayerMode;
+  initialPlayerNames?: GamePlayerNames;
   focusGroupId?: SurahGroupId | null;
   allSurahs: EnrichedGameSurah[];
   activePoolSurahNos: number[];
@@ -40,6 +42,7 @@ interface GameStageModalProps {
     tierId?: GameTierId;
     tempo?: GameTempo;
     playerMode?: GamePlayerMode;
+    playerNames?: GamePlayerNames;
   }) => void;
   onClose: () => void;
 }
@@ -65,6 +68,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
   initialTierId,
   initialTempo,
   initialPlayerMode,
+  initialPlayerNames,
   focusGroupId = null,
   allSurahs,
   activePoolSurahNos,
@@ -79,11 +83,23 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
   const [currentPlayerMode, setCurrentPlayerMode] = useState<GamePlayerMode>(() =>
     sanitizePlayerMode(initialPlayerMode),
   );
+  const [currentPlayerNames, setCurrentPlayerNames] = useState<GamePlayerNames>(() => ({
+    p1: initialPlayerNames?.p1 ?? '',
+    p2: initialPlayerNames?.p2 ?? '',
+  }));
   const [runNonce, setRunNonce] = useState<number>(1);
   const [isMuted, setIsMuted] = useState<boolean>(() => gameAudioService.isMuted());
   const [result, setResult] = useState<GameResultPayload | null>(null);
   const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
   const [hud, setHud] = useState<GameHudUpdate>(DEFAULT_HUD);
+
+  const resolvedPlayerNames = useMemo<GamePlayerNames>(
+    () => ({
+      p1: currentPlayerNames.p1.trim() || '1. Oyuncu',
+      p2: currentPlayerNames.p2.trim() || '2. Oyuncu',
+    }),
+    [currentPlayerNames],
+  );
 
   useBackButtonGuard('game_stage_modal', true, onClose);
 
@@ -161,17 +177,39 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
     [handleChangeConfig],
   );
 
+  const handleChangePlayerNames = useCallback(
+    (nextNames: GamePlayerNames) => {
+      const sanitized: GamePlayerNames = {
+        p1: nextNames.p1.slice(0, 20),
+        p2: nextNames.p2.slice(0, 20),
+      };
+      setCurrentPlayerNames(sanitized);
+      onConfigSynced({ playerNames: sanitized });
+    },
+    [onConfigSynced],
+  );
+
   const handleComplete = useCallback(
     (payload: GameResultPayload) => {
-      setResult(payload);
+      const normalizedPayload: GameResultPayload = payload.duel
+        ? {
+            ...payload,
+            duel: {
+              ...payload.duel,
+              p1Label: resolvedPlayerNames.p1,
+              p2Label: resolvedPlayerNames.p2,
+            },
+          }
+        : payload;
+      setResult(normalizedPayload);
 
-      if (payload.playerMode !== 'duel') {
+      if (normalizedPayload.playerMode !== 'duel') {
         const saved = saveGameProgressResult({
-          gameId: payload.gameId,
-          tierId: payload.tierId,
-          stars: payload.stars,
-          score: payload.score,
-          accuracyPct: payload.accuracyPct,
+          gameId: normalizedPayload.gameId,
+          tierId: normalizedPayload.tierId,
+          stars: normalizedPayload.stars,
+          score: normalizedPayload.score,
+          accuracyPct: normalizedPayload.accuracyPct,
         });
         setIsNewRecord(saved.isNewRecord);
         onProgressUpdated(saved.map);
@@ -179,9 +217,9 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
         setIsNewRecord(false);
       }
 
-      awardGameXp(payload.earnedXp);
+      awardGameXp(normalizedPayload.earnedXp);
     },
-    [awardGameXp, onProgressUpdated],
+    [awardGameXp, onProgressUpdated, resolvedPlayerNames],
   );
 
   const focusGroupTitle = focusGroupId ? SURAH_GROUP_BY_ID[focusGroupId]?.title ?? null : null;
@@ -193,6 +231,8 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
       tierId={currentTierId}
       tempo={currentTempo}
       playerMode={currentPlayerMode}
+      playerNames={resolvedPlayerNames}
+      rawPlayerNames={currentPlayerNames}
       focusGroupTitle={focusGroupTitle}
       isMuted={isMuted}
       isSummaryOpen={Boolean(result)}
@@ -201,6 +241,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
       onToggleMute={handleToggleMute}
       onRestart={handleRestart}
       onChangeConfig={handleChangeConfig}
+      onChangePlayerNames={handleChangePlayerNames}
       onClose={onClose}
     >
       {result ? (
@@ -219,6 +260,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
               tierId={currentTierId}
               tempo={currentTempo}
               playerMode={currentPlayerMode}
+              playerNames={resolvedPlayerNames}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
               onHudUpdate={setHud}
@@ -231,6 +273,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
               tierId={currentTierId}
               tempo={currentTempo}
               playerMode={currentPlayerMode}
+              playerNames={resolvedPlayerNames}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
               onHudUpdate={setHud}
@@ -243,6 +286,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
               tierId={currentTierId}
               tempo={currentTempo}
               playerMode={currentPlayerMode}
+              playerNames={resolvedPlayerNames}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
               onHudUpdate={setHud}
@@ -255,6 +299,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
               tierId={currentTierId}
               tempo={currentTempo}
               playerMode={currentPlayerMode}
+              playerNames={resolvedPlayerNames}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
               onHudUpdate={setHud}
@@ -267,6 +312,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
               tierId={currentTierId}
               tempo={currentTempo}
               playerMode={currentPlayerMode}
+              playerNames={resolvedPlayerNames}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
               onHudUpdate={setHud}
@@ -279,6 +325,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
               tierId={currentTierId}
               tempo={currentTempo}
               playerMode={currentPlayerMode}
+              playerNames={resolvedPlayerNames}
               focusGroupId={focusGroupId}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}
@@ -292,6 +339,7 @@ export const GameStageModal: React.FC<GameStageModalProps> = ({
               tierId={currentTierId}
               tempo={currentTempo}
               playerMode={currentPlayerMode}
+              playerNames={resolvedPlayerNames}
               focusGroupId={focusGroupId}
               tierSurahs={tierSurahs}
               allSurahsMap={allSurahsMap}

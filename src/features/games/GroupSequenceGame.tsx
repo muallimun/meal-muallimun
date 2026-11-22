@@ -20,6 +20,7 @@ import {
   explainWhyNotInGroup,
 } from './surahSpecialGroups';
 import { StagePromptBanner } from './StagePromptBanner';
+import { useManagedTimeouts } from './useManagedTimeouts';
 
 interface SequenceRoundData {
   id: string;
@@ -174,6 +175,7 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
 
   const mistakenMapRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
   const finishedRef = useRef<boolean>(false);
+  const { scheduleTimeout } = useManagedTimeouts();
 
   const placedNos = useMemo(() => new Set(placedSurahs.map((s) => s.no)), [placedSurahs]);
   const nextExpected = round.orderedTargets[placedSurahs.length] ?? null;
@@ -370,7 +372,7 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
           setActivePlayer((prev) => (prev === 'p1' ? 'p2' : 'p1'));
         }
 
-        window.setTimeout(() => setWrongCardNo(null), 480);
+        scheduleTimeout(() => setWrongCardNo(null), 480);
       }
     },
     [
@@ -384,6 +386,7 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
       round.group,
       round.orderedTargets.length,
       roundCompleted,
+      scheduleTimeout,
     ],
   );
 

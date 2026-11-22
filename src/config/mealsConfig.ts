@@ -484,7 +484,7 @@ export function getMealTextPresentation(
       isRtl: true,
       dir: 'rtl',
       lang: 'ar',
-      className: 'text-right leading-[2.0]',
+      className: 'text-right leading-[2.0] [unicode-bidi:isolate]',
       fontSizePx: Math.round(baseFontSize * 1.25),
       fontFamily: '"Scheherazade New", "Amiri", "Amiri Quran", serif',
     };

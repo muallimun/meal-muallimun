@@ -15,6 +15,7 @@ import {
   shuffleArray,
 } from './gameTypes';
 import { StagePromptBanner, renderArabicHighlightedText } from './StagePromptBanner';
+import { useManagedTimeouts } from './useManagedTimeouts';
 
 interface DetectiveClue {
   index: number;
@@ -133,15 +134,7 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
   const mistakenMapRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
   const finishedRef = useRef<boolean>(false);
   const wrongTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (wrongTimerRef.current !== null) {
-        window.clearTimeout(wrongTimerRef.current);
-        wrongTimerRef.current = null;
-      }
-    };
-  }, []);
+  const { scheduleTimeout, cancelTimeout } = useManagedTimeouts();
 
   const currentRewardPoints =
     CLUE_POINTS[Math.min(CLUE_POINTS.length - 1, Math.max(0, revealedCluesCount - 1))];
@@ -243,7 +236,7 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
 
       if (candidate.no === activeCase.target.no) {
         if (wrongTimerRef.current !== null) {
-          window.clearTimeout(wrongTimerRef.current);
+          cancelTimeout(wrongTimerRef.current);
           wrongTimerRef.current = null;
         }
         const pts = currentRewardPoints;
@@ -279,9 +272,9 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
         mistakenMapRef.current.set(activeCase.target.no, activeCase.target);
 
         if (wrongTimerRef.current !== null) {
-          window.clearTimeout(wrongTimerRef.current);
+          cancelTimeout(wrongTimerRef.current);
         }
-        wrongTimerRef.current = window.setTimeout(() => {
+        wrongTimerRef.current = scheduleTimeout(() => {
           wrongTimerRef.current = null;
           setWrongNo(null);
           // Yanlış tahminde kapalı ipucu varsa bir sonrakini otomatik aç
@@ -295,10 +288,12 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
     },
     [
       activeCase.target,
+      cancelTimeout,
       combo,
       currentRewardPoints,
       eliminatedNos,
       isDuel,
+      scheduleTimeout,
       solvedBy,
     ],
   );

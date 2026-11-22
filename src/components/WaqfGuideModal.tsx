@@ -104,13 +104,13 @@ export const WaqfGuideModal: React.FC = () => {
               <div
                 dir="rtl"
                 lang="ar"
-                className="w-12 h-12 rounded-xl border flex flex-col items-center justify-center shrink-0 font-arabic font-bold leading-none select-none"
+                className="waqf-mark-color w-12 h-12 rounded-xl border flex flex-col items-center justify-center shrink-0 font-arabic font-bold leading-none select-none"
                 style={{
                   backgroundColor: `${item.color}18`,
                   borderColor: `${item.color}45`,
-                  color: item.color,
+                  '--waqf-color': item.color,
                   fontSize: '20px',
-                }}
+                } as React.CSSProperties}
               >
                 <span>{item.sign}</span>
               </div>
@@ -121,11 +121,11 @@ export const WaqfGuideModal: React.FC = () => {
                     {item.nameTr}
                   </h3>
                   <span
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold"
+                    className="waqf-mark-color inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold"
                     style={{
                       backgroundColor: `${item.color}18`,
-                      color: item.color,
-                    }}
+                      '--waqf-color': item.color,
+                    } as React.CSSProperties}
                   >
                     {item.actionTr}
                   </span>
@@ -143,12 +143,12 @@ export const WaqfGuideModal: React.FC = () => {
                         key={alt}
                         dir="rtl"
                         lang="ar"
-                        className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-md border font-arabic text-base leading-none"
+                        className="waqf-mark-color inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-md border font-arabic text-base leading-none"
                         style={{
                           backgroundColor: 'var(--bg-surface-soft)',
                           borderColor: 'var(--border-subtle)',
-                          color: item.color,
-                        }}
+                          '--waqf-color': item.color,
+                        } as React.CSSProperties}
                       >
                         {'\u00A0'}
                         {alt}

@@ -10,6 +10,7 @@ import {
 } from './gameTypes';
 import { SPECIAL_SURAH_FAMILIES } from './surahSpecialGroups';
 import { StagePromptBanner } from './StagePromptBanner';
+import { useManagedTimeouts } from './useManagedTimeouts';
 
 type ChainRoundKind = 'neighbors' | 'train';
 
@@ -169,15 +170,17 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
 
   const hadMistakeRef = useRef<boolean>(false);
   const dragOriginRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const { scheduleTimeout, clearAllTimeouts } = useManagedTimeouts();
 
   useEffect(() => {
+    clearAllTimeouts();
     setSlots(Array.from({ length: round.expectedNos.length }, () => null));
     setSelectedSurahNo(null);
     setWrongSlots([]);
     setCleared(false);
     setDragState(null);
     hadMistakeRef.current = false;
-  }, [round]);
+  }, [clearAllTimeouts, round]);
 
   const placedNos = useMemo(
     () => new Set(slots.filter((s): s is EnrichedGameSurah => Boolean(s)).map((s) => s.no)),
@@ -200,7 +203,7 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
         setWrongSlots([]);
         setSelectedSurahNo(null);
         gameAudioService.playMatch(hadMistakeRef.current ? 1 : 2);
-        window.setTimeout(() => {
+        scheduleTimeout(() => {
           onRoundCleared(hadMistakeRef.current, round.focusSurah);
         }, 420);
       } else {
@@ -213,7 +216,7 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
           if (placed) onMistakeStep(placed);
         });
 
-        window.setTimeout(() => {
+        scheduleTimeout(() => {
           setSlots((prev) =>
             prev.map((item, idx) => (wrongIdx.includes(idx) ? null : item)),
           );
@@ -221,7 +224,7 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
         }, 560);
       }
     },
-    [onMistakeStep, onRoundCleared, round],
+    [onMistakeStep, onRoundCleared, round, scheduleTimeout],
   );
 
   const placeSurahInSlot = useCallback(
@@ -231,12 +234,12 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
       setSlots((prev) => {
         const next = prev.map((item) => (item?.no === surah.no ? null : item));
         next[slotIndex] = surah;
-        window.setTimeout(() => evaluateFilledSlots(next), 40);
+        scheduleTimeout(() => evaluateFilledSlots(next), 40);
         return next;
       });
       setSelectedSurahNo(null);
     },
-    [cleared, evaluateFilledSlots, isFinished],
+    [cleared, evaluateFilledSlots, isFinished, scheduleTimeout],
   );
 
   const handleCandidateTap = (surah: EnrichedGameSurah) => {
@@ -605,12 +608,15 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   tierId,
   tempo,
   playerMode,
+  playerNames,
   tierSurahs,
   allSurahsMap,
   onHudUpdate,
   onComplete,
 }) => {
   const isDuel = playerMode === 'duel';
+  const p1Name = playerNames?.p1?.trim() || '1. Oyuncu';
+  const p2Name = playerNames?.p2?.trim() || '2. Oyuncu';
 
   const usedSingleRef = useRef<Set<number>>(new Set());
   const [singleRoundIdx, setSingleRoundIdx] = useState<number>(0);
@@ -867,7 +873,7 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
       setMovesCount((prev) => prev + 1);
       setFeaturedSurah(focusSurah);
       setFeaturedNote(
-        `${player === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} zinciri tamamladı (+${pts}p)`,
+        `${player === 'p1' ? p1Name : p2Name} zinciri tamamladı (+${pts}p)`,
       );
 
       if (player === 'p1') {
@@ -939,10 +945,12 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
       p1Correct,
       p1Done,
       p1Idx,
+      p1Name,
       p1Score,
       p2Correct,
       p2Done,
       p2Idx,
+      p2Name,
       p2Score,
       tempo,
       tierId,
@@ -956,7 +964,7 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
         <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/35 bg-black/15 p-2.5 overflow-hidden">
           <ChainBoard
             boardId="p1"
-            headerLabel="1. Oyuncu"
+            headerLabel={p1Name}
             headerScore={p1Score}
             headerAccent="teal"
             round={p1Round}
@@ -975,7 +983,7 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
         <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-hidden">
           <ChainBoard
             boardId="p2"
-            headerLabel="2. Oyuncu"
+            headerLabel={p2Name}
             headerScore={p2Score}
             headerAccent="amber"
             round={p2Round}

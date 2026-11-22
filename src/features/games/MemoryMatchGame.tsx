@@ -9,6 +9,7 @@ import {
   shuffleArray,
 } from './gameTypes';
 import { StagePromptBanner } from './StagePromptBanner';
+import { useManagedTimeouts } from './useManagedTimeouts';
 
 interface MemoryCardItem {
   id: string;
@@ -118,14 +119,18 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
   tierId,
   tempo,
   playerMode,
+  playerNames,
   tierSurahs,
   onHudUpdate,
   onComplete,
 }) => {
   const isCompact = useIsCompactViewport();
   const isDuel = playerMode === 'duel';
+  const p1Name = playerNames?.p1?.trim() || '1. Oyuncu';
+  const p2Name = playerNames?.p2?.trim() || '2. Oyuncu';
   const pairCount = isCompact ? 6 : tierId === 'kademe_1' ? 6 : 8;
   const timedLimitSec = pairCount <= 6 ? 80 : 100;
+  const { scheduleTimeout, cancelTimeout, clearAllTimeouts } = useManagedTimeouts();
 
   const deck = useMemo(
     () => buildMemoryDeck(tierSurahs, tierId, pairCount),
@@ -182,28 +187,14 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     phaseRef.current = isPreview ? 'preview' : 'playing';
   }, [isPreview]);
 
-  // SADECE bileşen unmount olduğunda kart kapatma ve bitiş zamanlayıcılarını temizle
-  useEffect(() => {
-    return () => {
-      if (mismatchTimerRef.current !== null) {
-        window.clearTimeout(mismatchTimerRef.current);
-        mismatchTimerRef.current = null;
-      }
-      if (finishTimerRef.current !== null) {
-        window.clearTimeout(finishTimerRef.current);
-        finishTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  // 2 saniyelik açılış gözlemi
+  // 2 saniyelik açılış gözlemi (unmount temizliği useManagedTimeouts tarafından yönetilir)
   useEffect(() => {
     if (previewLeft <= 0) return;
-    const timer = window.setTimeout(() => {
+    const timer = scheduleTimeout(() => {
       setPreviewLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
-    return () => window.clearTimeout(timer);
-  }, [previewLeft]);
+    return () => cancelTimeout(timer);
+  }, [cancelTimeout, previewLeft, scheduleTimeout]);
 
   const finishGame = useCallback(
     (finalStats: {
@@ -221,14 +212,9 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
       phaseRef.current = 'finished';
       isResolvingRef.current = false;
 
-      if (mismatchTimerRef.current !== null) {
-        window.clearTimeout(mismatchTimerRef.current);
-        mismatchTimerRef.current = null;
-      }
-      if (finishTimerRef.current !== null) {
-        window.clearTimeout(finishTimerRef.current);
-        finishTimerRef.current = null;
-      }
+      clearAllTimeouts();
+      mismatchTimerRef.current = null;
+      finishTimerRef.current = null;
 
       gameAudioService.playFanfare();
 
@@ -274,7 +260,7 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
           : undefined,
       });
     },
-    [isDuel, onComplete, playerMode, tempo, tierId, timedLimitSec],
+    [clearAllTimeouts, isDuel, onComplete, playerMode, tempo, tierId, timedLimitSec],
   );
 
   // Genel süre sayacı (kart kapatma zamanlayıcısından tamamen bağımsız)
@@ -478,7 +464,7 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
       setTurnRemainingSec(TURN_SECONDS);
 
       if (nextMatchedArr.length >= deck.length / 2) {
-        finishTimerRef.current = window.setTimeout(() => {
+        finishTimerRef.current = scheduleTimeout(() => {
           finishTimerRef.current = null;
           finishGame({
             score: nextScore,
@@ -506,10 +492,10 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     gameAudioService.playWrong();
 
     if (mismatchTimerRef.current !== null) {
-      window.clearTimeout(mismatchTimerRef.current);
+      cancelTimeout(mismatchTimerRef.current);
     }
 
-    mismatchTimerRef.current = window.setTimeout(() => {
+    mismatchTimerRef.current = scheduleTimeout(() => {
       mismatchTimerRef.current = null;
       flippedIdsRef.current = [];
       isResolvingRef.current = false;
@@ -540,7 +526,7 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
           isPreview
             ? 'Kartların yerini aklınızda tutun, birazdan kapanacaklar...'
             : isDuel
-              ? `${activePlayer === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} sırada — iki kart çevirip sureyi künyesiyle eşleştirin`
+              ? `${activePlayer === 'p1' ? p1Name : p2Name} sırada — iki kart çevirip sureyi künyesiyle eşleştirin`
               : 'İki kart çevirerek sureyi anlamı veya özel grup künyesiyle eşleştirin'
         }
         progressBadge={`${matchedPairIds.length}/${deck.length / 2} Eşleşme`}

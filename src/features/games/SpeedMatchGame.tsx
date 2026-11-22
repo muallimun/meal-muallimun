@@ -9,6 +9,7 @@ import {
   shuffleArray,
 } from './gameTypes';
 import { StagePromptBanner } from './StagePromptBanner';
+import { useManagedTimeouts } from './useManagedTimeouts';
 
 interface SpeedFactCard {
   surahNo: number;
@@ -123,14 +124,16 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
   const [matchedNos, setMatchedNos] = useState<number[]>([]);
   const [wrongPair, setWrongPair] = useState<{ left: number; right: number } | null>(null);
   const [justMatchedNo, setJustMatchedNo] = useState<number | null>(null);
+  const { scheduleTimeout, clearAllTimeouts } = useManagedTimeouts();
 
   useEffect(() => {
+    clearAllTimeouts();
     setSelectedLeft(null);
     setSelectedRight(null);
     setMatchedNos([]);
     setWrongPair(null);
     setJustMatchedNo(null);
-  }, [wave]);
+  }, [clearAllTimeouts, wave]);
 
   const surahByNo = useMemo(() => {
     const map = new Map<number, EnrichedGameSurah>();
@@ -150,10 +153,10 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
         const surah = surahByNo.get(leftNo);
         if (surah) onMatchCorrect(surah);
 
-        window.setTimeout(() => setJustMatchedNo(null), 320);
+        scheduleTimeout(() => setJustMatchedNo(null), 320);
 
         if (nextMatched.length >= wave.leftSurahs.length) {
-          window.setTimeout(() => {
+          scheduleTimeout(() => {
             onWaveCleared();
           }, 340);
         }
@@ -162,14 +165,14 @@ const SpeedBoard: React.FC<SpeedBoardProps> = ({
         const leftSurah = surahByNo.get(leftNo);
         if (leftSurah) onMatchWrong(leftSurah);
 
-        window.setTimeout(() => {
+        scheduleTimeout(() => {
           setWrongPair(null);
           setSelectedLeft(null);
           setSelectedRight(null);
         }, 380);
       }
     },
-    [matchedNos, onMatchCorrect, onMatchWrong, onWaveCleared, surahByNo, wave.leftSurahs.length],
+    [matchedNos, onMatchCorrect, onMatchWrong, onWaveCleared, scheduleTimeout, surahByNo, wave.leftSurahs.length],
   );
 
   const handleLeftTap = (surahNo: number) => {
@@ -375,12 +378,25 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
   tierId,
   tempo,
   playerMode,
+  playerNames,
   tierSurahs,
   onHudUpdate,
   onComplete,
 }) => {
   const isDuel = playerMode === 'duel';
-  const isDesktopSingle = !isDuel && typeof window !== 'undefined' && window.innerWidth >= 768;
+  const p1Name = playerNames?.p1?.trim() || '1. Oyuncu';
+  const p2Name = playerNames?.p2?.trim() || '2. Oyuncu';
+  const [isMdViewport, setIsMdViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true,
+  );
+
+  useEffect(() => {
+    const onResize = () => setIsMdViewport(window.innerWidth >= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const isDesktopSingle = !isDuel && isMdViewport;
   const pairCount = isDesktopSingle ? 5 : 4;
 
   const [waveIdx, setWaveIdx] = useState<number>(0);
@@ -626,19 +642,22 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
     waveIdx,
   ]);
 
-  const handleDuelCorrect = useCallback((player: 'p1' | 'p2', surah: EnrichedGameSurah) => {
-    gameAudioService.playMatch(2);
-    setMovesCount((prev) => prev + 1);
-    setFeaturedSurah(surah);
-    setFeaturedNote(`${player === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} eşleştirdi (+10p)`);
-    if (player === 'p1') {
-      setP1Score((prev) => prev + 10);
-      setP1Correct((prev) => prev + 1);
-    } else {
-      setP2Score((prev) => prev + 10);
-      setP2Correct((prev) => prev + 1);
-    }
-  }, []);
+  const handleDuelCorrect = useCallback(
+    (player: 'p1' | 'p2', surah: EnrichedGameSurah) => {
+      gameAudioService.playMatch(2);
+      setMovesCount((prev) => prev + 1);
+      setFeaturedSurah(surah);
+      setFeaturedNote(`${player === 'p1' ? p1Name : p2Name} eşleştirdi (+10p)`);
+      if (player === 'p1') {
+        setP1Score((prev) => prev + 10);
+        setP1Correct((prev) => prev + 1);
+      } else {
+        setP2Score((prev) => prev + 10);
+        setP2Correct((prev) => prev + 1);
+      }
+    },
+    [p1Name, p2Name],
+  );
 
   const handleDuelWaveCleared = useCallback(
     (player: 'p1' | 'p2') => {
@@ -718,7 +737,7 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto md:overflow-hidden">
         <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/35 bg-black/15 p-2.5 overflow-hidden">
           <SpeedBoard
-            headerLabel="1. Oyuncu"
+            headerLabel={p1Name}
             headerScore={p1Score}
             headerAccent="teal"
             ownerTag="P1"
@@ -738,7 +757,7 @@ export const SpeedMatchGame: React.FC<GameComponentProps> = ({
 
         <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-hidden">
           <SpeedBoard
-            headerLabel="2. Oyuncu"
+            headerLabel={p2Name}
             headerScore={p2Score}
             headerAccent="amber"
             ownerTag="P2"

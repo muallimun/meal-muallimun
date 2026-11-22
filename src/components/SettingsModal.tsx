@@ -1283,17 +1283,30 @@ export const SettingsModal: React.FC = () => {
                   borderColor: 'var(--border-subtle)',
                 }}
               >
-                <div className="flex items-center justify-between text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                <div className="flex items-center justify-between gap-2 text-[11px] font-bold flex-wrap" style={{ color: 'var(--text-muted)' }}>
                   <span className="flex items-center gap-1.5">
                     <Eye className="w-3.5 h-3.5" />
                     Canlı Önizleme
+                    {settings.tajweedEnabled && (
+                      <span
+                        className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold"
+                        style={{
+                          backgroundColor: 'var(--brand-accent-soft)',
+                          color: 'var(--brand-accent-text)',
+                        }}
+                      >
+                        Renkli Tecvit Açık · Scheherazade New
+                      </span>
+                    )}
                   </span>
                   <span className="tabular-nums">
                     AR {settings.arabicFontSize}px · TR {settings.turkishFontSize}px
                   </span>
                 </div>
                 <p
-                  className="arabic-text text-right"
+                  dir="rtl"
+                  lang="ar"
+                  className={`${settings.tajweedEnabled ? 'arabic-tajweed' : 'arabic-text'} text-right`}
                   style={{ fontSize: `${settings.arabicFontSize}px`, color: 'var(--text-primary)' }}
                 >
                   إِنَّمَا الْمُؤْمِنُونَ إِخْوَةٌ فَأَصْلِحُوا بَيْنَ أَخَوَيْكُمْ
@@ -1393,6 +1406,40 @@ export const SettingsModal: React.FC = () => {
 
               {/* Arapça Hat Seçici (9 Hat) */}
               <section className="space-y-2.5">
+                {settings.tajweedEnabled && (
+                  <div
+                    className="p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      borderColor: 'rgba(217, 119, 6, 0.35)',
+                    }}
+                  >
+                    <p
+                      className="text-xs leading-relaxed font-medium"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      Renkli Tecvit açıkken hareke ve tecvit uyumu için{' '}
+                      <strong>Scheherazade New</strong> hattı kullanılır. Seçtiğiniz Mushaf hattını
+                      uygulamak için Renkli Tecvit&apos;i kapatabilirsiniz.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateSettings({ tajweedEnabled: false });
+                      }}
+                      className="min-h-[34px] px-3 rounded-lg border text-xs font-extrabold whitespace-nowrap shrink-0 cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--brand-accent)',
+                        color: 'var(--brand-accent-text)',
+                      }}
+                    >
+                      Tecviti Kapat
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     Arapça Mushaf Hattı (9 Font)

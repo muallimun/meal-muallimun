@@ -443,7 +443,7 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
       }}
     >
       <div
-        className="w-full sm:max-w-2xl max-h-[92vh] sm:rounded-2xl rounded-t-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-2xl max-h-[92dvh] sm:rounded-2xl rounded-t-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',

@@ -61,12 +61,21 @@ export const PrintableFihristModal: React.FC<PrintableFihristModalProps> = ({
 
   useBackButtonGuard('printable_fihrist_modal', isOpen, onClose);
 
-  // Yazdırma penceresi açıkken mevcut @media print body sınıfını ve kaydırma kilidini etkinleştir
+  // Yazdırma penceresi açıkken @media print body sınıfını beforeprint/afterprint ve unmount ile güvenle yönet
   useEffect(() => {
     if (!isOpen) return;
     const releaseScrollLock = acquireBodyScrollLock();
-    document.body.classList.add('print-exam-active');
+    const handleBeforePrint = () => {
+      document.body.classList.add('print-exam-active');
+    };
+    const handleAfterPrint = () => {
+      document.body.classList.remove('print-exam-active');
+    };
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
     return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
       document.body.classList.remove('print-exam-active');
       releaseScrollLock();
     };
@@ -146,6 +155,7 @@ export const PrintableFihristModal: React.FC<PrintableFihristModalProps> = ({
 
   const handlePrint = () => {
     sfxService.play('click');
+    document.body.classList.add('print-exam-active');
     window.print();
   };
 
@@ -408,6 +418,9 @@ export const PrintableFihristModal: React.FC<PrintableFihristModalProps> = ({
                 <span>Kişisel Notları Dahil Et</span>
               </label>
             )}
+            <p className="w-full text-[11px] leading-snug" style={{ color: 'var(--text-muted)' }}>
+              İpucu: Yazdırma ekranında hedef olarak &apos;PDF Olarak Kaydet&apos; seçerek belgeyi PDF dosyası halinde indirebilirsiniz.
+            </p>
           </div>
 
           {/* Canlı A4 Önizleme */}

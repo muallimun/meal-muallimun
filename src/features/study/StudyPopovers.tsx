@@ -93,12 +93,12 @@ export const WaqfPopoverHost: React.FC = () => {
           <span
             dir="rtl"
             lang="ar"
-            className="w-9 h-9 rounded-xl border flex items-center justify-center font-arabic text-lg font-bold leading-none shrink-0"
+            className="waqf-mark-color w-9 h-9 rounded-xl border flex items-center justify-center font-arabic text-lg font-bold leading-none shrink-0"
             style={{
               backgroundColor: `${sign.color}18`,
               borderColor: `${sign.color}45`,
-              color: sign.color,
-            }}
+              '--waqf-color': sign.color,
+            } as React.CSSProperties}
           >
             {sign.sign}
           </span>
@@ -107,11 +107,11 @@ export const WaqfPopoverHost: React.FC = () => {
               {sign.nameTr}
             </h4>
             <span
-              className="inline-flex items-center px-1.5 py-0.5 mt-0.5 rounded-md text-[10px] font-extrabold"
+              className="waqf-mark-color inline-flex items-center px-1.5 py-0.5 mt-0.5 rounded-md text-[10px] font-extrabold"
               style={{
                 backgroundColor: `${sign.color}18`,
-                color: sign.color,
-              }}
+                '--waqf-color': sign.color,
+              } as React.CSSProperties}
             >
               {sign.actionTr}
             </span>

@@ -173,6 +173,7 @@ export const StudyPage: React.FC = () => {
   const [reloadNonce, setReloadNonce] = useState(0);
   const lastSyncedAudioAyahRef = useRef<number | null>(null);
   const lastScrolledAudioAyahRef = useRef<number | null>(null);
+  const autoScrollRafRef = useRef<number | null>(null);
 
   // Yeni Sade Arayüz Popover & Çekmece Durumları
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
@@ -462,7 +463,11 @@ export const StudyPage: React.FC = () => {
           if (!isDesktopDualSpread) {
             const targetId = onThisPage.id;
             const layout = studyPrefs.pageLayout;
-            window.requestAnimationFrame(() => {
+            if (autoScrollRafRef.current !== null) {
+              window.cancelAnimationFrame(autoScrollRafRef.current);
+            }
+            autoScrollRafRef.current = window.requestAnimationFrame(() => {
+              autoScrollRafRef.current = null;
               if (layout === 'meal_only') {
                 const mealEl = document.querySelector<HTMLElement>(
                   `[data-meal-ayahs~="${targetId}"]`,
@@ -507,7 +512,11 @@ export const StudyPage: React.FC = () => {
           lastScrolledAudioAyahRef.current = inThisSurah.id;
           const elId =
             viewMode === 'book' ? `book-ayah-${inThisSurah.id}` : `verse-card-${inThisSurah.id}`;
-          window.requestAnimationFrame(() => {
+          if (autoScrollRafRef.current !== null) {
+            window.cancelAnimationFrame(autoScrollRafRef.current);
+          }
+          autoScrollRafRef.current = window.requestAnimationFrame(() => {
+            autoScrollRafRef.current = null;
             const el = document.getElementById(elId);
             el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           });
@@ -528,6 +537,13 @@ export const StudyPage: React.FC = () => {
         setSelectedAyahId(audioState.currentAyahId);
       }
     }
+
+    return () => {
+      if (autoScrollRafRef.current !== null) {
+        window.cancelAnimationFrame(autoScrollRafRef.current);
+        autoScrollRafRef.current = null;
+      }
+    };
   }, [
     audioState.currentAyahId,
     audioState.currentPage,
@@ -948,7 +964,7 @@ export const StudyPage: React.FC = () => {
 
         {isViewPopoverOpen && (
           <div
-            className="absolute right-0 top-11 z-50 w-[320px] max-w-[calc(100vw-1.5rem)] max-h-[82vh] overflow-y-auto rounded-2xl border shadow-2xl p-3.5 space-y-3.5 text-left"
+            className="absolute right-0 top-11 z-50 w-[320px] max-w-[calc(100vw-1.5rem)] max-h-[82dvh] overflow-y-auto rounded-2xl border shadow-2xl p-3.5 space-y-3.5 text-left"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-strong)',

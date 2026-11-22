@@ -255,6 +255,9 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
               <strong style={{ color: 'var(--text-primary)' }}>27. Neml:</strong> İki Besmeleli tek sure (başında ve 30. ayette)
             </span>
           </div>
+          <p className="text-[11px] leading-snug" style={{ color: 'var(--text-muted)' }}>
+            Bu 15 grup üç pedagojik tasnif ölçütü altında derlenmiştir: <strong style={{ color: 'var(--text-secondary)' }}>Hurûf-u Mukattaa</strong>, <strong style={{ color: 'var(--text-secondary)' }}>Sure Başlangıç İfadeleri</strong> ve <strong style={{ color: 'var(--text-secondary)' }}>Tematik İsim / Secde Özellikleri</strong>.
+          </p>
         </div>
 
         {/* 15 Grup Kartları Listesi */}

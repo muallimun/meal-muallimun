@@ -179,7 +179,7 @@ export const MealSelectorModal: React.FC = () => {
       onClick={closeMealSelector}
     >
       <div
-        className="w-full sm:max-w-2xl max-h-[90dvh] sm:max-h-[86vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-2xl max-h-[90dvh] sm:max-h-[86dvh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',

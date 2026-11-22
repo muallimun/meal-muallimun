@@ -137,6 +137,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     updateSettings,
     audioPrefs,
     updateAudioPrefs,
+    meta,
     manifest,
     isReciterSelectorOpen,
     openReciterSelector,
@@ -322,8 +323,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const showBesmele = Boolean(
     displayedVerse &&
       displayedVerse.ayah === 1 &&
-      displayedVerse.surah !== 1 &&
-      displayedVerse.surah !== 9,
+      !(meta?.besmele?.excludeSurahs ?? besmele?.excludeSurahs ?? [1, 9]).includes(
+        displayedVerse.surah,
+      ),
   );
   const isSajdah = Boolean(
     displayedVerse &&
@@ -615,7 +617,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         </div>
 
         {/* Sağ: Renkli Tecvit + Kelime Takibi + ⚙ Görünüm & Ses Popover + Tam Ekran + Çıkış */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Hızlı Kontrol 1: Renkli Tecvit */}
           <button
             type="button"
@@ -627,7 +629,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               sfxService.play('click');
               updateSettings({ tajweedEnabled: !settings.tajweedEnabled });
             }}
-            className="min-w-[36px] min-h-[36px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            className="min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
             style={{
               borderColor: settings.tajweedEnabled ? palette.accent : palette.border,
               backgroundColor: settings.tajweedEnabled ? palette.accentSoft : 'transparent',
@@ -649,7 +651,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               sfxService.play('click');
               updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
             }}
-            className="min-w-[36px] min-h-[36px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            className="min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
             style={{
               borderColor: settings.wordSyncEnabled ? palette.accent : palette.border,
               backgroundColor: settings.wordSyncEnabled ? palette.accentSoft : 'transparent',
@@ -669,7 +671,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               }}
               aria-expanded={isSettingsPopoverOpen}
               aria-label="Görünüm ve ses ayarları"
-              className="min-h-[36px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="min-w-[40px] min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
               style={{
                 borderColor: isSettingsPopoverOpen ? palette.accent : palette.border,
                 backgroundColor: isSettingsPopoverOpen ? palette.accentSoft : 'rgba(0,0,0,0.14)',
@@ -691,7 +693,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                 <div
                   role="dialog"
                   aria-label="Görünüm ve ses ayarları"
-                  className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl max-h-[82vh] overflow-y-auto p-4 pb-6 border-t shadow-2xl space-y-3.5 text-left md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-11 md:w-[320px] md:max-w-[calc(100vw-2rem)] md:max-h-[80vh] md:rounded-2xl md:border md:p-3.5"
+                  className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl max-h-[82dvh] overflow-y-auto p-4 pb-6 border-t shadow-2xl space-y-3.5 text-left md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-11 md:w-[320px] md:max-w-[calc(100vw-2rem)] md:max-h-[80dvh] md:rounded-2xl md:border md:p-3.5"
                   style={{
                     backgroundColor: palette.bg,
                     borderColor: palette.border,
@@ -889,7 +891,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             onClick={handleToggleFullscreen}
             title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
             aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
-            className="min-w-[36px] min-h-[36px] rounded-xl border flex items-center justify-center cursor-pointer"
+            className="min-w-[40px] min-h-[40px] rounded-xl border flex items-center justify-center cursor-pointer touch-manipulation"
             style={{
               borderColor: isFullscreen ? palette.accent : palette.border,
               backgroundColor: isFullscreen ? palette.accentSoft : 'transparent',
@@ -906,7 +908,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               sfxService.play('click');
               onClose();
             }}
-            className="min-h-[36px] px-2.5 sm:px-3 rounded-xl border font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            className="min-w-[40px] min-h-[40px] px-2.5 sm:px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation"
             style={{
               borderColor: palette.border,
               backgroundColor: 'rgba(239, 68, 68, 0.14)',

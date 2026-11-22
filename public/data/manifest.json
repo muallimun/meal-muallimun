@@ -147,6 +147,18 @@
       "filePattern": "compact",
       "ext": "mp3"
     },
+    "ayman_suwaid": {
+      "id": "ayman_suwaid",
+      "kind": "ar",
+      "category": "talim",
+      "label": "Dr. Eymen Süveyd (Tecvit & Mahreç Talimi)",
+      "shortLabel": "Dr. Eymen Süveyd",
+      "styleLabel": "Tecvit & Mahreç",
+      "bitrate": "64 kbps",
+      "baseUrl": "https://everyayah.com/data/Ayman_Sowaid_64kbps",
+      "filePattern": "compact",
+      "ext": "mp3"
+    },
     "abdul_basit_mujawwad": {
       "id": "abdul_basit_mujawwad",
       "kind": "ar",

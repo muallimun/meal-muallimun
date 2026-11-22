@@ -70,6 +70,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     setActiveTab,
     gamification,
     studyPrefs,
+    studyPool,
+    setStudyPool,
     studyProgress,
     poolStats,
     openPoolModal,
@@ -326,9 +328,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               <div className="px-2 mb-1.5 flex items-center justify-between">
                 <span
                   className="text-[11px] font-semibold"
-                  style={{ color: 'var(--text-muted)' }}
+                  style={{
+                    color: studyPool.isCustomized
+                      ? 'var(--text-muted)'
+                      : 'var(--brand-accent-text)',
+                  }}
                 >
-                  Aktif Çalışma Havuzu
+                  {studyPool.isCustomized
+                    ? 'Aktif Çalışma Havuzu'
+                    : `Önerilen Başlangıç Havuzu (${formatNumberTr(poolStats.surahCount)} Sure)`}
                 </span>
               </div>
               <button
@@ -364,6 +372,27 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   {formatNumberTr(poolStats.questionCount)} Soru
                 </p>
               </button>
+
+              {!studyPool.isCustomized && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setStudyPool({
+                      selectedSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+                      selectedJuzs: [],
+                    });
+                  }}
+                  className="mt-1.5 w-full min-h-[34px] px-2.5 py-1.5 rounded-xl border text-[11px] font-extrabold text-center transition-colors cursor-pointer hover:opacity-90"
+                  style={{
+                    backgroundColor: 'var(--brand-primary-soft)',
+                    borderColor: 'var(--brand-primary)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  Tüm Kur&apos;an&apos;a Genişlet (114 Sure)
+                </button>
+              )}
             </div>
           </nav>
 
@@ -605,15 +634,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               }
             />
 
-            {/* Sağ Global Araçlar: Tüm sekmelerde kompakt w-9 h-9 ikon butonları */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            {/* Sağ Global Araçlar: Tüm sekmelerde 40px dokunma hedefli ikon butonları */}
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* 1. Hızlı Arama Tetikleyicisi (Ctrl+K) — Yalnızca İkon */}
               <button
                 type="button"
                 onClick={openSearchModal}
                 title="Hızlı Ara (Ctrl+K)"
                 aria-label="Hızlı Ara (Ctrl+K)"
-                className="w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50"
+                className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -633,7 +662,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                     : 'Sayfa Ayraçlarım'
                 }
                 aria-label="Sayfa Ayraçlarım"
-                className="relative w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer"
+                className="relative min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
                 style={{
                   backgroundColor:
                     bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
@@ -647,9 +676,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 />
                 {bookmarkCount > 0 && (
                   <span
-                    className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-extrabold tabular-nums flex items-center justify-center text-white leading-none pointer-events-none"
+                    className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-extrabold tabular-nums flex items-center justify-center text-white dark:text-[#0b1314] leading-none pointer-events-none"
                     style={{
-                      backgroundColor: 'var(--brand-accent)',
+                      backgroundColor: 'var(--brand-accent-text)',
                       boxShadow: '0 0 0 1.5px var(--bg-nav)',
                     }}
                   >
@@ -662,7 +691,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               {!isReaderTab && (
                 <>
                   <div
-                    className="hidden sm:flex h-9 px-2 rounded-xl items-center gap-1 text-xs font-bold tabular-nums"
+                    className="hidden sm:flex h-10 px-2 rounded-xl items-center gap-1 text-xs font-bold tabular-nums"
                     style={{
                       backgroundColor: 'var(--brand-accent-soft)',
                       color: 'var(--brand-accent-text)',
@@ -676,7 +705,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   </div>
 
                   <div
-                    className="h-9 px-2 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
+                    className="h-10 px-2 rounded-xl flex items-center gap-1 text-xs font-bold tabular-nums"
                     style={{
                       backgroundColor: 'var(--brand-primary-soft)',
                       color: 'var(--brand-primary-text)',
@@ -697,7 +726,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 onClick={handleToggleFullscreen}
                 title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
                 aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
-                className="hidden sm:flex w-9 h-9 rounded-xl items-center justify-center border transition-colors cursor-pointer"
+                className="hidden sm:flex min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl items-center justify-center border transition-colors cursor-pointer touch-manipulation"
                 style={{
                   backgroundColor: isFullscreen
                     ? 'var(--brand-primary-soft)'
@@ -719,7 +748,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 onClick={openSettingsModal}
                 title="Görünüm ve Ayarlar"
                 aria-label="Ayarları aç"
-                className="w-9 h-9 rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',

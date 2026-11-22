@@ -37,6 +37,7 @@ import type {
   GameHudUpdate,
   GameId,
   GamePlayerMode,
+  GamePlayerNames,
   GameTempo,
   GameTierId,
 } from './gameTypes';
@@ -52,6 +53,8 @@ interface GameArenaShellProps {
   tierId: GameTierId;
   tempo: GameTempo;
   playerMode: GamePlayerMode;
+  playerNames?: GamePlayerNames;
+  rawPlayerNames?: GamePlayerNames;
   focusGroupTitle?: string | null;
   isMuted: boolean;
   isSummaryOpen: boolean;
@@ -64,6 +67,7 @@ interface GameArenaShellProps {
     tempo?: GameTempo;
     playerMode?: GamePlayerMode;
   }) => void;
+  onChangePlayerNames?: (names: GamePlayerNames) => void;
   onClose: () => void;
   children: React.ReactNode;
 }
@@ -93,6 +97,8 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   tierId,
   tempo,
   playerMode,
+  playerNames,
+  rawPlayerNames,
   focusGroupTitle,
   isMuted,
   isSummaryOpen,
@@ -101,6 +107,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   onToggleMute,
   onRestart,
   onChangeConfig,
+  onChangePlayerNames,
   onClose,
   children,
 }) => {
@@ -167,6 +174,14 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
 
   const modeLabel = playerMode === 'duel' ? '2 Oyuncu' : 'Tek Oyuncu';
   const tempoLabel = tempo === 'timed' ? 'Zaman Yarışı' : 'Sakin Mod';
+  const p1Name = playerNames?.p1?.trim() || '1. Oyuncu';
+  const p2Name = playerNames?.p2?.trim() || '2. Oyuncu';
+  const p1MobileTag = playerNames?.p1 && playerNames.p1.trim() !== '1. Oyuncu' ? playerNames.p1.trim() : '1.O';
+  const p2MobileTag = playerNames?.p2 && playerNames.p2.trim() !== '2. Oyuncu' ? playerNames.p2.trim() : '2.O';
+  const formatPlayerText = (text?: string) => {
+    if (!text) return '';
+    return text.replace(/1\. Oyuncu/g, p1Name).replace(/2\. Oyuncu/g, p2Name);
+  };
 
   // Dairesel SVG geri sayım halkası hesabı (kompakt konsol için)
   const hasTurnRing =
@@ -266,7 +281,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
               color: 'var(--brand-accent-text)',
             }}
           >
-            {hud.featuredNote}
+            {formatPlayerText(hud.featuredNote)}
           </div>
         )}
 
@@ -637,7 +652,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
           ) : (
             <div className="flex items-center gap-1 min-w-0">
               <span
-                className="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border"
+                className="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border inline-flex items-center gap-1 max-w-[116px]"
                 style={{
                   backgroundColor:
                     hud.activeTurn === 'p1' ? 'rgba(13, 148, 136, 0.14)' : 'var(--bg-surface)',
@@ -646,10 +661,11 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                   color: 'var(--text-primary)',
                 }}
               >
-                1.O: {hud.p1Score}p
+                <span className="truncate">{p1MobileTag}:</span>
+                <span className="shrink-0">{hud.p1Score}p</span>
               </span>
               <span
-                className="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border"
+                className="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums border inline-flex items-center gap-1 max-w-[116px]"
                 style={{
                   backgroundColor:
                     hud.activeTurn === 'p2' ? 'rgba(217, 119, 6, 0.14)' : 'var(--bg-surface)',
@@ -658,7 +674,8 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                   color: 'var(--text-primary)',
                 }}
               >
-                2.O: {hud.p2Score}p
+                <span className="truncate">{p2MobileTag}:</span>
+                <span className="shrink-0">{hud.p2Score}p</span>
               </span>
             </div>
           )}
@@ -786,7 +803,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                           className="text-[11px] font-extrabold truncate"
                           style={{ color: 'var(--brand-primary-text)' }}
                         >
-                          1. Oyuncu
+                          {p1Name}
                         </span>
                         <User className="w-3 h-3 shrink-0" style={{ color: '#0F766E' }} />
                       </div>
@@ -829,7 +846,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                           className="text-[11px] font-extrabold truncate"
                           style={{ color: 'var(--brand-accent-text)' }}
                         >
-                          2. Oyuncu
+                          {p2Name}
                         </span>
                         <Users className="w-3 h-3 shrink-0" style={{ color: '#D97706' }} />
                       </div>
@@ -957,7 +974,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                         : 'var(--brand-primary-text)',
                   }}
                 >
-                  {hud.statusMessage}
+                  {formatPlayerText(hud.statusMessage)}
                 </div>
               </div>
 
@@ -1037,7 +1054,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
             >
               {featuredSurah
                 ? `${featuredSurah.no}. ${featuredSurah.shortNameTr} · ${featuredSurah.meaningTr} · ${featuredSurah.ayahCount} Ayet`
-                : hud.roundContextTitle || hud.statusMessage}
+                : hud.roundContextTitle || formatPlayerText(hud.statusMessage)}
             </span>
           </button>
 
@@ -1280,6 +1297,48 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
                   </button>
                 ))}
               </div>
+              {playerMode === 'duel' && onChangePlayerNames && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1.5">
+                  <input
+                    type="text"
+                    maxLength={20}
+                    value={rawPlayerNames?.p1 ?? ''}
+                    onChange={(e) =>
+                      onChangePlayerNames({
+                        p1: e.target.value,
+                        p2: rawPlayerNames?.p2 ?? '',
+                      })
+                    }
+                    placeholder="1. Oyuncu (isteğe bağlı)"
+                    aria-label="1. Oyuncu adı"
+                    className="w-full min-h-[38px] px-3 rounded-xl border text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500/35"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                    }}
+                  />
+                  <input
+                    type="text"
+                    maxLength={20}
+                    value={rawPlayerNames?.p2 ?? ''}
+                    onChange={(e) =>
+                      onChangePlayerNames({
+                        p1: rawPlayerNames?.p1 ?? '',
+                        p2: e.target.value,
+                      })
+                    }
+                    placeholder="2. Oyuncu (isteğe bağlı)"
+                    aria-label="2. Oyuncu adı"
+                    className="w-full min-h-[38px] px-3 rounded-xl border text-xs font-semibold outline-none focus:ring-2 focus:ring-amber-500/35"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Tempo */}

@@ -22,6 +22,7 @@ import {
   explainWhyNotInGroup,
 } from './surahSpecialGroups';
 import { StagePromptBanner } from './StagePromptBanner';
+import { useManagedTimeouts } from './useManagedTimeouts';
 
 type FamilyRoundKind = 'odd_one_out' | 'find_member' | 'chest_sort';
 
@@ -289,6 +290,7 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
 
   const mistakenMapRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
   const finishedRef = useRef<boolean>(false);
+  const { scheduleTimeout } = useManagedTimeouts();
 
   const finishGame = useCallback(
     (stats: {
@@ -463,10 +465,10 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
         setQuizSolved({ actor, pickedNo: option.no, isCorrect: false });
         setFeaturedSurah(correctSurah);
         setFeaturedNote(round.explanation);
-        window.setTimeout(() => setWrongOptionNo(null), 500);
+        scheduleTimeout(() => setWrongOptionNo(null), 500);
       }
     },
-    [combo, quizSolved, round],
+    [combo, quizSolved, round, scheduleTimeout],
   );
 
   // Sandığa yerleştirme kontrolü (Type C)
@@ -507,7 +509,7 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
         }
 
         if (Object.keys(nextMap).length >= round.items.length) {
-          window.setTimeout(() => {
+          scheduleTimeout(() => {
             advanceRound();
           }, 680);
         }
@@ -520,10 +522,10 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
         const wrongGroup = SURAH_GROUP_BY_ID[chestGroupId];
         setFeaturedSurah(item.surah);
         setFeaturedNote(explainWhyNotInGroup(item.surah.no, item.surah.shortNameTr, wrongGroup));
-        window.setTimeout(() => setWrongChestId(null), 480);
+        scheduleTimeout(() => setWrongChestId(null), 480);
       }
     },
-    [activePlayer, advanceRound, combo, isDuel, round, sortedMap],
+    [activePlayer, advanceRound, combo, isDuel, round, scheduleTimeout, sortedMap],
   );
 
   // Pointer Sürükle-Bırak (Type C)

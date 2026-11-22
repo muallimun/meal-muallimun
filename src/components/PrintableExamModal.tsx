@@ -522,12 +522,17 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
     backGuardNonce,
   );
 
-  // Body sınıfı & klavye Escape yönetimi
+  // Yazdırma sınıfı (beforeprint/afterprint korumalı) & klavye Escape yönetimi
   useEffect(() => {
     if (!isOpen) return;
-    document.body.classList.add('print-exam-active');
     const releaseScrollLock = acquireBodyScrollLock();
 
+    const onBeforePrint = () => {
+      document.body.classList.add('print-exam-active');
+    };
+    const onAfterPrint = () => {
+      document.body.classList.remove('print-exam-active');
+    };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isMobileSettingsOpen) {
@@ -537,11 +542,16 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
         }
       }
     };
+
+    window.addEventListener('beforeprint', onBeforePrint);
+    window.addEventListener('afterprint', onAfterPrint);
     window.addEventListener('keydown', onKeyDown);
 
     return () => {
       document.body.classList.remove('print-exam-active');
       releaseScrollLock();
+      window.removeEventListener('beforeprint', onBeforePrint);
+      window.removeEventListener('afterprint', onAfterPrint);
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [isOpen, isMobileSettingsOpen, onClose]);
@@ -768,6 +778,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   const handlePrint = useCallback(() => {
     if (preparedQuestions.length === 0) return;
     sfxService.play('click');
+    document.body.classList.add('print-exam-active');
     window.print();
   }, [preparedQuestions.length]);
 
@@ -1370,6 +1381,19 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
           </span>
         </button>
       </div>
+
+      {/* PDF Kaydetme İpucu */}
+      <div
+        className="rounded-xl border px-3 py-2.5 text-[11px] leading-relaxed"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-subtle)',
+          color: 'var(--text-secondary)',
+        }}
+      >
+        <strong style={{ color: 'var(--brand-primary-text)' }}>İpucu:</strong> Yazdırma ekranında hedef olarak{' '}
+        <strong style={{ color: 'var(--text-primary)' }}>&quot;PDF Olarak Kaydet&quot;</strong> seçerek sınavı PDF dosyası halinde indirebilirsiniz.
+      </div>
     </div>
   );
 
@@ -1391,7 +1415,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
         />
 
         <div
-          className="relative z-10 w-full lg:max-w-6xl h-[96dvh] lg:h-[90vh] rounded-t-3xl lg:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
+          className="relative z-10 w-full lg:max-w-6xl h-[96dvh] lg:h-[90dvh] rounded-t-3xl lg:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderColor: 'var(--border-subtle)',

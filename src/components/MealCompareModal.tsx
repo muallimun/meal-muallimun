@@ -326,7 +326,7 @@ export const MealCompareModal: React.FC = () => {
       onClick={closeMealCompare}
     >
       <div
-        className="w-full sm:max-w-4xl h-[94dvh] sm:h-[90vh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-4xl h-[94dvh] sm:h-[90dvh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',

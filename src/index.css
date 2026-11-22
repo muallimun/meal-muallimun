@@ -108,14 +108,14 @@
   --border-strong: #c2d4d2;
   --text-primary: #0f201e;
   --text-secondary: #3f5754;
-  --text-muted: #5d7471;
+  --text-muted: #506764;
   --brand-primary: #0f766e;
   --brand-primary-hover: #0d665f;
   --brand-primary-soft: #e6f4f2;
   --brand-primary-text: #0f766e;
   --brand-accent: #d97706;
   --brand-accent-soft: #fef3c7;
-  --brand-accent-text: #b45309;
+  --brand-accent-text: #9a4406;
   --state-success: #10b981;
   --state-danger: #ef4444;
   --shadow-card: 0 1px 2px rgba(15, 32, 30, 0.04), 0 4px 16px rgba(15, 32, 30, 0.04);
@@ -133,14 +133,14 @@
   --border-strong: #d4c6ab;
   --text-primary: #1f1b14;
   --text-secondary: #4c4334;
-  --text-muted: #6c614f;
+  --text-muted: #5d5240;
   --brand-primary: #0f766e;
   --brand-primary-hover: #0b5e57;
   --brand-primary-soft: #e5f2ef;
   --brand-primary-text: #0f766e;
   --brand-accent: #d97706;
   --brand-accent-soft: #faecd1;
-  --brand-accent-text: #a15407;
+  --brand-accent-text: #924806;
   --state-success: #10b981;
   --state-danger: #ef4444;
   --shadow-card: 0 1px 2px rgba(56, 42, 20, 0.04), 0 6px 20px rgba(56, 42, 20, 0.05);
@@ -158,8 +158,8 @@
   --text-primary: #f1f6f5;
   --text-secondary: #bfd0ce;
   --text-muted: #8ea7a4;
-  --brand-primary: #0d9488;
-  --brand-primary-hover: #14b8a6;
+  --brand-primary: #0f766e;
+  --brand-primary-hover: #0d9488;
   --brand-primary-soft: rgba(13, 148, 136, 0.16);
   --brand-primary-text: #2dd4bf;
   --brand-accent: #f59e0b;
@@ -208,6 +208,8 @@
   direction: rtl;
   unicode-bidi: isolate;
   line-height: 2.05;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-feature-settings: "liga" 1, "calt" 1, "mark" 1, "mkmk" 1;
 }
 
@@ -217,8 +219,20 @@
   direction: rtl;
   unicode-bidi: isolate;
   line-height: 2.15;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   font-feature-settings: "liga" 1, "calt" 1, "mark" 1, "mkmk" 1, "ccmp" 1;
   text-rendering: optimizeLegibility;
+}
+
+/* Secâvend Vakıf İşaretleri — Koyu Temada WCAG AA Kontrast Güçlendirmesi */
+.waqf-mark-color {
+  color: var(--waqf-color);
+}
+
+[data-theme="dark"] .waqf-mark-color,
+.dark .waqf-mark-color {
+  color: color-mix(in srgb, var(--waqf-color) 64%, #ffffff);
 }
 
 /* Oyun kartları, başlıklar ve Arapça ibareler için yüksek okunaklılıklı Scheherazade New */
@@ -490,7 +504,7 @@
 }
 
 .print-two-col-questions .print-question-item {
-  display: inline-block;
+  display: block;
   width: 100%;
   break-inside: avoid;
   page-break-inside: avoid;
@@ -542,7 +556,7 @@
   }
 
   .print-two-col-questions .print-question-item {
-    display: inline-block !important;
+    display: block !important;
     width: 100% !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;

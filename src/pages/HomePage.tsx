@@ -1368,9 +1368,24 @@ export const HomePage: React.FC = () => {
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
-                <h4 className="text-sm sm:text-base font-extrabold tracking-tight">
-                  Aktif Çalışma Havuzum
-                </h4>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <h4 className="text-sm sm:text-base font-extrabold tracking-tight">
+                    {studyPool.isCustomized
+                      ? 'Aktif Çalışma Havuzum'
+                      : `Önerilen Başlangıç Havuzu (${formatNumberTr(poolStats.surahCount)} Sure)`}
+                  </h4>
+                  {!studyPool.isCustomized && (
+                    <span
+                      className="px-2 py-0.5 rounded-md text-[10px] font-extrabold"
+                      style={{
+                        backgroundColor: 'var(--brand-accent-soft)',
+                        color: 'var(--brand-accent-text)',
+                      }}
+                    >
+                      Varsayılan
+                    </span>
+                  )}
+                </div>
                 <div
                   className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs tabular-nums mt-0.5"
                   style={{ color: 'var(--text-muted)' }}
@@ -1398,19 +1413,43 @@ export const HomePage: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={openPoolModal}
-                className="min-h-[38px] px-3.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-                <span>Havuzu Düzenle</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {!studyPool.isCustomized && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setStudyPool({
+                        selectedSurahs: Array.from({ length: 114 }, (_, i) => i + 1),
+                        selectedJuzs: [],
+                      });
+                    }}
+                    className="min-h-[38px] px-3 rounded-xl text-xs font-extrabold border flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      borderColor: 'var(--brand-primary)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <Layers className="w-3.5 h-3.5 shrink-0" />
+                    <span>Tüm Kur&apos;an&apos;a Genişlet (114 Sure)</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={openPoolModal}
+                  className="min-h-[38px] px-3.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                  <span>Havuzu Düzenle</span>
+                </button>
+              </div>
             </div>
 
             {/* Kapsam Özeti */}

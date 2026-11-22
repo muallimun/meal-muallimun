@@ -230,7 +230,7 @@ export const SURAH_GROUP_ATLAS: readonly SurahGroupCatalogItem[] = [
     description:
       'Doğrudan "قُلْ" ("De ki!") hitabıyla başlayan 5 sure: Cin, Kâfirûn, İhlâs, Felak ve Nâs.',
     distinguishingTip:
-      'Son ikisi (113. Felak ve 114. Nâs) "Muavvizeteyn" (iki sığınma suresi) olarak anılır. 110. Nasr ve 111. Tebbet "Kul" ile başlamaz.',
+      'Klasik kaynaklarda 4 Mekkî "Kul" suresi (Kâfirûn, İhlâs, Felak, Nâs) "Kâlâkıl / Dört Kul" olarak anılır; Cin suresiyle birlikte Kur’an’da "Kul" emriyle başlayan toplam 5 sure vardır. Son ikisi (113. Felak ve 114. Nâs) "Muavvizeteyn"dir.',
     surahs: [72, 109, 112, 113, 114],
     smartDistractors: [108, 110, 111, 107, 1, 71],
   },
@@ -328,7 +328,7 @@ export const SURAH_GROUP_ATLAS: readonly SurahGroupCatalogItem[] = [
     description:
       'İçerisinde tilâvet secdesi ayeti barındıran 14 sure: A’râf, Ra’d, Nahl, İsrâ, Meryem, Hac, Furkân, Neml, Secde, Sâd, Fussilet, Necm, İnşikâk ve Alak.',
     distinguishingTip:
-      'Mushaf’ta toplam 14 tilâvet secdesi ayeti vardır (Hanefî ve yaygın Mushaf tasnifinde bu 14 surede yer alır).',
+      'Hanefî mezhebi ve Türkiye/Diyanet Mushaf tertibine göre 14 surede 14 tilâvet secdesi yer alır (Şâfiî ve Hanbelî’de Hac 22/77 ikinci secde sayılırken Sâd 38/24 şükür secdesi kabul edilir).',
     surahs: [7, 13, 16, 17, 19, 22, 25, 27, 32, 38, 41, 53, 84, 96],
     smartDistractors: [2, 18, 36, 40, 67, 87, 97],
   },

@@ -58,7 +58,7 @@ export const GAME_TIERS: readonly GameTierMeta[] = [
     order: 1,
     title: 'Namaz Sureleri',
     shortTitle: 'Namaz Sureleri',
-    subtitle: 'Fâtiha ve Fîl–Nâs arası 11 temel sure',
+    subtitle: 'Fâtiha (1) ve Fîl–Nâs (105–114) arası 11 temel namaz suresi',
     surahCountLabel: '11 Sure',
     tipText:
       'Fâtiha (1) ve Fîl (105) – Nâs (114) arasındaki kısa surelerin tertibini ve anlamlarını pekiştirin.',
@@ -283,10 +283,16 @@ export interface GameHudUpdate {
   roundContextHint?: string;
 }
 
+export interface GamePlayerNames {
+  p1: string;
+  p2: string;
+}
+
 export interface GameComponentProps {
   tierId: GameTierId;
   tempo: GameTempo;
   playerMode: GamePlayerMode;
+  playerNames?: GamePlayerNames;
   tierSurahs: EnrichedGameSurah[];
   allSurahsMap: Map<number, EnrichedGameSurah>;
   focusGroupId?: SurahGroupId | null;
