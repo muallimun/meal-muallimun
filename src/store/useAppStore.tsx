@@ -931,6 +931,7 @@ interface AppContextValue {
   removeItemFromPlaylist: (playlistId: string, itemId: string) => void;
   movePlaylistItem: (playlistId: string, itemId: string, direction: 'up' | 'down') => void;
   recordExamResult: (input: RecordExamResultInput) => RecordExamResultOutput;
+  awardGameXp: (earnedXp: number) => void;
   toggleBookmarkQuestion: (questionUid: string) => void;
   markQuestionMastered: (questionUid: string) => void;
   reportQuestionIssue: (report: QuestionIssueReport) => void;
@@ -1768,6 +1769,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [persisted.gamification.wrongQuestionIds],
   );
 
+  const awardGameXp = useCallback((earnedXp: number) => {
+    const safeXp = Math.max(0, Math.round(earnedXp));
+    if (safeXp <= 0) return;
+    const today = getTodayIsoDate();
+    setPersisted((prev) => {
+      const prevGam = prev.gamification;
+      let nextStreakDays = Math.max(1, prevGam.streakDays);
+      if (prevGam.lastActiveDate && prevGam.lastActiveDate !== today) {
+        const gap = daysBetweenIso(prevGam.lastActiveDate, today);
+        if (gap === 1) {
+          nextStreakDays += 1;
+        } else if (gap > 1) {
+          nextStreakDays = 1;
+        }
+      }
+      return {
+        ...prev,
+        gamification: {
+          ...prevGam,
+          totalXp: prevGam.totalXp + safeXp,
+          streakDays: nextStreakDays,
+          lastActiveDate: today,
+        },
+      };
+    });
+  }, []);
+
   const toggleBookmarkQuestion = useCallback((questionUid: string) => {
     sfxService.play('click');
     setPersisted((prev) => {
@@ -2296,6 +2324,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       removeItemFromPlaylist,
       movePlaylistItem,
       recordExamResult,
+      awardGameXp,
       toggleBookmarkQuestion,
       markQuestionMastered,
       reportQuestionIssue,
@@ -2422,6 +2451,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       removeItemFromPlaylist,
       movePlaylistItem,
       recordExamResult,
+      awardGameXp,
       toggleBookmarkQuestion,
       markQuestionMastered,
       reportQuestionIssue,

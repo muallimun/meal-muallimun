@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { RotateCcw, Trophy } from 'lucide-react';
+import { Puzzle, RotateCcw, Trophy } from 'lucide-react';
 import { audioQueueService } from '../../services/audioQueueService';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
@@ -17,13 +17,14 @@ import {
   selectAndPrepareExamQuestions,
 } from '../../utils/examUtils';
 import { formatNumberTr } from '../../utils/poolUtils';
+import { GamesHubTab } from '../games/GamesHubTab';
 import { MistakeCampPage } from '../mistakes/MistakeCampPage';
 import { ActiveExamView } from './ActiveExamView';
 import { ExamHubPage } from './ExamHubPage';
 import { ExamResultView } from './ExamResultView';
 
 type ExamPhase = 'hub' | 'active' | 'result';
-type ExamHubSubTab = 'builder' | 'mistakes';
+type ExamHubSubTab = 'builder' | 'games' | 'mistakes';
 
 export const ExamCenterPage: React.FC = () => {
   const {
@@ -347,11 +348,11 @@ export const ExamCenterPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Sınav Merkezi Alt Sekmeleri: Sınav Oluştur | Hata Kampı (X) */}
+      {/* Sınav Merkezi Alt Sekmeleri: Sınav Oluştur | Eğitsel Oyunlar | Hata Kampı (X) */}
       <div
         role="tablist"
         aria-label="Sınav Merkezi alt sekmeleri"
-        className="grid grid-cols-2 sm:inline-flex p-1 rounded-2xl border gap-1 w-full sm:w-auto"
+        className="grid grid-cols-3 sm:inline-flex p-1 rounded-2xl border gap-1 w-full sm:w-auto"
         style={{
           backgroundColor: 'var(--bg-surface-soft)',
           borderColor: 'var(--border-subtle)',
@@ -365,15 +366,34 @@ export const ExamCenterPage: React.FC = () => {
             sfxService.play('click');
             setHubSubTab('builder');
           }}
-          className="min-h-[40px] px-3 sm:px-5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          className="min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
           style={{
             backgroundColor: hubSubTab === 'builder' ? 'var(--bg-surface)' : 'transparent',
             color: hubSubTab === 'builder' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
             boxShadow: hubSubTab === 'builder' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
           }}
         >
-          <Trophy className="w-4 h-4 shrink-0" />
+          <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span>Sınav Oluştur</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={hubSubTab === 'games'}
+          onClick={() => {
+            sfxService.play('click');
+            setHubSubTab('games');
+          }}
+          className="min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          style={{
+            backgroundColor: hubSubTab === 'games' ? 'var(--bg-surface)' : 'transparent',
+            color: hubSubTab === 'games' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+            boxShadow: hubSubTab === 'games' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          <Puzzle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Eğitsel Oyunlar</span>
         </button>
 
         <button
@@ -384,7 +404,7 @@ export const ExamCenterPage: React.FC = () => {
             sfxService.play('click');
             setHubSubTab('mistakes');
           }}
-          className="min-h-[40px] px-3 sm:px-5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          className="min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
           style={{
             backgroundColor: hubSubTab === 'mistakes' ? 'var(--bg-surface)' : 'transparent',
             color:
@@ -396,10 +416,10 @@ export const ExamCenterPage: React.FC = () => {
             boxShadow: hubSubTab === 'mistakes' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
           }}
         >
-          <RotateCcw className="w-4 h-4 shrink-0" />
+          <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
           <span>Hata Kampı</span>
           <span
-            className="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold tabular-nums leading-none"
+            className="px-1 sm:px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-extrabold tabular-nums leading-none"
             style={{
               backgroundColor:
                 wrongCount > 0 ? 'rgba(239, 68, 68, 0.14)' : 'var(--bg-surface)',
@@ -411,7 +431,9 @@ export const ExamCenterPage: React.FC = () => {
         </button>
       </div>
 
-      {hubSubTab === 'mistakes' ? (
+      {hubSubTab === 'games' ? (
+        <GamesHubTab />
+      ) : hubSubTab === 'mistakes' ? (
         <MistakeCampPage />
       ) : (
         <ExamHubPage
