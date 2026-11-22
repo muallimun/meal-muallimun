@@ -10,9 +10,11 @@ import {
   Headphones,
   Layout,
   Loader2,
+  MessageSquareHeart,
   Play,
   RotateCcw,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Square,
   Sun,
@@ -22,6 +24,15 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
+import {
+  applyStudyDeskProfile,
+  countEnabledDeskRows,
+  DEFAULT_DESK_PREFS,
+  getStudyDeskProfileLabel,
+  STUDY_DESK_PROFILES,
+  STUDY_DESK_TOGGLES,
+  toggleStudyDeskRow,
+} from '../config/studyDeskConfig';
 import { ARABIC_FONTS, TURKISH_FONTS } from '../config/assetsConfig';
 import { findMealById, getAllMeals } from '../config/mealsConfig';
 import {
@@ -75,9 +86,11 @@ const JSON_LOCAL_STORAGE_KEYS = new Set<string>([
   VERSE_NOTES_STORAGE_KEY,
   'muallimun_games_progress_v1',
   'muallimun_recent_searches_v1',
+  'muallimun_offline_pack_status_v1',
   'muallimun_memorization_v1_units',
   'muallimun_memorization_v1_prefs',
   'muallimun_memorization_v1_active_session',
+  'muallimun_memorization_v1_classical_plan',
   'muallimun_memorization_v1_timestamps',
 ]);
 
@@ -92,11 +105,16 @@ interface PendingBackupPreview {
   activeExamSession: ExamSessionState | null;
   localKeysCount: number;
   memorizationUnitsCount: number;
+  classicalHifzSummary: string;
   researchTopicsCount: number;
   verseNotesCount: number;
   hasActiveHatim: boolean;
   hatimCompletedPagesCount: number;
+  hatimPercent: number;
   hatimHistoryCount: number;
+  gamePlayedTiersCount: number;
+  gameTotalStars: number;
+  deskProfileLabel: string | null;
   hasActiveMemorizationSession: boolean;
   hasActiveExamSession: boolean;
 }
@@ -126,6 +144,71 @@ function countResearchTopicsFromJson(rawJson: string | undefined): number {
     return 0;
   } catch {
     return 0;
+  }
+}
+
+function summarizeClassicalPlan(plan: unknown): string {
+  if (!plan || typeof plan !== 'object' || Array.isArray(plan)) return 'Başlatılmamış';
+  const rec = plan as { currentRound?: unknown; hasPages?: unknown };
+  const round =
+    typeof rec.currentRound === 'number' && Number.isFinite(rec.currentRound)
+      ? Math.max(1, Math.min(20, Math.floor(rec.currentRound)))
+      : null;
+  const hasCount = Array.isArray(rec.hasPages) ? rec.hasPages.length : 0;
+  if (round === null) return 'Başlatılmamış';
+  return `${round}. Tur · ${hasCount}/604 Has s.`;
+}
+
+function summarizeGamesProgressFromJson(rawJson: string | undefined): {
+  tiersCount: number;
+  totalStars: number;
+} {
+  if (!rawJson) return { tiersCount: 0, totalStars: 0 };
+  try {
+    const parsed: unknown = JSON.parse(rawJson);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { tiersCount: 0, totalStars: 0 };
+    }
+    let tiersCount = 0;
+    let totalStars = 0;
+    for (const entry of Object.values(parsed as Record<string, unknown>)) {
+      if (!entry || typeof entry !== 'object') continue;
+      const rec = entry as { playsCount?: unknown; bestStars?: unknown };
+      const plays = typeof rec.playsCount === 'number' && rec.playsCount > 0 ? rec.playsCount : 0;
+      const stars = typeof rec.bestStars === 'number' && rec.bestStars > 0 ? rec.bestStars : 0;
+      if (plays > 0 || stars > 0) {
+        tiersCount += 1;
+        totalStars += stars;
+      }
+    }
+    return { tiersCount, totalStars };
+  } catch {
+    return { tiersCount: 0, totalStars: 0 };
+  }
+}
+
+function extractDeskProfileLabelFromJson(rawJson: string | undefined): string | null {
+  if (!rawJson) return null;
+  try {
+    const parsed: unknown = JSON.parse(rawJson);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    const settingsRec = (parsed as { settings?: unknown }).settings;
+    if (!settingsRec || typeof settingsRec !== 'object' || Array.isArray(settingsRec)) return null;
+    const deskPrefs = (settingsRec as { deskPrefs?: unknown }).deskPrefs;
+    if (!deskPrefs || typeof deskPrefs !== 'object' || Array.isArray(deskPrefs)) return null;
+    const profile = (deskPrefs as { profile?: unknown }).profile;
+    if (
+      profile === 'all' ||
+      profile === 'reading_hatim' ||
+      profile === 'hifz' ||
+      profile === 'exam_student' ||
+      profile === 'custom'
+    ) {
+      return getStudyDeskProfileLabel(profile);
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -219,6 +302,7 @@ export const SettingsModal: React.FC = () => {
     openReciterSelector,
     openMealSelector,
     openWaqfGuide,
+    openFeedbackModal,
     manifest,
   } = useAppStore();
 
@@ -410,6 +494,7 @@ export const SettingsModal: React.FC = () => {
 
       let validatedMemorizationPayload: unknown | null = null;
       let memorizationUnitsFromPayload: number | null = null;
+      let classicalPlanFromPayload: unknown = null;
       let hasMemActiveSessionFromPayload = false;
       let memorizationExportedAt: string | null = null;
 
@@ -420,6 +505,7 @@ export const SettingsModal: React.FC = () => {
         }
         validatedMemorizationPayload = rawMemorizationCandidate;
         memorizationUnitsFromPayload = check.unitsCount;
+        classicalPlanFromPayload = check.classicalPlan ?? null;
         hasMemActiveSessionFromPayload = check.hasActiveSession;
         const memRec = rawMemorizationCandidate as { exportedAt?: unknown };
         if (typeof memRec.exportedAt === 'string' && memRec.exportedAt.trim()) {
@@ -462,6 +548,20 @@ export const SettingsModal: React.FC = () => {
                 return 0;
               }
             })();
+
+      const classicalHifzSummary = (() => {
+        if (classicalPlanFromPayload) {
+          return summarizeClassicalPlan(classicalPlanFromPayload);
+        }
+        const rawClassical = validatedLocalEntries['muallimun_memorization_v1_classical_plan'];
+        if (!rawClassical || rawClassical === 'null') return 'Başlatılmamış';
+        try {
+          return summarizeClassicalPlan(JSON.parse(rawClassical));
+        } catch {
+          return 'Başlatılmamış';
+        }
+      })();
+
       const researchTopicsCount = countResearchTopicsFromJson(
         validatedLocalEntries[RESEARCH_NOTEBOOK_STORAGE_KEY],
       );
@@ -487,6 +587,14 @@ export const SettingsModal: React.FC = () => {
         hatimCompletedPagesCount = hatimCheck.completedPagesCount;
         hatimHistoryCount = hatimCheck.historyCount;
       }
+      const hatimPercent = Math.min(100, Math.round((hatimCompletedPagesCount / 604) * 100));
+
+      const gamesSummary = summarizeGamesProgressFromJson(
+        validatedLocalEntries['muallimun_games_progress_v1'],
+      );
+      const deskProfileLabel = extractDeskProfileLabelFromJson(
+        validatedLocalEntries['muallimun_meal_v1'],
+      );
 
       const hasActiveMemorizationSession = Boolean(
         hasMemActiveSessionFromPayload ||
@@ -506,11 +614,16 @@ export const SettingsModal: React.FC = () => {
         activeExamSession: validatedExamSession,
         localKeysCount,
         memorizationUnitsCount,
+        classicalHifzSummary,
         researchTopicsCount,
         verseNotesCount,
         hasActiveHatim,
         hatimCompletedPagesCount,
+        hatimPercent,
         hatimHistoryCount,
+        gamePlayedTiersCount: gamesSummary.tiersCount,
+        gameTotalStars: gamesSummary.totalStars,
+        deskProfileLabel,
         hasActiveMemorizationSession,
         hasActiveExamSession: Boolean(validatedExamSession),
       });
@@ -1027,6 +1140,159 @@ export const SettingsModal: React.FC = () => {
                 </button>
               </section>
 
+              {/* Ana Sayfa "Çalışma Masam" Odak Profili & Modülleri */}
+              {(() => {
+                const deskPrefs = settings.deskPrefs ?? DEFAULT_DESK_PREFS;
+                const enabledCount = countEnabledDeskRows(deskPrefs);
+                return (
+                  <section
+                    className="p-3.5 rounded-2xl border space-y-3"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <span
+                          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                          style={{
+                            backgroundColor: 'var(--brand-primary-soft)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          <SlidersHorizontal className="w-4 h-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <h3
+                            className="text-xs sm:text-sm font-extrabold"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            Ana Sayfa Çalışma Masam Profili
+                          </h3>
+                          <p
+                            className="text-[11px] mt-0.5 leading-snug"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            Ana sayfada görmek istediğiniz satırları ve sınav vurgusunu profil
+                            seçerek veya tek tek düzenleyin.
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className="px-2 py-0.5 rounded-md text-[10.5px] font-extrabold shrink-0"
+                        style={{
+                          backgroundColor: 'var(--brand-primary-soft)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        {getStudyDeskProfileLabel(deskPrefs.profile)}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {STUDY_DESK_PROFILES.map((profile) => {
+                        const active = deskPrefs.profile === profile.id;
+                        return (
+                          <button
+                            key={profile.id}
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              updateSettings({ deskPrefs: applyStudyDeskProfile(profile.id) });
+                            }}
+                            className="p-2.5 rounded-xl border text-left cursor-pointer transition-colors"
+                            style={{
+                              backgroundColor: active
+                                ? 'var(--brand-primary-soft)'
+                                : 'var(--bg-surface)',
+                              borderColor: active
+                                ? 'var(--brand-primary)'
+                                : 'var(--border-subtle)',
+                            }}
+                          >
+                            <p
+                              className="text-xs font-extrabold"
+                              style={{
+                                color: active
+                                  ? 'var(--brand-primary-text)'
+                                  : 'var(--text-primary)',
+                              }}
+                            >
+                              {profile.label}
+                            </p>
+                            <p
+                              className="text-[11px] mt-0.5 leading-snug"
+                              style={{ color: 'var(--text-muted)' }}
+                            >
+                              {profile.description}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                      {STUDY_DESK_TOGGLES.map((item) => {
+                        const checked = deskPrefs[item.key];
+                        const isLastActive = checked && enabledCount <= 1;
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            role="switch"
+                            aria-checked={checked}
+                            disabled={isLastActive}
+                            title={
+                              isLastActive
+                                ? 'Ana sayfada en az bir bölüm görünür olmalıdır.'
+                                : item.description
+                            }
+                            onClick={() => {
+                              sfxService.play('click');
+                              updateSettings({
+                                deskPrefs: toggleStudyDeskRow(deskPrefs, item.key),
+                              });
+                            }}
+                            className="min-h-[40px] px-3 py-2 rounded-xl border text-left flex items-center justify-between gap-2 cursor-pointer disabled:opacity-65 disabled:cursor-not-allowed transition-colors"
+                            style={{
+                              backgroundColor: checked
+                                ? 'var(--bg-surface)'
+                                : 'transparent',
+                              borderColor: checked
+                                ? 'var(--brand-primary)'
+                                : 'var(--border-subtle)',
+                            }}
+                          >
+                            <span
+                              className="text-[11.5px] font-bold leading-snug"
+                              style={{
+                                color: checked
+                                  ? 'var(--text-primary)'
+                                  : 'var(--text-muted)',
+                              }}
+                            >
+                              {item.label}
+                            </span>
+                            <span
+                              className="w-9 h-5 rounded-full p-0.5 transition-colors shrink-0 flex items-center"
+                              style={{
+                                backgroundColor: checked
+                                  ? 'var(--brand-primary)'
+                                  : 'var(--border-strong)',
+                                justifyContent: checked ? 'flex-end' : 'flex-start',
+                              }}
+                            >
+                              <span className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })()}
+
               {/* Çalışma Verilerimi Yedekle & Taşı */}
               <section
                 ref={backupSectionRef}
@@ -1057,9 +1323,10 @@ export const SettingsModal: React.FC = () => {
                       className="text-[11px] mt-0.5 leading-snug"
                       style={{ color: 'var(--text-muted)' }}
                     >
-                      Ayarlarınızı, ayraçlarınızı, araştırma defterlerinizi, ezber havuzunuzu ve
-                      oyun ilerlemenizi tek bir JSON dosyasına aktarın veya başka bir cihaza
-                      taşıyın.
+                      Ayarlarınızı, Çalışma Masam tercihlerinizi, ayraçlarınızı, 30 Cüz Hatim
+                      planınızı, kişisel ayet notlarınızı, araştırma defterlerinizi, ezber
+                      havuzunuzu, Klasik Hafızlık (20 Tur Ham–Has) kaydınızı ve oyun ilerlemenizi
+                      tek bir JSON dosyasına aktarın veya başka bir cihaza taşıyın.
                     </p>
                   </div>
                 </div>
@@ -1153,7 +1420,7 @@ export const SettingsModal: React.FC = () => {
                         }}
                       >
                         <p style={{ color: 'var(--text-muted)' }}>Ezber Birimi</p>
-                        <p className="font-extrabold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                        <p className="font-extrabold mt-0.5 tabular-nums" style={{ color: 'var(--text-primary)' }}>
                           {pendingBackupRestore.memorizationUnitsCount} birim
                         </p>
                       </div>
@@ -1164,9 +1431,26 @@ export const SettingsModal: React.FC = () => {
                           borderColor: 'var(--border-subtle)',
                         }}
                       >
-                        <p style={{ color: 'var(--text-muted)' }}>Araştırma Konusu</p>
-                        <p className="font-extrabold mt-0.5" style={{ color: 'var(--text-primary)' }}>
-                          {pendingBackupRestore.researchTopicsCount} konu
+                        <p style={{ color: 'var(--text-muted)' }}>Klasik Hafızlık</p>
+                        <p className="font-extrabold mt-0.5 tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                          {pendingBackupRestore.classicalHifzSummary}
+                        </p>
+                      </div>
+                      <div
+                        className="px-2.5 py-2 rounded-lg border"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <p style={{ color: 'var(--text-muted)' }}>30 Cüz Hatim</p>
+                        <p className="font-extrabold mt-0.5 tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                          {pendingBackupRestore.hasActiveHatim
+                            ? `Aktif (%${pendingBackupRestore.hatimPercent} · ${pendingBackupRestore.hatimCompletedPagesCount}/604 s.)`
+                            : 'Aktif plan yok'}
+                          {pendingBackupRestore.hatimHistoryCount > 0
+                            ? ` · ${pendingBackupRestore.hatimHistoryCount} tamamlanan`
+                            : ''}
                         </p>
                       </div>
                       <div
@@ -1188,14 +1472,9 @@ export const SettingsModal: React.FC = () => {
                           borderColor: 'var(--border-subtle)',
                         }}
                       >
-                        <p style={{ color: 'var(--text-muted)' }}>30 Cüz Hatim</p>
+                        <p style={{ color: 'var(--text-muted)' }}>Araştırma Konusu</p>
                         <p className="font-extrabold mt-0.5 tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                          {pendingBackupRestore.hasActiveHatim
-                            ? `Aktif plan (${pendingBackupRestore.hatimCompletedPagesCount}/604 s.)`
-                            : 'Aktif plan yok'}
-                          {pendingBackupRestore.hatimHistoryCount > 0
-                            ? ` · ${pendingBackupRestore.hatimHistoryCount} tamamlanan`
-                            : ''}
+                          {pendingBackupRestore.researchTopicsCount} konu
                         </p>
                       </div>
                       <div
@@ -1205,9 +1484,26 @@ export const SettingsModal: React.FC = () => {
                           borderColor: 'var(--border-subtle)',
                         }}
                       >
-                        <p style={{ color: 'var(--text-muted)' }}>Kayıt Alanı</p>
-                        <p className="font-extrabold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                        <p style={{ color: 'var(--text-muted)' }}>Oyun İlerlemesi</p>
+                        <p className="font-extrabold mt-0.5 tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                          {pendingBackupRestore.gamePlayedTiersCount > 0
+                            ? `${pendingBackupRestore.gamePlayedTiersCount} seviye · ${pendingBackupRestore.gameTotalStars} yıldız`
+                            : 'Kayıt yok'}
+                        </p>
+                      </div>
+                      <div
+                        className="px-2.5 py-2 rounded-lg border"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <p style={{ color: 'var(--text-muted)' }}>Kayıt Alanı &amp; Masa</p>
+                        <p className="font-extrabold mt-0.5 truncate" style={{ color: 'var(--text-primary)' }}>
                           {pendingBackupRestore.localKeysCount} alan
+                          {pendingBackupRestore.deskProfileLabel
+                            ? ` · ${pendingBackupRestore.deskProfileLabel}`
+                            : ''}
                         </p>
                       </div>
                       <div
@@ -1323,24 +1619,43 @@ export const SettingsModal: React.FC = () => {
                 <OfflinePackCard compact />
               </section>
 
-              {/* İntro & Uygulama Kurulumu */}
+              {/* İntro, Geri Bildirim & Uygulama Kurulumu */}
               <section
                 className="pt-3 border-t flex flex-wrap items-center justify-between gap-2.5"
                 style={{ borderColor: 'var(--border-subtle)' }}
               >
-                <button
-                  type="button"
-                  onClick={openIntroSplash}
-                  className="min-h-[40px] px-3.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  <Sparkles className="w-4 h-4" style={{ color: 'var(--brand-accent-text)' }} />
-                  <span>Karşılama İntrosunu Göster</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={openIntroSplash}
+                    className="min-h-[40px] px-3.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <Sparkles className="w-4 h-4" style={{ color: 'var(--brand-accent-text)' }} />
+                    <span>Karşılama İntrosunu Göster</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      closeSettingsModal();
+                      openFeedbackModal();
+                    }}
+                    className="min-h-[40px] px-3.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      borderColor: 'rgba(13, 148, 136, 0.35)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <MessageSquareHeart className="w-4 h-4 shrink-0" />
+                    <span>Görüş / Hata Bildir</span>
+                  </button>
+                </div>
                 <PwaInstallControl variant="settings" />
               </section>
             </>

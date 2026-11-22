@@ -21,8 +21,10 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Settings,
   SlidersHorizontal,
   Star,
+  StickyNote,
   Target,
   Trophy,
   Type,
@@ -35,13 +37,23 @@ import {
   MEALS_CATALOG,
 } from '../config/mealsConfig';
 import { findReciterById } from '../config/recitersConfig';
+import {
+  applyStudyDeskProfile,
+  countEnabledDeskRows,
+  getStudyDeskProfileLabel,
+  STUDY_DESK_PROFILES,
+  STUDY_DESK_TOGGLES,
+  toggleStudyDeskRow,
+} from '../config/studyDeskConfig';
 import { TajweedText } from '../features/study/TajweedText';
 import { useTajweedData } from '../hooks/useTajweedData';
 import { audioQueueService } from '../services/audioQueueService';
 import { dataService, resolvePlaylistItemStartLocation } from '../services/dataService';
 import { computeHatimSummary, hatimStorage } from '../services/hatimStorage';
 import { isUnitDueForReview, memorizationStorage } from '../services/memorizationStorage';
+import { researchStorage } from '../services/researchStorage';
 import { sfxService } from '../services/sfxService';
+import { verseNotesStorage } from '../services/verseNotesStorage';
 import { useAppStore } from '../store/useAppStore';
 import type {
   ActiveSessionSnapshot,
@@ -107,6 +119,7 @@ const REFLECTION_VERSES = {
 export const HomePage: React.FC = () => {
   const {
     settings,
+    updateSettings,
     studyPool,
     setStudyPool,
     studyProgress,
@@ -124,6 +137,7 @@ export const HomePage: React.FC = () => {
     setActiveTab,
     navigateToStudy,
     navigateToExam,
+    navigateToFihrist,
     navigateToMemorizeUnit,
     openPoolModal,
     openSettingsModal,
@@ -134,11 +148,24 @@ export const HomePage: React.FC = () => {
     openListeningDrawer,
   } = useAppStore();
 
+  const deskPrefs = settings.deskPrefs;
+  const enabledDeskRowCount = useMemo(() => countEnabledDeskRows(deskPrefs), [deskPrefs]);
+  const [isDeskCustomizeOpen, setIsDeskCustomizeOpen] = useState(false);
+
   const hatimState = useSyncExternalStore(hatimStorage.subscribe, hatimStorage.getSnapshot);
   const hatimSummary = useMemo(
     () => (hatimState.activePlan ? computeHatimSummary(hatimState.activePlan) : null),
     [hatimState.activePlan],
   );
+  const personalVerseNotes = useSyncExternalStore(
+    verseNotesStorage.subscribe,
+    verseNotesStorage.getSnapshot,
+  );
+  const researchTopics = useSyncExternalStore(
+    researchStorage.subscribe,
+    researchStorage.getSnapshot,
+  );
+  const latestPersonalNote = personalVerseNotes[0] ?? null;
 
   // Tefekkür çerçevesi (mobilde kompakt sekme + isteğe bağlı daraltma)
   const [activeReflectionTab, setActiveReflectionTab] = useState<'kamer' | 'furkan'>('kamer');
@@ -921,15 +948,22 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Kompakt Tek Satırlık Mini Özet Şeridi (4'lü İstatistik Özeti) */}
+          {/* Kompakt Tek Satırlık Mini Özet Şeridi (Profil tercihine göre 2 veya 4 sütun) */}
           <div
-            className="grid grid-cols-2 sm:grid-cols-4 border-t"
+            className={`grid ${
+              deskPrefs.showPoolAndExamSection ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'
+            } border-t`}
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
             }}
           >
-            <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b sm:border-b-0 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div
+              className={`px-3.5 py-2.5 flex items-center justify-between gap-2 ${
+                deskPrefs.showPoolAndExamSection ? 'border-b sm:border-b-0' : ''
+              } border-r`}
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
               <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
                 <Flame className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-accent-text)' }} />
                 <span>Günlük Seri</span>
@@ -939,7 +973,12 @@ export const HomePage: React.FC = () => {
               </span>
             </div>
 
-            <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b sm:border-b-0 sm:border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div
+              className={`px-3.5 py-2.5 flex items-center justify-between gap-2 ${
+                deskPrefs.showPoolAndExamSection ? 'border-b sm:border-b-0 sm:border-r' : ''
+              }`}
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
               <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
                 <Star className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
                 <span>Toplam Puan</span>
@@ -949,25 +988,29 @@ export const HomePage: React.FC = () => {
               </span>
             </div>
 
-            <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
-              <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                <span>Çözülen</span>
-              </span>
-              <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
-                {formatNumberTr(gamification.solvedCount)} soru
-              </span>
-            </div>
+            {deskPrefs.showPoolAndExamSection && (
+              <>
+                <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                    <span>Çözülen</span>
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                    {formatNumberTr(gamification.solvedCount)} soru
+                  </span>
+                </div>
 
-            <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
-                <Target className="w-3.5 h-3.5 shrink-0" style={{ color: '#10B981' }} />
-                <span>Doğruluk</span>
-              </span>
-              <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
-                {accuracyPercent !== null ? `%${accuracyPercent}` : '—'}
-              </span>
-            </div>
+                <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <Target className="w-3.5 h-3.5 shrink-0" style={{ color: '#10B981' }} />
+                    <span>Doğruluk</span>
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                    {accuracyPercent !== null ? `%${accuracyPercent}` : '—'}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -1126,9 +1169,9 @@ export const HomePage: React.FC = () => {
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         {/* SOL (7 sütun): Birleşik Çalışma Masam Merkezi */}
         <div className="lg:col-span-7 surface-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-4">
-          {/* BÖLÜM A: Kaldığım Yer & Hızlı Devam (Okuma + Ezber + Dinleme) */}
+          {/* BÖLÜM A: Kaldığım Yer & Özelleştirilebilir Çalışma Satırları */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -1140,331 +1183,641 @@ export const HomePage: React.FC = () => {
                   <Layers className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base sm:text-lg font-extrabold tracking-tight truncate">
-                    Çalışma Masam
-                  </h3>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <h3 className="text-base sm:text-lg font-extrabold tracking-tight truncate">
+                      Çalışma Masam
+                    </h3>
+                    {deskPrefs.profile !== 'all' && (
+                      <span
+                        className="px-2 py-0.5 rounded-md text-[10px] font-extrabold whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'var(--brand-primary-soft)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        {getStudyDeskProfileLabel(deskPrefs.profile)}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                    Okuma, ezber, dinleme ve aktif çalışma havuzunuz
+                    Çalışma profilinize göre kişiselleştirilebilir odak satırları
                   </p>
                 </div>
               </div>
 
-              {gamification.wrongQuestionIds.length > 0 && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                {deskPrefs.showPoolAndExamSection && gamification.wrongQuestionIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setActiveTab('mistakes');
+                    }}
+                    className="min-h-[34px] px-2.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90"
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      borderColor: 'rgba(239, 68, 68, 0.3)',
+                      color: '#DC2626',
+                    }}
+                  >
+                    <Target className="w-3.5 h-3.5 shrink-0" />
+                    <span>Hata Kampı ({formatNumberTr(gamification.wrongQuestionIds.length)})</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
                     sfxService.play('click');
-                    setActiveTab('mistakes');
+                    setIsDeskCustomizeOpen((prev) => !prev);
                   }}
-                  className="min-h-[34px] px-2.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90"
+                  aria-expanded={isDeskCustomizeOpen}
+                  aria-controls="study-desk-customizer"
+                  className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap transition-colors"
                   style={{
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    borderColor: 'rgba(239, 68, 68, 0.3)',
-                    color: '#DC2626',
+                    backgroundColor: isDeskCustomizeOpen
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface-soft)',
+                    borderColor: isDeskCustomizeOpen
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-subtle)',
+                    color: isDeskCustomizeOpen
+                      ? 'var(--brand-primary-text)'
+                      : 'var(--text-primary)',
                   }}
                 >
-                  <Target className="w-3.5 h-3.5 shrink-0" />
-                  <span>Hata Kampı ({formatNumberTr(gamification.wrongQuestionIds.length)})</span>
+                  <Settings className="w-3.5 h-3.5 shrink-0" />
+                  <span>Özelleştir</span>
                 </button>
-              )}
+              </div>
             </div>
 
-            {/* 3 Kompakt Devam Satırı (Temiz Çizgisel Ayırıcılarla) */}
-            <div
-              className="rounded-xl border divide-y overflow-hidden"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              {/* Satır 1: Okuma */}
+            {/* Çalışma Masamı Kişiselleştir Paneli (4 Hazır Profil + 6 Modül Anahtarı) */}
+            {isDeskCustomizeOpen && (
               <div
-                className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
-                style={{ borderColor: 'var(--border-subtle)' }}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span
-                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{
-                      backgroundColor: 'var(--brand-primary-soft)',
-                      color: 'var(--brand-primary-text)',
-                    }}
-                  >
-                    <BookOpen className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                      <span className="text-xs font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
-                        Okuma
-                      </span>
-                      <span className="text-xs sm:text-sm font-extrabold truncate">
-                        {lastRead
-                          ? `${lastSurahMeta?.nameTr ?? `${lastRead.surah}. Sure`}`
-                          : 'Okumaya Başla'}
-                      </span>
-                      {lastSurahMeta?.nameAr && (
-                        <span
-                          className="arabic-title text-sm leading-none hidden sm:inline"
-                          style={{ color: 'var(--text-secondary)' }}
-                        >
-                          {formatSafeArabicTitle(lastSurahMeta.nameAr)}
-                        </span>
-                      )}
-                      {hatimSummary && (
-                        <button
-                          type="button"
-                          onClick={openHatimModal}
-                          title="30 Cüz Hatim Planlayıcısını aç"
-                          className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums cursor-pointer hover:opacity-85"
-                          style={{
-                            backgroundColor: 'var(--brand-primary-soft)',
-                            color: 'var(--brand-primary-text)',
-                          }}
-                        >
-                          Hatim: %{hatimSummary.percent} · Bugün {hatimSummary.todayCompletedCount}/
-                          {hatimSummary.todayTargetPages} s.
-                        </button>
-                      )}
-                    </div>
-                    <p
-                      className="text-[11px] tabular-nums truncate mt-0.5"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {lastRead ? (
-                        <>
-                          {lastRead.ayah}. Ayet · Sayfa {lastRead.page} · {lastReadModeLabel}
-                          {hatimBookmark ? ` · Hatim S.${hatimBookmark.page}` : ''}
-                        </>
-                      ) : (
-                        'Kaldığınız yer otomatik olarak burada kaydedilir'
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={openHatimModal}
-                    className="min-h-[36px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
-                    style={{
-                      backgroundColor: hatimSummary ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
-                      borderColor: hatimSummary ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                      color: hatimSummary ? 'var(--brand-primary-text)' : 'var(--text-primary)',
-                    }}
-                  >
-                    <BookOpenCheck
-                      className="w-3.5 h-3.5 shrink-0"
-                      style={{ color: 'var(--brand-primary-text)' }}
-                    />
-                    <span>Hatim Planım</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={openBookmarksDrawer}
-                    className="min-h-[36px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    <Bookmark
-                      className="w-3.5 h-3.5 shrink-0"
-                      style={{ color: 'var(--brand-accent-text)' }}
-                    />
-                    <span>
-                      Ayraçlar
-                      {studyProgress.pageBookmarks.length > 0
-                        ? ` (${studyProgress.pageBookmarks.length})`
-                        : ''}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      if (lastRead) {
-                        navigateToStudy({
-                          surah: lastRead.surah,
-                          ayah: lastRead.ayah,
-                          page: lastRead.page,
-                          viewMode: lastRead.viewMode,
-                        });
-                      } else {
-                        handleOpenPoolReader();
-                      }
-                    }}
-                    className="flex-1 sm:flex-initial min-h-[36px] px-3 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
-                    style={{ backgroundColor: 'var(--brand-primary)' }}
-                  >
-                    <span>Okumaya Devam Et</span>
-                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Satır 2: Ezber */}
-              <div
-                className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
-                style={{ borderColor: 'var(--border-subtle)' }}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span
-                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{
-                      backgroundColor: 'var(--brand-accent-soft)',
-                      color: 'var(--brand-accent-text)',
-                    }}
-                  >
-                    <BookMarked className="w-4 h-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                      <span className="text-xs font-extrabold" style={{ color: 'var(--brand-accent-text)' }}>
-                        Ezber
-                      </span>
-                      <span className="text-xs sm:text-sm font-extrabold truncate">
-                        {memorizationSummary.title}
-                      </span>
-                      {memorizationSummary.dueAyahCount > 0 && (
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
-                          style={{
-                            backgroundColor: 'var(--brand-primary-soft)',
-                            color: 'var(--brand-primary-text)',
-                          }}
-                        >
-                          Bugün Tekrar ({memorizationSummary.dueAyahCount} Ayet)
-                        </span>
-                      )}
-                    </div>
-                    <p
-                      className="text-[11px] tabular-nums truncate mt-0.5"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {memorizationSummary.detail}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    if (memorizationSummary.openClassicalTab) {
-                      navigateToMemorizeUnit(undefined, false, 'classical');
-                    } else {
-                      setActiveTab('memorize');
-                    }
-                  }}
-                  className="min-h-[36px] px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-strong)',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  <span>{memorizationSummary.hasProgress ? 'Ezbere Devam Et' : 'Ezbere Başla'}</span>
-                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-                </button>
-              </div>
-
-              {/* Satır 3: Dinleme & Hızlı Çalma Listeleri */}
-              <div
-                className="p-3 space-y-2"
-                style={{ borderColor: 'var(--border-subtle)' }}
+                id="study-desk-customizer"
+                className="rounded-xl border p-3.5 space-y-3"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--brand-primary)',
+                }}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span
-                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                      style={{
-                        backgroundColor: 'var(--brand-primary-soft)',
-                        color: 'var(--brand-primary-text)',
-                      }}
-                    >
-                      <ListMusic className="w-4 h-4" />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                        <span className="text-xs font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
-                          Dinleme &amp; Listeler
-                        </span>
-                        <span
-                          className="text-[11px] font-semibold truncate"
-                          style={{ color: 'var(--text-muted)' }}
-                        >
-                          · {activeReciter?.shortLabel ?? 'Kurrâ'}
-                        </span>
-                      </div>
-                    </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-extrabold">
+                      Çalışma Masamı Kişiselleştir
+                    </h4>
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      Hazır bir odak profili seçin veya görmek istediğiniz modülleri tek tek açıp
+                      kapatın.
+                    </p>
                   </div>
-
                   <button
                     type="button"
                     onClick={() => {
                       sfxService.play('click');
-                      openListeningDrawer({ initialTab: 'playlists' });
+                      setIsDeskCustomizeOpen(false);
                     }}
-                    className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                      color: 'var(--brand-primary-text)',
-                    }}
+                    aria-label="Özelleştirme panelini kapat"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
+                    style={{ color: 'var(--text-muted)' }}
                   >
-                    <span>Listeler</span>
-                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                {meta && manifest && audioPlaylists.length > 0 && (
-                  <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-                    {audioPlaylists.slice(0, 4).map((playlist) => (
+                {/* 4 Hazır Profil Çipi */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {STUDY_DESK_PROFILES.map((prof) => {
+                    const active = deskPrefs.profile === prof.id;
+                    return (
                       <button
-                        key={playlist.id}
+                        key={prof.id}
                         type="button"
-                        disabled={playlist.items.length === 0}
                         onClick={() => {
-                          if (!playlist.items.length) return;
                           sfxService.play('click');
-                          if (audioPrefs.showTextOnStart) {
-                            navigateToStudy(
-                              resolvePlaylistItemStartLocation(playlist.items[0], meta),
-                            );
-                          }
-                          void audioQueueService.startSegmentQueue({
-                            items: playlist.items,
-                            title: playlist.name,
-                            context: 'playlist',
-                            contextKey: `playlist:${playlist.id}`,
-                            manifest,
-                            meta,
-                            prefs: audioPrefs,
+                          updateSettings({ deskPrefs: applyStudyDeskProfile(prof.id) });
+                        }}
+                        title={prof.description}
+                        className="min-h-[38px] px-2.5 py-1.5 rounded-xl border text-[11px] font-extrabold text-center transition-colors cursor-pointer leading-snug"
+                        style={{
+                          backgroundColor: active
+                            ? 'var(--brand-primary-soft)'
+                            : 'var(--bg-surface)',
+                          borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+                        }}
+                      >
+                        {prof.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 6 Modül Aç/Kapat Anahtarı */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {STUDY_DESK_TOGGLES.map((item) => {
+                    const checked = deskPrefs[item.key];
+                    const isLastActive = checked && enabledDeskRowCount <= 1;
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        role="switch"
+                        aria-checked={checked}
+                        disabled={isLastActive}
+                        onClick={() => {
+                          sfxService.play('click');
+                          updateSettings({
+                            deskPrefs: toggleStudyDeskRow(deskPrefs, item.key),
                           });
                         }}
-                        title={`${playlist.name} listesini dinle`}
-                        className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors hover:border-[var(--brand-primary)] disabled:opacity-45 whitespace-nowrap"
+                        title={
+                          isLastActive
+                            ? 'En az bir modül açık kalmalıdır'
+                            : item.description
+                        }
+                        className="min-h-[42px] px-2.5 py-2 rounded-xl border flex items-center justify-between gap-2 text-left transition-colors cursor-pointer disabled:opacity-65 disabled:cursor-not-allowed"
+                        style={{
+                          backgroundColor: checked
+                            ? 'var(--bg-surface)'
+                            : 'transparent',
+                          borderColor: checked
+                            ? 'rgba(13, 148, 136, 0.35)'
+                            : 'var(--border-subtle)',
+                        }}
+                      >
+                        <div className="min-w-0">
+                          <span className="block text-xs font-bold truncate">{item.label}</span>
+                          <span
+                            className="block text-[10.5px] truncate"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            {item.description}
+                          </span>
+                        </div>
+                        <span
+                          className="w-9 h-5 rounded-full p-0.5 transition-colors shrink-0 flex items-center"
+                          style={{
+                            backgroundColor: checked
+                              ? 'var(--brand-primary)'
+                              : 'var(--border-strong)',
+                            justifyContent: checked ? 'flex-end' : 'flex-start',
+                          }}
+                        >
+                          <span className="w-4 h-4 rounded-full bg-white shadow-xs" />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Aktif Çalışma Satırları (Temiz Çizgisel Ayırıcılarla) */}
+            {(deskPrefs.showReadingRow ||
+              deskPrefs.showHatimRow ||
+              deskPrefs.showMemorizationRow ||
+              deskPrefs.showListeningRow ||
+              deskPrefs.showNotesRow) && (
+              <div
+                className="rounded-xl border divide-y overflow-hidden"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                {/* Satır 1: Okuma */}
+                {deskPrefs.showReadingRow && (
+                  <div
+                    className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: 'var(--brand-primary-soft)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <BookOpen className="w-4 h-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                          <span className="text-xs font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                            Okuma
+                          </span>
+                          <span className="text-xs sm:text-sm font-extrabold truncate">
+                            {lastRead
+                              ? `${lastSurahMeta?.nameTr ?? `${lastRead.surah}. Sure`}`
+                              : 'Okumaya Başla'}
+                          </span>
+                          {lastSurahMeta?.nameAr && (
+                            <span
+                              className="arabic-title text-sm leading-none hidden sm:inline"
+                              style={{ color: 'var(--text-secondary)' }}
+                            >
+                              {formatSafeArabicTitle(lastSurahMeta.nameAr)}
+                            </span>
+                          )}
+                          {!deskPrefs.showHatimRow && hatimSummary && (
+                            <button
+                              type="button"
+                              onClick={openHatimModal}
+                              title="30 Cüz Hatim Planlayıcısını aç"
+                              className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums cursor-pointer hover:opacity-85"
+                              style={{
+                                backgroundColor: 'var(--brand-primary-soft)',
+                                color: 'var(--brand-primary-text)',
+                              }}
+                            >
+                              Hatim: %{hatimSummary.percent} · Bugün {hatimSummary.todayCompletedCount}/
+                              {hatimSummary.todayTargetPages} s.
+                            </button>
+                          )}
+                        </div>
+                        <p
+                          className="text-[11px] tabular-nums truncate mt-0.5"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {lastRead ? (
+                            <>
+                              {lastRead.ayah}. Ayet · Sayfa {lastRead.page} · {lastReadModeLabel}
+                              {hatimBookmark ? ` · Hatim S.${hatimBookmark.page}` : ''}
+                            </>
+                          ) : (
+                            'Kaldığınız yer otomatik olarak burada kaydedilir'
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={openBookmarksDrawer}
+                        className="min-h-[36px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
                         style={{
                           backgroundColor: 'var(--bg-surface)',
                           borderColor: 'var(--border-subtle)',
                           color: 'var(--text-primary)',
                         }}
                       >
-                        <Play
-                          className="w-3 h-3 fill-current shrink-0"
-                          style={{ color: 'var(--brand-primary-text)' }}
+                        <Bookmark
+                          className="w-3.5 h-3.5 shrink-0"
+                          style={{ color: 'var(--brand-accent-text)' }}
                         />
-                        <span className="max-w-[165px] truncate">{playlist.name}</span>
+                        <span>
+                          Ayraçlar
+                          {studyProgress.pageBookmarks.length > 0
+                            ? ` (${studyProgress.pageBookmarks.length})`
+                            : ''}
+                        </span>
                       </button>
-                    ))}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          if (lastRead) {
+                            navigateToStudy({
+                              surah: lastRead.surah,
+                              ayah: lastRead.ayah,
+                              page: lastRead.page,
+                              viewMode: lastRead.viewMode,
+                            });
+                          } else {
+                            handleOpenPoolReader();
+                          }
+                        }}
+                        className="flex-1 sm:flex-initial min-h-[36px] px-3 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                        style={{ backgroundColor: 'var(--brand-primary)' }}
+                      >
+                        <span>Okumaya Devam Et</span>
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Satır 2: 30 Cüz Hatim Planım */}
+                {deskPrefs.showHatimRow && (
+                  <div
+                    className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: 'rgba(16, 185, 129, 0.14)',
+                          color: '#047857',
+                        }}
+                      >
+                        <BookOpenCheck className="w-4 h-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                          <span className="text-xs font-extrabold" style={{ color: '#047857' }}>
+                            30 Cüz Hatim
+                          </span>
+                          <span className="text-xs sm:text-sm font-extrabold truncate">
+                            {hatimSummary
+                              ? `${hatimState.activePlan?.title || 'Aktif Hatim'} · %${hatimSummary.percent}`
+                              : '30 Cüz Hatim Planı Başlat'}
+                          </span>
+                          {hatimSummary && (
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                              style={{
+                                backgroundColor: hatimSummary.isTodayQuotaMet
+                                  ? 'rgba(16, 185, 129, 0.14)'
+                                  : 'var(--brand-primary-soft)',
+                                color: hatimSummary.isTodayQuotaMet
+                                  ? '#047857'
+                                  : 'var(--brand-primary-text)',
+                              }}
+                            >
+                              {hatimSummary.isTodayQuotaMet
+                                ? 'Bugünkü hedef tamam'
+                                : `Bugün ${hatimSummary.todayRemainingPages} s. kaldı`}
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className="text-[11px] tabular-nums truncate mt-0.5"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {hatimSummary ? (
+                            <>
+                              {hatimSummary.completedCount}/604 Sayfa · {hatimSummary.completedJuzCount}/30 Cüz · Bugün{' '}
+                              {hatimSummary.todayCompletedCount}/{hatimSummary.todayTargetPages} sayfa
+                            </>
+                          ) : hatimState.history.length > 0 ? (
+                            `Tamamlanan hatim: ${hatimState.history.length} · Günlük sayfa veya hedef tarihle yeni plan oluşturun`
+                          ) : (
+                            'Günlük sayfa hedefi, bitiş tarihi veya serbest cüz takibiyle hatim planlayın'
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        openHatimModal();
+                      }}
+                      className="min-h-[36px] px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: hatimSummary ? 'var(--brand-primary)' : 'var(--border-strong)',
+                        color: hatimSummary ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+                      }}
+                    >
+                      <span>
+                        {hatimSummary ? 'Hatime Devam Et / Planla' : '30 Cüz Hatim Planı Başlat'}
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Satır 3: Ezber */}
+                {deskPrefs.showMemorizationRow && (
+                  <div
+                    className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: 'var(--brand-accent-soft)',
+                          color: 'var(--brand-accent-text)',
+                        }}
+                      >
+                        <BookMarked className="w-4 h-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                          <span className="text-xs font-extrabold" style={{ color: 'var(--brand-accent-text)' }}>
+                            Ezber
+                          </span>
+                          <span className="text-xs sm:text-sm font-extrabold truncate">
+                            {memorizationSummary.title}
+                          </span>
+                          {memorizationSummary.dueAyahCount > 0 && (
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                              style={{
+                                backgroundColor: 'var(--brand-primary-soft)',
+                                color: 'var(--brand-primary-text)',
+                              }}
+                            >
+                              Bugün Tekrar ({memorizationSummary.dueAyahCount} Ayet)
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className="text-[11px] tabular-nums truncate mt-0.5"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {memorizationSummary.detail}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        if (memorizationSummary.openClassicalTab) {
+                          navigateToMemorizeUnit(undefined, false, 'classical');
+                        } else {
+                          setActiveTab('memorize');
+                        }
+                      }}
+                      className="min-h-[36px] px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-strong)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <span>{memorizationSummary.hasProgress ? 'Ezbere Devam Et' : 'Ezbere Başla'}</span>
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Satır 4: Dinleme & Hızlı Çalma Listeleri */}
+                {deskPrefs.showListeningRow && (
+                  <div
+                    className="p-3 space-y-2"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                          style={{
+                            backgroundColor: 'var(--brand-primary-soft)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          <ListMusic className="w-4 h-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                            <span className="text-xs font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                              Dinleme &amp; Listeler
+                            </span>
+                            <span
+                              className="text-[11px] font-semibold truncate"
+                              style={{ color: 'var(--text-muted)' }}
+                            >
+                              · {activeReciter?.shortLabel ?? 'Kurrâ'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          openListeningDrawer({ initialTab: 'playlists' });
+                        }}
+                        className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <span>Listeler</span>
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                      </button>
+                    </div>
+
+                    {meta && manifest && audioPlaylists.length > 0 && (
+                      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                        {audioPlaylists.slice(0, 4).map((playlist) => (
+                          <button
+                            key={playlist.id}
+                            type="button"
+                            disabled={playlist.items.length === 0}
+                            onClick={() => {
+                              if (!playlist.items.length) return;
+                              sfxService.play('click');
+                              if (audioPrefs.showTextOnStart) {
+                                navigateToStudy(
+                                  resolvePlaylistItemStartLocation(playlist.items[0], meta),
+                                );
+                              }
+                              void audioQueueService.startSegmentQueue({
+                                items: playlist.items,
+                                title: playlist.name,
+                                context: 'playlist',
+                                contextKey: `playlist:${playlist.id}`,
+                                manifest,
+                                meta,
+                                prefs: audioPrefs,
+                              });
+                            }}
+                            title={`${playlist.name} listesini dinle`}
+                            className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors hover:border-[var(--brand-primary)] disabled:opacity-45 whitespace-nowrap"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            <Play
+                              className="w-3 h-3 fill-current shrink-0"
+                              style={{ color: 'var(--brand-primary-text)' }}
+                            />
+                            <span className="max-w-[165px] truncate">{playlist.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Satır 5: Son Kişisel Ayet Notlarım & Defterim */}
+                {deskPrefs.showNotesRow && (
+                  <div
+                    className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: 'rgba(14, 165, 233, 0.14)',
+                          color: '#0369A1',
+                        }}
+                      >
+                        <StickyNote className="w-4 h-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                          <span className="text-xs font-extrabold" style={{ color: '#0369A1' }}>
+                            Notlar &amp; Defterim
+                          </span>
+                          <span className="text-xs sm:text-sm font-extrabold truncate">
+                            {latestPersonalNote
+                              ? `${surahMap.get(latestPersonalNote.surah)?.nameTr ?? `${latestPersonalNote.surah}. Sure`} ${latestPersonalNote.ayah}. Ayet`
+                              : 'Kişisel Ayet Notları'}
+                          </span>
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            {formatNumberTr(personalVerseNotes.length)} Not ·{' '}
+                            {formatNumberTr(researchTopics.length)} Konu
+                          </span>
+                        </div>
+                        <p
+                          className="text-[11px] truncate mt-0.5"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {latestPersonalNote
+                            ? latestPersonalNote.text
+                            : 'Okuma sırasında ayetlere renkli ve etiketli tefekkür notları ekleyin'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        navigateToFihrist({
+                          subTab: 'notebook',
+                          notebookSubTab: personalVerseNotes.length > 0 ? 'notes' : 'topics',
+                        });
+                      }}
+                      className="min-h-[36px] px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-strong)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <span>Notlarım &amp; Defterim</span>
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                    </button>
                   </div>
                 )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* BÖLÜM B: Entegre Aktif Çalışma Havuzum Özeti & Aksiyonlar */}
@@ -1509,13 +1862,17 @@ export const HomePage: React.FC = () => {
                       {formatNumberTr(poolStats.ayahCount)}
                     </strong>
                   </span>
-                  <span aria-hidden="true">·</span>
-                  <span>
-                    Hazır Soru:{' '}
-                    <strong style={{ color: 'var(--brand-primary-text)' }}>
-                      {formatNumberTr(poolStats.questionCount)}
-                    </strong>
-                  </span>
+                  {deskPrefs.showPoolAndExamSection && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        Hazır Soru:{' '}
+                        <strong style={{ color: 'var(--brand-primary-text)' }}>
+                          {formatNumberTr(poolStats.questionCount)}
+                        </strong>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1583,7 +1940,7 @@ export const HomePage: React.FC = () => {
                   Seçili Cüzler: {studyPool.selectedJuzs.map((j) => `${j}. Cüz`).join(' · ')}
                 </p>
               )}
-              {poolStats.questionCount === 0 && (
+              {deskPrefs.showPoolAndExamSection && poolStats.questionCount === 0 && (
                 <p className="text-xs font-medium" style={{ color: 'var(--brand-accent-text)' }}>
                   Bu seçimde henüz hazır sınav sorusu yok; okuma ve dinleme yapabilir veya soru
                   bankası bulunan sureleri havuza ekleyebilirsiniz.
@@ -1591,28 +1948,40 @@ export const HomePage: React.FC = () => {
               )}
             </div>
 
-            {/* Alt Aksiyon Satırı: Sınav Başlat · Havuzu Oku · Havuzu Dinle */}
+            {/* Alt Aksiyon Satırı: Sınav Başlat (profilde açıksa) · Havuzu Oku · Havuzu Dinle */}
             <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              <button
-                type="button"
-                onClick={handleStartExam}
-                className="flex-1 min-w-[140px] min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-1.5 transition-transform active:scale-[0.99] cursor-pointer whitespace-nowrap"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
-              >
-                <Trophy className="w-4 h-4 shrink-0" />
-                <span>Sınav Başlat</span>
-                <ArrowRight className="w-4 h-4 shrink-0" />
-              </button>
+              {deskPrefs.showPoolAndExamSection && (
+                <button
+                  type="button"
+                  onClick={handleStartExam}
+                  className="flex-1 min-w-[140px] min-h-[44px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-1.5 transition-transform active:scale-[0.99] cursor-pointer whitespace-nowrap"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                >
+                  <Trophy className="w-4 h-4 shrink-0" />
+                  <span>Sınav Başlat</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </button>
+              )}
 
               <button
                 type="button"
                 onClick={handleOpenPoolReader}
-                className="min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-strong)',
-                  color: 'var(--text-primary)',
-                }}
+                className={`${
+                  deskPrefs.showPoolAndExamSection
+                    ? 'min-h-[44px] px-3.5 py-2.5 border'
+                    : 'flex-1 min-w-[140px] min-h-[44px] px-4 py-2.5 text-white'
+                } rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap`}
+                style={
+                  deskPrefs.showPoolAndExamSection
+                    ? {
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-strong)',
+                        color: 'var(--text-primary)',
+                      }
+                    : {
+                        backgroundColor: 'var(--brand-primary)',
+                      }
+                }
               >
                 <BookOpen className="w-4 h-4 shrink-0" />
                 <span>Havuzu Oku</span>
@@ -1621,7 +1990,9 @@ export const HomePage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleListenActivePool}
-                className="min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                className={`${
+                  deskPrefs.showPoolAndExamSection ? '' : 'flex-1 min-w-[140px]'
+                } min-h-[44px] px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap`}
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -1863,6 +2234,7 @@ export const HomePage: React.FC = () => {
       {/* ====================================================================
           3. Soru Bankası Bulunan Sureler — 114 Sureye Ölçeklenebilir 4'lü Vitrin
           ==================================================================== */}
+      {deskPrefs.showPoolAndExamSection && (
       <section aria-label="Soru bankası bulunan sureler" className="space-y-3.5">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2.5">
           <div>
@@ -2096,6 +2468,7 @@ export const HomePage: React.FC = () => {
           </>
         )}
       </section>
+      )}
 
       {/* Muallimun Ekosistem Köprüsü: Kur'an Kelimeleri Öğrenme Asistanı */}
       <section

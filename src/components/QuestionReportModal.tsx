@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Check, Flag, Trash2, X } from 'lucide-react';
+import { Check, Flag, Send, Trash2, X } from 'lucide-react';
 import { Z_LAYERS } from '../config/zLayers';
 import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
@@ -52,7 +52,12 @@ export const QuestionReportModal: React.FC<QuestionReportModalProps> = ({
   question,
   onClose,
 }) => {
-  const { questionAudit, reportQuestionIssue, removeQuestionIssueReport } = useAppStore();
+  const {
+    questionAudit,
+    reportQuestionIssue,
+    removeQuestionIssueReport,
+    openFeedbackModal,
+  } = useAppStore();
 
   const uid = question ? getQuestionUid(question) : '';
   const existing = uid ? questionAudit.reports[uid] : undefined;
@@ -80,10 +85,9 @@ export const QuestionReportModal: React.FC<QuestionReportModalProps> = ({
 
   const verseRefs = parseVerseRefs(question.refs);
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const buildReport = (): QuestionIssueReport => {
     const cleanStem = question.stem.replace(/\s+/g, ' ').trim();
-    const report: QuestionIssueReport = {
+    return {
       uid,
       id: question.id,
       surah: question.surah,
@@ -94,8 +98,31 @@ export const QuestionReportModal: React.FC<QuestionReportModalProps> = ({
       stemSnippet: cleanStem.length > 140 ? `${cleanStem.slice(0, 140)}…` : cleanStem,
       reportedAt: new Date().toISOString(),
     };
-    reportQuestionIssue(report);
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    reportQuestionIssue(buildReport());
     onClose();
+  };
+
+  const handleSendToDeveloper = () => {
+    sfxService.play('click');
+    const report = buildReport();
+    reportQuestionIssue(report);
+    const reasonLabel = getIssueReasonLabel(reason);
+    const refText = `Sınav Sorusu · ${question.sourceRef || `Sure ${question.surah}`} (Kod: ${question.id})`;
+    const prefillLines = [
+      `Hata Türü: ${reasonLabel}`,
+      `Soru Özeti: ${report.stemSnippet}`,
+      note.trim() ? `Açıklama: ${note.trim()}` : 'Açıklama: ',
+    ];
+    onClose();
+    openFeedbackModal({
+      category: 'Hata / Meal-Hareke-Soru Bildirimi',
+      contextRef: refText,
+      prefillMessage: prefillLines.join('\n'),
+    });
   };
 
   const handleRemove = () => {
@@ -263,11 +290,11 @@ export const QuestionReportModal: React.FC<QuestionReportModalProps> = ({
             <span />
           )}
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex flex-wrap items-center gap-2 ml-auto">
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[42px] px-4 rounded-xl border text-xs font-bold cursor-pointer"
+              className="min-h-[42px] px-3.5 rounded-xl border text-xs font-bold cursor-pointer"
               style={{
                 borderColor: 'var(--border-subtle)',
                 backgroundColor: 'var(--bg-surface-soft)',
@@ -277,11 +304,24 @@ export const QuestionReportModal: React.FC<QuestionReportModalProps> = ({
               Vazgeç
             </button>
             <button
+              type="button"
+              onClick={handleSendToDeveloper}
+              className="min-h-[42px] px-3.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+              style={{
+                borderColor: 'var(--brand-primary)',
+                backgroundColor: 'var(--brand-primary-soft)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <Send className="w-3.5 h-3.5 shrink-0" />
+              <span>Geliştiriciye de İlet</span>
+            </button>
+            <button
               type="submit"
-              className="min-h-[42px] px-5 rounded-xl text-xs font-extrabold text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="min-h-[42px] px-4 rounded-xl text-xs font-extrabold text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
               style={{ backgroundColor: '#DC2626' }}
             >
-              <Flag className="w-4 h-4" />
+              <Flag className="w-4 h-4 shrink-0" />
               <span>{existing ? 'Bildirimi Güncelle' : 'Hatalı İşaretle'}</span>
             </button>
           </div>

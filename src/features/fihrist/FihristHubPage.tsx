@@ -35,6 +35,7 @@ export const FihristHubPage: React.FC = () => {
   const [subTab, setSubTab] = useState<FihristSubTab>('topics');
   const [targetFihristTopicId, setTargetFihristTopicId] = useState<string | null>(null);
   const [targetNotebookTopicId, setTargetNotebookTopicId] = useState<string | null>(null);
+  const [targetNotebookSubTab, setTargetNotebookSubTab] = useState<'topics' | 'notes' | null>(null);
   const [copiedBanner, setCopiedBanner] = useState<{
     topicId: string;
     title: string;
@@ -51,8 +52,13 @@ export const FihristHubPage: React.FC = () => {
     setSubTab(nextTab);
     if (nextTab === 'topics' && fihristNavTarget.topicId) {
       setTargetFihristTopicId(fihristNavTarget.topicId);
-    } else if (nextTab === 'notebook' && fihristNavTarget.topicId) {
-      setTargetNotebookTopicId(fihristNavTarget.topicId);
+    } else if (nextTab === 'notebook') {
+      if (fihristNavTarget.topicId) {
+        setTargetNotebookTopicId(fihristNavTarget.topicId);
+      }
+      if (fihristNavTarget.notebookSubTab) {
+        setTargetNotebookSubTab(fihristNavTarget.notebookSubTab);
+      }
     }
     clearFihristNavTarget();
   }, [fihristNavTarget, clearFihristNavTarget]);
@@ -238,6 +244,8 @@ export const FihristHubPage: React.FC = () => {
         <ResearchNotebookTab
           selectedTopicIdOverride={targetNotebookTopicId}
           onClearTopicOverride={() => setTargetNotebookTopicId(null)}
+          initialSubViewOverride={targetNotebookSubTab}
+          onClearSubViewOverride={() => setTargetNotebookSubTab(null)}
         />
       )}
     </div>

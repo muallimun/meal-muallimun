@@ -2,6 +2,7 @@ import React from 'react';
 import { AppShell } from './components/AppShell';
 import { AudioPlayerBar } from './components/AudioPlayerBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { FeedbackModal } from './components/FeedbackModal';
 import { IntroSplash } from './components/IntroSplash';
 import { PageBookmarksDrawer } from './components/PageBookmarksDrawer';
 import { PoolSelectorModal } from './components/PoolSelectorModal';
@@ -70,6 +71,7 @@ const MainRouter: React.FC = () => {
         <VerseNoteModal />
         <GlobalSearchModal />
         <UserGuideModal />
+        <FeedbackModal />
         <IntroSplash />
       </ErrorBoundary>
     </AppShell>

@@ -12,6 +12,7 @@ import {
   Home,
   Layers,
   Maximize2,
+  MessageSquareHeart,
   Minimize2,
   PanelLeftClose,
   PanelLeftOpen,
@@ -79,6 +80,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     openPoolModal,
     openSettingsModal,
     openUserGuide,
+    openFeedbackModal,
     openBookmarksDrawer,
     openSearchModal,
     dataSourceMode,
@@ -435,6 +437,25 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               <span className="truncate">Kelime Asistanı</span>
               <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-75" />
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openFeedbackModal();
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl border flex items-center gap-2.5 text-xs font-bold transition-colors cursor-pointer hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <MessageSquareHeart
+                className="w-4 h-4 shrink-0"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+              <span className="truncate">İletişim &amp; Geri Bildirim</span>
+            </button>
             <button
               type="button"
               onClick={openSettingsModal}
@@ -979,10 +1000,22 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             <p style={{ color: 'var(--text-muted)' }}>
               © {currentYear} kuran.muallimun.net — Muallimun Kur&apos;an &amp; Meal Eğitim Platformu
             </p>
-            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1">
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1.5">
               <p style={{ color: 'var(--text-muted)' }}>
                 {MEALS_CATALOG.length} Meal &amp; Tefsir · {RECITERS_CATALOG.length} Kurrâ · Fihrist, Ezber, Sınav &amp; Oyunlar
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  openFeedbackModal();
+                }}
+                className="inline-flex items-center gap-1 font-bold hover:underline cursor-pointer"
+                style={{ color: 'var(--brand-primary-text)' }}
+              >
+                <MessageSquareHeart className="w-3.5 h-3.5 shrink-0" />
+                <span>İletişim &amp; Geri Bildirim</span>
+              </button>
               <a
                 href="https://kelime.muallimun.net"
                 target="_blank"

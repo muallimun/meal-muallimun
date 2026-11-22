@@ -397,6 +397,29 @@ export interface StudyNavigationTarget {
 // Uygulama Durum & Kalıcı Depo Tipleri (localStorage: muallimun_meal_v1)
 // ============================================================================
 
+export type StudyDeskProfileId =
+  | 'all'
+  | 'reading_hatim'
+  | 'hifz'
+  | 'exam_student'
+  | 'custom';
+
+export interface StudyDeskPrefs {
+  profile: StudyDeskProfileId;
+  showReadingRow: boolean;
+  showHatimRow: boolean;
+  showMemorizationRow: boolean;
+  showListeningRow: boolean;
+  showNotesRow: boolean;
+  showPoolAndExamSection: boolean;
+}
+
+export interface FeedbackModalSeed {
+  category?: string;
+  contextRef?: string;
+  prefillMessage?: string;
+}
+
 export interface AppSettings {
   theme: ThemeMode;
   preferredMeal: PreferredMeal;
@@ -420,6 +443,7 @@ export interface AppSettings {
   showTajweedLegend: boolean;
   wordSyncEnabled: boolean;
   showRukuMarkers: boolean;
+  deskPrefs: StudyDeskPrefs;
 }
 
 export interface StudyPool {
@@ -570,6 +594,7 @@ export interface ExamNavigationTarget {
 export interface FihristNavigationTarget {
   subTab?: 'topics' | 'surah_nuzul' | 'timeline' | 'notebook';
   topicId?: string;
+  notebookSubTab?: 'topics' | 'notes';
   nonce: number;
 }
 

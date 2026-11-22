@@ -23,7 +23,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!data/|fonts/|sfx/|icons/|assets/|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js|registerSW\\.js).*)",
+      "source": "/((?!api/|data/|fonts/|sfx/|icons/|assets/|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js|registerSW\\.js).*)",
       "destination": "/index.html"
     }
   ],

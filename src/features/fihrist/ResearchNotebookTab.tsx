@@ -50,6 +50,8 @@ import {
 interface ResearchNotebookTabProps {
   selectedTopicIdOverride?: string | null;
   onClearTopicOverride?: () => void;
+  initialSubViewOverride?: 'topics' | 'notes' | null;
+  onClearSubViewOverride?: () => void;
 }
 
 const VIEW_MODE_OPTIONS: readonly {
@@ -127,6 +129,8 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
 export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   selectedTopicIdOverride,
   onClearTopicOverride,
+  initialSubViewOverride,
+  onClearSubViewOverride,
 }) => {
   const { meta, manifest, audioPrefs, settings, openMealSelector } = useAppStore();
   const topics = useSyncExternalStore(
@@ -189,6 +193,12 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     setSelectedTopicId(selectedTopicIdOverride);
     onClearTopicOverride?.();
   }, [selectedTopicIdOverride, onClearTopicOverride]);
+
+  useEffect(() => {
+    if (!initialSubViewOverride) return;
+    setNotebookSubView(initialSubViewOverride);
+    onClearSubViewOverride?.();
+  }, [initialSubViewOverride, onClearSubViewOverride]);
 
   // '⋯' menüsünü dış tıklamayla kapat
   useEffect(() => {

@@ -16,6 +16,7 @@ import {
   Keyboard,
   Layers,
   Link2,
+  MessageSquareHeart,
   Search,
   Settings,
   Smartphone,
@@ -102,6 +103,12 @@ const QUICKSTART_ROUTES: QuickStartRouteItem[] = [
   },
 ];
 
+type ModuleTipActionId =
+  | 'classical_hifz'
+  | 'hatim_planner'
+  | 'personal_notes'
+  | 'customize_desk';
+
 interface ModuleTipItem {
   id: string;
   title: string;
@@ -109,9 +116,73 @@ interface ModuleTipItem {
   summary: string;
   bullets: string[];
   keywords: string;
+  ctaLabel?: string;
+  actionId?: ModuleTipActionId;
 }
 
 const MODULE_TIPS: ModuleTipItem[] = [
+  {
+    id: 'classical_hifz_guide',
+    title: 'Klasik Türkiye Hafızlık Sistemi (20 Tur Ham–Has)',
+    badge: 'Klasik Hafızlık',
+    summary:
+      'Türkiye’deki geleneksel Kur’an kursu usulüne uygun olarak cüz sonundan başa dönüşümlü 20 tur Ham–Has takibini Ezber Atölyesi içinde yönetebilirsiniz:',
+    bullets: [
+      'Cüz Sonundan Başa 20 Tur: Her turda 30 cüzün ilgili sıradaki sayfalarını (20. sayfadan 1. sayfaya) önce "Ham" olarak çalışır, pekiştirdikçe "Has" onayına çevirirsiniz.',
+      '30. Cüz Seçenekleri & Ara Seviye Sihirbazı: 30. cüzü başta veya sonda tamamlama tercihi seçebilir; hâlihazırda belirli bir turda olan öğrenciler için geçmiş turları tek adımda işaretleyebilirsiniz.',
+      'Ham + Has Bağlantı Okuması: Günün yeni sayfasını tamamladıktan sonra mevcut Has sayfalarınızla birleştirerek tek akışta tekrar oturumu başlatabilirsiniz.',
+    ],
+    keywords:
+      'klasik hafızlık 20 tur ham has 30 cüz dönüşümlü osmanlı diyanet çiğ pişmiş bağlantı ara seviye sihirbaz ezber',
+    ctaLabel: 'Klasik Hafızlığı Aç',
+    actionId: 'classical_hifz',
+  },
+  {
+    id: 'hatim_planner_guide',
+    title: '30 Cüz Hatim Planlayıcısı ve Hatim Ayracı Senkronu',
+    badge: 'Hatim Takibi',
+    summary:
+      'Ana Sayfa "Hatim Planım" satırı veya "Sayfa Ayraçlarım" çekmecesinden 604 sayfalık 30 Cüz Hatim Planlayıcısına ulaşabilirsiniz:',
+    bullets: [
+      'Günlük sayfa hedefi (ör. günde 4 veya 20 sayfa), hedef bitiş tarihi ya da serbest 30 cüz işaretleme modlarından birini seçebilirsiniz.',
+      'Mushaf görünümünde yeşil "Hatim Ayracımı Buraya Taşı" butonuna bastığınızda aktif hatim planınız o sayfaya kadar otomatik güncellenir; 30 cüzlük ızgaradan herhangi bir cüzü doğrudan açabilir veya tamamlandı işaretleyebilirsiniz.',
+      '604 sayfanın tamamı bittiğinde hatminiz tarih ve notuyla Hatim Geçmişinize kaydedilir.',
+    ],
+    keywords: 'hatim 30 cüz planlayıcı günlük sayfa hedef tarih ayraç mushaf geçmiş',
+    ctaLabel: 'Hatim Planlayıcısını Aç',
+    actionId: 'hatim_planner',
+  },
+  {
+    id: 'personal_verse_notes',
+    title: 'Ayet Bazlı Kişisel Tefekkür Notları ve Etiketleme',
+    badge: 'Defterim & Arama',
+    summary:
+      'Kartlar, Kitap ve Mushaf görünümlerindeki herhangi bir ayete renkli, etiketli kişisel notlar ekleyebilir ve dilediğinizde Araştırma Defterinize aktarabilirsiniz:',
+    bullets: [
+      'Not eklediğiniz ayetlerde renkli "Notum" rozeti ve tıklanabilir not kutusu görünür; tüm notlarınız Fihrist → Defterim → Ayet Notlarım altında toplanır.',
+      'Ayet Notlarım panelinde arama, renk/etiket filtreleme ve tek tıkla A4 PDF yazdırma seçenekleri bulunur; Ctrl+K Genel Arama da Türkçe sorgularda kişisel notlarınızı tarar.',
+      'Kişisel notlarınız ve Hatim ilerlemeniz cihazınızda saklanır ve Ayarlar içindeki Tam Yedek (.json) dosyasına otomatik dâhil edilir.',
+    ],
+    keywords: 'kişisel ayet notu tefekkür etiket renk defterim arama pdf yedek',
+    ctaLabel: 'Ayet Notlarımı Aç',
+    actionId: 'personal_notes',
+  },
+  {
+    id: 'study_desk_customization',
+    title: 'Çalışma Masam Özelleştirme, Odak Profilleri & İletişim',
+    badge: 'Ana Sayfa & İletişim',
+    summary:
+      'Ana Sayfadaki "Çalışma Masam" alanını kullanım hedefinize göre tek tıkla sadeleştirebilir, dilediğiniz satırları açıp kapatabilirsiniz:',
+    bullets: [
+      '4 Hazır Odak Profili: "Okuma & Hatim Odaklı", "Hafızlık & Ezber Odaklı", "Öğrenci & Sınav Odaklı" veya "Tam Kapsamlı" profillerden birini seçerek Ana Sayfayı ihtiyacınıza göre düzenleyin.',
+      'Sınav Vurgusunu Gizleme: Yalnızca okuma, hatim veya ezber odaklı çalışmak istediğinizde "Sınav Vurgusu & Soru Bankası Vitrini" seçeneğini kapatarak soru sayaçlarını ve sınav vitrinini gizleyebilirsiniz.',
+      'Güvenli İletişim & Hata Bildirimi: Alt menüdeki veya Ayarlardaki "Görüş / Hata Bildir" penceresinden önerilerinizi, soru veya meal düzeltme bildirimlerinizi doğrudan iletebilirsiniz.',
+    ],
+    keywords:
+      'çalışma masam özelleştir odak profili sadeleştir okuma hatim hafızlık sınav gizle iletişim geri bildirim hata bildir',
+    ctaLabel: 'Ana Sayfada Özelleştir',
+    actionId: 'customize_desk',
+  },
   {
     id: 'reading_modes',
     title: 'Mushaf, Kitap ve Kart Görünümleri Arasındaki Farklar',
@@ -150,32 +221,6 @@ const MODULE_TIPS: ModuleTipItem[] = [
       'Okuma ekranında ise havuzdan bağımsız olarak 114 sure ve 604 sayfanın tamamına her zaman doğrudan erişebilirsiniz.',
     ],
     keywords: 'havuz aktif çalışma havuzu 114 sure genişlet başlangıç cüz filtre',
-  },
-  {
-    id: 'hatim_planner_guide',
-    title: '30 Cüz Hatim Planlayıcısı ve Mushaf Ayraç Senkronu',
-    badge: 'Hatim Takibi',
-    summary:
-      'Ana Sayfa "Hatim Planım" kısayolu veya "Sayfa Ayraçlarım" çekmecesinden 604 sayfalık 30 Cüz Hatim Planlayıcısına ulaşabilirsiniz:',
-    bullets: [
-      'Günlük sayfa hedefi (ör. günde 4 veya 20 sayfa), hedef bitiş tarihi ya da serbest 30 cüz işaretleme modlarından birini seçebilirsiniz.',
-      'Mushaf görünümünde "Hatim Ayracımı Buraya Taşı" dediğinizde aktif hatim planınız o sayfaya kadar otomatik güncellenir; 30 cüzlük ızgaradan herhangi bir cüzü doğrudan açabilir veya tamamlandı işaretleyebilirsiniz.',
-      '604 sayfanın tamamı bittiğinde hatminiz tarih ve notuyla Hatim Geçmişinize kaydedilir.',
-    ],
-    keywords: 'hatim 30 cüz planlayıcı günlük sayfa hedef tarih ayraç mushaf geçmiş',
-  },
-  {
-    id: 'personal_verse_notes',
-    title: 'Ayet Bazlı Kişisel Tefekkür Notları ve Etiketleme',
-    badge: 'Defterim & Arama',
-    summary:
-      'Kartlar, Kitap ve Mushaf görünümlerindeki herhangi bir ayete renkli, etiketli kişisel notlar ekleyebilir ve dilediğinizde Araştırma Defterinize aktarabilirsiniz:',
-    bullets: [
-      'Not eklediğiniz ayetlerde renkli "Notum" rozeti ve tıklanabilir not kutusu görünür; tüm notlarınız Fihrist → Defterim → Ayet Notlarım altında toplanır.',
-      'Ayet Notlarım panelinde arama, renk/etiket filtreleme ve tek tıkla A4 PDF yazdırma seçenekleri bulunur; Ctrl+K Genel Arama da Türkçe sorgularda kişisel notlarınızı tarar.',
-      'Kişisel notlarınız ve Hatim ilerlemeniz cihazınızda saklanır ve Ayarlar içindeki Tam Yedek (.json) dosyasına otomatik dâhil edilir.',
-    ],
-    keywords: 'kişisel ayet notu tefekkür etiket renk defterim arama pdf yedek',
   },
   {
     id: 'a4_exam_pdf',
@@ -290,6 +335,10 @@ export const UserGuideModal: React.FC = () => {
     closeUserGuide,
     setActiveTab,
     openSettingsModal,
+    navigateToMemorizeUnit,
+    openHatimModal,
+    navigateToFihrist,
+    openFeedbackModal,
   } = useAppStore();
 
   const [activeTab, setLocalTab] = useState<UserGuideTabId>(userGuideTab);
@@ -329,6 +378,23 @@ export const UserGuideModal: React.FC = () => {
       setActiveTab(target);
     },
     [closeUserGuide, setActiveTab],
+  );
+
+  const handleModuleTipAction = useCallback(
+    (actionId: ModuleTipActionId) => {
+      sfxService.play('click');
+      closeUserGuide();
+      if (actionId === 'classical_hifz') {
+        navigateToMemorizeUnit(undefined, false, 'classical');
+      } else if (actionId === 'hatim_planner') {
+        openHatimModal();
+      } else if (actionId === 'personal_notes') {
+        navigateToFihrist({ subTab: 'notebook', notebookSubTab: 'notes' });
+      } else if (actionId === 'customize_desk') {
+        setActiveTab('home');
+      }
+    },
+    [closeUserGuide, navigateToFihrist, navigateToMemorizeUnit, openHatimModal, setActiveTab],
   );
 
   const handleCopyDeepLink = useCallback(async (id: string, url: string) => {
@@ -750,6 +816,23 @@ export const UserGuideModal: React.FC = () => {
                       </li>
                     ))}
                   </ul>
+                  {tip.ctaLabel && tip.actionId && (
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleModuleTipAction(tip.actionId!)}
+                        className="min-h-[38px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 touch-manipulation"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--brand-primary)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <span>{tip.ctaLabel}</span>
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                      </button>
+                    </div>
+                  )}
                 </article>
               ))}
             </section>
@@ -811,11 +894,12 @@ export const UserGuideModal: React.FC = () => {
                   </h3>
                 </div>
                 <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  Tüm çalışma verileriniz (ayraçlar, araştırma notları, ezber ilerlemesi, hıfz
-                  haritası, sınav geçmişi ve ayarlar) yalnızca kendi cihazınızda saklanır. Farklı bir
-                  cihaza geçerken veya düzenli güvenlik yedeği almak için Ayarlar penceresinden tek
-                  tıkla <code>.json</code> yedeği indirebilir, dilediğiniz zaman iki aşamalı güvenli
-                  onayla geri yükleyebilirsiniz.
+                  Tüm çalışma verileriniz (ayraçlar, 30 Cüz Hatim planı, kişisel ayet notları,
+                  araştırma defterleri, ezber havuzu, Klasik 20 Tur Ham–Has hafızlık kaydı, Çalışma
+                  Masam tercihleri, sınav/oyun ilerlemesi ve ayarlar) yalnızca kendi cihazınızda
+                  saklanır. Farklı bir cihaza geçerken veya düzenli güvenlik yedeği almak için
+                  Ayarlar penceresinden tek tıkla <code>.json</code> yedeği indirebilir, dilediğiniz
+                  zaman iki aşamalı güvenli onayla geri yükleyebilirsiniz.
                 </p>
                 <div>
                   <button
@@ -995,17 +1079,36 @@ export const UserGuideModal: React.FC = () => {
             <FileText className="w-3.5 h-3.5 shrink-0" />
             <span>kuran.muallimun.net · Kullanım Rehberi</span>
           </span>
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              closeUserGuide();
-            }}
-            className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white cursor-pointer hover:opacity-95 touch-manipulation"
-            style={{ backgroundColor: 'var(--brand-primary)' }}
-          >
-            Kapat
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                closeUserGuide();
+                openFeedbackModal();
+              }}
+              className="min-h-[38px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 touch-manipulation"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--brand-primary)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <MessageSquareHeart className="w-3.5 h-3.5 shrink-0" />
+              <span>Görüş, Öneri veya Hata Bildir</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                closeUserGuide();
+              }}
+              className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white cursor-pointer hover:opacity-95 touch-manipulation"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              Kapat
+            </button>
+          </div>
         </div>
       </div>
     </div>

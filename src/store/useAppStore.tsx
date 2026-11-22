@@ -19,6 +19,10 @@ import {
   DEFAULT_SECONDARY_MEAL_ID,
   findMealById,
 } from '../config/mealsConfig';
+import {
+  DEFAULT_DESK_PREFS,
+  sanitizeStudyDeskPrefs,
+} from '../config/studyDeskConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { dataService, type DataSourceMode } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
@@ -37,6 +41,7 @@ import type {
   ExamHistoryRecord,
   ExamMode,
   ExamNavigationTarget,
+  FeedbackModalSeed,
   FihristNavigationTarget,
   GamificationState,
   LastReadPosition,
@@ -103,6 +108,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showTajweedLegend: false,
   wordSyncEnabled: true,
   showRukuMarkers: true,
+  deskPrefs: { ...DEFAULT_DESK_PREFS },
 };
 
 export const DEFAULT_STUDY_POOL: StudyPool = {
@@ -473,6 +479,7 @@ function hydrateState(): PersistedAppState {
         typeof rawSettings.showRukuMarkers === 'boolean'
           ? rawSettings.showRukuMarkers
           : DEFAULT_SETTINGS.showRukuMarkers,
+      deskPrefs: sanitizeStudyDeskPrefs(rawSettings.deskPrefs),
     };
 
     const rawPool = parsed.studyPool;
@@ -1033,6 +1040,10 @@ interface AppContextValue {
   userGuideTab: UserGuideTabId;
   openUserGuide: (tab?: UserGuideTabId) => void;
   closeUserGuide: () => void;
+  feedbackSeed: FeedbackModalSeed | null;
+  isFeedbackModalOpen: boolean;
+  openFeedbackModal: (seed?: FeedbackModalSeed) => void;
+  closeFeedbackModal: () => void;
   isListeningDrawerOpen: boolean;
   listeningDrawerSeed: ListeningDrawerSeed | null;
   openListeningDrawer: (seed?: Omit<ListeningDrawerSeed, 'nonce'>) => void;
@@ -1175,6 +1186,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isUserGuideOpen, setIsUserGuideOpen] = useState(false);
   const [userGuideTab, setUserGuideTab] = useState<UserGuideTabId>('quickstart');
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [feedbackSeed, setFeedbackSeed] = useState<FeedbackModalSeed | null>(null);
   const initialUrlHandledRef = useRef(false);
   const [introDismissed, setIntroDismissed] = useState<boolean>(() => readIntroDismissed());
   const [isIntroOpen, setIsIntroOpen] = useState<boolean>(
@@ -1563,7 +1576,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const resetSettings = useCallback(() => {
     setPersisted((prev) => ({
       ...prev,
-      settings: { ...DEFAULT_SETTINGS },
+      settings: {
+        ...DEFAULT_SETTINGS,
+        deskPrefs: { ...DEFAULT_DESK_PREFS },
+      },
     }));
   }, []);
 
@@ -2460,6 +2476,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsUserGuideOpen(false);
   }, []);
 
+  const openFeedbackModal = useCallback((seed?: FeedbackModalSeed) => {
+    setFeedbackSeed(seed ?? null);
+    setIsFeedbackModalOpen(true);
+  }, []);
+
+  const closeFeedbackModal = useCallback(() => {
+    setIsFeedbackModalOpen(false);
+    setFeedbackSeed(null);
+  }, []);
+
   // Açılışta URL doğrudan bağlantı (Deep-Link) parametrelerini tek seferlik çözümle
   useEffect(() => {
     if (initialUrlHandledRef.current) return;
@@ -2642,6 +2668,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       userGuideTab,
       openUserGuide,
       closeUserGuide,
+      feedbackSeed,
+      isFeedbackModalOpen,
+      openFeedbackModal,
+      closeFeedbackModal,
       isListeningDrawerOpen,
       listeningDrawerSeed,
       openListeningDrawer,
@@ -2777,6 +2807,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       userGuideTab,
       openUserGuide,
       closeUserGuide,
+      feedbackSeed,
+      isFeedbackModalOpen,
+      openFeedbackModal,
+      closeFeedbackModal,
       isListeningDrawerOpen,
       listeningDrawerSeed,
       openListeningDrawer,
