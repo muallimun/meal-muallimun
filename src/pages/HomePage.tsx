@@ -1566,9 +1566,10 @@ export const HomePage: React.FC = () => {
                         <p
                           dir="rtl"
                           lang="ar"
-                          className="tajweed-arabic-text text-right break-words"
+                          className="arabic-tajweed text-right break-words"
                           style={{
                             fontSize: `${settings.arabicFontSize}px`,
+                            lineHeight: 2.2,
                             color: 'var(--text-primary)',
                           }}
                         >

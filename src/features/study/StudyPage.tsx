@@ -67,7 +67,6 @@ import { MobileReaderDrawer } from './MobileReaderDrawer';
 import { MushafPageView } from './MushafPageView';
 import { SurahInfoModal } from './SurahInfoModal';
 import { TajweedLegendBar } from './TajweedLegendBar';
-import { TajweedRulePopoverHost } from './TajweedRulePopover';
 import { VerseCardsView } from './VerseCardsView';
 
 const EMPTY_TAJWEED_SURAH_NOS: readonly number[] = [];
@@ -2146,8 +2145,6 @@ export const StudyPage: React.FC = () => {
         besmele={meta?.besmele}
         onStartAudioFromActive={(v) => handlePlayFromVerse(v, false)}
       />
-
-      <TajweedRulePopoverHost theme={settings.theme} enabled={settings.tajweedEnabled} />
     </div>
   );
 };

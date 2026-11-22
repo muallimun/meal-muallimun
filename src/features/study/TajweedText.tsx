@@ -40,7 +40,7 @@ export const TajweedText: React.FC<TajweedTextProps> = ({
   interactive = true,
 }) => {
   return (
-    <span className={className} dir="rtl">
+    <span className={className ? `arabic-tajweed ${className}` : 'arabic-tajweed'} dir="rtl">
       {words.map((word, wordIdx) => {
         const wordIndex1Based = wordIdx + 1;
         const isKaraokeActive = activeWordIndex === wordIndex1Based;

@@ -238,6 +238,8 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
   const [revealedWordCounts, setRevealedWordCounts] = useState<Record<string, number>>({});
   const peekHoldTimerRef = useRef<number | null>(null);
   const didLongPressPeekRef = useRef(false);
+  const mainScrollRef = useRef<HTMLElement | null>(null);
+  const railListRef = useRef<HTMLDivElement | null>(null);
 
   // Öz-Sınav puan özeti
   const [selfTestStats, setSelfTestStats] = useState<{ remembered: number; hard: number }>({
@@ -675,10 +677,74 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
 
   // Aktif odak ayeti & Vasıl (sonraki ayet) kancası
   const activeStepKeys = useMemo(() => currentStep?.verseKeys ?? [], [currentStep]);
+  const activeStepKeysRef = useRef(activeStepKeys);
+  activeStepKeysRef.current = activeStepKeys;
+
   const highlightedVerseKey =
     audioSnap.activeVerseKey && activeStepKeys.includes(audioSnap.activeVerseKey)
       ? audioSnap.activeVerseKey
       : activeStepKeys[0] ?? unit.verseKeys[0] ?? null;
+
+  // Seslendirilen aktif ayeti (veya adım/görünüm değişiminde ilk ayeti) ekran ortasına yumuşakça odakla
+  useEffect(() => {
+    if (isFinished || isLoadingVerses) return;
+    const stepKeys = activeStepKeysRef.current;
+    const isAudioInCurrentStep =
+      Boolean(audioSnap.activeVerseKey) && stepKeys.includes(audioSnap.activeVerseKey!);
+    const targetKey = isAudioInCurrentStep ? audioSnap.activeVerseKey! : stepKeys[0] ?? null;
+
+    const rafId = window.requestAnimationFrame(() => {
+      const container = mainScrollRef.current;
+      if (!container) return;
+
+      if (!targetKey) {
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      if (prefs.viewMode !== 'mushaf' && stepKeys.length <= 1) {
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      const targetEl = container.querySelector<HTMLElement>(
+        `[data-zen-verse-key="${targetKey}"]`,
+      );
+      if (!targetEl) {
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = targetEl.getBoundingClientRect();
+      const targetCenterInScroll =
+        targetRect.top - containerRect.top + container.scrollTop + targetRect.height / 2;
+      const targetScrollTop = targetCenterInScroll - container.clientHeight / 2;
+
+      container.scrollTo({
+        top: Math.max(0, targetScrollTop),
+        behavior: 'smooth',
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [audioSnap.activeVerseKey, stepIndex, prefs.viewMode, isFinished, isLoadingVerses]);
+
+  // Masaüstü sol "Oturum Akışı" listesinde aktif adımı görünür alanda tut
+  useEffect(() => {
+    if (isFinished || !showDesktopRail) return;
+    const rafId = window.requestAnimationFrame(() => {
+      const rail = railListRef.current;
+      if (!rail) return;
+      const activeBtn = rail.querySelector<HTMLElement>('[data-zen-step-active="true"]');
+      activeBtn?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [stepIndex, showDesktopRail, isFinished]);
 
   // Kelime Kelime Açma yardımcısı (+1 kelime açar)
   const revealNextWordForVerse = useCallback(
@@ -1692,7 +1758,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                 {formatClock(elapsedSec)}
               </span>
             </div>
-            <div className="flex-1 overflow-y-auto p-2.5 space-y-1">
+            <div ref={railListRef} className="flex-1 overflow-y-auto p-2.5 space-y-1">
               {steps.map((s) => {
                 const isCurrent = s.index === stepIndex;
                 const isDone = s.index < stepIndex;
@@ -1700,6 +1766,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                   <button
                     key={s.index}
                     type="button"
+                    data-zen-step-active={isCurrent ? 'true' : undefined}
                     onClick={() => {
                       sfxService.play('click');
                       setStepIndex(s.index);
@@ -1750,8 +1817,8 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
         )}
 
         {/* Merkez Çalışma Sahnesi */}
-        <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6">
-          <div className="max-w-3xl mx-auto space-y-4 pb-6">
+        <main ref={mainScrollRef} className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6">
+          <div className="max-w-3xl mx-auto space-y-4 pb-24 sm:pb-28">
             {/* Özel Mod Rozeti (Zorlanılan Ayetler veya Öz-Sınav) */}
             {sessionConfig.mode !== 'standard' && (
               <div
@@ -2037,6 +2104,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                   return (
                     <div
                       key={key}
+                      data-zen-verse-key={key}
                       onPointerDown={handleCardPointerDown}
                       onPointerUp={() => handleCardPointerEnd(key, false)}
                       onPointerLeave={() => handleCardPointerEnd(undefined, true)}
@@ -2392,6 +2460,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                     return (
                       <span
                         key={key}
+                        data-zen-verse-key={key}
                         className="inline rounded-xl px-1 transition-colors"
                         style={{
                           backgroundColor: isActiveAudio

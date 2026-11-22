@@ -19,11 +19,12 @@ import { MemorizationHubPage } from './features/memorization/MemorizationHubPage
 import { QuickMemorizeFromVerseModal } from './features/memorization/QuickMemorizeFromVerseModal';
 import { StudyPage } from './features/study/StudyPage';
 import { RukuPopoverHost, WaqfPopoverHost } from './features/study/StudyPopovers';
+import { TajweedRulePopoverHost } from './features/study/TajweedRulePopover';
 import { HomePage } from './pages/HomePage';
 import { AppProvider, useAppStore } from './store/useAppStore';
 
 const MainRouter: React.FC = () => {
-  const { activeTab } = useAppStore();
+  const { activeTab, settings } = useAppStore();
 
   return (
     <AppShell>
@@ -49,6 +50,7 @@ const MainRouter: React.FC = () => {
       <WaqfGuideModal />
       <WaqfPopoverHost />
       <RukuPopoverHost />
+      <TajweedRulePopoverHost theme={settings.theme} enabled={settings.tajweedEnabled} />
       <QuickMemorizeFromVerseModal />
       <QuickAddToResearchModal />
       <PageBookmarksDrawer />
