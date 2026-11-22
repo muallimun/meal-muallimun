@@ -23,6 +23,7 @@ import {
   getRangesSignature,
 } from '../../data/curatedAshrPresets';
 import { useRukusData } from '../../hooks/useStudyReferenceData';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { memorizationStorage } from '../../services/memorizationStorage';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
@@ -33,6 +34,7 @@ import type {
   MemorizationUnit,
 } from '../../types/memorization';
 import { formatSurahTitle } from '../../utils/arabicUtils';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { normalizeTurkish } from '../../utils/textNormalize';
 
 type PoolTab = 'preset' | 'page' | 'surah' | 'custom';
@@ -111,14 +113,12 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
     setExistingUnits(memorizationStorage.readUnitsSync());
   }, [isOpen, currentReadingPage]);
 
+  useBackButtonGuard('create_pool_modal', isOpen, onClose);
+
   useEffect(() => {
     if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, onClose]);
+    return acquireBodyScrollLock();
+  }, [isOpen]);
 
   const surahMap = useMemo(() => {
     const map = new Map<number, { nameTr: string; shortNameTr: string; ayahCount: number; pageStart: number; pageEnd: number }>();

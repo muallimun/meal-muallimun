@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, BookOpen, Info, X } from 'lucide-react';
+import { Z_LAYERS } from '../../config/zLayers';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import type { SurahExtraInfo } from '../../types/fihrist';
@@ -60,18 +62,12 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({
     };
   }, [surah]);
 
+  useBackButtonGuard('surah_info_modal', Boolean(surah), onClose);
+
   useEffect(() => {
     if (!surah) return;
-    const releaseScrollLock = acquireBodyScrollLock();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      releaseScrollLock();
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [surah, onClose]);
+    return acquireBodyScrollLock();
+  }, [surah]);
 
   if (!surah) return null;
 
@@ -79,7 +75,7 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[96] flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-end sm:items-center justify-center p-0 sm:p-4`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="surah-info-title"

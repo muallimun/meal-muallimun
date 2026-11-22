@@ -16,9 +16,11 @@ import {
   getAllMeals,
   getMealLangBadge,
 } from '../config/mealsConfig';
+import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { MealCategory, MealDefinition } from '../types/quran';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { normalizeTurkish } from '../utils/textNormalize';
 
 type MealFilterTab = 'all' | 'favorites' | 'audio' | MealCategory;
@@ -58,18 +60,12 @@ export const MealSelectorModal: React.FC = () => {
     }
   }, [isMealSelectorOpen, mealSelectorTarget]);
 
+  useBackButtonGuard('meal_selector_modal', isMealSelectorOpen, closeMealSelector);
+
   useEffect(() => {
     if (!isMealSelectorOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        closeMealSelector();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown, true);
-    return () => window.removeEventListener('keydown', onKeyDown, true);
-  }, [isMealSelectorOpen, closeMealSelector]);
+    return acquireBodyScrollLock();
+  }, [isMealSelectorOpen]);
 
   const allMeals = useMemo(() => getAllMeals(manifest), [manifest]);
   const primaryMeal = useMemo(

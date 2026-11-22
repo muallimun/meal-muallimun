@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Check, FolderPlus, Pin, Plus, StickyNote, X } from 'lucide-react';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { researchStorage } from '../../services/researchStorage';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 
 export const QuickAddToResearchModal: React.FC = () => {
   const { quickResearchSeed, closeQuickResearch, meta, setActiveTab } = useAppStore();
@@ -34,14 +36,12 @@ export const QuickAddToResearchModal: React.FC = () => {
     setFeedback(null);
   }, [quickResearchSeed, maxAyah]);
 
+  useBackButtonGuard('quick_add_to_research_modal', Boolean(quickResearchSeed), closeQuickResearch);
+
   useEffect(() => {
     if (!quickResearchSeed) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeQuickResearch();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [quickResearchSeed, closeQuickResearch]);
+    return acquireBodyScrollLock();
+  }, [quickResearchSeed]);
 
   if (!quickResearchSeed) return null;
 

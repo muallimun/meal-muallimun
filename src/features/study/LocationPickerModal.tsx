@@ -11,9 +11,11 @@ import {
   X,
 } from 'lucide-react';
 import { useRukusData } from '../../hooks/useStudyReferenceData';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
 import type { MetaData, SurahMeta } from '../../types/quran';
 import { formatSafeArabicTitle, formatSurahTitle } from '../../utils/arabicUtils';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { normalizeTurkish } from '../../utils/poolUtils';
 
 export type LocationPickerTab = 'surah' | 'page' | 'juz' | 'ruku' | 'ayah';
@@ -77,18 +79,12 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     setRukuQuery('');
   }, [isOpen, initialTab, currentPageNo]);
 
+  useBackButtonGuard('location_picker_modal', isOpen, onClose);
+
   useEffect(() => {
     if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown, true);
-    return () => window.removeEventListener('keydown', onKeyDown, true);
-  }, [isOpen, onClose]);
+    return acquireBodyScrollLock();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;

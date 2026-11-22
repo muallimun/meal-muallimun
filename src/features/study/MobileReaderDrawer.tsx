@@ -22,6 +22,8 @@ import {
   Trophy,
   X,
 } from 'lucide-react';
+import { Z_LAYERS } from '../../config/zLayers';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
 import type {
   AppSettings,
@@ -30,6 +32,7 @@ import type {
   StudyViewMode,
   WordMealMode,
 } from '../../types/quran';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 
 interface MobileReaderDrawerProps {
   isOpen: boolean;
@@ -96,17 +99,12 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
   onOpenWaqfGuide,
   onOpenSettings,
 }) => {
+  useBackButtonGuard('mobile_reader_drawer', isOpen, onClose);
+
   useEffect(() => {
     if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, onClose]);
+    return acquireBodyScrollLock();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -115,7 +113,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Okuma Menüsü"
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55 backdrop-blur-xs lg:hidden"
+      className={`fixed inset-0 ${Z_LAYERS.DRAWER} flex items-end justify-center bg-black/55 backdrop-blur-xs lg:hidden`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       manifest: false,
       includeAssets: [
         'manifest.webmanifest',
@@ -24,12 +24,27 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            urlPattern: /\/data\/.*\.json$/i,
+            urlPattern:
+              /(?:^https:\/\/kuran\.muallimun\.net)?\/data\/(?:manifest|meta|quality_report|fihrist\/.*|q\/index|tj\/meta|seg\/meta)\.json$/i,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'muallimun-json-data',
+              cacheName: 'muallimun-core-meta',
               expiration: {
-                maxEntries: 400,
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 60,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /(?:^https:\/\/kuran\.muallimun\.net)?\/data\/.*\.json$/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'muallimun-json-shards',
+              expiration: {
+                maxEntries: 1500,
                 maxAgeSeconds: 60 * 60 * 24 * 30,
               },
               cacheableResponse: {
@@ -38,26 +53,12 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/kuran\.muallimun\.net\/data\/.*\.json$/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'muallimun-remote-json-data',
-              expiration: {
-                maxEntries: 400,
-                maxAgeSeconds: 60 * 60 * 24 * 30,
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: /\/(?:fonts|sfx)\/.+/i,
+            urlPattern: /(?:^https:\/\/kuran\.muallimun\.net)?\/(?:fonts|sfx)\/.+/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'muallimun-static-media',
               expiration: {
-                maxEntries: 40,
+                maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 90,
               },
               cacheableResponse: {
@@ -96,8 +97,7 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        enabled: true,
-        type: 'module',
+        enabled: false,
       },
     }),
   ],

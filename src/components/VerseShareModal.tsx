@@ -15,11 +15,14 @@ import {
   getMealTextPresentation,
   isExtraMealId,
 } from '../config/mealsConfig';
+import { Z_LAYERS } from '../config/zLayers';
+import { useBackButtonGuard } from '../services/backStackService';
 import { dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { CombinedVerse, SurahMeta } from '../types/quran';
 import { formatSafeArabicTitle, formatSurahTitle } from '../utils/arabicUtils';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 
 type ShareContentMode = 'both' | 'ar' | 'meal';
 type ShareCardTheme = 'cream' | 'emerald' | 'dark';
@@ -171,14 +174,12 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     }
   }, [verse, mealPick]);
 
+  useBackButtonGuard('verse_share_modal', Boolean(verse), onClose);
+
   useEffect(() => {
     if (!verse) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [verse, onClose]);
+    return acquireBodyScrollLock();
+  }, [verse]);
 
   const selectedMealDef = useMemo(
     () => findMealById(mealPick, manifest),
@@ -509,7 +510,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[75] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4"
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4`}
       onClick={onClose}
       role="dialog"
       aria-modal="true"

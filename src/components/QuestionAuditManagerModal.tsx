@@ -8,8 +8,11 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { Z_LAYERS } from '../config/zLayers';
+import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { getIssueReasonLabel } from './QuestionReportModal';
 
 interface QuestionAuditManagerModalProps {
@@ -31,14 +34,12 @@ export const QuestionAuditManagerModal: React.FC<QuestionAuditManagerModalProps>
 
   const [copied, setCopied] = useState(false);
 
+  useBackButtonGuard('question_audit_manager_modal', isOpen, onClose);
+
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+    return acquireBodyScrollLock();
+  }, [isOpen]);
 
   const surahMap = useMemo(() => {
     const map = new Map<number, string>();
@@ -110,7 +111,7 @@ export const QuestionAuditManagerModal: React.FC<QuestionAuditManagerModalProps>
       role="dialog"
       aria-modal="true"
       aria-label="Hata Bildirimleri ve Soru Denetim Raporu"
-      className="fixed inset-0 z-[72] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs"
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BookOpen, FileText, Loader2, Printer, StickyNote, X } from 'lucide-react';
 import { findMealById } from '../../config/mealsConfig';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { toArabicIndicDigits } from '../../services/dataService';
 import {
   formatRefRangeLabel,
@@ -12,6 +13,7 @@ import {
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type { FihristPrintMode } from '../../types/fihrist';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { getSurahMap } from '../../utils/poolUtils';
 
 interface PrintableFihristModalProps {
@@ -57,19 +59,18 @@ export const PrintableFihristModal: React.FC<PrintableFihristModalProps> = ({
     setIncludeNotes(allowNotesToggle);
   }, [isOpen, defaultPrintMode, allowNotesToggle]);
 
-  // Yazdırma penceresi açıkken mevcut @media print body sınıfını etkinleştir
+  useBackButtonGuard('printable_fihrist_modal', isOpen, onClose);
+
+  // Yazdırma penceresi açıkken mevcut @media print body sınıfını ve kaydırma kilidini etkinleştir
   useEffect(() => {
     if (!isOpen) return;
+    const releaseScrollLock = acquireBodyScrollLock();
     document.body.classList.add('print-exam-active');
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
     return () => {
       document.body.classList.remove('print-exam-active');
-      window.removeEventListener('keydown', onKeyDown);
+      releaseScrollLock();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || printMode === 'index' || items.length === 0) {

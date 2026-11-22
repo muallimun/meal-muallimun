@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BookMarked, Check, Layers, Search, X } from 'lucide-react';
+import { Z_LAYERS } from '../../config/zLayers';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -29,19 +31,13 @@ export const SurahPickerModal: React.FC<SurahPickerModalProps> = ({
   const [scope, setScope] = useState<PickerScope>('pool');
   const [query, setQuery] = useState('');
 
+  useBackButtonGuard('surah_picker_modal', isOpen, onClose);
+
   useEffect(() => {
     if (!isOpen) return;
     setQuery('');
-    const releaseScrollLock = acquireBodyScrollLock();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      releaseScrollLock();
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [isOpen, onClose]);
+    return acquireBodyScrollLock();
+  }, [isOpen]);
 
   const qCounts = useMemo(
     () => buildSurahQuestionCountMap(questionIndex),
@@ -69,7 +65,7 @@ export const SurahPickerModal: React.FC<SurahPickerModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[96] flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-end sm:items-center justify-center p-0 sm:p-4`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="surah-picker-title"

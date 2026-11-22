@@ -1,9 +1,3 @@
-import {
-  DATA_BASE_URL,
-  HAS_CUSTOM_DATA_BASE_URL,
-  LIVE_DATA_BASE_URL,
-  LOCAL_DATA_BASE_URL,
-} from '../config/assetsConfig';
 import { FALLBACK_FIHRIST_TOPICS } from '../data/fallbackFihristTopics';
 import type {
   FihristRefTuple,
@@ -124,43 +118,34 @@ function sanitizeTopicList(raw: unknown): FihristTopic[] {
   return out;
 }
 
-function getFihristCandidateBaseUrls(): string[] {
-  if (HAS_CUSTOM_DATA_BASE_URL) {
-    return [DATA_BASE_URL, LOCAL_DATA_BASE_URL];
-  }
-  return [LOCAL_DATA_BASE_URL, LIVE_DATA_BASE_URL];
-}
-
 /**
- * `/data/fihrist/topics.json` dosyasını yalnızca kullanıcı Fihrist sekmesini açtığında
- * tembel olarak çeker ve bellekte önbellekler. Ağ veya dosya erişilemezse anında
- * kapsamlı A–Z dahili yedek fihriste düşer.
+ * `/data/fihrist/topics.json` dosyasını `dataService.getFihristTopics()` (9 sn zaman aşımı +
+ * kalıcı önbellek) üzerinden çeker. Çevrimdışıyken dahili yedek fihriste düşerse bu durumu
+ * kalıcı olarak kilitlemez; internet geri geldiğinde çağrılınca 601 başlıklı tam paketi yeniden dener.
  */
 export async function loadFihristTopics(): Promise<FihristTopic[]> {
-  if (cachedTopics) return cachedTopics;
+  if (cachedTopics && topicsSource !== 'fallback') {
+    return cachedTopics;
+  }
+
+  const isOfflineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
+  if (cachedTopics && topicsSource === 'fallback' && isOfflineNow) {
+    return cachedTopics;
+  }
+
   if (inflightTopicsPromise) return inflightTopicsPromise;
 
   inflightTopicsPromise = (async () => {
-    const candidates = getFihristCandidateBaseUrls();
-    for (const base of candidates) {
-      const url = `${base.replace(/\/+$/, '')}/fihrist/topics.json`;
-      try {
-        const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (!res.ok) continue;
-        const text = await res.text();
-        if (text.trimStart().startsWith('<!doctype') || text.trimStart().startsWith('<html')) {
-          continue;
-        }
-        const parsed = JSON.parse(text) as unknown;
-        const topics = sanitizeTopicList(parsed);
-        if (topics.length > 0) {
-          cachedTopics = topics;
-          topicsSource = base === LOCAL_DATA_BASE_URL ? 'local' : 'remote';
-          return topics;
-        }
-      } catch {
-        // Sıradaki kaynağa veya dahili yedeğe geç
+    try {
+      const file = await dataService.getFihristTopics();
+      const topics = sanitizeTopicList(file);
+      if (file.source !== 'fallback' && topics.length > 0) {
+        cachedTopics = topics;
+        topicsSource = dataService.getActiveDataSource() === 'local' ? 'local' : 'remote';
+        return topics;
       }
+    } catch {
+      // Dahili yedek fihriste düş
     }
 
     cachedTopics = [...FALLBACK_FIHRIST_TOPICS];

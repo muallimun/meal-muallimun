@@ -11,8 +11,11 @@ import {
 } from 'lucide-react';
 import { MEALS_CATALOG } from '../config/mealsConfig';
 import { RECITERS_CATALOG } from '../config/recitersConfig';
+import { Z_LAYERS } from '../config/zLayers';
+import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { BrandMark } from './BrandMark';
 
 export const IntroSplash: React.FC = () => {
@@ -27,20 +30,6 @@ export const IntroSplash: React.FC = () => {
     }
   }, [isIntroOpen, introDismissed]);
 
-  useEffect(() => {
-    if (!isIntroOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleEnter();
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isIntroOpen, dontShowAgain]);
-
-  if (!isIntroOpen) return null;
-
   const handleEnter = (targetTab?: 'reader') => {
     if (isLeaving) return;
     sfxService.play('start');
@@ -54,12 +43,21 @@ export const IntroSplash: React.FC = () => {
     }, 220);
   };
 
+  useBackButtonGuard('intro_splash', isIntroOpen, () => handleEnter());
+
+  useEffect(() => {
+    if (!isIntroOpen) return;
+    return acquireBodyScrollLock();
+  }, [isIntroOpen]);
+
+  if (!isIntroOpen) return null;
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="intro-splash-title"
-      className={`fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-5 transition-opacity duration-200 ${
+      className={`fixed inset-0 ${Z_LAYERS.PANEL} flex items-center justify-center p-3 sm:p-5 transition-opacity duration-200 ${
         isLeaving ? 'opacity-0' : 'opacity-100'
       }`}
       style={{

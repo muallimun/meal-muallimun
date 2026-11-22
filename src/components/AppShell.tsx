@@ -15,6 +15,7 @@ import {
   PanelLeftOpen,
   Search,
   Settings,
+  Sparkles,
   Star,
   Trophy,
   WifiOff,
@@ -22,12 +23,18 @@ import {
 } from 'lucide-react';
 import { MEALS_CATALOG } from '../config/mealsConfig';
 import { RECITERS_CATALOG } from '../config/recitersConfig';
+import { Z_LAYERS } from '../config/zLayers';
 import { audioQueueService } from '../services/audioQueueService';
 import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
 import { formatNumberTr } from '../utils/poolUtils';
+import {
+  applyPwaUpdate,
+  isPwaUpdateAvailable,
+  subscribePwaUpdate,
+} from '../utils/pwaUtils';
 import { BrandMark } from './BrandMark';
 import { PwaInstallControl } from './PwaInstallControl';
 
@@ -92,7 +99,13 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   );
   const [pendingNavTab, setPendingNavTab] = useState<NavTab | null>(null);
   const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
+  const [dismissedPwaUpdate, setDismissedPwaUpdate] = useState(false);
   const moduleMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const pwaUpdateAvailable = useSyncExternalStore(
+    subscribePwaUpdate,
+    isPwaUpdateAvailable,
+  );
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
@@ -138,13 +151,22 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   }, [activeTab, isSidebarCollapsed]);
 
   // Ana sekme Geri tuşu koruması: alt sekmelerdeyken (sınav/zen aktif değilse) Ana Sayfaya dön
+  // disableEscape: true -> klavyede Escape basıldığında ana sekmeyi terk etme
   useBackButtonGuard(
     'app_shell_tab',
     activeTab !== 'home' && !isExamActive && !isMemorizationZenActive,
     () => {
       setActiveTab('home');
     },
-    activeTab,
+    { disableEscape: true, rearmKey: activeTab },
+  );
+
+  useBackButtonGuard(
+    'nav_leave_exam_modal',
+    pendingNavTab !== null,
+    () => {
+      setPendingNavTab(null);
+    },
   );
 
   // Genel Tam Ekran Durumu Senkronizasyonu
@@ -795,6 +817,45 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </div>
         )}
 
+        {/* Güvenli PWA Yeni Sürüm Bildirim Şeridi (Sınav veya Ezber Zen aktifken gösterilmez) */}
+        {pwaUpdateAvailable &&
+          !dismissedPwaUpdate &&
+          !isExamActive &&
+          !isMemorizationZenActive && (
+            <div
+              role="status"
+              className="px-4 py-1.5 text-xs border-b"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    void applyPwaUpdate();
+                  }}
+                  className="inline-flex items-center gap-1.5 font-extrabold cursor-pointer hover:underline text-left"
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span>✨ Yeni sürüm hazır · Şimdi Güncelle</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDismissedPwaUpdate(true)}
+                  aria-label="Güncelleme bildirimini kapat"
+                  className="p-1 rounded-lg cursor-pointer hover:opacity-80 shrink-0"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
         {/* Sayfa İçeriği */}
         <main
           className={`flex-1 w-full ${contentWidthClass} mx-auto ${
@@ -904,7 +965,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           ==================================================================== */}
       {pendingNavTab !== null && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-[2px]"
+          className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-center justify-center p-4 bg-black/55 backdrop-blur-[2px]`}
           role="dialog"
           aria-modal="true"
           aria-labelledby="nav-leave-exam-title"

@@ -14,6 +14,7 @@ import {
   DEMO_QUESTIONS_EMPTY,
   DEMO_WORDS_EMPTY,
 } from '../data/demoFallback';
+import { FALLBACK_FIHRIST_TOPICS } from '../data/fallbackFihristTopics';
 import type {
   ArabicSurahFile,
   AudioPlaylistItem,
@@ -90,6 +91,7 @@ export function getExtraMealsVersion(): number {
 let resolvedBaseUrl: string | null = null;
 let activeSourceMode: DataSourceMode = HAS_CUSTOM_DATA_BASE_URL ? 'remote' : 'local';
 let demoMode = false;
+let dataGeneration = 0;
 
 export function padSurahNo(surahNo: number): string {
   return String(surahNo).padStart(3, '0');
@@ -106,6 +108,7 @@ export function getActiveDataSource(): DataSourceMode {
 let surahInfoExtrasMapCache: Map<number, SurahExtraInfo> | null = null;
 
 export function enableDemoMode(): void {
+  dataGeneration += 1;
   demoMode = true;
   activeSourceMode = 'demo';
   memoryCache.clear();
@@ -119,6 +122,7 @@ export function enableDemoMode(): void {
 }
 
 export function disableDemoMode(): void {
+  dataGeneration += 1;
   demoMode = false;
   resolvedBaseUrl = null;
   memoryCache.clear();
@@ -132,6 +136,7 @@ export function disableDemoMode(): void {
 }
 
 export function clearDataCache(): void {
+  dataGeneration += 1;
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
@@ -156,6 +161,28 @@ function getCandidateBaseUrls(): string[] {
 }
 
 const PERSISTENT_DATA_CACHE_NAME = 'muallimun-offline-json-v1';
+const CORE_OFFLINE_JSON_PATHS = new Set<string>([
+  'manifest.json',
+  'meta.json',
+  'q/index.json',
+  'fihrist/topics.json',
+]);
+
+async function fetchWithTimeout(url: string, timeoutMs = 9000): Promise<Response> {
+  if (typeof AbortController === 'undefined') {
+    return fetch(url, { headers: { Accept: 'application/json' } });
+  }
+  const controller = new AbortController();
+  const timerId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timerId);
+  }
+}
 
 async function readPersistentJsonCache<T>(cleanPath: string): Promise<T | null> {
   if (typeof window === 'undefined' || !('caches' in window)) return null;
@@ -172,6 +199,15 @@ async function readPersistentJsonCache<T>(cleanPath: string): Promise<T | null> 
 
 async function writePersistentJsonCache(cleanPath: string, rawText: string): Promise<void> {
   if (typeof window === 'undefined' || !('caches' in window)) return;
+
+  // Aktif Service Worker (Workbox) sure parçalarını zaten kendi önbelleğinde tutuyorsa
+  // yalnızca çekirdek meta dosyalarını ikincil önbelleğe yaz (çift depolamayı önle)
+  const hasSwController =
+    typeof navigator !== 'undefined' && Boolean(navigator.serviceWorker?.controller);
+  if (hasSwController && !CORE_OFFLINE_JSON_PATHS.has(cleanPath)) {
+    return;
+  }
+
   try {
     const cache = await window.caches.open(PERSISTENT_DATA_CACHE_NAME);
     const key = `/__offline_cache__/data/${cleanPath}`;
@@ -188,6 +224,7 @@ async function writePersistentJsonCache(cleanPath: string, rawText: string): Pro
 
 async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
   const cleanPath = relativePath.replace(/^\/+/, '');
+  const reqGen = dataGeneration;
   const cacheKey = `${demoMode ? 'demo:' : ''}${cleanPath}`;
 
   if (memoryCache.has(cacheKey)) {
@@ -206,7 +243,9 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
     if (isOfflineNow) {
       const offlineCached = await readPersistentJsonCache<T>(cleanPath);
       if (offlineCached !== null) {
-        memoryCache.set(cacheKey, offlineCached);
+        if (reqGen === dataGeneration) {
+          memoryCache.set(cacheKey, offlineCached);
+        }
         return offlineCached;
       }
     }
@@ -217,9 +256,7 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
     for (const base of candidates) {
       const url = `${base.replace(/\/+$/, '')}/${cleanPath}`;
       try {
-        const res = await fetch(url, {
-          headers: { Accept: 'application/json' },
-        });
+        const res = await fetchWithTimeout(url, 9000);
         if (!res.ok) {
           throw new Error(`HTTP ${res.status} (${url})`);
         }
@@ -229,9 +266,11 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
           throw new Error(`Beklenmeyen HTML yanıtı (${url}) ${contentType}`);
         }
         const data = JSON.parse(text) as T;
-        resolvedBaseUrl = base;
-        activeSourceMode = base === LOCAL_DATA_BASE_URL ? 'local' : 'remote';
-        memoryCache.set(cacheKey, data);
+        if (reqGen === dataGeneration) {
+          resolvedBaseUrl = base;
+          activeSourceMode = base === LOCAL_DATA_BASE_URL ? 'local' : 'remote';
+          memoryCache.set(cacheKey, data);
+        }
         void writePersistentJsonCache(cleanPath, text);
         return data;
       } catch (err) {
@@ -242,7 +281,9 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
     // Ağ istekleri başarısız olduysa kalıcı önbellekteki son kopyaya düş
     const cachedFallback = await readPersistentJsonCache<T>(cleanPath);
     if (cachedFallback !== null) {
-      memoryCache.set(cacheKey, cachedFallback);
+      if (reqGen === dataGeneration) {
+        memoryCache.set(cacheKey, cachedFallback);
+      }
       return cachedFallback;
     }
 
@@ -256,7 +297,9 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
   try {
     return await promise;
   } finally {
-    inflightRequests.delete(cacheKey);
+    if (inflightRequests.get(cacheKey) === promise) {
+      inflightRequests.delete(cacheKey);
+    }
   }
 }
 
@@ -356,6 +399,7 @@ export async function loadExtraMealsForSurah(
     return {};
   }
 
+  const reqGen = dataGeneration;
   const cachedRaw = extraMealsRawCache.get(surahNo);
   if (cachedRaw) return cachedRaw;
 
@@ -365,9 +409,11 @@ export async function loadExtraMealsForSurah(
   const promise = (async () => {
     if (demoMode) {
       const empty: Record<string, MealVerse[]> = {};
-      extraMealsRawCache.set(surahNo, empty);
-      extraMealsSurahMap.set(surahNo, new Map());
-      notifyExtraMealsListeners();
+      if (reqGen === dataGeneration) {
+        extraMealsRawCache.set(surahNo, empty);
+        extraMealsSurahMap.set(surahNo, new Map());
+        notifyExtraMealsListeners();
+      }
       return empty;
     }
 
@@ -410,9 +456,11 @@ export async function loadExtraMealsForSurah(
       normalizedRaw[mealId] = list;
     }
 
-    extraMealsSurahMap.set(surahNo, mealIndexMap);
-    extraMealsRawCache.set(surahNo, normalizedRaw);
-    notifyExtraMealsListeners();
+    if (reqGen === dataGeneration) {
+      extraMealsSurahMap.set(surahNo, mealIndexMap);
+      extraMealsRawCache.set(surahNo, normalizedRaw);
+      notifyExtraMealsListeners();
+    }
     return normalizedRaw;
   })();
 
@@ -420,7 +468,9 @@ export async function loadExtraMealsForSurah(
   try {
     return await promise;
   } finally {
-    extraMealsInflight.delete(surahNo);
+    if (extraMealsInflight.get(surahNo) === promise) {
+      extraMealsInflight.delete(surahNo);
+    }
   }
 }
 
@@ -596,6 +646,7 @@ export function resolvePlaylistItemStartLocation(
  * Bir surenin Arapça, TDV (m1), DİB (m2) ve kelime-kelime (w) verilerini tekilleştirip birleştirir.
  */
 export async function getSurahBundle(surahNo: number): Promise<SurahBundle> {
+  const reqGen = dataGeneration;
   const cacheKey = `${demoMode ? 'demo:' : ''}${surahNo}`;
   const cached = surahBundleCache.get(cacheKey);
   if (cached) return cached;
@@ -634,7 +685,9 @@ export async function getSurahBundle(surahNo: number): Promise<SurahBundle> {
     hasBesmele: !meta.besmele.excludeSurahs.includes(surahNo),
   };
 
-  surahBundleCache.set(cacheKey, bundle);
+  if (reqGen === dataGeneration) {
+    surahBundleCache.set(cacheKey, bundle);
+  }
   return bundle;
 }
 
@@ -705,13 +758,6 @@ export async function getPageBundle(pageNo: number): Promise<PageBundle> {
   };
 }
 
-const EMPTY_FIHRIST_TOPICS_FILE: FihristTopicsFile = {
-  version: '1.0',
-  source: 'Alfabetik Konu Fihristi',
-  totalTopics: 0,
-  topics: [],
-};
-
 const EMPTY_SURAH_INFO_EXTRAS_FILE: SurahInfoExtrasFile = {
   version: '1.0',
   sources: {
@@ -739,7 +785,12 @@ export async function getFihristTopics(): Promise<FihristTopicsFile> {
   try {
     return await fetchJsonWithFallback<FihristTopicsFile>('fihrist/topics.json');
   } catch {
-    return EMPTY_FIHRIST_TOPICS_FILE;
+    return {
+      version: '1.0',
+      source: 'fallback',
+      totalTopics: FALLBACK_FIHRIST_TOPICS.length,
+      topics: [...FALLBACK_FIHRIST_TOPICS],
+    };
   }
 }
 

@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BookMarked, Check, Play, Plus, X } from 'lucide-react';
 import { buildMemorizationUnitFromRanges } from '../../data/curatedAshrPresets';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { memorizationStorage } from '../../services/memorizationStorage';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 
 export const QuickMemorizeFromVerseModal: React.FC = () => {
   const { quickMemorizeSeed, closeQuickMemorize, navigateToMemorizeUnit, meta } = useAppStore();
@@ -32,14 +34,12 @@ export const QuickMemorizeFromVerseModal: React.FC = () => {
     setAddedToast(false);
   }, [quickMemorizeSeed, maxAyah]);
 
+  useBackButtonGuard('quick_memorize_from_verse_modal', Boolean(quickMemorizeSeed), closeQuickMemorize);
+
   useEffect(() => {
     if (!quickMemorizeSeed) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeQuickMemorize();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [quickMemorizeSeed, closeQuickMemorize]);
+    return acquireBodyScrollLock();
+  }, [quickMemorizeSeed]);
 
   if (!quickMemorizeSeed) return null;
 

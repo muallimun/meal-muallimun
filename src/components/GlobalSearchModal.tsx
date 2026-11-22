@@ -18,6 +18,8 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { findMealById, isExtraMealId } from '../config/mealsConfig';
+import { Z_LAYERS } from '../config/zLayers';
 import { audioQueueService } from '../services/audioQueueService';
 import { useBackButtonGuard } from '../services/backStackService';
 import { dataService } from '../services/dataService';
@@ -239,21 +241,12 @@ export const GlobalSearchModal: React.FC = () => {
       focusTimer = window.setTimeout(() => inputRef.current?.focus(), 30);
     }
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeSearchModal();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-
     return () => {
       if (focusTimer !== null) window.clearTimeout(focusTimer);
       releaseScrollLock();
-      window.removeEventListener('keydown', onKeyDown);
       abortControllerRef.current?.abort();
     };
-  }, [isSearchModalOpen, closeSearchModal, studyProgress.lastRead?.surah, meta]);
+  }, [isSearchModalOpen, studyProgress.lastRead?.surah, meta]);
 
   // Seçili kapsama göre taranacak sure listesi
   const { targetSurahs, filterJuzNo } = useMemo(() => {
@@ -319,6 +312,10 @@ export const GlobalSearchModal: React.FC = () => {
         targetSurahs,
         filterJuzNo,
         preferredMeal: settings.preferredMeal,
+        primaryMealId: settings.primaryMealId,
+        secondaryMealId: settings.secondaryMealId,
+        mealDisplayMode: settings.mealDisplayMode,
+        manifest,
         includeSubstring,
         meta,
         signal: controller.signal,
@@ -336,10 +333,14 @@ export const GlobalSearchModal: React.FC = () => {
   }, [
     isSearchModalOpen,
     meta,
+    manifest,
     query,
     targetSurahs,
     filterJuzNo,
     settings.preferredMeal,
+    settings.primaryMealId,
+    settings.secondaryMealId,
+    settings.mealDisplayMode,
     includeSubstring,
   ]);
 
@@ -512,6 +513,28 @@ export const GlobalSearchModal: React.FC = () => {
     [visibleCount, activeListCount],
   );
 
+  const activeMealScopeLabels = useMemo(() => {
+    const labels = ['Arapça', 'TDV', 'DİB Yeni'];
+    const extraIds: string[] = [];
+    if (isExtraMealId(settings.primaryMealId)) {
+      extraIds.push(settings.primaryMealId);
+    }
+    if (
+      settings.mealDisplayMode === 'dual' &&
+      isExtraMealId(settings.secondaryMealId) &&
+      !extraIds.includes(settings.secondaryMealId)
+    ) {
+      extraIds.push(settings.secondaryMealId);
+    }
+    for (const id of extraIds) {
+      const def = findMealById(id, manifest);
+      if (def?.shortLabel && !labels.includes(def.shortLabel)) {
+        labels.push(def.shortLabel);
+      }
+    }
+    return labels;
+  }, [settings.primaryMealId, settings.secondaryMealId, settings.mealDisplayMode, manifest]);
+
   if (!isSearchModalOpen) return null;
 
   const trimmedQuery = query.trim();
@@ -668,10 +691,10 @@ export const GlobalSearchModal: React.FC = () => {
           />
         </p>
 
-        {/* Türkçe Meal(ler) */}
-        {mode !== 'arabic' && (
+        {/* Türkçe Meal(ler) ve Seçili Ek Meal / Tefsir Eşleşmeleri */}
+        {(mode !== 'arabic' || (hit.extraMealHits?.some((em) => em.isRtl) ?? false)) && (
           <div className="space-y-1.5">
-            {showM1 && hit.m1Text && (
+            {mode !== 'arabic' && showM1 && hit.m1Text && (
               <p
                 className="turkish-reading text-xs sm:text-sm leading-relaxed"
                 style={{ color: 'var(--text-primary)' }}
@@ -690,7 +713,7 @@ export const GlobalSearchModal: React.FC = () => {
                 />
               </p>
             )}
-            {showM2 && hit.m2Text && (
+            {mode !== 'arabic' && showM2 && hit.m2Text && (
               <p
                 className="turkish-reading text-xs sm:text-sm leading-relaxed"
                 style={{ color: 'var(--text-secondary)' }}
@@ -709,11 +732,52 @@ export const GlobalSearchModal: React.FC = () => {
                 />
               </p>
             )}
+            {hit.extraMealHits
+              ?.filter((em) => (mode === 'arabic' ? em.isRtl : true))
+              .map((em) => (
+                <div
+                  key={em.mealId}
+                  className="rounded-xl border px-3 py-2 space-y-1"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <span
+                    className="inline-block text-[11px] font-extrabold"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  >
+                    {em.shortLabel}:
+                  </span>
+                  <p
+                    dir={em.isRtl ? 'rtl' : 'ltr'}
+                    lang={em.isRtl ? 'ar' : undefined}
+                    className={
+                      em.isRtl
+                        ? 'text-right leading-[1.95] text-base sm:text-lg'
+                        : 'turkish-reading text-xs sm:text-sm leading-relaxed'
+                    }
+                    style={{
+                      color: 'var(--text-primary)',
+                      ...(em.isRtl
+                        ? { fontFamily: '"Scheherazade New", "Amiri", "Amiri Quran", serif' }
+                        : {}),
+                    }}
+                  >
+                    <HighlightedText
+                      text={em.text}
+                      query={trimmedQuery}
+                      arabicMode={em.isRtl}
+                      includeSubstring={includeSubstring}
+                    />
+                  </p>
+                </div>
+              ))}
           </div>
         )}
 
         {/* Eşleşen Dipnotlar (fn) */}
-        {mode !== 'arabic' && hit.matchedFootnotes.length > 0 && (
+        {hit.matchedFootnotes.length > 0 && (
           <div
             className="rounded-xl border px-3 py-2 space-y-1 text-xs"
             style={{
@@ -730,7 +794,7 @@ export const GlobalSearchModal: React.FC = () => {
                 <HighlightedText
                   text={fn.text}
                   query={trimmedQuery}
-                  arabicMode={false}
+                  arabicMode={isArabicText(fn.text)}
                   includeSubstring={includeSubstring}
                 />
               </p>
@@ -743,7 +807,7 @@ export const GlobalSearchModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[92] flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]"
+      className={`fixed inset-0 ${Z_LAYERS.MODAL} flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]`}
       role="dialog"
       aria-modal="true"
       aria-label="Kur'an, Meal ve Kelime Meali Arama Merkezi"
@@ -977,6 +1041,15 @@ export const GlobalSearchModal: React.FC = () => {
               <span>≈ Ek/Kök Dahil</span>
             </button>
           </div>
+
+          {/* Aktif Meal/Tefsir Arama Kapsamı Bilgi Satırı */}
+          <p
+            className="text-[11px] truncate"
+            style={{ color: 'var(--text-muted)' }}
+            title={`Arama kapsamı: ${activeMealScopeLabels.join(' · ')}`}
+          >
+            Arama kapsamı: {activeMealScopeLabels.join(' · ')}
+          </p>
         </div>
 
         {/* ====================================================================

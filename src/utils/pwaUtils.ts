@@ -7,15 +7,27 @@ export interface BeforeInstallPromptEvent extends Event {
 }
 
 type PromptSubscriber = (event: BeforeInstallPromptEvent | null) => void;
+type UpdateSubscriber = (available: boolean) => void;
 
 let capturedPrompt: BeforeInstallPromptEvent | null = null;
 let initialized = false;
 let swRegistered = false;
+let pwaUpdateAvailable = false;
+let updateSwRunner: ((reloadPage?: boolean) => Promise<void>) | null = null;
+let swUpdateCheckInterval: number | null = null;
+
 const subscribers = new Set<PromptSubscriber>();
+const updateSubscribers = new Set<UpdateSubscriber>();
 
 function notifySubscribers(): void {
   for (const cb of subscribers) {
     cb(capturedPrompt);
+  }
+}
+
+function notifyUpdateSubscribers(): void {
+  for (const cb of updateSubscribers) {
+    cb(pwaUpdateAvailable);
   }
 }
 
@@ -86,18 +98,48 @@ export async function triggerPwaInstallPrompt(): Promise<'accepted' | 'dismissed
   try {
     await promptEvent.prompt();
     const { outcome } = await promptEvent.userChoice;
-    if (outcome === 'accepted') {
-      capturedPrompt = null;
-      notifySubscribers();
-    }
     return outcome;
   } catch {
     return 'unavailable';
+  } finally {
+    // Tüketilmiş beforeinstallprompt olayının bellekte kilitli kalmasını engelle
+    capturedPrompt = null;
+    notifySubscribers();
+  }
+}
+
+export function isPwaUpdateAvailable(): boolean {
+  return pwaUpdateAvailable;
+}
+
+export function subscribePwaUpdate(cb: UpdateSubscriber): () => void {
+  updateSubscribers.add(cb);
+  return () => {
+    updateSubscribers.delete(cb);
+  };
+}
+
+export async function applyPwaUpdate(): Promise<void> {
+  if (!updateSwRunner) {
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+    return;
+  }
+  pwaUpdateAvailable = false;
+  notifyUpdateSubscribers();
+  try {
+    await updateSwRunner(true);
+  } catch {
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
   }
 }
 
 /**
  * Service Worker kaydını güvenli biçimde başlatır (sandbox/iframe engellerinde sessizce devam eder).
+ * Yeni sürüm hazır olduğunda sessiz zorunlu yenileme yerine kullanıcı onaylı güncelleme bildirir.
  */
 export function registerPwaServiceWorker(): void {
   if (swRegistered || typeof window === 'undefined') return;
@@ -105,8 +147,21 @@ export function registerPwaServiceWorker(): void {
   swRegistered = true;
 
   try {
-    registerSW({
+    updateSwRunner = registerSW({
       immediate: true,
+      onNeedRefresh() {
+        pwaUpdateAvailable = true;
+        notifyUpdateSubscribers();
+      },
+      onRegisteredSW(_swUrl, registration) {
+        if (!registration || swUpdateCheckInterval !== null) return;
+        swUpdateCheckInterval = window.setInterval(() => {
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+          void registration.update().catch(() => {
+            // Çevrimdışı veya ağ kesintisinde sessizce geç
+          });
+        }, 60 * 60 * 1000);
+      },
       onRegisterError() {
         // Önizleme iframe veya kısıtlı ortamlarda sessizce geç
       },

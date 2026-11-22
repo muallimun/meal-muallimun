@@ -1,23 +1,20 @@
 import React, { useEffect } from 'react';
 import { BookOpenCheck, Info, X } from 'lucide-react';
 import { useRukusData } from '../hooks/useStudyReferenceData';
+import { useBackButtonGuard } from '../services/backStackService';
 import { useAppStore } from '../store/useAppStore';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 
 export const WaqfGuideModal: React.FC = () => {
   const { isWaqfGuideOpen, closeWaqfGuide } = useAppStore();
   const { waqfSigns } = useRukusData(isWaqfGuideOpen);
 
+  useBackButtonGuard('waqf_guide_modal', isWaqfGuideOpen, closeWaqfGuide);
+
   useEffect(() => {
     if (!isWaqfGuideOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeWaqfGuide();
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isWaqfGuideOpen, closeWaqfGuide]);
+    return acquireBodyScrollLock();
+  }, [isWaqfGuideOpen]);
 
   if (!isWaqfGuideOpen) return null;
 

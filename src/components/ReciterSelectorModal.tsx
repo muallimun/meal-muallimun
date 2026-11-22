@@ -18,10 +18,12 @@ import {
   resolveSyncedReciterKey,
 } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
+import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { ReciterCategory, ReciterDefinition } from '../types/quran';
 import type { SegMetaFile } from '../types/wordSync';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { normalizeTurkish } from '../utils/textNormalize';
 
 type FilterChipId = 'all' | 'favorites' | ReciterCategory;
@@ -78,6 +80,11 @@ export const ReciterSelectorModal: React.FC = () => {
     [reciters, audioPrefs.arabicReciterId],
   );
 
+  useBackButtonGuard('reciter_selector_modal', isReciterSelectorOpen, () => {
+    audioQueueService.stopPreview();
+    closeReciterSelector();
+  });
+
   // Kapanınca veya unmount olunca Besmele önizlemesini temizle; açılınca seg/meta.json bilgisini tembel yükle
   useEffect(() => {
     if (!isReciterSelectorOpen) {
@@ -85,6 +92,7 @@ export const ReciterSelectorModal: React.FC = () => {
       return;
     }
 
+    const releaseScrollLock = acquireBodyScrollLock();
     let cancelled = false;
     if (!segMeta) {
       void audioQueueService.ensureSegMetaLoaded().then((loaded) => {
@@ -94,22 +102,12 @@ export const ReciterSelectorModal: React.FC = () => {
       });
     }
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        audioQueueService.stopPreview();
-        closeReciterSelector();
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown, true);
     return () => {
       cancelled = true;
-      window.removeEventListener('keydown', onKeyDown, true);
+      releaseScrollLock();
       audioQueueService.stopPreview();
     };
-  }, [isReciterSelectorOpen, closeReciterSelector, segMeta]);
+  }, [isReciterSelectorOpen, segMeta]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<ReciterCategory, number> = {

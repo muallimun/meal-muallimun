@@ -1,6 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, Sparkles, Volume2, X } from 'lucide-react';
+import { Z_LAYERS } from '../../config/zLayers';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
 import { buildWordAudioKey, wordAudioService } from '../../services/wordAudioService';
 import type { ThemeMode } from '../../types/quran';
@@ -91,7 +93,9 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
     setCoords({ top, left, width });
   }, [selection]);
 
-  // Dışa tıklama, Escape veya kaydırma ile otomatik kapat
+  useBackButtonGuard('tajweed_rule_popover', Boolean(selection), onClose);
+
+  // Dışa tıklama veya kaydırma ile otomatik kapat (Escape merkezi LIFO yığınından yönetilir)
   useEffect(() => {
     if (!selection) return;
 
@@ -104,12 +108,6 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
       onClose();
     };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
     const handleScrollOrResize = (e: Event) => {
       // Baloncuğun kendi içi kaydırılıyorsa kapatma
       if (e.target instanceof Node && popoverRef.current?.contains(e.target)) {
@@ -120,14 +118,12 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
 
     document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('touchstart', handlePointerDown, { passive: true });
-    document.addEventListener('keydown', handleKeyDown);
     window.addEventListener('scroll', handleScrollOrResize, { capture: true, passive: true });
     window.addEventListener('resize', handleScrollOrResize, { passive: true });
 
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('touchstart', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('scroll', handleScrollOrResize, true);
       window.removeEventListener('resize', handleScrollOrResize);
     };
@@ -145,7 +141,7 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
       aria-label={`Tecvit Kuralı: ${rule.nameTr}`}
       onClick={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
-      className="fixed z-[100] rounded-2xl border shadow-2xl overflow-hidden animate-in fade-in duration-150"
+      className={`fixed ${Z_LAYERS.POPOVER} rounded-2xl border shadow-2xl overflow-hidden animate-in fade-in duration-150`}
       style={{
         top: `${coords.top}px`,
         left: `${coords.left}px`,

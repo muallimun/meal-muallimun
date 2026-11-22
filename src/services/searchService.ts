@@ -1,6 +1,7 @@
+import { findMealById, isExtraMealId, isRtlMeal } from '../config/mealsConfig';
 import { dataService } from './dataService';
 import type { FihristTopic, SurahExtraInfo } from '../types/fihrist';
-import type { MetaData, SurahMeta, WordSurahFile } from '../types/quran';
+import type { ManifestData, MealVerse, MetaData, SurahMeta, WordSurahFile } from '../types/quran';
 import {
   isArabicText,
   matchesNormalizedText,
@@ -40,6 +41,13 @@ export interface FihristTopicSearchHit {
   matchedTag?: string;
 }
 
+export interface ExtraMealSearchHit {
+  mealId: string;
+  shortLabel: string;
+  text: string;
+  isRtl: boolean;
+}
+
 export interface VerseSearchHit {
   id: number;
   surah: number;
@@ -54,7 +62,8 @@ export interface VerseSearchHit {
   matchedArabic: boolean;
   matchedM1: boolean;
   matchedM2: boolean;
-  matchedFootnotes: { meal: 'TDV' | 'DİB'; text: string }[];
+  matchedFootnotes: { meal: string; text: string }[];
+  extraMealHits?: ExtraMealSearchHit[];
 }
 
 export interface WordSearchHit {
@@ -532,6 +541,10 @@ export interface RunProgressiveSearchOptions {
   targetSurahs: number[];
   filterJuzNo?: number | null;
   preferredMeal: 'm1' | 'm2' | 'both';
+  primaryMealId?: string;
+  secondaryMealId?: string;
+  mealDisplayMode?: 'single' | 'dual';
+  manifest?: ManifestData | null;
   includeSubstring?: boolean;
   meta: MetaData;
   signal: AbortSignal;
@@ -540,7 +553,7 @@ export interface RunProgressiveSearchOptions {
 
 /**
  * Seçili sureleri 10'arlı paketler halinde (batched async) tarayarak ana iş parçacığını
- * kilitlemeden ve her pakette sonuçları akıtarak tüm Kur'an / Meal / Dipnot / Kelime araması yapar.
+ * kilitlemeden ve her pakette sonuçları akıtarak tüm Kur'an / Meal (27 eser) / Dipnot / Kelime araması yapar.
  */
 export async function runProgressiveSearch(
   options: RunProgressiveSearchOptions,
@@ -550,6 +563,10 @@ export async function runProgressiveSearch(
     targetSurahs,
     filterJuzNo,
     preferredMeal,
+    primaryMealId,
+    secondaryMealId,
+    mealDisplayMode,
+    manifest = null,
     includeSubstring = false,
     meta,
     signal,
@@ -617,24 +634,74 @@ export async function runProgressiveSearch(
     });
   }
 
+  const activeExtraMealIds: string[] = [];
+  if (primaryMealId && isExtraMealId(primaryMealId)) {
+    activeExtraMealIds.push(primaryMealId);
+  }
+  if (
+    mealDisplayMode === 'dual' &&
+    secondaryMealId &&
+    isExtraMealId(secondaryMealId) &&
+    !activeExtraMealIds.includes(secondaryMealId)
+  ) {
+    activeExtraMealIds.push(secondaryMealId);
+  }
+
+  const activeExtraMeals = activeExtraMealIds.map((mealId) => {
+    const def = findMealById(mealId, manifest);
+    return {
+      mealId,
+      shortLabel: def.shortLabel,
+      isRtl: isRtlMeal(def),
+    };
+  });
+  const needsExtraMeals = activeExtraMeals.length > 0;
+
   let scanned = 0;
 
   for (let offset = 0; offset < targetSurahs.length; offset += BATCH_SIZE) {
     if (signal.aborted) return;
 
     const batchSurahs = targetSurahs.slice(offset, offset + BATCH_SIZE);
-    const indexedBatch = await Promise.all(
-      batchSurahs.map((sNo) =>
-        getOrIndexSurah(sNo).catch(() => ({ surahNo: sNo, verses: [] }) as IndexedSurahEntry),
+    const [indexedBatch, extraBatchList] = await Promise.all([
+      Promise.all(
+        batchSurahs.map((sNo) =>
+          getOrIndexSurah(sNo).catch(() => ({ surahNo: sNo, verses: [] }) as IndexedSurahEntry),
+        ),
       ),
-    );
+      needsExtraMeals
+        ? Promise.all(
+            batchSurahs.map((sNo) =>
+              dataService
+                .loadExtraMealsForSurah(sNo)
+                .catch(() => ({}) as Record<string, MealVerse[]>),
+            ),
+          )
+        : Promise.resolve<Record<string, MealVerse[]>[]>([]),
+    ]);
 
     if (signal.aborted) return;
 
-    for (const surahEntry of indexedBatch) {
+    for (let bIdx = 0; bIdx < indexedBatch.length; bIdx += 1) {
+      const surahEntry = indexedBatch[bIdx];
       const sMeta = surahMetaMap.get(surahEntry.surahNo);
       const surahNameTr = sMeta?.nameTr ?? `${surahEntry.surahNo}. Sure`;
       const surahNameAr = sMeta?.nameAr ?? '';
+
+      // Sure bazlı ek meal (m3..m27) ayet indeks haritası
+      const extraByMealId = new Map<string, Map<number, MealVerse>>();
+      if (needsExtraMeals) {
+        const rawExtra = extraBatchList[bIdx] ?? {};
+        for (const extraDef of activeExtraMeals) {
+          const list = rawExtra[extraDef.mealId];
+          if (Array.isArray(list) && list.length > 0) {
+            extraByMealId.set(
+              extraDef.mealId,
+              new Map(list.map((mv) => [mv.a, mv])),
+            );
+          }
+        }
+      }
 
       for (const verse of surahEntry.verses) {
         if (filterJuzNo && verse.cuz !== filterJuzNo) continue;
@@ -642,7 +709,9 @@ export async function runProgressiveSearch(
         let matchedArabic = false;
         let matchedM1 = false;
         let matchedM2 = false;
-        const matchedFootnotes: { meal: 'TDV' | 'DİB'; text: string }[] = [];
+        let matchedExtraRtl = false;
+        const matchedFootnotes: { meal: string; text: string }[] = [];
+        const extraMealHits: ExtraMealSearchHit[] = [];
 
         if (arabicMode) {
           matchedArabic = matchesNormalizedText(verse.arNorm, normQuery, true, includeSubstring);
@@ -662,7 +731,57 @@ export async function runProgressiveSearch(
           }
         }
 
-        const matchedMealOrFn = matchedM1 || matchedM2 || matchedFootnotes.length > 0;
+        // Seçili ek mealler (m3..m27) ve Arapça tefsirler (m25/m26)
+        if (needsExtraMeals) {
+          for (const extraDef of activeExtraMeals) {
+            const extraVerse = extraByMealId.get(extraDef.mealId)?.get(verse.ayah);
+            if (!extraVerse) continue;
+
+            if (extraDef.isRtl && arabicMode) {
+              const normText = normalizeArabic(extraVerse.t);
+              if (matchesNormalizedText(normText, normQuery, true, includeSubstring)) {
+                extraMealHits.push({
+                  mealId: extraDef.mealId,
+                  shortLabel: extraDef.shortLabel,
+                  text: extraVerse.t,
+                  isRtl: true,
+                });
+                matchedExtraRtl = true;
+              }
+              if (Array.isArray(extraVerse.fn)) {
+                for (const fnText of extraVerse.fn) {
+                  if (matchesNormalizedText(normalizeArabic(fnText), normQuery, true, includeSubstring)) {
+                    matchedFootnotes.push({ meal: extraDef.shortLabel, text: fnText });
+                    matchedExtraRtl = true;
+                  }
+                }
+              }
+            } else if (!extraDef.isRtl && !arabicMode) {
+              const normText = normalizeTurkish(extraVerse.t);
+              if (matchesNormalizedText(normText, normQuery, false, includeSubstring)) {
+                extraMealHits.push({
+                  mealId: extraDef.mealId,
+                  shortLabel: extraDef.shortLabel,
+                  text: extraVerse.t,
+                  isRtl: false,
+                });
+              }
+              if (Array.isArray(extraVerse.fn)) {
+                for (const fnText of extraVerse.fn) {
+                  if (matchesNormalizedText(normalizeTurkish(fnText), normQuery, false, includeSubstring)) {
+                    matchedFootnotes.push({ meal: extraDef.shortLabel, text: fnText });
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        const matchedMealOrFn =
+          matchedM1 ||
+          matchedM2 ||
+          extraMealHits.length > 0 ||
+          matchedFootnotes.length > 0;
         if (matchedArabic || matchedMealOrFn) {
           const hit: VerseSearchHit = {
             id: verse.id,
@@ -679,9 +798,10 @@ export async function runProgressiveSearch(
             matchedM1,
             matchedM2,
             matchedFootnotes,
+            ...(extraMealHits.length > 0 ? { extraMealHits } : {}),
           };
           allHits.push(hit);
-          if (matchedArabic) arabicHits.push(hit);
+          if (matchedArabic || matchedExtraRtl) arabicHits.push(hit);
           if (matchedMealOrFn) mealHits.push(hit);
         }
 

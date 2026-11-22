@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { findReciterById, RECITERS_CATALOG } from '../../config/recitersConfig';
+import { useBackButtonGuard } from '../../services/backStackService';
 import {
   generateSessionSteps,
   INTENSITY_PROFILES,
@@ -28,6 +29,7 @@ import type {
   ZenSessionLaunchOptions,
 } from '../../types/memorization';
 import { TEACHER_RECITER_IDS } from '../../types/memorization';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 
 interface QuickStartDrawerProps {
   isOpen: boolean;
@@ -73,7 +75,7 @@ export const QuickStartDrawer: React.FC<QuickStartDrawerProps> = ({
   onStart,
   onClose,
 }) => {
-  const { audioPrefs, manifest, openReciterSelector, isReciterSelectorOpen } = useAppStore();
+  const { audioPrefs, manifest, openReciterSelector } = useAppStore();
   const [showCustomSliders, setShowCustomSliders] = useState(prefs.profile === 'custom');
 
   useEffect(() => {
@@ -82,16 +84,13 @@ export const QuickStartDrawer: React.FC<QuickStartDrawerProps> = ({
     }
   }, [prefs.profile]);
 
+  const isDrawerVisible = isOpen && Boolean(unit);
+  useBackButtonGuard('quick_start_drawer', isDrawerVisible, onClose);
+
   useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isReciterSelectorOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, isReciterSelectorOpen, onClose]);
+    if (!isDrawerVisible) return;
+    return acquireBodyScrollLock();
+  }, [isDrawerVisible]);
 
   const activeReciter = useMemo(
     () => findReciterById(audioPrefs.arabicReciterId, manifest),

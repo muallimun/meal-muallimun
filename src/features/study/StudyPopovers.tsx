@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BookMarked, BookOpenCheck, Play, X } from 'lucide-react';
+import { Z_LAYERS } from '../../config/zLayers';
 import { audioQueueService } from '../../services/audioQueueService';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
 import {
   closeRukuPopover,
@@ -46,6 +48,8 @@ export const WaqfPopoverHost: React.FC = () => {
 
   useEffect(() => subscribeWaqfPopover(setPayload), []);
 
+  useBackButtonGuard('waqf_popover', Boolean(payload), closeWaqfPopover);
+
   useEffect(() => {
     if (!payload) return;
     const handlePointerDown = (e: PointerEvent) => {
@@ -54,17 +58,12 @@ export const WaqfPopoverHost: React.FC = () => {
       if (target?.closest('[data-waqf-sign="1"]')) return;
       closeWaqfPopover();
     };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeWaqfPopover();
-    };
     const handleScroll = () => closeWaqfPopover();
 
     window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('keydown', handleKey);
     window.addEventListener('scroll', handleScroll, true);
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('keydown', handleKey);
       window.removeEventListener('scroll', handleScroll, true);
     };
   }, [payload]);
@@ -80,7 +79,7 @@ export const WaqfPopoverHost: React.FC = () => {
       ref={popoverRef}
       role="dialog"
       aria-label={`${sign.nameTr} durak açıklaması`}
-      className="fixed z-[100] rounded-2xl border shadow-2xl p-3.5"
+      className={`fixed ${Z_LAYERS.POPOVER} rounded-2xl border shadow-2xl p-3.5`}
       style={{
         top: `${top}px`,
         left: `${left}px`,
@@ -164,6 +163,8 @@ export const RukuPopoverHost: React.FC = () => {
 
   useEffect(() => subscribeRukuPopover(setPayload), []);
 
+  useBackButtonGuard('ruku_popover', Boolean(payload), closeRukuPopover);
+
   useEffect(() => {
     if (!payload) return;
     const handlePointerDown = (e: PointerEvent) => {
@@ -172,17 +173,12 @@ export const RukuPopoverHost: React.FC = () => {
       if (target?.closest('[data-ruku-badge="1"]')) return;
       closeRukuPopover();
     };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeRukuPopover();
-    };
     const handleScroll = () => closeRukuPopover();
 
     window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('keydown', handleKey);
     window.addEventListener('scroll', handleScroll, true);
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('keydown', handleKey);
       window.removeEventListener('scroll', handleScroll, true);
     };
   }, [payload]);
@@ -234,7 +230,7 @@ export const RukuPopoverHost: React.FC = () => {
       ref={popoverRef}
       role="dialog"
       aria-label={`${surahNameTr} ${ruku.surahRuku}. Rükû`}
-      className="fixed z-[100] rounded-2xl border shadow-2xl p-3.5"
+      className={`fixed ${Z_LAYERS.POPOVER} rounded-2xl border shadow-2xl p-3.5`}
       style={{
         top: `${top}px`,
         left: `${left}px`,

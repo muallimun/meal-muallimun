@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check, Flag, Trash2, X } from 'lucide-react';
+import { Z_LAYERS } from '../config/zLayers';
+import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type {
@@ -7,6 +9,7 @@ import type {
   QuestionIssueReport,
   QuestionItem,
 } from '../types/quran';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { getQuestionUid, parseVerseRefs } from '../utils/examUtils';
 
 export const QUESTION_ISSUE_REASONS: {
@@ -66,14 +69,12 @@ export const QuestionReportModal: React.FC<QuestionReportModalProps> = ({
     setNote(prev?.note ?? '');
   }, [question, questionAudit.reports]);
 
+  useBackButtonGuard('question_report_modal', Boolean(question), onClose);
+
   useEffect(() => {
     if (!question) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [question, onClose]);
+    return acquireBodyScrollLock();
+  }, [question]);
 
   if (!question) return null;
 
@@ -107,7 +108,7 @@ export const QuestionReportModal: React.FC<QuestionReportModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Soruyu hatalı veya gözden geçirilecek olarak işaretle"
-      className="fixed inset-0 z-[75] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs"
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
