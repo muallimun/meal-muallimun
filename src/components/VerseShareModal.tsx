@@ -213,7 +213,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     }
     const mealSuffix = contentMode === 'ar' ? '' : ` • ${selectedMealDef.label}`;
     parts.push(`— ${surahLabel}${mealSuffix}`);
-    parts.push('meal.muallimun.net');
+    parts.push('kuran.muallimun.net');
     return parts.join('\n\n');
   }, [verse, contentMode, activeMealText, surahLabel, selectedMealDef.label]);
 
@@ -424,7 +424,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
 
     ctx.font = `500 20px ${turkishFontStack}`;
     ctx.fillStyle = palette.mutedColor;
-    ctx.fillText('meal.muallimun.net', width / 2, footerY + 38);
+    ctx.fillText('kuran.muallimun.net', width / 2, footerY + 38);
 
     return new Promise<Blob | null>((resolve) => {
       canvas.toBlob((blob) => resolve(blob), 'image/png', 1);
@@ -716,7 +716,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                   Muallimun Kur’an &amp; Meal
                 </span>
                 <span className="text-[11px]" style={{ color: palette.mutedColor }}>
-                  meal.muallimun.net
+                  kuran.muallimun.net
                 </span>
               </div>
             </div>

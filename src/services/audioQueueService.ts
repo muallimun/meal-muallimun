@@ -228,9 +228,9 @@ class AudioQueueService {
   private meta: MetaData | null = null;
   private prefs: AudioPrefs = {
     mode: 'ar_then_meal',
-    arabicAudioSource: 'hatim',
-    arabicReciterId: 'hatim',
-    favoriteReciterIds: ['hatim'],
+    arabicAudioSource: 'maher_al_muaiqly',
+    arabicReciterId: 'maher_al_muaiqly',
+    favoriteReciterIds: ['maher_al_muaiqly'],
     mealAudioSource: 'tdv',
     playbackRate: 1,
     repeatCount: 1,
@@ -639,7 +639,7 @@ class AudioQueueService {
   }
 
   private resolveArabicSource(): ReciterDefinition {
-    const preferred = this.prefs.arabicReciterId || this.prefs.arabicAudioSource || 'hatim';
+    const preferred = this.prefs.arabicReciterId || this.prefs.arabicAudioSource || 'maher_al_muaiqly';
     return findReciterById(preferred, this.manifest);
   }
 

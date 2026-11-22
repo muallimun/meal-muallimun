@@ -219,8 +219,8 @@ export const TajweedLegendBar: React.FC<TajweedLegendBarProps> = ({
             sfxService.play('click');
             onDismiss();
           }}
-          title="Tecvit renk anahtarını gizle"
-          aria-label="Tecvit renk anahtarını gizle"
+          title="Renk şeridini gizle"
+          aria-label="Renk şeridini gizle"
           className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-80"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',

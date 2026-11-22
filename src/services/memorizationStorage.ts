@@ -186,15 +186,25 @@ function sanitizeUnit(raw: unknown): MemorizationUnit | null {
   const stage: RetentionStage =
     u.stage === 'raw' || u.stage === 'fresh' || u.stage === 'solid' ? u.stage : 'raw';
 
-  const reviewStep =
+  const rawStep =
     typeof u.reviewStep === 'number' && Number.isFinite(u.reviewStep)
-      ? Math.max(0, Math.min(REVIEW_INTERVAL_DAYS.length, Math.round(u.reviewStep)))
-      : 0;
+      ? u.reviewStep
+      : typeof u.srsBox === 'number' && Number.isFinite(u.srsBox)
+        ? u.srsBox
+        : 0;
+  const reviewStep = Math.max(0, Math.min(REVIEW_INTERVAL_DAYS.length, Math.round(rawStep)));
 
   const nextReviewAt =
     typeof u.nextReviewAt === 'number' && Number.isFinite(u.nextReviewAt) && u.nextReviewAt > 0
       ? u.nextReviewAt
       : null;
+
+  const lastPracticedAt =
+    typeof u.lastPracticedAt === 'number' && Number.isFinite(u.lastPracticedAt)
+      ? u.lastPracticedAt
+      : typeof u.lastReviewedAt === 'number' && Number.isFinite(u.lastReviewedAt)
+        ? u.lastReviewedAt
+        : null;
 
   const lastSelfEval: SelfEvaluationRating | undefined =
     u.lastSelfEval === 'hard' || u.lastSelfEval === 'good' || u.lastSelfEval === 'easy'
@@ -229,11 +239,10 @@ function sanitizeUnit(raw: unknown): MemorizationUnit | null {
       : [],
     createdAt:
       typeof u.createdAt === 'number' && Number.isFinite(u.createdAt) ? u.createdAt : Date.now(),
-    lastPracticedAt:
-      typeof u.lastPracticedAt === 'number' && Number.isFinite(u.lastPracticedAt)
-        ? u.lastPracticedAt
-        : null,
+    lastPracticedAt,
+    lastReviewedAt: lastPracticedAt,
     reviewStep,
+    srsBox: reviewStep,
     nextReviewAt,
     lastSelfEval,
   };
@@ -356,11 +365,52 @@ export function applySelfEvaluation(
     updated: {
       ...unit,
       reviewStep: nextStep,
+      srsBox: nextStep,
       nextReviewAt,
       stage: nextStage,
       lastSelfEval: rating,
       lastPracticedAt: nowMs,
+      lastReviewedAt: nowMs,
     },
+  };
+}
+
+/**
+ * Birim manuel olarak `fresh` (Taze) veya `solid` (Sağlam) aşamasına alındığında
+ * henüz tekrar takvimi yoksa otomatik olarak 1. SRS kutusuna (+1 gün) yerleştirir.
+ */
+export function applyStageChangeWithSrs(
+  unit: MemorizationUnit,
+  nextStage: RetentionStage,
+  nowMs = Date.now(),
+): MemorizationUnit {
+  if (nextStage === 'raw') {
+    return {
+      ...unit,
+      stage: 'raw',
+    };
+  }
+  if (typeof unit.nextReviewAt === 'number' && unit.nextReviewAt > 0) {
+    return {
+      ...unit,
+      stage: nextStage,
+    };
+  }
+  const initialBox = nextStage === 'solid' ? Math.max(3, unit.reviewStep || 0) : Math.max(1, unit.reviewStep || 0);
+  const clampedBox = Math.min(REVIEW_INTERVAL_DAYS.length, initialBox);
+  const days = REVIEW_INTERVAL_DAYS[Math.max(0, clampedBox - 1)];
+  const targetDate = new Date(nowMs + days * DAY_MS);
+  targetDate.setHours(6, 0, 0, 0);
+  const nextReviewAt = Math.max(nowMs + 12 * 60 * 60 * 1000, targetDate.getTime());
+
+  return {
+    ...unit,
+    stage: nextStage,
+    reviewStep: clampedBox,
+    srsBox: clampedBox,
+    nextReviewAt,
+    lastPracticedAt: unit.lastPracticedAt ?? nowMs,
+    lastReviewedAt: unit.lastReviewedAt ?? unit.lastPracticedAt ?? nowMs,
   };
 }
 

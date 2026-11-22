@@ -1196,7 +1196,7 @@ export const StudyPage: React.FC = () => {
                       : 'var(--text-secondary)',
                   }}
                 >
-                  <span>Renk Anahtarı Şeridi</span>
+                  <span>Tecvit Renk Şeridini Göster</span>
                   <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
                 </button>
               )}

@@ -285,7 +285,7 @@ const PrintableExamSheet: React.FC<PrintableExamSheetProps> = ({
       {/* Sınav Kağıdı Alt Bilgisi */}
       <div className="mt-6 pt-3 border-t border-neutral-300 flex items-center justify-between text-[10px] text-neutral-500">
         <span>© {currentYear} Muallimun.Net — Kur&apos;an &amp; Meal Eğitim Platformu</span>
-        <span>meal.muallimun.net</span>
+        <span>kuran.muallimun.net</span>
       </div>
 
       {/* ====================================================================
@@ -388,7 +388,7 @@ const PrintableExamSheet: React.FC<PrintableExamSheetProps> = ({
 
           <div className="mt-5 pt-3 border-t border-neutral-300 flex items-center justify-between text-[10px] text-neutral-500">
             <span>© {currentYear} Muallimun.Net — Kur&apos;an &amp; Meal Eğitim Platformu</span>
-            <span>Cevap Anahtarı · meal.muallimun.net</span>
+            <span>Cevap Anahtarı · kuran.muallimun.net</span>
           </div>
         </section>
       )}

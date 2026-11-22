@@ -10,7 +10,7 @@ import type {
 
 export const DEMO_MANIFEST: ManifestData = {
   app: "Muallimun Kur'an & Meal",
-  domain: 'https://meal.muallimun.net',
+  domain: 'https://kuran.muallimun.net',
   schemaVersion: 2,
   dataVersion: 'demo-local',
   defaultPool: {
@@ -18,7 +18,7 @@ export const DEMO_MANIFEST: ManifestData = {
     surahs: [17, 24, 31, 49],
     juzs: [],
     preferredMeal: 'm1',
-    arabicAudio: 'hatim',
+    arabicAudio: 'maher_al_muaiqly',
     mealAudio: 'tdv',
   },
   meals: {

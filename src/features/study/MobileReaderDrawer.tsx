@@ -486,7 +486,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                       : 'var(--text-secondary)',
                   }}
                 >
-                  <span>Renk Anahtarı Şeridi</span>
+                  <span>Tecvit Renk Şeridini Göster</span>
                   <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
                 </button>
               )}

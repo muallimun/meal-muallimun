@@ -6,7 +6,7 @@ import type {
 } from '../types/quran';
 import type { SegMetaFile } from '../types/wordSync';
 
-export const DEFAULT_RECITER_ID = 'hatim';
+export const DEFAULT_RECITER_ID = 'maher_al_muaiqly';
 
 export interface ReciterCategoryMeta {
   id: ReciterCategory;
@@ -49,7 +49,7 @@ export const RECITER_CATEGORIES: readonly ReciterCategoryMeta[] = [
 
 /**
  * 4 Kategoride 28 Kur'an Okuyucu (3 Türk Kurrâ + 25 Arap Kurrâ)
- * Varsayılan okuyucu: hatim (İshak Danış)
+ * Varsayılan okuyucu: maher_al_muaiqly (Mâhir el-Muaykilî)
  */
 export const RECITERS_CATALOG: readonly ReciterDefinition[] = [
   // ============================================================================
@@ -60,7 +60,7 @@ export const RECITERS_CATALOG: readonly ReciterDefinition[] = [
     label: 'İshak Danış',
     shortLabel: 'İshak Danış',
     category: 'turk',
-    styleLabel: 'Hatim · Varsayılan',
+    styleLabel: 'Hatim',
     baseUrl:
       'https://dn721808.ca.archive.org/0/items/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
     fallbackBaseUrl:
@@ -177,7 +177,7 @@ export const RECITERS_CATALOG: readonly ReciterDefinition[] = [
     label: 'Mâhir el-Muaykilî',
     shortLabel: 'Mâhir el-Muaykilî',
     category: 'murattal',
-    styleLabel: 'Mürattel',
+    styleLabel: 'Mürattel · Varsayılan',
     bitrate: '128k',
     baseUrl: 'https://everyayah.com/data/MaherAlMuaiqly128kbps',
     filePattern: 'compact',

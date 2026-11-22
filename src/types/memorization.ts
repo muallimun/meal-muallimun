@@ -52,6 +52,10 @@ export interface MemorizationUnit {
   lastPracticedAt: number | null;
   /** Sabak–Sabkî–Menzil aralıklı tekrar basamağı (0..5 -> 1, 3, 7, 14, 30 gün) */
   reviewStep: number;
+  /** SRS kutu indeksi (0..5, reviewStep ile senkron) */
+  srsBox?: number;
+  /** Son aralıklı tekrar zamanı (ms timestamp, lastPracticedAt ile senkron) */
+  lastReviewedAt?: number | null;
   /** Bir sonraki önerilen pekiştirme tekrarı zamanı (ms timestamp) */
   nextReviewAt: number | null;
   /** Son oturum sonu öz-değerlendirmesi */

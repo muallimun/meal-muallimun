@@ -1,4 +1,16 @@
 {
+  "redirects": [
+    {
+      "source": "/mushaf",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/mushaf/:path*",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!data/|fonts/|sfx/|icons/|assets/|manifest\\.webmanifest).*)",

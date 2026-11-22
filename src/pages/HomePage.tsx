@@ -187,8 +187,11 @@ export const HomePage: React.FC = () => {
     };
   }, [availableQuestionSurahs, poolStats.effectiveSurahs, quizSurahQuery]);
 
-  // En güncel / aktif ezber kaydı özeti
+  // En güncel / aktif ezber kaydı özeti + SRS bugün tekrar sayısı
   const memorizationSummary = useMemo(() => {
+    const dueUnits = memUnits.filter((u) => isUnitDueForReview(u));
+    const dueAyahCount = dueUnits.reduce((sum, u) => sum + u.verseKeys.length, 0);
+
     if (memActiveSession) {
       const pct =
         memActiveSession.totalSteps > 0
@@ -201,6 +204,8 @@ export const HomePage: React.FC = () => {
         title: memActiveSession.unitTitle,
         detail: `Devam eden oturum · Adım ${memActiveSession.stepIndex + 1}/${memActiveSession.totalSteps} (%${pct})`,
         hasProgress: true,
+        dueAyahCount,
+        dueUnitCount: dueUnits.length,
       };
     }
 
@@ -209,14 +214,15 @@ export const HomePage: React.FC = () => {
         (a, b) => (b.lastPracticedAt ?? b.createdAt) - (a.lastPracticedAt ?? a.createdAt),
       );
       const top = sorted[0];
-      const dueCount = memUnits.filter((u) => isUnitDueForReview(u)).length;
       const stageLabel = RETENTION_STAGE_META[top.stage]?.label ?? top.stage;
       return {
         title: top.title,
         detail: `${top.verseKeys.length} ayet · ${stageLabel}${
-          dueCount > 0 ? ` · ${dueCount} tekrar bekliyor` : ''
+          dueAyahCount > 0 ? ` · Bugün ${dueAyahCount} ayet tekrar zamanı` : ''
         }`,
         hasProgress: true,
+        dueAyahCount,
+        dueUnitCount: dueUnits.length,
       };
     }
 
@@ -224,6 +230,8 @@ export const HomePage: React.FC = () => {
       title: 'Ezber Çalışması',
       detail: 'Rükû veya sure bazlı ezber başlatın',
       hasProgress: false,
+      dueAyahCount: 0,
+      dueUnitCount: 0,
     };
   }, [memActiveSession, memUnits]);
 
@@ -1100,13 +1108,24 @@ export const HomePage: React.FC = () => {
                     <BookMarked className="w-4 h-4" />
                   </span>
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                       <span className="text-xs font-extrabold" style={{ color: 'var(--brand-accent-text)' }}>
                         Ezber
                       </span>
                       <span className="text-xs sm:text-sm font-extrabold truncate">
                         {memorizationSummary.title}
                       </span>
+                      {memorizationSummary.dueAyahCount > 0 && (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                          style={{
+                            backgroundColor: 'var(--brand-primary-soft)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          Bugün Tekrar ({memorizationSummary.dueAyahCount} Ayet)
+                        </span>
+                      )}
                     </div>
                     <p
                       className="text-[11px] tabular-nums truncate mt-0.5"

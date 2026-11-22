@@ -95,8 +95,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showFootnotes: true,
   highlightSajdah: true,
   keepScreenAwake: true,
-  tajweedEnabled: false,
-  showTajweedLegend: true,
+  tajweedEnabled: true,
+  showTajweedLegend: false,
   wordSyncEnabled: true,
   showRukuMarkers: true,
 };
@@ -124,9 +124,9 @@ export const DEFAULT_STUDY_PROGRESS: StudyProgress = {
 
 export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
   mode: 'ar',
-  arabicAudioSource: 'hatim',
-  arabicReciterId: 'hatim',
-  favoriteReciterIds: ['hatim'],
+  arabicAudioSource: 'maher_al_muaiqly',
+  arabicReciterId: 'maher_al_muaiqly',
+  favoriteReciterIds: ['maher_al_muaiqly'],
   mealAudioSource: 'tdv',
   playbackRate: 1,
   repeatCount: 1,

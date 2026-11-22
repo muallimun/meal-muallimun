@@ -872,7 +872,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
   }, [canRecordAudio, stopRecordingTimer, stopMicTracks, stopUserAudioPlayback, stopVoiceRecording]);
 
   const playUserVoice = useCallback(
-    (followWithReciter: boolean) => {
+    (compareWithReciter: boolean) => {
       if (!recordedBlobUrl) return;
       sfxService.play('click');
 
@@ -885,55 +885,61 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
       memorizationAudioController.pause();
       audioQueueService.pause();
 
-      const audio = new Audio(recordedBlobUrl);
-      userAudioRef.current = audio;
-      setVoicePlaybackState(followWithReciter ? 'comparing_user' : 'playing_user');
+      const startUserPlayback = (stateLabel: 'playing_user' | 'comparing_user') => {
+        const audio = new Audio(recordedBlobUrl);
+        userAudioRef.current = audio;
+        setVoicePlaybackState(stateLabel);
 
-      audio.onended = () => {
-        userAudioRef.current = null;
-        if (followWithReciter && highlightedVerseKey) {
-          setVoicePlaybackState('comparing_reciter');
-          const compareStep: SessionStep = {
-            index: stepIndex,
-            phase: 'encode',
-            clusterIndex: currentStep?.clusterIndex ?? 0,
-            totalClusters: currentStep?.totalClusters ?? 1,
-            verseKeys: [highlightedVerseKey],
-            repeatIndex: 1,
-            totalRepeats: 1,
-            suggestedMask: mask,
-            stepLabel: 'Karî Kıyaslama',
-            shortLabel: 'Karî Kıyaslama',
-          };
-          memorizationAudioController.playStep({
-            step: compareStep,
-            nextStep: null,
-            reciter: activeReciter,
-            playbackRate: prefs.playbackRate,
-            listenRepeatPauseEnabled: false,
-            pauseMultiplier: prefs.pauseMultiplier,
-            unitTitle: unit.title,
-            surahNameLookup,
-            onStepComplete: () => {
-              memorizationAudioController.stop();
-              setVoicePlaybackState('idle');
-            },
-          });
-        } else {
+        audio.onended = () => {
+          userAudioRef.current = null;
           setVoicePlaybackState('idle');
-        }
+        };
+
+        audio.onerror = () => {
+          userAudioRef.current = null;
+          setVoicePlaybackState('idle');
+          setRecordingError('Ses kaydı oynatılamadı.');
+        };
+
+        audio.play().catch(() => {
+          userAudioRef.current = null;
+          setVoicePlaybackState('idle');
+        });
       };
 
-      audio.onerror = () => {
-        userAudioRef.current = null;
-        setVoicePlaybackState('idle');
-        setRecordingError('Ses kaydı oynatılamadı.');
-      };
+      // Kıyasla (Kurrâ -> Ben): Önce seçili kurrâyı, bitince otomatik olarak kullanıcının kaydını çal
+      if (compareWithReciter && highlightedVerseKey) {
+        setVoicePlaybackState('comparing_reciter');
+        const compareStep: SessionStep = {
+          index: stepIndex,
+          phase: 'encode',
+          clusterIndex: currentStep?.clusterIndex ?? 0,
+          totalClusters: currentStep?.totalClusters ?? 1,
+          verseKeys: [highlightedVerseKey],
+          repeatIndex: 1,
+          totalRepeats: 1,
+          suggestedMask: mask,
+          stepLabel: 'Kurrâ Kıyaslama',
+          shortLabel: 'Kurrâ Kıyaslama',
+        };
+        memorizationAudioController.playStep({
+          step: compareStep,
+          nextStep: null,
+          reciter: activeReciter,
+          playbackRate: prefs.playbackRate,
+          listenRepeatPauseEnabled: false,
+          pauseMultiplier: prefs.pauseMultiplier,
+          unitTitle: unit.title,
+          surahNameLookup,
+          onStepComplete: () => {
+            memorizationAudioController.stop();
+            startUserPlayback('comparing_user');
+          },
+        });
+        return;
+      }
 
-      audio.play().catch(() => {
-        userAudioRef.current = null;
-        setVoicePlaybackState('idle');
-      });
+      startUserPlayback('playing_user');
     },
     [
       recordedBlobUrl,
@@ -1609,7 +1615,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                         }
                         className="accent-[var(--brand-primary)]"
                       />
-                      <span>Tekrar Boşluğu</span>
+                      <span>Gölge Tekrar Boşluğu</span>
                     </label>
                     {prefs.listenRepeatPauseEnabled &&
                       ([0.8, 1, 1.2] as PauseMultiplier[]).map((m) => (
@@ -1863,7 +1869,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                     style={{ color: 'var(--brand-accent-text)' }}
                   >
                     <Timer className="w-4 h-4 animate-pulse" />
-                    <span>Şimdi ezberden tekrar sırası sizde</span>
+                    <span>Şimdi ezberden tekrar edin...</span>
                   </span>
                   <div className="flex items-center gap-2">
                     <span
@@ -1882,7 +1888,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                       }}
                     >
                       <FastForward className="w-3.5 h-3.5" />
-                      <span>Geç</span>
+                      <span>Atla</span>
                     </button>
                   </div>
                 </div>
@@ -2459,180 +2465,261 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                 </div>
               )}
 
-            {/* Tarayıcı İçi "Sesini Kaydet & Karî ile Kıyasla" Paneli (RAM-only) */}
-            {canRecordAudio && currentStep?.phase !== 'checkpoint' && (
-              <div
-                className="rounded-2xl border overflow-hidden"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: isComparePanelOpen || isRecording || recordedBlobUrl
-                    ? 'var(--brand-primary)'
-                    : 'var(--border-subtle)',
-                }}
-              >
-                <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setIsComparePanelOpen((v) => !v);
+            {/* Gölge Tekrar (Shadowing) Hızlı Anahtarı + Sesli Öz-Denetim Barı (RAM-only) */}
+            {currentStep?.phase !== 'checkpoint' && (
+              <div className="space-y-2.5">
+                {!isSelfTest && !isTeacherReciter && (
+                  <div
+                    className="rounded-2xl border px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: prefs.listenRepeatPauseEnabled
+                        ? 'var(--brand-accent)'
+                        : 'var(--border-subtle)',
                     }}
-                    className="flex items-center gap-2 text-left min-w-0 cursor-pointer flex-1"
                   >
-                    <span
-                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Timer
+                        className="w-4 h-4 shrink-0"
+                        style={{
+                          color: prefs.listenRepeatPauseEnabled
+                            ? 'var(--brand-accent-text)'
+                            : 'var(--text-muted)',
+                        }}
+                      />
+                      <span className="text-xs font-extrabold truncate">
+                        Gölge Tekrar Boşluğu
+                      </span>
+                    </div>
+
+                    <div
+                      className="inline-flex items-center p-0.5 rounded-xl border"
                       style={{
-                        backgroundColor: isRecording
-                          ? 'rgba(239, 68, 68, 0.14)'
-                          : 'var(--brand-primary-soft)',
-                        color: isRecording ? '#DC2626' : 'var(--brand-primary-text)',
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
                       }}
                     >
-                      <Mic className={`w-4 h-4 ${isRecording ? 'animate-pulse' : ''}`} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-xs font-extrabold truncate">
-                        Sesimi Kaydet &amp; Karî ile Kıyasla
-                      </p>
-                      <p
-                        className="text-[11px] truncate"
-                        style={{ color: 'var(--text-muted)' }}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          onChangePrefs({ listenRepeatPauseEnabled: false });
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: !prefs.listenRepeatPauseEnabled
+                            ? 'var(--bg-surface)'
+                            : 'transparent',
+                          color: !prefs.listenRepeatPauseEnabled
+                            ? 'var(--text-primary)'
+                            : 'var(--text-muted)',
+                        }}
                       >
-                        {isRecording
-                          ? `Kaydediliyor · ${formatClock(recordingSec)} / 1:30`
-                          : recordedBlobUrl
-                            ? `Geçici kayıt hazır (${formatClock(recordedDurationSec)}) · Sadece cihaz belleğinde`
-                            : 'Sunucuya gönderilmez; okuyuşunuzu seçili karî ile anında kıyaslayın'}
-                      </p>
+                        Kapalı
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          onChangePrefs({ listenRepeatPauseEnabled: true, pauseMultiplier: 1 });
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: prefs.listenRepeatPauseEnabled
+                            ? 'var(--brand-accent)'
+                            : 'transparent',
+                          color: prefs.listenRepeatPauseEnabled
+                            ? '#FFFFFF'
+                            : 'var(--text-muted)',
+                        }}
+                      >
+                        1x Ayet Süresi Bekle
+                      </button>
                     </div>
-                  </button>
+                  </div>
+                )}
 
-                  {!isComparePanelOpen && !isRecording && !recordedBlobUrl && (
+                <div
+                  className="rounded-2xl border overflow-hidden"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor:
+                      isComparePanelOpen || isRecording || recordedBlobUrl
+                        ? 'var(--brand-primary)'
+                        : 'var(--border-subtle)',
+                  }}
+                >
+                  <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
                     <button
                       type="button"
                       onClick={() => {
-                        setIsComparePanelOpen(true);
-                        void startVoiceRecording();
+                        sfxService.play('click');
+                        setIsComparePanelOpen((v) => !v);
                       }}
-                      className="min-h-[34px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
-                      style={{ backgroundColor: 'var(--brand-primary)' }}
+                      className="flex items-center gap-2 text-left min-w-0 cursor-pointer flex-1"
                     >
-                      <Mic className="w-3.5 h-3.5" />
-                      <span>Kaydet</span>
+                      <span
+                        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: isRecording
+                            ? 'rgba(239, 68, 68, 0.14)'
+                            : 'var(--brand-primary-soft)',
+                          color: isRecording ? '#DC2626' : 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <Mic className={`w-4 h-4 ${isRecording ? 'animate-pulse' : ''}`} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-extrabold truncate">
+                          Sesli Öz-Denetim (Kaydet &amp; Kıyasla)
+                        </p>
+                        <p
+                          className="text-[11px] truncate"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {!canRecordAudio
+                            ? 'Bu tarayıcı mikrofon kaydını desteklemiyor'
+                            : isRecording
+                              ? `Kaydediliyor · ${formatClock(recordingSec)} / 1:30`
+                              : recordedBlobUrl
+                                ? `Kayıt hazır (${formatClock(recordedDurationSec)}) · Sadece cihaz belleğinde`
+                                : 'Sesiniz sunucuya gönderilmez; Kurrâ → Ben sırasıyla kıyaslayın'}
+                        </p>
+                      </div>
                     </button>
-                  )}
-                </div>
 
-                {(isComparePanelOpen || isRecording || recordedBlobUrl) && (
-                  <div
-                    className="px-3.5 pb-3 pt-2 border-t space-y-2.5"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    {recordingError && (
-                      <p className="text-xs font-semibold text-red-600">{recordingError}</p>
-                    )}
-
-                    {isRecording ? (
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-xs font-extrabold text-red-600 tabular-nums">
-                          <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
-                          <span>Kayıt sürüyor · {formatClock(recordingSec)} / 1:30</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={stopVoiceRecording}
-                          className="min-h-[38px] px-4 rounded-xl bg-red-600 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Square className="w-3.5 h-3.5 fill-current" />
-                          <span>Durdur</span>
-                        </button>
-                      </div>
-                    ) : recordedBlobUrl ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => playUserVoice(false)}
-                          className="flex-1 min-w-[120px] min-h-[38px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                          style={{
-                            backgroundColor:
-                              voicePlaybackState === 'playing_user'
-                                ? 'var(--brand-primary)'
-                                : 'var(--bg-surface)',
-                            borderColor: 'var(--brand-primary)',
-                            color:
-                              voicePlaybackState === 'playing_user'
-                                ? '#FFFFFF'
-                                : 'var(--brand-primary-text)',
-                          }}
-                        >
-                          {voicePlaybackState === 'playing_user' ? (
-                            <>
-                              <Square className="w-3.5 h-3.5 fill-current shrink-0" />
-                              <span>Durdur</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-3.5 h-3.5 fill-current shrink-0" />
-                              <span>Kendi Sesim</span>
-                            </>
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => playUserVoice(true)}
-                          className="flex-1 min-w-[155px] min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                          style={{ backgroundColor: 'var(--brand-primary)' }}
-                        >
-                          <Repeat className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">
-                            {voicePlaybackState === 'comparing_user'
-                              ? '1/2 Kendi Sesiniz...'
-                              : voicePlaybackState === 'comparing_reciter'
-                                ? '2/2 Karî Okuyor...'
-                                : 'Karî ile Peş Peşe Kıyasla'}
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sfxService.play('click');
-                            clearRecordedVoice();
-                          }}
-                          title="Kaydı sil ve yeniden kaydet"
-                          aria-label="Kaydı sil"
-                          className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1 cursor-pointer text-red-500"
-                          style={{
-                            backgroundColor: 'var(--bg-surface)',
-                            borderColor: 'var(--border-subtle)',
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                          <span>Sil</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-                          Aktif ayeti okuyun, ardından seçili karî ile peş peşe dinleyin.
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => void startVoiceRecording()}
-                          className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
-                          style={{ backgroundColor: 'var(--brand-primary)' }}
-                        >
-                          <Mic className="w-3.5 h-3.5" />
-                          <span>Kaydet</span>
-                        </button>
-                      </div>
+                    {canRecordAudio && !isComparePanelOpen && !isRecording && !recordedBlobUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsComparePanelOpen(true);
+                          void startVoiceRecording();
+                        }}
+                        className="min-h-[36px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                        style={{ backgroundColor: 'var(--brand-primary)' }}
+                      >
+                        <Mic className="w-3.5 h-3.5" />
+                        <span>Oku &amp; Kaydet</span>
+                      </button>
                     )}
                   </div>
-                )}
+
+                  {(isComparePanelOpen || isRecording || recordedBlobUrl) && (
+                    <div
+                      className="px-3.5 pb-3 pt-2 border-t space-y-2.5"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      {recordingError && (
+                        <p className="text-xs font-semibold text-red-600">{recordingError}</p>
+                      )}
+
+                      {!canRecordAudio ? (
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          Tarayıcınız MediaRecorder ses kaydını desteklemiyor. Kurrâ tilavetini
+                          dinleyip Gölge Tekrar boşluğuyla çalışmaya devam edebilirsiniz.
+                        </p>
+                      ) : isRecording ? (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-xs font-extrabold text-red-600 tabular-nums">
+                            <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
+                            <span>Kayıt sürüyor · {formatClock(recordingSec)} / 1:30</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={stopVoiceRecording}
+                            className="min-h-[38px] px-4 rounded-xl bg-red-600 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Square className="w-3.5 h-3.5 fill-current" />
+                            <span>Durdur</span>
+                          </button>
+                        </div>
+                      ) : recordedBlobUrl ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => playUserVoice(false)}
+                            className="flex-1 min-w-[120px] min-h-[38px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                            style={{
+                              backgroundColor:
+                                voicePlaybackState === 'playing_user'
+                                  ? 'var(--brand-primary)'
+                                  : 'var(--bg-surface)',
+                              borderColor: 'var(--brand-primary)',
+                              color:
+                                voicePlaybackState === 'playing_user'
+                                  ? '#FFFFFF'
+                                  : 'var(--brand-primary-text)',
+                            }}
+                          >
+                            {voicePlaybackState === 'playing_user' ? (
+                              <>
+                                <Square className="w-3.5 h-3.5 fill-current shrink-0" />
+                                <span>Durdur</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                                <span>Kaydımı Dinle</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => playUserVoice(true)}
+                            className="flex-1 min-w-[165px] min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                            style={{ backgroundColor: 'var(--brand-primary)' }}
+                          >
+                            <Repeat className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">
+                              {voicePlaybackState === 'comparing_reciter'
+                                ? '1/2 Kurrâ Okuyor...'
+                                : voicePlaybackState === 'comparing_user'
+                                  ? '2/2 Sizin Kaydınız...'
+                                  : 'Kıyasla (Kurrâ → Ben)'}
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              clearRecordedVoice();
+                            }}
+                            title="Kaydı sil ve yeniden kaydet"
+                            aria-label="Kaydı sil"
+                            className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1 cursor-pointer text-red-500"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                            <span>Sil</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                            Aktif ayeti okuyun, ardından Kurrâ → Ben sırasıyla peş peşe kıyaslayın.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void startVoiceRecording()}
+                            className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                            style={{ backgroundColor: 'var(--brand-primary)' }}
+                          >
+                            <Mic className="w-3.5 h-3.5" />
+                            <span>Oku &amp; Kaydet</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

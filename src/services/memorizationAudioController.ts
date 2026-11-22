@@ -72,8 +72,8 @@ const INITIAL_SNAPSHOT: MemAudioSnapshot = {
 
 const LOAD_TIMEOUT_MS = 12000;
 const FALLBACK_AYAH_DURATION_MS = 4500;
-const MIN_PAUSE_MS = 1500;
-const MAX_PAUSE_MS = 28000;
+const MIN_PAUSE_MS = 3000;
+const MAX_PAUSE_MS = 25000;
 
 /**
  * Ezber Modu için çift kanallı (<audio> A/B) ön-yüklemeli ses ve akıllı sekte (Dinle & Tekrar Et) motoru.

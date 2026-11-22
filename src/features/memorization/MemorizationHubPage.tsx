@@ -10,6 +10,8 @@ import {
   Download,
   Headphones,
   Layers,
+  Link2,
+  Map as MapIcon,
   Play,
   Plus,
   RefreshCw,
@@ -31,6 +33,7 @@ import {
   getRangesSignature,
 } from '../../data/curatedAshrPresets';
 import {
+  applyStageChangeWithSrs,
   getReviewScheduleBadge,
   isUnitDueForReview,
   memorizationStorage,
@@ -48,10 +51,13 @@ import type {
 } from '../../types/memorization';
 import { RETENTION_STAGE_META } from '../../types/memorization';
 import { CreatePoolModal } from './CreatePoolModal';
+import { HifzMapView } from './HifzMapView';
 import { QuickStartDrawer } from './QuickStartDrawer';
+import { RabtQuizModal } from './RabtQuizModal';
 import { ZenSessionView } from './ZenSessionView';
 
 type StageFilter = 'all' | 'due' | RetentionStage;
+type HubViewTab = 'pool' | 'hifz_map';
 
 const NEXT_STAGE: Record<RetentionStage, RetentionStage> = {
   raw: 'fresh',
@@ -75,9 +81,11 @@ export const MemorizationHubPage: React.FC = () => {
     memorizationStorage.readActiveSessionSync(),
   );
 
+  const [hubView, setHubView] = useState<HubViewTab>('pool');
   const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [drawerUnitId, setDrawerUnitId] = useState<string | null>(null);
+  const [rabtQuizUnitId, setRabtQuizUnitId] = useState<string | null>(null);
   const [zenSession, setZenSession] = useState<{
     unitId: string;
     snapshot: ActiveSessionSnapshot | null;
@@ -323,6 +331,50 @@ export const MemorizationHubPage: React.FC = () => {
     [units, nowSnapshot],
   );
 
+  const dueAyahCount = useMemo(
+    () => dueUnits.reduce((sum, u) => sum + u.verseKeys.length, 0),
+    [dueUnits],
+  );
+
+  const rabtQuizUnit = useMemo(
+    () => (rabtQuizUnitId ? units.find((u) => u.id === rabtQuizUnitId) ?? null : null),
+    [rabtQuizUnitId, units],
+  );
+
+  // Hıfz Haritası'ndan bir sure seçildiğinde havuzda varsa aç, yoksa yeni sure birimi oluşturup başlat
+  const handleSelectSurahFromMap = useCallback(
+    async (surahNo: number) => {
+      if (!meta) return;
+      const surah = meta.surahs.find((s) => s.no === surahNo);
+      if (!surah) return;
+
+      const fullRange = [{ surah: surah.no, startAyah: 1, endAyah: surah.ayahCount }];
+      const existingFull = findMatchingUnitInPool(units, fullRange);
+      if (existingFull) {
+        setDrawerUnitId(existingFull.id);
+        return;
+      }
+
+      const existingPartial = units.find((u) => u.ranges.some((r) => r.surah === surahNo));
+      if (existingPartial) {
+        setDrawerUnitId(existingPartial.id);
+        return;
+      }
+
+      const newUnit = buildMemorizationUnitFromRanges(meta, {
+        title: `${surah.shortNameTr} Suresi`,
+        subtitle: `${surah.no}. Sure · 1–${surah.ayahCount} · ${surah.ayahCount} Ayet`,
+        sourceType: 'surah',
+        ranges: fullRange,
+      });
+      const next = await memorizationStorage.upsertUnit(newUnit);
+      setUnits(next);
+      showToast(`${surah.shortNameTr} Suresi ezber havuzuna eklendi.`);
+      setDrawerUnitId(newUnit.id);
+    },
+    [meta, units, showToast],
+  );
+
   const stageCounts = useMemo(() => {
     const counts = { all: units.length, due: dueUnits.length, raw: 0, fresh: 0, solid: 0 };
     for (const u of units) {
@@ -469,6 +521,72 @@ export const MemorizationHubPage: React.FC = () => {
         </div>
       )}
 
+      {/* Ana Görünüm Geçişi: Ezber Havuzum | Hıfz Haritam (114 Sure) */}
+      <div
+        className="inline-flex items-center p-1 rounded-2xl border gap-1 max-w-full overflow-x-auto no-scrollbar"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-subtle)',
+        }}
+        role="tablist"
+        aria-label="Ezber Modu Görünümü"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={hubView === 'pool'}
+          onClick={() => {
+            sfxService.play('click');
+            setHubView('pool');
+          }}
+          className="min-h-[38px] px-3.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+          style={{
+            backgroundColor: hubView === 'pool' ? 'var(--brand-primary)' : 'transparent',
+            color: hubView === 'pool' ? '#FFFFFF' : 'var(--text-secondary)',
+          }}
+        >
+          <Layers className="w-4 h-4 shrink-0" />
+          <span>Ezber Havuzum</span>
+          <span
+            className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+            style={{
+              backgroundColor:
+                hubView === 'pool' ? 'rgba(255,255,255,0.22)' : 'var(--bg-surface-soft)',
+              color: hubView === 'pool' ? '#FFFFFF' : 'var(--text-muted)',
+            }}
+          >
+            {units.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={hubView === 'hifz_map'}
+          onClick={() => {
+            sfxService.play('click');
+            setHubView('hifz_map');
+          }}
+          className="min-h-[38px] px-3.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+          style={{
+            backgroundColor: hubView === 'hifz_map' ? 'var(--brand-primary)' : 'transparent',
+            color: hubView === 'hifz_map' ? '#FFFFFF' : 'var(--text-secondary)',
+          }}
+        >
+          <MapIcon className="w-4 h-4 shrink-0" />
+          <span>Hıfz Haritam (114 Sure)</span>
+        </button>
+      </div>
+
+      {hubView === 'hifz_map' && meta ? (
+        <HifzMapView
+          units={units}
+          meta={meta}
+          onSelectSurah={(surahNo) => void handleSelectSurahFromMap(surahNo)}
+        />
+      ) : (
+        <>
+
       {/* Bugünkü Çalışmam / Kaldığım Yer Sakin Hero Kartı */}
       {resumeUnit && activeSession ? (
         <section
@@ -609,10 +727,10 @@ export const MemorizationHubPage: React.FC = () => {
             </span>
             <div className="min-w-0">
               <p
-                className="text-xs sm:text-sm font-extrabold"
+                className="text-xs sm:text-sm font-extrabold tabular-nums"
                 style={{ color: 'var(--brand-primary-text)' }}
               >
-                Bugün Pekiştirme Tekrarı ({dueUnits.length} birim)
+                Bugün Tekrar Zamanı Gelenler ({dueAyahCount} Ayet · {dueUnits.length} Birim)
               </p>
               <p className="text-[11px] sm:text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                 {dueUnits
@@ -624,7 +742,7 @@ export const MemorizationHubPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
               type="button"
               onClick={() => {
@@ -651,7 +769,7 @@ export const MemorizationHubPage: React.FC = () => {
               style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Tekrara Başla</span>
+              <span>Tekrar Seansını Başlat →</span>
             </button>
           </div>
         </section>
@@ -738,7 +856,7 @@ export const MemorizationHubPage: React.FC = () => {
                           type="button"
                           onClick={() => {
                             sfxService.play('click');
-                            handleUpdateUnit({ ...u, stage: NEXT_STAGE[u.stage] });
+                            handleUpdateUnit(applyStageChangeWithSrs(u, NEXT_STAGE[u.stage]));
                           }}
                           title="Aşamayı değiştirmek için tıklayın"
                           className="px-2.5 py-1 rounded-lg border text-[11px] font-extrabold shrink-0 cursor-pointer"
@@ -830,6 +948,26 @@ export const MemorizationHubPage: React.FC = () => {
                         >
                           <Star className="w-3.5 h-3.5 fill-current shrink-0" />
                           <span>{u.starredVerseKeys.length}</span>
+                        </button>
+                      )}
+
+                      {u.verseKeys.length >= 2 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setRabtQuizUnitId(u.id);
+                          }}
+                          title="Ayet Bağlama (Rabt) ve Fâsıla Mini Testi"
+                          className="min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 transition-colors"
+                          style={{
+                            backgroundColor: 'var(--bg-surface-soft)',
+                            borderColor: 'var(--border-subtle)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          <Link2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>Rabt Testi</span>
                         </button>
                       )}
 
@@ -1110,6 +1248,8 @@ export const MemorizationHubPage: React.FC = () => {
           </div>
         )}
       </section>
+        </>
+      )}
 
       {/* ====================================================================
           JSON YEDEKLEME MODALI (DIŞA / İÇE AKTAR)
@@ -1305,6 +1445,12 @@ export const MemorizationHubPage: React.FC = () => {
           });
         }}
         onClose={() => setDrawerUnitId(null)}
+      />
+
+      <RabtQuizModal
+        isOpen={Boolean(rabtQuizUnit)}
+        unit={rabtQuizUnit}
+        onClose={() => setRabtQuizUnitId(null)}
       />
 
       {zenUnit && (

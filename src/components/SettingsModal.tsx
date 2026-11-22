@@ -1,8 +1,10 @@
-import React, { useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   BookOpen,
   ChevronRight,
+  Download,
   Eye,
+  HardDrive,
   Headphones,
   Layout,
   Loader2,
@@ -12,6 +14,7 @@ import {
   Square,
   Sun,
   Type,
+  Upload,
   Volume2,
   VolumeX,
   X,
@@ -25,6 +28,7 @@ import {
   RECITER_CATEGORIES,
 } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
+import { memorizationStorage } from '../services/memorizationStorage';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type {
@@ -135,6 +139,139 @@ export const SettingsModal: React.FC = () => {
   );
 
   const [activeTab, setActiveTab] = useState<SettingsTabId>('appearance');
+  const [backupStatus, setBackupStatus] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const [isBackupBusy, setIsBackupBusy] = useState(false);
+  const backupFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleExportFullBackup = async () => {
+    sfxService.play('click');
+    setIsBackupBusy(true);
+    setBackupStatus(null);
+    try {
+      const localEntries: Record<string, string> = {};
+      for (let i = 0; i < window.localStorage.length; i += 1) {
+        const key = window.localStorage.key(i);
+        if (!key || !key.startsWith('muallimun')) continue;
+        const val = window.localStorage.getItem(key);
+        if (val !== null) {
+          localEntries[key] = val;
+        }
+      }
+
+      const memorizationPayload = await memorizationStorage.createBackupPayload();
+
+      const fullBackup = {
+        app: 'muallimun-kuran-full-backup',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        localStorage: localEntries,
+        memorization: memorizationPayload,
+      };
+
+      const jsonStr = JSON.stringify(fullBackup, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `muallimun-kuran-yedek-${dateStamp}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      setBackupStatus({
+        type: 'success',
+        text: `Yedek indirildi (${Object.keys(localEntries).length} kayıt alanı ve ${memorizationPayload.units.length} ezber birimi).`,
+      });
+    } catch {
+      setBackupStatus({
+        type: 'error',
+        text: 'Yedek dosyası hazırlanırken bir hata oluştu.',
+      });
+    } finally {
+      setIsBackupBusy(false);
+    }
+  };
+
+  const handleImportFullBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setIsBackupBusy(true);
+    setBackupStatus(null);
+    try {
+      const rawText = await file.text();
+      const parsed: unknown = JSON.parse(rawText);
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Geçersiz JSON yedek dosyası.');
+      }
+
+      const record = parsed as {
+        app?: string;
+        localStorage?: Record<string, unknown>;
+        memorization?: unknown;
+        units?: unknown;
+      };
+
+      const hasFullStorage =
+        record.localStorage &&
+        typeof record.localStorage === 'object' &&
+        !Array.isArray(record.localStorage);
+      const hasMemorization = Boolean(record.memorization) || Array.isArray(record.units);
+
+      if (!hasFullStorage && !hasMemorization) {
+        throw new Error(
+          'Bu dosya geçerli bir Muallimun çalışma yedeği içermiyor.',
+        );
+      }
+
+      if (hasFullStorage && record.localStorage) {
+        let restoredKeys = 0;
+        for (const [k, v] of Object.entries(record.localStorage)) {
+          if (!k.startsWith('muallimun')) continue;
+          if (typeof v === 'string') {
+            window.localStorage.setItem(k, v);
+            restoredKeys += 1;
+          } else if (v !== null && v !== undefined) {
+            window.localStorage.setItem(k, JSON.stringify(v));
+            restoredKeys += 1;
+          }
+        }
+        if (restoredKeys === 0 && !hasMemorization) {
+          throw new Error('Yedek dosyasında geri yüklenecek Muallimun kaydı bulunamadı.');
+        }
+      }
+
+      if (record.memorization && typeof record.memorization === 'object') {
+        await memorizationStorage.importBackupPayload(record.memorization, 'replace');
+      } else if (record.app === 'muallimun-memorization' && Array.isArray(record.units)) {
+        await memorizationStorage.importBackupPayload(record, 'replace');
+      }
+
+      sfxService.play('correct');
+      setBackupStatus({
+        type: 'success',
+        text: 'Yedek başarıyla geri yüklendi. Uygulama yenileniyor...',
+      });
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 650);
+    } catch (err) {
+      setBackupStatus({
+        type: 'error',
+        text:
+          err instanceof Error
+            ? err.message
+            : 'Seçilen dosya geçerli bir Muallimun yedeği değil.',
+      });
+      setIsBackupBusy(false);
+    }
+  };
 
   const allMeals = useMemo(() => getAllMeals(manifest), [manifest]);
   const activePrimaryMeal = useMemo(
@@ -483,6 +620,101 @@ export const SettingsModal: React.FC = () => {
                     />
                   </span>
                 </button>
+              </section>
+
+              {/* Çalışma Verilerimi Yedekle & Taşı */}
+              <section
+                className="p-3.5 rounded-2xl border space-y-3"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <HardDrive className="w-4 h-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <h3
+                      className="text-xs sm:text-sm font-extrabold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      Çalışma Verilerimi Yedekle &amp; Taşı
+                    </h3>
+                    <p
+                      className="text-[11px] mt-0.5 leading-snug"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Ayarlarınızı, ayraçlarınızı, araştırma defterlerinizi, ezber havuzunuzu ve
+                      oyun ilerlemenizi tek bir JSON dosyasına aktarın veya başka bir cihaza
+                      taşıyın.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={isBackupBusy}
+                    onClick={() => void handleExportFullBackup()}
+                    className="min-h-[40px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <Download className="w-3.5 h-3.5 shrink-0" />
+                    <span>Yedeği İndir (.json)</span>
+                  </button>
+
+                  <input
+                    ref={backupFileInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={(e) => void handleImportFullBackup(e)}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={isBackupBusy}
+                    onClick={() => backupFileInputRef.current?.click()}
+                    className="min-h-[40px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--brand-primary)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <Upload className="w-3.5 h-3.5 shrink-0" />
+                    <span>Yedekten Geri Yükle</span>
+                  </button>
+                </div>
+
+                {backupStatus && (
+                  <p
+                    role="status"
+                    className="text-xs font-bold px-3 py-2 rounded-xl border"
+                    style={{
+                      backgroundColor:
+                        backupStatus.type === 'success'
+                          ? 'var(--brand-primary-soft)'
+                          : 'rgba(239, 68, 68, 0.08)',
+                      borderColor:
+                        backupStatus.type === 'success'
+                          ? 'var(--brand-primary)'
+                          : 'rgba(239, 68, 68, 0.35)',
+                      color:
+                        backupStatus.type === 'success'
+                          ? 'var(--brand-primary-text)'
+                          : '#B91C1C',
+                    }}
+                  >
+                    {backupStatus.text}
+                  </p>
+                )}
               </section>
 
               {/* İntro & Uygulama Kurulumu */}
@@ -834,7 +1066,7 @@ export const SettingsModal: React.FC = () => {
 
               {settings.tajweedEnabled && (
                 <ToggleRow
-                  title="Tecvit Renk Anahtarı Şeridini Göster"
+                  title="Tecvit Renk Şeridini Göster"
                   description="Okuma alanının üstünde tek satırlık özet renk anahtarını (Medler, Gunne, İdgam, İklâb, Kalkale) gösterir."
                   checked={settings.showTajweedLegend}
                   onToggle={() => {
