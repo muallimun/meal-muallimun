@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   AudioLines,
+  Bookmark,
   BookOpen,
   BookText,
   ChevronDown,
@@ -180,7 +181,6 @@ export const StudyPage: React.FC = () => {
   const [locationPickerTab, setLocationPickerTab] = useState<LocationPickerTab>('surah');
   const [isViewPopoverOpen, setIsViewPopoverOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [isMobileModeMenuOpen, setIsMobileModeMenuOpen] = useState(false);
   const [isMobileBarHidden, setIsMobileBarHidden] = useState(false);
   const [topbarPortalSlot, setTopbarPortalSlot] = useState<HTMLElement | null>(null);
   const [isFavoritesDrawerOpen, setIsFavoritesDrawerOpen] = useState(false);
@@ -191,7 +191,6 @@ export const StudyPage: React.FC = () => {
   } | null>(null);
 
   const viewPopoverRef = useRef<HTMLDivElement | null>(null);
-  const mobileModeMenuRef = useRef<HTMLDivElement | null>(null);
   const lastScrollYRef = useRef<number>(0);
 
   const viewMode = studyPrefs.viewMode;
@@ -226,25 +225,6 @@ export const StudyPage: React.FC = () => {
     };
   }, [isViewPopoverOpen]);
 
-  // Mobil mod seçici dropdown dışına tıklanınca kapat
-  useEffect(() => {
-    if (!isMobileModeMenuOpen) return;
-    const handleOutside = (e: MouseEvent) => {
-      if (mobileModeMenuRef.current && !mobileModeMenuRef.current.contains(e.target as Node)) {
-        setIsMobileModeMenuOpen(false);
-      }
-    };
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsMobileModeMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handleOutside);
-    window.addEventListener('keydown', handleEsc);
-    return () => {
-      document.removeEventListener('mousedown', handleOutside);
-      window.removeEventListener('keydown', handleEsc);
-    };
-  }, [isMobileModeMenuOpen]);
-
   // Mobilde Kartlar & Kitap modlarında aşağı kaydırırken üst şeridi akıllıca gizle, yukarıda göster
   useEffect(() => {
     setIsMobileBarHidden(false);
@@ -264,7 +244,6 @@ export const StudyPage: React.FC = () => {
         setIsMobileBarHidden(false);
       } else if (delta > 10 && currentY > 56) {
         setIsMobileBarHidden(true);
-        setIsMobileModeMenuOpen(false);
       } else if (delta < -6) {
         setIsMobileBarHidden(false);
       }
@@ -838,9 +817,6 @@ export const StudyPage: React.FC = () => {
 
   const isPureMobileView = viewMode === 'mushaf' || viewMode === 'book';
   const bookmarkCount = studyProgress.pageBookmarks.length;
-
-  const activeModeShortLabel =
-    viewMode === 'mushaf' ? 'Mushaf' : viewMode === 'cards' ? 'Kart' : 'Kitap';
 
   const activeLayoutSummary =
     viewMode === 'mushaf'
@@ -1651,19 +1627,19 @@ export const StudyPage: React.FC = () => {
           className={`lg:hidden sticky top-0 z-30 h-12 ${
             viewMode === 'cards' ? '-mx-2.5 sm:-mx-4 px-2 sm:px-3.5' : '-mx-1.5 sm:-mx-3 px-2 sm:px-3'
           } border-b backdrop-blur-md flex items-center justify-between gap-1.5 transition-transform duration-200 will-change-transform ${
-            isMobileBarHidden && !isMobileModeMenuOpen ? '-translate-y-full' : 'translate-y-0'
+            isMobileBarHidden ? '-translate-y-full' : 'translate-y-0'
           }`}
           style={{
             backgroundColor: 'var(--bg-nav)',
             borderColor: 'var(--border-subtle)',
           }}
         >
-          {/* Sol: Kompakt Konum Seçici (1. Fatiha · S.1 ▾) */}
+          {/* Sol: Ferah Konum Seçici (17. İsrâ · S.281 ▾) */}
           <button
             type="button"
             onClick={() => openLocationPicker('surah')}
             title="Sure, Sayfa, Cüz veya Ayet seç"
-            className="flex-1 min-w-0 h-9 px-2 rounded-xl border flex items-center gap-1 text-xs font-extrabold cursor-pointer text-left"
+            className="flex-1 min-w-0 h-9 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-extrabold cursor-pointer text-left"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-subtle)',
@@ -1674,73 +1650,8 @@ export const StudyPage: React.FC = () => {
             <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65 ml-auto" />
           </button>
 
-          {/* Sağ: Mod Değiştirici + Dinle + Hızlı Ara + Okuma Ayarları */}
+          {/* Sağ: Tablet 3'lü segment + Dinle + Hızlı Ara + Ayraçlar + Görünüm (Okuma Menüsü) */}
           <div className="flex items-center gap-1 shrink-0">
-            {/* Dar mobil (< 640px): Tek dokunuşlu kompakt mod seçici dropdown (360px sıfır taşma) */}
-            <div ref={mobileModeMenuRef} className="sm:hidden relative">
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setIsMobileModeMenuOpen((v) => !v);
-                }}
-                aria-expanded={isMobileModeMenuOpen}
-                aria-label="Okuma modunu değiştir"
-                className="h-9 px-2 rounded-xl border text-[11px] font-extrabold flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                style={{
-                  backgroundColor: isMobileModeMenuOpen
-                    ? 'var(--brand-primary-soft)'
-                    : 'var(--bg-surface)',
-                  borderColor: isMobileModeMenuOpen
-                    ? 'var(--brand-primary)'
-                    : 'var(--border-subtle)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                <span>{activeModeShortLabel}</span>
-                <ChevronDown className="w-3 h-3 shrink-0 opacity-75" />
-              </button>
-
-              {isMobileModeMenuOpen && (
-                <div
-                  className="absolute right-0 top-11 z-50 w-40 rounded-2xl border shadow-2xl p-1.5 space-y-0.5"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-strong)',
-                  }}
-                >
-                  {(
-                    [
-                      { id: 'mushaf', label: 'Mushaf Sayfa', icon: BookOpen },
-                      { id: 'cards', label: 'Ayet Kartları', icon: LayoutList },
-                      { id: 'book', label: 'Kitap Modu', icon: BookText },
-                    ] as const
-                  ).map((opt) => {
-                    const Icon = opt.icon;
-                    const active = viewMode === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          setIsMobileModeMenuOpen(false);
-                          handleSwitchViewMode(opt.id);
-                        }}
-                        className="w-full min-h-[38px] px-2.5 rounded-xl flex items-center gap-2 text-xs font-bold cursor-pointer transition-colors"
-                        style={{
-                          backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
-                          color: active ? 'var(--brand-primary-text)' : 'var(--text-primary)',
-                        }}
-                      >
-                        <Icon className="w-3.5 h-3.5 shrink-0" />
-                        <span>{opt.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
             {/* Geniş mobil / Tablet (640px–1023px): 3'lü segment */}
             <div
               className="hidden sm:flex items-center h-9 p-0.5 rounded-xl border shrink-0"
@@ -1815,16 +1726,48 @@ export const StudyPage: React.FC = () => {
               <Search className="w-4 h-4" />
             </button>
 
-            {/* ⚙️ Okuma Ayarları Çekmecesi (Meal, Kelime Meali, Font, Ayraçlar, Odak, Ayarlar) */}
+            {/* 🔖 Sayfa Ayraçları & Hatim */}
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openBookmarksDrawer();
+              }}
+              aria-label="Sayfa Ayraçları"
+              title={bookmarkCount > 0 ? `Sayfa Ayraçları (${bookmarkCount})` : 'Sayfa Ayraçları'}
+              className="relative w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+              style={{
+                backgroundColor:
+                  bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
+                borderColor:
+                  bookmarkCount > 0 ? 'rgba(217, 119, 6, 0.35)' : 'var(--border-subtle)',
+                color: bookmarkCount > 0 ? 'var(--brand-accent-text)' : 'var(--text-primary)',
+              }}
+            >
+              <Bookmark className={`w-4 h-4 ${bookmarkCount > 0 ? 'fill-current' : ''}`} />
+              {bookmarkCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-extrabold tabular-nums flex items-center justify-center text-white dark:text-[#0b1314] leading-none pointer-events-none"
+                  style={{
+                    backgroundColor: 'var(--brand-accent-text)',
+                    boxShadow: '0 0 0 1.5px var(--bg-nav)',
+                  }}
+                >
+                  {bookmarkCount > 99 ? '99+' : bookmarkCount}
+                </span>
+              )}
+            </button>
+
+            {/* ⚙️ Görünüm / Okuma Menüsü Çekmecesi */}
             <button
               type="button"
               onClick={() => {
                 sfxService.play('click');
                 setIsMobileDrawerOpen(true);
               }}
-              aria-label="Okuma ayarları ve menü"
-              title="Okuma ayarları"
-              className="relative w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+              aria-label="Görünüm ve Okuma Menüsü"
+              title="Görünüm ve Okuma Menüsü"
+              className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
@@ -1832,12 +1775,6 @@ export const StudyPage: React.FC = () => {
               }}
             >
               <SlidersHorizontal className="w-4 h-4" />
-              {bookmarkCount > 0 && (
-                <span
-                  className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full pointer-events-none"
-                  style={{ backgroundColor: 'var(--brand-accent)' }}
-                />
-              )}
             </button>
           </div>
         </header>
@@ -2106,8 +2043,6 @@ export const StudyPage: React.FC = () => {
         viewMode={viewMode}
         onSwitchViewMode={handleSwitchViewMode}
         onOpenPresentation={openPresentationMode}
-        locationLabel={desktopLocationLabel}
-        onOpenLocationPicker={() => openLocationPicker('surah')}
         primaryMeal={primaryMealDef}
         secondaryMeal={secondaryMealDef}
         isDualMeal={isDualMeal}

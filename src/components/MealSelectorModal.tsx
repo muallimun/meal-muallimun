@@ -356,7 +356,7 @@ export const MealSelectorModal: React.FC = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Meal, tefsir veya müellif ara... (Elmalılı, Müyesser, Celâleyn, Saheeh)"
-              className="w-full min-h-[42px] pl-10 pr-9 rounded-xl border text-sm focus:outline-none"
+              className="w-full min-h-[42px] pl-10 pr-9 rounded-xl border text-base sm:text-sm focus:outline-none"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',

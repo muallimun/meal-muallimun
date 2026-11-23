@@ -539,7 +539,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                     id="setup-round-select"
                     value={effectiveSetupRound}
                     onChange={(e) => setSetupStartRound(Number(e.target.value))}
-                    className="w-full min-h-[42px] px-3 rounded-xl border text-xs sm:text-sm font-bold cursor-pointer"
+                    className="w-full min-h-[42px] px-3 rounded-xl border text-base sm:text-sm font-bold cursor-pointer"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
                       borderColor: 'var(--border-subtle)',
@@ -567,7 +567,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                     value={effectiveSetupJuz}
                     disabled={effectiveSetupRound > 20}
                     onChange={(e) => setSetupStartJuz(Number(e.target.value))}
-                    className="w-full min-h-[42px] px-3 rounded-xl border text-xs sm:text-sm font-bold cursor-pointer disabled:opacity-60"
+                    className="w-full min-h-[42px] px-3 rounded-xl border text-base sm:text-sm font-bold cursor-pointer disabled:opacity-60"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
                       borderColor: 'var(--border-subtle)',
@@ -895,7 +895,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
               type="button"
               disabled={!meta}
               onClick={() => handleLaunchHamZen(lesson.hamPage, true)}
-              className="w-full min-h-[46px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:opacity-95 disabled:opacity-50 touch-manipulation"
+              className="w-full min-h-[46px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-2 text-center leading-snug whitespace-normal cursor-pointer shadow-xs hover:opacity-95 disabled:opacity-50 touch-manipulation"
               style={{ backgroundColor: '#D97706' }}
             >
               <Target className="w-4 h-4 shrink-0" />
@@ -906,7 +906,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
               <button
                 type="button"
                 onClick={() => handleOpenPageInMushaf(lesson.hamPage)}
-                className="min-h-[42px] px-3 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 touch-manipulation"
+                className="min-h-[42px] px-3 py-2 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 text-center leading-snug whitespace-normal cursor-pointer hover:opacity-90 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
@@ -921,7 +921,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                 type="button"
                 disabled={!meta || isAudioLoading}
                 onClick={() => void handlePlayMushafPage(lesson.hamPage)}
-                className="min-h-[42px] px-3 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 disabled:opacity-50 touch-manipulation"
+                className="min-h-[42px] px-3 py-2 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 text-center leading-snug whitespace-normal cursor-pointer hover:opacity-90 disabled:opacity-50 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
@@ -1007,7 +1007,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                     type="button"
                     disabled={!meta}
                     onClick={() => handleLaunchChainTest('zen_self_test')}
-                    className="min-h-[40px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 disabled:opacity-50 touch-manipulation"
+                    className="min-h-[40px] px-2.5 py-2 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 text-center leading-snug whitespace-normal cursor-pointer hover:opacity-90 disabled:opacity-50 touch-manipulation"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       borderColor: 'var(--brand-primary)',
@@ -1026,7 +1026,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                     type="button"
                     disabled={!meta}
                     onClick={() => handleLaunchChainTest('rabt')}
-                    className="min-h-[40px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 disabled:opacity-50 touch-manipulation"
+                    className="min-h-[40px] px-2.5 py-2 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 text-center leading-snug whitespace-normal cursor-pointer hover:opacity-90 disabled:opacity-50 touch-manipulation"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       borderColor: 'var(--border-subtle)',
@@ -1040,7 +1040,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleOpenPageInMushaf(lesson.hamPage)}
-                    className="min-h-[40px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 touch-manipulation"
+                    className="min-h-[40px] px-2.5 py-2 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 text-center leading-snug whitespace-normal cursor-pointer hover:opacity-90 touch-manipulation"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       borderColor: 'var(--border-subtle)',
@@ -1059,7 +1059,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
             type="button"
             disabled={lesson.isAllCompleted}
             onClick={handleCompleteTodayLesson}
-            className="w-full min-h-[48px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:opacity-95 disabled:opacity-60 touch-manipulation"
+            className="w-full min-h-[48px] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-2 text-center leading-snug whitespace-normal cursor-pointer shadow-xs hover:opacity-95 disabled:opacity-60 touch-manipulation"
             style={{ backgroundColor: 'var(--brand-primary)' }}
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -1219,7 +1219,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                   className={
                     isJuz30
                       ? 'flex-1 grid grid-cols-8 sm:grid-cols-12 lg:grid-cols-[repeat(24,minmax(0,1fr))] gap-1'
-                      : 'flex-1 grid grid-cols-10 sm:grid-cols-[repeat(20,minmax(0,1fr))] gap-1'
+                      : 'flex-1 grid grid-cols-10 md:grid-cols-[repeat(20,minmax(0,1fr))] gap-1'
                   }
                 >
                   {pages.map((mushafPage, idx) => {
@@ -1362,7 +1362,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
               </button>
             </div>
 
-            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
+            <div className="p-4 sm:p-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] space-y-4 overflow-y-auto overscroll-contain">
               {selectedPageContent && (
                 <div
                   className="p-3.5 rounded-2xl border space-y-1"
@@ -1546,7 +1546,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
               </button>
             </div>
 
-            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
+            <div className="p-4 sm:p-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] space-y-4 overflow-y-auto overscroll-contain">
               {/* 30. Cüz Modu */}
               <div className="space-y-2">
                 <label className="block text-xs font-extrabold">30. Cüz Takip Usulü</label>

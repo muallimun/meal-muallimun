@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Z_LAYERS } from '../config/zLayers';
 import { audioQueueService } from '../services/audioQueueService';
-import { useBackButtonGuard } from '../services/backStackService';
+import { hasActiveBackStackEntries, useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
@@ -145,16 +145,71 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     setIsModuleMenuOpen(false);
   }, [activeTab, isSidebarCollapsed]);
 
-  // Ana sekme Geri tuşu koruması: alt sekmelerdeyken (sınav/zen aktif değilse) Ana Sayfaya dön
-  // disableEscape: true -> klavyede Escape basıldığında ana sekmeyi terk etme
-  useBackButtonGuard(
-    'app_shell_tab',
-    activeTab !== 'home' && !isExamActive && !isMemorizationZenActive,
-    () => {
+  // Yalnızca mobilde (<1024px) donanım/kaydırmalı Geri tuşu ile alt sekmeden Ana Sayfaya dön.
+  // Masaüstünde sol panel tıklamaları asla history.back()/history.go(-1) tetiklemez.
+  const mobileTabGuardPushedRef = useRef(false);
+  const navStateRef = useRef({ activeTab, isExamActive, isMemorizationZenActive });
+  navStateRef.current = { activeTab, isExamActive, isMemorizationZenActive };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let isTopLevel = false;
+    try {
+      isTopLevel = window.self === window.top;
+    } catch {
+      isTopLevel = false;
+    }
+    if (!isTopLevel) return;
+
+    const isMobileViewport = window.innerWidth < 1024;
+    if (
+      isMobileViewport &&
+      activeTab !== 'home' &&
+      !isExamActive &&
+      !isMemorizationZenActive
+    ) {
+      if (!mobileTabGuardPushedRef.current) {
+        try {
+          window.history.pushState(
+            { ...(window.history.state ?? {}), __muallimunMobileTabGuard: true },
+            '',
+          );
+          mobileTabGuardPushedRef.current = true;
+        } catch {
+          // Geçmiş API kısıtlıysa sessizce devam et
+        }
+      }
+    } else if (activeTab === 'home') {
+      // Kullanıcı UI üzerinden Ana Sayfaya döndü; geçmişi geri sarmadan sadece işareti sıfırla
+      mobileTabGuardPushedRef.current = false;
+    }
+  }, [activeTab, isExamActive, isMemorizationZenActive]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let isTopLevel = false;
+    try {
+      isTopLevel = window.self === window.top;
+    } catch {
+      isTopLevel = false;
+    }
+    if (!isTopLevel) return;
+
+    const handleMobileTabPopState = () => {
+      if (window.innerWidth >= 1024) return;
+      if (!mobileTabGuardPushedRef.current) return;
+      const { activeTab: curTab, isExamActive: examOn, isMemorizationZenActive: zenOn } =
+        navStateRef.current;
+      if (examOn || zenOn || curTab === 'home') return;
+      if (hasActiveBackStackEntries()) return;
+
+      mobileTabGuardPushedRef.current = false;
       setActiveTab('home');
-    },
-    { disableEscape: true, rearmKey: activeTab },
-  );
+    };
+
+    window.addEventListener('popstate', handleMobileTabPopState);
+    return () => window.removeEventListener('popstate', handleMobileTabPopState);
+  }, [setActiveTab]);
 
   useBackButtonGuard(
     'nav_leave_exam_modal',
@@ -198,10 +253,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     }
   }, []);
 
-  // Aktif sınav sırasında güvenli sekme geçişi
+  // Aktif sınav sırasında güvenli sekme geçişi; aktif sekmeye yeniden tıklanırsa yukarı kaydır
   const handleRequestTab = useCallback(
     (tab: NavTab) => {
-      if (tab === activeTab) return;
+      if (tab === activeTab) {
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return;
+      }
       if (isExamActive) {
         sfxService.play('click');
         setPendingNavTab(tab);
@@ -288,9 +348,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   key={item.id}
                   type="button"
                   onClick={() => handleRequestTab(item.id)}
-                  className="w-full min-h-[42px] px-3 py-2 rounded-xl flex items-center justify-between gap-2.5 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                  className={`w-full min-h-[42px] px-3 py-2 rounded-xl border flex items-center justify-between gap-2.5 text-sm font-semibold transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 ${
+                    isActive
+                      ? ''
+                      : 'border-transparent hover:bg-[var(--bg-surface-soft)] hover:border-[var(--border-subtle)]'
+                  }`}
                   style={{
-                    backgroundColor: isActive ? 'var(--brand-primary-soft)' : 'transparent',
+                    backgroundColor: isActive ? 'var(--brand-primary-soft)' : undefined,
+                    borderColor: isActive ? 'rgba(15, 118, 110, 0.28)' : undefined,
                     color: isActive ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                   }}
                 >

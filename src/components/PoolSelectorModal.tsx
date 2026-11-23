@@ -364,7 +364,7 @@ export const PoolSelectorModal: React.FC = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Sure adı veya numarası ara (örn. İsrâ, Hucurât, 31)..."
-                    className="w-full min-h-[44px] pl-10 pr-9 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/40"
+                    className="w-full min-h-[44px] pl-10 pr-9 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/40"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       borderColor: 'var(--border-subtle)',

@@ -40,6 +40,7 @@ import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReferenceData';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
+import { useBackButtonGuard } from '../../services/backStackService';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import {
@@ -48,6 +49,7 @@ import {
   verseNotesStorage,
 } from '../../services/verseNotesStorage';
 import { useAppStore } from '../../store/useAppStore';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import type {
   AppSettings,
   CombinedVerse,
@@ -169,6 +171,29 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   const [showFootnotes, setShowFootnotes] = useState(false);
   const [showWords, setShowWords] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const sync = () => setIsMobileViewport(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  useBackButtonGuard(
+    'draggable_verse_inspector_mobile',
+    isOpen && isMobileViewport,
+    onClose,
+  );
+
+  useEffect(() => {
+    if (!isOpen || !isMobileViewport) return;
+    return acquireBodyScrollLock();
+  }, [isOpen, isMobileViewport]);
 
   // Ayet değişince dipnot panelini sıfırla
   useEffect(() => {
@@ -298,6 +323,7 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
   }, [isDragging]);
 
   const startDrag = (clientX: number, clientY: number, target: EventTarget | null) => {
+    if (isMobileViewport) return;
     if (target instanceof HTMLElement && target.closest('button')) {
       return;
     }
@@ -359,117 +385,156 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
       };
 
   return (
-    <aside
-      ref={panelRef}
-      role="region"
-      aria-label={`Taşınabilir ayet inceleme penceresi: ${surahMeta.nameTr} ${verse.ayah}. ayet`}
-      className="fixed z-[65] w-[calc(100vw-20px)] max-w-md sm:w-[420px] max-h-[68dvh] sm:max-h-[76dvh] rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
-      style={{
-        ...posStyle,
-        backgroundColor: 'var(--bg-surface)',
-        borderColor: isDragging
-          ? 'var(--brand-primary)'
-          : isSajdah && settings.highlightSajdah
-            ? 'rgba(217, 119, 6, 0.55)'
-            : 'var(--border-strong)',
-        boxShadow: isDragging
-          ? '0 22px 48px -12px rgba(0,0,0,0.34), 0 0 0 2px rgba(15,118,110,0.28)'
-          : '0 20px 42px -12px rgba(0,0,0,0.28)',
-      }}
-    >
-      {/* Sürüklenebilir Üst Başlık Çubuğu */}
-      <div
-        onMouseDown={(e) => startDrag(e.clientX, e.clientY, e.target)}
-        onTouchStart={(e) => {
-          if (e.touches.length > 0) {
-            startDrag(e.touches[0].clientX, e.touches[0].clientY, e.target);
-          }
-        }}
-        title="Sürükleyerek ekran içinde istediğiniz yere taşıyabilirsiniz"
-        className={`px-3.5 py-2.5 border-b flex items-center justify-between gap-2 shrink-0 select-none touch-none ${
-          isDragging ? 'cursor-grabbing' : 'cursor-grab'
-        }`}
+    <>
+      {isMobileViewport && (
+        <div
+          aria-hidden="true"
+          onClick={onClose}
+          className="fixed inset-0 z-[93] bg-black/45 backdrop-blur-[1px]"
+        />
+      )}
+      <aside
+        ref={panelRef}
+        role={isMobileViewport ? 'dialog' : 'region'}
+        aria-modal={isMobileViewport ? true : undefined}
+        aria-label={`Ayet inceleme penceresi: ${surahMeta.nameTr} ${verse.ayah}. ayet`}
+        className={
+          isMobileViewport
+            ? 'fixed inset-x-0 bottom-0 z-[94] w-full max-h-[82dvh] rounded-t-3xl border-t shadow-2xl flex flex-col overflow-hidden'
+            : 'fixed z-[65] w-[420px] max-h-[76dvh] rounded-2xl border shadow-2xl flex flex-col overflow-hidden'
+        }
         style={{
-          backgroundColor: 'var(--bg-surface-soft)',
-          borderColor: 'var(--border-subtle)',
+          ...(isMobileViewport ? {} : posStyle),
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: isDragging
+            ? 'var(--brand-primary)'
+            : isSajdah && settings.highlightSajdah
+              ? 'rgba(217, 119, 6, 0.55)'
+              : 'var(--border-strong)',
+          boxShadow: isDragging
+            ? '0 22px 48px -12px rgba(0,0,0,0.34), 0 0 0 2px rgba(15,118,110,0.28)'
+            : '0 20px 42px -12px rgba(0,0,0,0.28)',
         }}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-            style={{ color: 'var(--text-muted)' }}
-            aria-hidden="true"
-          >
-            <GripHorizontal className="w-4 h-4" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-xs sm:text-sm font-extrabold truncate">
-                {surahMeta.nameTr} · {verse.ayah}. Ayet
-              </span>
-              {rukuEnd && (
-                <RukuMarkerBadge
-                  ruku={rukuEnd}
-                  surahNameTr={surahMeta.nameTr}
-                  page={verse.page}
-                  variant="pill"
-                />
+        {/* Üst Başlık Çubuğu (Masaüstünde sürüklenebilir, mobilde sabit bottom-sheet başlığı) */}
+        <div
+          onMouseDown={
+            isMobileViewport ? undefined : (e) => startDrag(e.clientX, e.clientY, e.target)
+          }
+          onTouchStart={
+            isMobileViewport
+              ? undefined
+              : (e) => {
+                  if (e.touches.length > 0) {
+                    startDrag(e.touches[0].clientX, e.touches[0].clientY, e.target);
+                  }
+                }
+          }
+          title={
+            isMobileViewport
+              ? undefined
+              : 'Sürükleyerek ekran içinde istediğiniz yere taşıyabilirsiniz'
+          }
+          className={`px-3.5 py-2.5 border-b shrink-0 select-none ${
+            isMobileViewport
+              ? ''
+              : `touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`
+          }`}
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          {isMobileViewport && (
+            <div
+              className="w-10 h-1 rounded-full mx-auto mb-2 opacity-30 bg-current"
+              aria-hidden="true"
+            />
+          )}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {!isMobileViewport && (
+                <span
+                  className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                  style={{ color: 'var(--text-muted)' }}
+                  aria-hidden="true"
+                >
+                  <GripHorizontal className="w-4 h-4" />
+                </span>
               )}
-              {isPlaying && (
-                <Volume2
-                  className="w-3.5 h-3.5 shrink-0 animate-pulse"
-                  style={{ color: 'var(--brand-primary-text)' }}
-                />
-              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-xs sm:text-sm font-extrabold truncate">
+                    {surahMeta.nameTr} · {verse.ayah}. Ayet
+                  </span>
+                  {rukuEnd && (
+                    <RukuMarkerBadge
+                      ruku={rukuEnd}
+                      surahNameTr={surahMeta.nameTr}
+                      page={verse.page}
+                      variant="pill"
+                    />
+                  )}
+                  {isPlaying && (
+                    <Volume2
+                      className="w-3.5 h-3.5 shrink-0 animate-pulse"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                  )}
+                </div>
+                <p className="text-[11px] tabular-nums truncate" style={{ color: 'var(--text-muted)' }}>
+                  {verse.cuz}. Cüz · Sayfa {verse.page}
+                  {!isMobileViewport && <span> · Taşımak için sürükleyin</span>}
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] tabular-nums truncate" style={{ color: 'var(--text-muted)' }}>
-              {verse.cuz}. Cüz · Sayfa {verse.page}
-              <span className="hidden sm:inline"> · Taşımak için sürükleyin</span>
-            </p>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  onOpenSurahInfo(surahMeta);
+                }}
+                title="Sure bilgisi"
+                aria-label="Sure bilgisini aç"
+                className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <Info className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  onClose();
+                }}
+                title="İnceleme penceresini kapat"
+                aria-label="İnceleme penceresini kapat"
+                className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              onOpenSurahInfo(surahMeta);
-            }}
-            title="Sure bilgisi"
-            aria-label="Sure bilgisini aç"
-            className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer transition-colors"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            <Info className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              onClose();
-            }}
-            title="İnceleme penceresini kapat"
-            aria-label="İnceleme penceresini kapat"
-            className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer transition-colors"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-            }}
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Kaydırılabilir Kompakt İçerik Gövdesi */}
-      <div className="p-3.5 overflow-y-auto flex-1 space-y-3">
+        {/* Kaydırılabilir Kompakt İçerik Gövdesi */}
+        <div
+          className={`p-3.5 overflow-y-auto overscroll-contain flex-1 space-y-3 ${
+            isMobileViewport ? 'pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]' : ''
+          }`}
+        >
         {/* Tilâvet Secdesi Uyarısı */}
         {isSajdah && settings.highlightSajdah && (
           <div
@@ -490,47 +555,74 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
           </div>
         )}
 
-        {/* Hızlı Aksiyon Şeridi */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => onPlayFromVerse(verse)}
-            className="flex-1 min-h-[38px] px-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-            style={{ backgroundColor: 'var(--brand-primary)' }}
-          >
-            <Headphones className="w-3.5 h-3.5 shrink-0" />
-            <span>Bu Ayetten Dinle</span>
-          </button>
+        {/* Hızlı Aksiyon Şeridi (Simetrik 2 Satır — 360px taşmasız) */}
+        <div className="space-y-1.5">
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              onClick={() => onPlayFromVerse(verse)}
+              className="min-h-[40px] px-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap touch-manipulation"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <Headphones className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Bu Ayetten Dinle</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => onPlayMealFromVerse(verse)}
-            title="Bu ayetten itibaren Türkçe sesli mealini dinle"
-            className="flex-1 min-h-[38px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
-            style={{
-              backgroundColor: 'var(--brand-accent-soft)',
-              borderColor: 'var(--brand-accent)',
-              color: 'var(--brand-accent-text)',
-            }}
-          >
-            <Volume2 className="w-3.5 h-3.5 shrink-0" />
-            <span>Sesli Mealini Dinle</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => onPlayMealFromVerse(verse)}
+              title="Bu ayetten itibaren Türkçe sesli mealini dinle"
+              className="min-h-[40px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap touch-manipulation"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                borderColor: 'var(--brand-accent)',
+                color: 'var(--brand-accent-text)',
+              }}
+            >
+              <Volume2 className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Sesli Meal</span>
+            </button>
+          </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="grid grid-cols-4 gap-1.5">
             <button
               type="button"
               onClick={() => onToggleBookmark(verse.id)}
               title={isBookmarked ? 'Yıldızlılardan çıkar' : 'Yıldızla'}
               aria-label={isBookmarked ? 'Yıldızlılardan çıkar' : 'Yıldızla'}
-              className="w-9 h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
+              className="min-h-[38px] px-1.5 rounded-xl border flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer touch-manipulation"
               style={{
                 backgroundColor: isBookmarked ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
                 borderColor: isBookmarked ? 'var(--brand-accent)' : 'var(--border-subtle)',
                 color: isBookmarked ? 'var(--brand-accent-text)' : 'var(--text-primary)',
               }}
             >
-              <Star className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
+              <Star className={`w-3.5 h-3.5 shrink-0 ${isBookmarked ? 'fill-current' : ''}`} />
+              <span className="truncate">{isBookmarked ? 'Yıldızlı' : 'Yıldız'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openVerseNoteModal(verse.surah, verse.ayah, verse.page)}
+              title={verseNote ? 'Kişisel ayet notunu düzenle' : 'Bu ayete kişisel not ekle'}
+              aria-label={verseNote ? 'Kişisel ayet notunu düzenle' : 'Bu ayete kişisel not ekle'}
+              className="min-h-[38px] px-1.5 rounded-xl border flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer touch-manipulation"
+              style={
+                verseNoteStyle
+                  ? {
+                      backgroundColor: verseNoteStyle.softBg,
+                      borderColor: verseNoteStyle.border,
+                      color: verseNoteStyle.badgeText,
+                    }
+                  : {
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                    }
+              }
+            >
+              <StickyNote className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{verseNote ? 'Notum' : 'Not'}</span>
             </button>
 
             <button
@@ -538,7 +630,7 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               onClick={() => void handleCopyVerse()}
               title="Ayeti kopyala"
               aria-label="Ayeti kopyala"
-              className="w-9 h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
+              className="min-h-[38px] px-1.5 rounded-xl border flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer touch-manipulation"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
@@ -546,10 +638,11 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               }}
             >
               {copiedId === verse.id ? (
-                <Check className="w-4 h-4" />
+                <Check className="w-3.5 h-3.5 shrink-0" />
               ) : (
-                <Copy className="w-4 h-4" />
+                <Copy className="w-3.5 h-3.5 shrink-0" />
               )}
+              <span className="truncate">{copiedId === verse.id ? 'Tamam' : 'Kopyala'}</span>
             </button>
 
             <button
@@ -560,14 +653,15 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
               }}
               title="Paylaşım kartı oluştur"
               aria-label="Paylaşım kartı oluştur"
-              className="w-9 h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
+              className="min-h-[38px] px-1.5 rounded-xl border flex items-center justify-center gap-1 text-[11px] font-bold cursor-pointer touch-manipulation"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
                 color: 'var(--brand-primary-text)',
               }}
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Paylaş</span>
             </button>
           </div>
         </div>
@@ -877,34 +971,12 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
 
             <button
               type="button"
-              onClick={() => openVerseNoteModal(verse.surah, verse.ayah, verse.page)}
-              className="w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90"
-              style={
-                verseNoteStyle
-                  ? {
-                      backgroundColor: verseNoteStyle.softBg,
-                      borderColor: verseNoteStyle.border,
-                      color: verseNoteStyle.badgeText,
-                    }
-                  : {
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--brand-primary)',
-                      color: 'var(--brand-primary-text)',
-                    }
-              }
-            >
-              <StickyNote className="w-3.5 h-3.5 shrink-0" />
-              <span>{verseNote ? 'Notumu Düzenle' : 'Ayet Notu'}</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => {
                 sfxService.play('click');
                 openQuickResearch(verse.surah, verse.ayah, verse.ayah, verse.page);
               }}
               className={`${
-                mutashabihatCount > 0 ? 'sm:col-span-2 ' : ''
+                mutashabihatCount === 0 ? 'sm:col-span-2 ' : ''
               }w-full min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90`}
               style={{
                 backgroundColor: 'var(--brand-accent-soft)',
@@ -1101,5 +1173,6 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
         )}
       </div>
     </aside>
+    </>
   );
 };

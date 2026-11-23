@@ -16,6 +16,7 @@ import { sfxService } from '../../services/sfxService';
 import type { MetaData, SurahMeta } from '../../types/quran';
 import { formatSafeArabicTitle, formatSurahTitle } from '../../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
+import { shouldAutoFocusSearchInput } from '../../utils/deviceUtils';
 import { normalizeTurkish } from '../../utils/poolUtils';
 
 export type LocationPickerTab = 'surah' | 'page' | 'juz' | 'ruku' | 'ayah';
@@ -65,6 +66,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const [rukuQuery, setRukuQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const pageInputRef = useRef<HTMLInputElement | null>(null);
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
 
   const { allRukus, getRukusForSurah, isLoading: isLoadingRukus } = useRukusData(
     isOpen && activeTab === 'ruku',
@@ -87,7 +89,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !shouldAutoFocusSearchInput()) return;
     const timer = window.setTimeout(() => {
       if (activeTab === 'surah') {
         searchInputRef.current?.focus();
@@ -98,6 +100,24 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     }, 50);
     return () => window.clearTimeout(timer);
   }, [isOpen, activeTab]);
+
+  // Seçili aktif konum öğesini (Sure, Sayfa, Cüz, Rükû, Ayet) açılışta ve sekme değişiminde ortala
+  useEffect(() => {
+    if (!isOpen) return;
+    if (activeTab === 'ruku' && isLoadingRukus) return;
+    const rafId = window.requestAnimationFrame(() => {
+      const container = listContainerRef.current;
+      if (!container) return;
+      const activeEl = container.querySelector<HTMLElement>('[data-active-location="true"]');
+      if (!activeEl) return;
+      try {
+        activeEl.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
+      } catch {
+        activeEl.scrollIntoView({ block: 'center', behavior: 'auto' });
+      }
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [isOpen, activeTab, rukuScope, isLoadingRukus]);
 
   const activeSurahMeta: SurahMeta | null = useMemo(() => {
     if (!meta) return null;
@@ -267,7 +287,10 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         </div>
 
         {/* Sekme İçerikleri */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div
+          ref={listContainerRef}
+          className="flex-1 overflow-y-auto p-4 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
+        >
           {activeTab === 'surah' && (
             <div className="space-y-2.5">
               <div className="relative">
@@ -281,7 +304,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                   value={surahQuery}
                   onChange={(e) => setSurahQuery(e.target.value)}
                   placeholder="Sure adı veya numarası ara... (ör. Nûr, 24, Yâsîn)"
-                  className="w-full min-h-[40px] pl-9 pr-8 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/35"
+                  className="w-full min-h-[42px] pl-9 pr-8 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/35"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
@@ -313,6 +336,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                       <button
                         key={s.no}
                         type="button"
+                        data-active-location={isCurrent ? 'true' : undefined}
                         onClick={() => {
                           sfxService.play('click');
                           onSelectSurah(s.no);
@@ -419,6 +443,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                         <button
                           key={pNo}
                           type="button"
+                          data-active-location={active ? 'true' : undefined}
                           onClick={() => {
                             sfxService.play('click');
                             onSelectPage(pNo);
@@ -485,6 +510,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                   <button
                     key={j.no}
                     type="button"
+                    data-active-location={active ? 'true' : undefined}
                     onClick={() => {
                       onSelectJuz(j.no);
                       onClose();
@@ -576,7 +602,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                       ? 'Rükû veya ayet aralığı ara...'
                       : 'Sure adı, rükû no (1–556) veya ayet ara...'
                   }
-                  className="w-full min-h-[38px] pl-9 pr-8 rounded-xl border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/35"
+                  className="w-full min-h-[40px] pl-9 pr-8 rounded-xl border text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/35"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
@@ -616,6 +642,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                       <button
                         key={r.no}
                         type="button"
+                        data-active-location={isCurrentRuku ? 'true' : undefined}
                         onClick={() => {
                           sfxService.play('click');
                           if (onSelectRuku) {
@@ -696,7 +723,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                     value={ayahDraft}
                     onChange={(e) => setAyahDraft(e.target.value)}
                     placeholder="Ayet no..."
-                    className="w-24 min-h-[34px] px-2.5 rounded-lg border text-xs font-bold tabular-nums focus:outline-none"
+                    className="w-24 min-h-[36px] px-2.5 rounded-lg border text-base sm:text-xs font-bold tabular-nums focus:outline-none"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       borderColor: 'var(--border-subtle)',
@@ -713,6 +740,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                     <button
                       key={ayahNo}
                       type="button"
+                      data-active-location={active ? 'true' : undefined}
                       onClick={() => {
                         onSelectAyah(ayahNo);
                         onClose();

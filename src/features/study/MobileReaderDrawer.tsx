@@ -10,7 +10,6 @@ import {
   Languages,
   LayoutList,
   ListMusic,
-  MapPin,
   Minus,
   MonitorPlay,
   Plus,
@@ -20,8 +19,10 @@ import {
   Star,
   Sun,
   Trophy,
+  Type,
   X,
 } from 'lucide-react';
+import { ARABIC_FONTS } from '../../config/assetsConfig';
 import { Z_LAYERS } from '../../config/zLayers';
 import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
@@ -40,8 +41,6 @@ interface MobileReaderDrawerProps {
   viewMode: StudyViewMode;
   onSwitchViewMode: (mode: StudyViewMode) => void;
   onOpenPresentation: () => void;
-  locationLabel: string;
-  onOpenLocationPicker: () => void;
   primaryMeal: MealDefinition;
   secondaryMeal: MealDefinition;
   isDualMeal: boolean;
@@ -73,8 +72,6 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
   viewMode,
   onSwitchViewMode,
   onOpenPresentation,
-  locationLabel,
-  onOpenLocationPicker,
   primaryMeal,
   secondaryMeal,
   isDualMeal,
@@ -155,7 +152,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
         </div>
 
         {/* Kaydırılabilir İçerik */}
-        <div className="flex-1 overflow-y-auto px-4 py-3.5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-[max(1.75rem,calc(env(safe-area-inset-bottom,0px)+1.25rem))] space-y-4">
           {/* 1. Okuma Modu */}
           <section className="space-y-1.5">
             <p
@@ -216,42 +213,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
             </div>
           </section>
 
-          {/* 2. Konum Seçici */}
-          <section className="space-y-1.5">
-            <p
-              className="text-[11px] font-extrabold uppercase tracking-wider"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Konum
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                onClose();
-                onOpenLocationPicker();
-              }}
-              className="w-full min-h-[46px] px-3.5 py-2 rounded-xl border flex items-center justify-between gap-2 text-left cursor-pointer"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              <span className="flex items-center gap-2 min-w-0">
-                <MapPin className="w-4 h-4 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                <span className="text-xs font-extrabold truncate">{locationLabel}</span>
-              </span>
-              <span
-                className="inline-flex items-center gap-0.5 text-[11px] font-bold shrink-0"
-                style={{ color: 'var(--brand-primary-text)' }}
-              >
-                <span>Sure / Sayfa / Rükû</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </span>
-            </button>
-          </section>
-
-          {/* 3. İçerik, Meal ve Yazı Boyutu */}
+          {/* 2. İçerik, Meal ve Yazı Boyutu */}
           <section className="space-y-2.5">
             <p
               className="text-[11px] font-extrabold uppercase tracking-wider"
@@ -717,6 +679,51 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Arapça Mushaf Hattı Seçici */}
+            <div
+              className="px-3 py-2.5 rounded-xl border space-y-1.5"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <label
+                  htmlFor="mobile-reader-arabic-font"
+                  className="text-[11px] font-extrabold flex items-center gap-1.5"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <Type className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                  <span>Arapça Mushaf Hattı</span>
+                </label>
+                {settings.tajweedEnabled && (
+                  <span className="text-[10px] font-bold" style={{ color: 'var(--brand-accent-text)' }}>
+                    Tecvit: Scheherazade
+                  </span>
+                )}
+              </div>
+              <select
+                id="mobile-reader-arabic-font"
+                value={settings.arabicFont}
+                onChange={(e) => {
+                  sfxService.play('click');
+                  onUpdateSettings({ arabicFont: e.target.value });
+                }}
+                className="w-full min-h-[40px] px-2.5 rounded-lg border text-base sm:text-xs font-bold outline-none cursor-pointer"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {ARABIC_FONTS.map((font) => (
+                  <option key={font.id} value={font.label}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Saf Sayfa Odak Modu (Mushaf/Kitap) */}

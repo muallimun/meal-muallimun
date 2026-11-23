@@ -24,6 +24,7 @@ import { useAppStore } from '../store/useAppStore';
 import type { ReciterCategory, ReciterDefinition } from '../types/quran';
 import type { SegMetaFile } from '../types/wordSync';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
+import { shouldAutoFocusSearchInput } from '../utils/deviceUtils';
 import { normalizeTurkish } from '../utils/textNormalize';
 
 type FilterChipId = 'all' | 'favorites' | ReciterCategory;
@@ -511,7 +512,7 @@ export const ReciterSelectorModal: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Okuyucu ara (ör. İshak, Afâsî, Muallim, 40k)..."
               aria-label="Okuyucu Ara"
-              className="w-full min-h-[42px] pl-9 pr-9 rounded-xl border text-xs sm:text-sm font-medium outline-none transition-colors"
+              className="w-full min-h-[42px] pl-9 pr-9 rounded-xl border text-base sm:text-sm font-medium outline-none transition-colors"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
@@ -523,7 +524,9 @@ export const ReciterSelectorModal: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
-                  searchInputRef.current?.focus();
+                  if (shouldAutoFocusSearchInput()) {
+                    searchInputRef.current?.focus();
+                  }
                 }}
                 aria-label="Aramayı temizle"
                 className="w-8 h-8 rounded-lg flex items-center justify-center absolute right-1.5 cursor-pointer"

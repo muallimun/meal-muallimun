@@ -27,6 +27,7 @@ import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore, type UserGuideTabId } from '../store/useAppStore';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
+import { shouldAutoFocusSearchInput } from '../utils/deviceUtils';
 import { OfflinePackCard } from './OfflinePackCard';
 
 interface GuideTabMeta {
@@ -563,7 +564,7 @@ export const UserGuideModal: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rehberde ara (örn. tecvit, ezber, A4 sınav, yedek, çevrimdışı)..."
               aria-label="Kullanım kılavuzunda ara"
-              className="w-full min-h-[42px] pl-9 pr-9 rounded-xl border text-xs sm:text-sm font-medium outline-none transition-colors focus:border-teal-600"
+              className="w-full min-h-[42px] pl-9 pr-9 rounded-xl border text-base sm:text-sm font-medium outline-none transition-colors focus:border-teal-600"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -575,7 +576,9 @@ export const UserGuideModal: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
-                  searchInputRef.current?.focus();
+                  if (shouldAutoFocusSearchInput()) {
+                    searchInputRef.current?.focus();
+                  }
                 }}
                 aria-label="Aramayı temizle"
                 className="w-8 h-8 rounded-lg flex items-center justify-center absolute right-1.5 top-1/2 -translate-y-1/2 cursor-pointer"
@@ -1031,7 +1034,7 @@ export const UserGuideModal: React.FC = () => {
 
         {/* Alt Çubuk */}
         <div
-          className="px-4 py-3 sm:px-5 border-t flex flex-wrap items-center justify-between gap-2 shrink-0"
+          className="px-4 py-3 sm:px-5 pb-[max(0.85rem,env(safe-area-inset-bottom,0px))] border-t flex flex-wrap items-center justify-between gap-2 shrink-0"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',

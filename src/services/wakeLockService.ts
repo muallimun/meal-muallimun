@@ -55,6 +55,13 @@ class WakeLockService {
   };
 
   private handleUserActivity = (): void => {
+    if (!this.enabled) return;
+
+    // Sürekli kilit aktifken (oyun, sınav, ses, sunum, zen) tarayıcı kilidi düşürdüyse ilk dokunuşta geri al
+    if (this.continuousReasons.size > 0 && (!this.sentinel || this.sentinel.released)) {
+      void this.syncLockState();
+    }
+
     const now = Date.now();
     // Scroll gibi yüksek frekanslı olayları 1 sn aralıkla süz
     if (now - this.lastActivityAt < 1000 && !this.isIdleTimedOut) {
@@ -62,13 +69,13 @@ class WakeLockService {
     }
     this.lastActivityAt = now;
 
-    if (!this.enabled || !this.silentReaderActive) return;
+    if (!this.silentReaderActive) return;
 
     const wasTimedOut = this.isIdleTimedOut;
     this.isIdleTimedOut = false;
     this.resetIdleTimer();
 
-    if (wasTimedOut || !this.sentinel) {
+    if (wasTimedOut || !this.sentinel || this.sentinel.released) {
       void this.syncLockState();
     }
   };
@@ -203,6 +210,18 @@ class WakeLockService {
     this.isIdleTimedOut = false;
     this.resetIdleTimer();
     void this.syncLockState();
+  }
+
+  /**
+   * Oyun veya sınav gibi aktif sahnelerde kullanıcı dokunuşuyla (pointerdown/click)
+   * düşmüş olabilecek WakeLock kilidini sessizce yeniden talep eder.
+   */
+  public ensureLock(): void {
+    this.bindGlobalListeners();
+    if (!this.shouldHoldLock()) return;
+    if (!this.sentinel || this.sentinel.released) {
+      void this.acquire();
+    }
   }
 }
 

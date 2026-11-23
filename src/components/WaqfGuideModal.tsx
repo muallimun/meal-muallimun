@@ -83,15 +83,20 @@ export const WaqfGuideModal: React.FC = () => {
           <Info className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--brand-primary)' }} />
           <span>
             Okuma ekranında Arapça ayetlerin içindeki renkli durak işaretlerine (ör.{' '}
-            <span dir="rtl" lang="ar" className="font-arabic font-bold">
-              {'\u00A0'}ۖ {'\u00A0'}ۗ {'\u00A0'}ۚ
+            <span
+              dir="rtl"
+              lang="ar"
+              className="inline-block font-bold mx-0.5 leading-none"
+              style={{ fontFamily: "'Scheherazade New', serif", fontSize: '15px' }}
+            >
+              ط · ج · صلى
             </span>
             ) doğrudan dokunarak da anında özet bilgi alabilirsiniz.
           </span>
         </div>
 
         {/* 8 Secâvend Kartı */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2.5">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] space-y-2.5">
           {waqfSigns.map((item) => (
             <div
               key={item.code}
@@ -136,24 +141,32 @@ export const WaqfGuideModal: React.FC = () => {
                 </p>
 
                 {item.altSigns.length > 0 && (
-                  <div className="mt-1.5 flex items-center gap-1.5 flex-wrap text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  <div
+                    className="mt-2 flex items-center gap-1.5 flex-wrap text-[11px]"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
                     <span>Mushaf yazımları:</span>
-                    {item.altSigns.map((alt) => (
-                      <span
-                        key={alt}
-                        dir="rtl"
-                        lang="ar"
-                        className="waqf-mark-color inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-md border font-arabic text-base leading-none"
-                        style={{
-                          backgroundColor: 'var(--bg-surface-soft)',
-                          borderColor: 'var(--border-subtle)',
-                          '--waqf-color': item.color,
-                        } as React.CSSProperties}
-                      >
-                        {'\u00A0'}
-                        {alt}
-                      </span>
-                    ))}
+                    {item.altSigns.map((alt) => {
+                      const isCombiningMark = /^[\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED]/.test(
+                        alt,
+                      );
+                      return (
+                        <span
+                          key={alt}
+                          dir="rtl"
+                          lang="ar"
+                          className="waqf-mark-color inline-flex items-center justify-center min-w-[38px] min-h-[38px] px-2 rounded-lg border text-xl leading-none select-none"
+                          style={{
+                            backgroundColor: 'var(--bg-surface-soft)',
+                            borderColor: 'var(--border-subtle)',
+                            fontFamily: "'Scheherazade New', serif",
+                            '--waqf-color': item.color,
+                          } as React.CSSProperties}
+                        >
+                          {isCombiningMark ? `\u0640${alt}` : alt}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
               </div>

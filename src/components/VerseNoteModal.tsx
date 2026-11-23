@@ -231,7 +231,7 @@ export const VerseNoteModal: React.FC = () => {
         </div>
 
         {/* İçerik */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
           {/* Ayet Önizlemesi */}
           {preview && (
             <div
@@ -372,7 +372,7 @@ export const VerseNoteModal: React.FC = () => {
                   }}
                   maxLength={32}
                   placeholder="Özel etiket ekle (örn. Sohbet, Hatıra)..."
-                  className="flex-1 min-w-0 min-h-[36px] px-3 rounded-xl border text-xs font-semibold outline-none focus:border-[var(--brand-primary)]"
+                  className="flex-1 min-w-0 min-h-[38px] px-3 rounded-xl border text-base sm:text-xs font-semibold outline-none focus:border-[var(--brand-primary)]"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
@@ -418,7 +418,7 @@ export const VerseNoteModal: React.FC = () => {
               onChange={(e) => setText(e.target.value.slice(0, MAX_VERSE_NOTE_LENGTH))}
               placeholder="Bu ayetten kalbinize düşen tefekkürü, ders notunuzu veya önemli nükteleri buraya yazabilirsiniz..."
               rows={5}
-              className="w-full p-3.5 rounded-xl border text-sm leading-relaxed outline-none resize-none focus:border-[var(--brand-primary)]"
+              className="w-full p-3.5 rounded-xl border text-base sm:text-sm leading-relaxed outline-none resize-none focus:border-[var(--brand-primary)]"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: activePalette.border,
@@ -430,7 +430,7 @@ export const VerseNoteModal: React.FC = () => {
 
         {/* Alt Aksiyon Çubuğu */}
         <div
-          className="px-4 sm:px-5 py-3 border-t flex flex-wrap items-center justify-between gap-2 shrink-0"
+          className="px-4 sm:px-5 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom,0px))] sm:pb-3 border-t flex flex-wrap items-center justify-between gap-2 shrink-0"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',

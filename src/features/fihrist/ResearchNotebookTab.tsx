@@ -1192,7 +1192,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                         setPickerSurah(Number(e.target.value));
                         setPickerError(null);
                       }}
-                      className="col-span-12 sm:col-span-5 min-h-[38px] px-2.5 rounded-xl border text-xs font-bold outline-none focus:border-[var(--brand-primary)]"
+                      className="col-span-12 sm:col-span-5 min-h-[40px] px-2.5 rounded-xl border text-base sm:text-xs font-bold outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -1217,7 +1217,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                         setPickerStartText(e.target.value.replace(/[^\d]/g, ''));
                         if (pickerError) setPickerError(null);
                       }}
-                      className="col-span-4 sm:col-span-2 min-h-[38px] px-2.5 rounded-xl border text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
+                      className="col-span-4 sm:col-span-2 min-h-[40px] px-2.5 rounded-xl border text-base sm:text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -1236,7 +1236,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                         setPickerEndText(e.target.value.replace(/[^\d]/g, ''));
                         if (pickerError) setPickerError(null);
                       }}
-                      className="col-span-4 sm:col-span-2 min-h-[38px] px-2.5 rounded-xl border text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
+                      className="col-span-4 sm:col-span-2 min-h-[40px] px-2.5 rounded-xl border text-base sm:text-xs font-bold tabular-nums outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -1322,7 +1322,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                       value={pickerNote}
                       onChange={(e) => setPickerNote(e.target.value)}
                       placeholder="İsteğe bağlı kişisel araştırma notu (eklenen pasaja kaydedilir)..."
-                      className="w-full min-h-[36px] px-3 rounded-xl border text-xs outline-none focus:border-[var(--brand-primary)]"
+                      className="w-full min-h-[38px] px-3 rounded-xl border text-base sm:text-xs outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -1344,7 +1344,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                       value={bulkInput}
                       onChange={(e) => setBulkInput(e.target.value)}
                       placeholder="Örnek: 2/153-157, 253; 3/13, 123; 31/12-19; 49:11-12"
-                      className="w-full p-2.5 rounded-xl border text-xs sm:text-sm font-medium outline-none focus:border-[var(--brand-primary)]"
+                      className="w-full p-2.5 rounded-xl border text-base sm:text-sm font-medium outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',

@@ -401,7 +401,7 @@ export const PageBookmarksDrawer: React.FC = () => {
                         autoFocus
                         maxLength={48}
                         placeholder="Ayraç adı (örn. Ramazan Hatmi)"
-                        className="w-full min-h-[38px] px-3 rounded-xl border text-xs font-semibold outline-none"
+                        className="w-full min-h-[38px] px-3 rounded-xl border text-base sm:text-xs font-semibold outline-none"
                         style={{
                           backgroundColor: 'var(--bg-surface)',
                           borderColor: 'var(--brand-primary)',

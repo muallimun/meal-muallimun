@@ -964,6 +964,8 @@ interface AppContextValue {
   clearFihristNavTarget: () => void;
   isExamActive: boolean;
   setIsExamActive: (active: boolean) => void;
+  isGameArenaActive: boolean;
+  setIsGameArenaActive: (active: boolean) => void;
   isMemorizationZenActive: boolean;
   setIsMemorizationZenActive: (active: boolean) => void;
   isMobileReaderImmersive: boolean;
@@ -1114,6 +1116,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [examNavTarget, setExamNavTarget] = useState<ExamNavigationTarget | null>(null);
   const [fihristNavTarget, setFihristNavTarget] = useState<FihristNavigationTarget | null>(null);
   const [isExamActive, setIsExamActive] = useState(false);
+  const [isGameArenaActive, setIsGameArenaActive] = useState(false);
   const [isMemorizationZenActive, setIsMemorizationZenActive] = useState(false);
   const [isMobileReaderImmersive, setIsMobileReaderImmersive] = useState(false);
   const [isAudioBarExpanded, setIsAudioBarExpanded] = useState(false);
@@ -1154,6 +1157,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     wakeLockService.setContinuousReason('memorize_zen', isMemorizationZenActive);
   }, [isMemorizationZenActive]);
+
+  useEffect(() => {
+    wakeLockService.setContinuousReason('game_arena', isGameArenaActive);
+  }, [isGameArenaActive]);
+
+  useEffect(() => {
+    wakeLockService.setContinuousReason('exam_active', isExamActive);
+  }, [isExamActive]);
 
   useEffect(() => {
     if (activeTab === 'reader' && persisted.studyProgress.lastRead) {
@@ -2608,6 +2619,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearFihristNavTarget,
       isExamActive,
       setIsExamActive,
+      isGameArenaActive,
+      setIsGameArenaActive,
       isMemorizationZenActive,
       setIsMemorizationZenActive,
       isMobileReaderImmersive,
@@ -2750,6 +2763,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       navigateToFihrist,
       clearFihristNavTarget,
       isExamActive,
+      isGameArenaActive,
       isMemorizationZenActive,
       isMobileReaderImmersive,
       isAudioBarExpanded,

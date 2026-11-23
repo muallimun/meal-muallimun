@@ -521,7 +521,7 @@ export const MemorizationHubPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="w-full sm:w-auto flex flex-wrap items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => {
@@ -585,7 +585,7 @@ export const MemorizationHubPage: React.FC = () => {
               sfxService.play('click');
               setIsCreateModalOpen(true);
             }}
-            className="min-h-[40px] px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer shadow-sm shrink-0"
+            className="flex-1 sm:flex-none min-h-[40px] px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shrink-0"
             style={{ backgroundColor: 'var(--brand-primary)' }}
           >
             <Plus className="w-4 h-4 shrink-0" />
@@ -622,7 +622,7 @@ export const MemorizationHubPage: React.FC = () => {
 
       {/* Ana Görünüm Geçişi: Ezber Havuzum | Klasik Hafızlık (30 Cüz) | Sure Haritası (114 Sure) */}
       <div
-        className="inline-flex items-center p-1 rounded-2xl border gap-1 max-w-full overflow-x-auto no-scrollbar"
+        className="grid grid-cols-3 sm:inline-flex items-center p-1 rounded-2xl border gap-1 w-full sm:w-auto max-w-full"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
@@ -638,16 +638,17 @@ export const MemorizationHubPage: React.FC = () => {
             sfxService.play('click');
             setHubView('pool');
           }}
-          className="min-h-[38px] px-3.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+          className="min-h-[40px] px-1.5 sm:px-3.5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer transition-colors whitespace-nowrap min-w-0"
           style={{
             backgroundColor: hubView === 'pool' ? 'var(--brand-primary)' : 'transparent',
             color: hubView === 'pool' ? '#FFFFFF' : 'var(--text-secondary)',
           }}
         >
-          <Layers className="w-4 h-4 shrink-0" />
-          <span>Ezber Havuzum</span>
+          <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="sm:hidden truncate">Havuzum</span>
+          <span className="hidden sm:inline">Ezber Havuzum</span>
           <span
-            className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+            className="px-1 sm:px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums shrink-0"
             style={{
               backgroundColor:
                 hubView === 'pool' ? 'rgba(255,255,255,0.22)' : 'var(--bg-surface-soft)',
@@ -666,17 +667,18 @@ export const MemorizationHubPage: React.FC = () => {
             sfxService.play('click');
             setHubView('classical');
           }}
-          className="min-h-[38px] px-3.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+          className="min-h-[40px] px-1.5 sm:px-3.5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer transition-colors whitespace-nowrap min-w-0"
           style={{
             backgroundColor: hubView === 'classical' ? 'var(--brand-primary)' : 'transparent',
             color: hubView === 'classical' ? '#FFFFFF' : 'var(--text-secondary)',
           }}
         >
-          <Compass className="w-4 h-4 shrink-0" />
-          <span>Klasik Hafızlık (30 Cüz)</span>
+          <Compass className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="sm:hidden truncate">Klasik</span>
+          <span className="hidden sm:inline">Klasik Hafızlık (30 Cüz)</span>
           {classicalTabBadge && (
             <span
-              className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+              className="hidden sm:inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums shrink-0"
               style={{
                 backgroundColor:
                   hubView === 'classical' ? 'rgba(255,255,255,0.22)' : 'var(--brand-primary-soft)',
@@ -696,14 +698,15 @@ export const MemorizationHubPage: React.FC = () => {
             sfxService.play('click');
             setHubView('hifz_map');
           }}
-          className="min-h-[38px] px-3.5 rounded-xl text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+          className="min-h-[40px] px-1.5 sm:px-3.5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer transition-colors whitespace-nowrap min-w-0"
           style={{
             backgroundColor: hubView === 'hifz_map' ? 'var(--brand-primary)' : 'transparent',
             color: hubView === 'hifz_map' ? '#FFFFFF' : 'var(--text-secondary)',
           }}
         >
-          <MapIcon className="w-4 h-4 shrink-0" />
-          <span>Sure Haritası (114 Sure)</span>
+          <MapIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="sm:hidden truncate">Harita</span>
+          <span className="hidden sm:inline">Sure Haritası (114 Sure)</span>
         </button>
       </div>
 

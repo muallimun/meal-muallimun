@@ -22,6 +22,7 @@ import { QuestionReportModal } from '../../components/QuestionReportModal';
 import { audioQueueService } from '../../services/audioQueueService';
 import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
+import { wakeLockService } from '../../services/wakeLockService';
 import { useAppStore } from '../../store/useAppStore';
 import type { ExamAnswerRecord, ExamSessionState } from '../../types/quran';
 import {
@@ -91,9 +92,10 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     ),
   );
 
-  // Sınav açıldığında arka plandaki tilavet/meal sesini duraklat
+  // Sınav açıldığında arka plandaki tilavet/meal sesini duraklat ve ekran kilidini tazele
   useEffect(() => {
     audioQueueService.pause();
+    wakeLockService.ensureLock();
   }, []);
 
   const currentQuestion = session.questions[session.currentIndex];
@@ -762,7 +764,11 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
       : 'Antrenmanı Bitir';
 
   return (
-    <div className="max-w-6xl mx-auto space-y-2.5 pb-6">
+    <div
+      onPointerDown={() => wakeLockService.ensureLock()}
+      onClick={() => wakeLockService.ensureLock()}
+      className="max-w-6xl mx-auto space-y-2.5 pb-6"
+    >
       {/* ====================================================================
           1. İnce Tek Şerit Aktif Sınav Üst Barı (Soru X/N · Sure · Zorluk · Süre)
           ==================================================================== */}

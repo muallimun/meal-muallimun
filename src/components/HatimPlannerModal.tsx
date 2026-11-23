@@ -379,7 +379,7 @@ export const HatimPlannerModal: React.FC = () => {
         </div>
 
         {/* Kaydırılabilir İçerik */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] space-y-4">
           {feedback && (
             <div
               role="status"
@@ -437,7 +437,7 @@ export const HatimPlannerModal: React.FC = () => {
                   onChange={(e) => setFormTitle(e.target.value)}
                   maxLength={80}
                   placeholder="Örn: 1. Hatim veya Ramazan Hatmi"
-                  className="w-full min-h-[42px] px-3 rounded-xl border text-sm font-bold outline-none focus:border-[var(--brand-primary)]"
+                  className="w-full min-h-[42px] px-3 rounded-xl border text-base sm:text-sm font-bold outline-none focus:border-[var(--brand-primary)]"
                   style={{
                     backgroundColor: 'var(--bg-surface)',
                     borderColor: 'var(--border-strong)',
@@ -520,7 +520,7 @@ export const HatimPlannerModal: React.FC = () => {
                           Math.max(1, Math.min(HATIM_TOTAL_PAGES, Number(e.target.value) || 1)),
                         )
                       }
-                      className="w-full min-h-[42px] px-3 rounded-xl border text-sm font-extrabold tabular-nums outline-none focus:border-[var(--brand-primary)]"
+                      className="w-full min-h-[42px] px-3 rounded-xl border text-base sm:text-sm font-extrabold tabular-nums outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-strong)',
@@ -575,7 +575,7 @@ export const HatimPlannerModal: React.FC = () => {
                       value={formTargetDate}
                       onChange={(e) => setFormTargetDate(e.target.value)}
                       required
-                      className="w-full min-h-[42px] px-3 rounded-xl border text-sm font-bold outline-none focus:border-[var(--brand-primary)]"
+                      className="w-full min-h-[42px] px-3 rounded-xl border text-base sm:text-sm font-bold outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-strong)',
@@ -653,7 +653,7 @@ export const HatimPlannerModal: React.FC = () => {
                             Math.max(1, Math.min(HATIM_TOTAL_PAGES, Number(e.target.value) || 1)),
                           )
                         }
-                        className="w-full min-h-[38px] px-3 rounded-xl border text-xs font-extrabold tabular-nums outline-none focus:border-[var(--brand-primary)]"
+                        className="w-full min-h-[40px] px-3 rounded-xl border text-base sm:text-xs font-extrabold tabular-nums outline-none focus:border-[var(--brand-primary)]"
                         style={{
                           backgroundColor: 'var(--bg-surface-soft)',
                           borderColor: 'var(--border-subtle)',
@@ -675,7 +675,7 @@ export const HatimPlannerModal: React.FC = () => {
                           const j = Number(e.target.value);
                           setFormStartPage(getHatimJuzPageBounds(j).startPage);
                         }}
-                        className="w-full min-h-[38px] px-2.5 rounded-xl border text-xs font-bold outline-none cursor-pointer"
+                        className="w-full min-h-[40px] px-2.5 rounded-xl border text-base sm:text-xs font-bold outline-none cursor-pointer"
                         style={{
                           backgroundColor: 'var(--bg-surface-soft)',
                           borderColor: 'var(--border-subtle)',
@@ -823,7 +823,7 @@ export const HatimPlannerModal: React.FC = () => {
                     onChange={(e) => setArchiveNote(e.target.value)}
                     maxLength={300}
                     placeholder="Hatim notu / duası (isteğe bağlı)"
-                    className="w-full min-h-[40px] px-3 rounded-xl border text-xs font-semibold outline-none"
+                    className="w-full min-h-[40px] px-3 rounded-xl border text-base sm:text-xs font-semibold outline-none"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
                       borderColor: 'var(--border-strong)',

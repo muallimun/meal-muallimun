@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { buildReciterAudioUrls, findReciterById } from '../../config/recitersConfig';
 import { previewAudioService } from '../../services/previewAudioService';
+import { wakeLockService } from '../../services/wakeLockService';
 import { useAppStore } from '../../store/useAppStore';
 import type { ThemeMode } from '../../types/quran';
 import type {
@@ -111,7 +112,15 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   onClose,
   children,
 }) => {
-  const { settings, updateSettings, audioPrefs, manifest } = useAppStore();
+  const { settings, updateSettings, audioPrefs, manifest, setIsGameArenaActive } = useAppStore();
+
+  useEffect(() => {
+    setIsGameArenaActive(true);
+    wakeLockService.ensureLock();
+    return () => {
+      setIsGameArenaActive(false);
+    };
+  }, [setIsGameArenaActive]);
 
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isModesOpen, setIsModesOpen] = useState(false);
@@ -348,6 +357,8 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={`${gameMeta.title} Oyun Sahnesi`}
+      onPointerDown={() => wakeLockService.ensureLock()}
+      onClick={() => wakeLockService.ensureLock()}
       className="fixed inset-0 z-[70] w-full h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col"
       style={{ backgroundColor: 'var(--bg-canvas)' }}
     >

@@ -501,7 +501,7 @@ export const AudioPlayerBar: React.FC = () => {
 
             {/* Satır 3: Okunan Metni Ekranda Göster + Metne Git */}
             <div
-              className="flex items-center justify-between gap-2 pt-2 border-t"
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
               <button
@@ -512,7 +512,7 @@ export const AudioPlayerBar: React.FC = () => {
                   sfxService.play('click');
                   updateAudioPrefs({ showTextOnStart: !audioPrefs.showTextOnStart });
                 }}
-                className="flex items-center gap-2 text-left min-w-0 cursor-pointer"
+                className="flex items-center gap-2 text-left min-w-0 cursor-pointer py-0.5"
                 title="Dinleme başlatınca Okuma ekranını otomatik aç"
               >
                 <span
@@ -529,13 +529,16 @@ export const AudioPlayerBar: React.FC = () => {
                     }`}
                   />
                 </span>
-                <span className="text-[11px] font-bold truncate" style={{ color: 'var(--text-secondary)' }}>
+                <span
+                  className="text-[11px] font-bold leading-snug"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   Okunan metni ekranda göster
                 </span>
               </button>
 
               {audioState.currentSurah && audioState.currentAyah && (
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="grid grid-cols-2 sm:flex items-center gap-1.5 w-full sm:w-auto shrink-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -549,7 +552,7 @@ export const AudioPlayerBar: React.FC = () => {
                       );
                     }}
                     title="Çalan ayeti araştırma defterime ekle"
-                    className="min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                    className="min-h-[34px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
                     style={{
                       backgroundColor: 'var(--brand-accent-soft)',
                       borderColor: 'rgba(217, 119, 6, 0.35)',
@@ -563,7 +566,7 @@ export const AudioPlayerBar: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleJumpToPlayingText}
-                    className="min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                    className="min-h-[34px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
                       borderColor: 'var(--border-subtle)',
@@ -581,7 +584,7 @@ export const AudioPlayerBar: React.FC = () => {
 
         {/* Tek Satır İnce Mini Oynatıcı Barı (h-14) */}
         <div
-          className="h-14 rounded-2xl border backdrop-blur-md shadow-xl px-2.5 sm:px-3.5 flex items-center justify-between gap-2"
+          className="h-14 rounded-2xl border backdrop-blur-md shadow-xl px-2 sm:px-3.5 flex items-center justify-between gap-1.5 sm:gap-2"
           style={{
             backgroundColor: 'var(--bg-nav)',
             borderColor: 'var(--border-strong)',
@@ -594,11 +597,11 @@ export const AudioPlayerBar: React.FC = () => {
               sfxService.play('click');
               setIsExpanded(!isExpanded);
             }}
-            className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 text-left cursor-pointer"
             title="Ses ayarlarını aç/kapat"
           >
             <span
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: audioState.missingMealAudio
                   ? 'var(--brand-accent-soft)'
@@ -674,7 +677,7 @@ export const AudioPlayerBar: React.FC = () => {
               onClick={() => audioQueueService.prevVerse()}
               disabled={!audioState.canGoPrev}
               aria-label="Önceki ayet"
-              className="w-8 sm:w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
+              className="w-8 sm:w-9 h-8 sm:h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
               style={{ color: 'var(--text-primary)' }}
             >
               <SkipBack className="w-4 h-4" />
@@ -685,7 +688,7 @@ export const AudioPlayerBar: React.FC = () => {
               onClick={() => audioQueueService.togglePlayPause()}
               disabled={audioState.missingMealAudio}
               aria-label={isPlaying ? 'Duraklat' : 'Oynat'}
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform active:scale-95 cursor-pointer disabled:opacity-45"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform active:scale-95 cursor-pointer disabled:opacity-45"
               style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               {isLoading ? (
@@ -702,7 +705,7 @@ export const AudioPlayerBar: React.FC = () => {
               onClick={() => audioQueueService.nextVerse()}
               disabled={!audioState.canGoNext}
               aria-label="Sonraki ayet"
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
+              className="w-8 sm:w-9 h-8 sm:h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-35 cursor-pointer"
               style={{ color: 'var(--text-primary)' }}
             >
               <SkipForward className="w-4 h-4" />
@@ -717,7 +720,7 @@ export const AudioPlayerBar: React.FC = () => {
               aria-label={isExpanded ? 'Ses ayarlarını gizle' : 'Ses ayarlarını göster'}
               aria-expanded={showDetailsPanel}
               title={isExpanded ? 'Ayarları gizle' : 'Okuyucu, akış ve hız ayarları'}
-              className="w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer"
+              className="w-8 sm:w-9 h-8 sm:h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer"
               style={{
                 backgroundColor: showDetailsPanel
                   ? 'var(--brand-primary-soft)'
@@ -737,7 +740,7 @@ export const AudioPlayerBar: React.FC = () => {
               type="button"
               onClick={() => audioQueueService.stopAndReset(true)}
               aria-label="Oynatıcıyı kapat"
-              className="w-9 h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer"
+              className="w-8 sm:w-9 h-8 sm:h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',

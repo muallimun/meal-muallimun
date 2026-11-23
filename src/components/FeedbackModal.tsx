@@ -500,7 +500,7 @@ export const FeedbackModal: React.FC = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Örn: Ahmet Yılmaz"
-                    className="w-full min-h-[42px] px-3 rounded-xl border text-xs sm:text-sm outline-none focus:border-teal-600"
+                    className="w-full min-h-[42px] px-3 rounded-xl border text-base sm:text-sm outline-none focus:border-teal-600"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       borderColor: 'var(--border-subtle)',
@@ -526,7 +526,7 @@ export const FeedbackModal: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Size dönüş yapabilmemiz için"
-                    className="w-full min-h-[42px] px-3 rounded-xl border text-xs sm:text-sm outline-none focus:border-teal-600"
+                    className="w-full min-h-[42px] px-3 rounded-xl border text-base sm:text-sm outline-none focus:border-teal-600"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       borderColor: 'var(--border-subtle)',
@@ -564,7 +564,7 @@ export const FeedbackModal: React.FC = () => {
                     onChange={(e) => {
                       if (e.target.value) setContextRef(e.target.value);
                     }}
-                    className="text-[11px] font-bold rounded-lg border px-2 py-1 outline-none cursor-pointer"
+                    className="text-base sm:text-[11px] font-bold rounded-lg border px-2 py-1 outline-none cursor-pointer"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       borderColor: 'var(--border-subtle)',
@@ -586,7 +586,7 @@ export const FeedbackModal: React.FC = () => {
                   value={contextRef}
                   onChange={(e) => setContextRef(e.target.value)}
                   placeholder="Örn: Bakara Suresi 255. Ayet · Sayfa 42"
-                  className="w-full min-h-[40px] px-3 rounded-xl border text-xs sm:text-sm outline-none focus:border-teal-600"
+                  className="w-full min-h-[40px] px-3 rounded-xl border text-base sm:text-sm outline-none focus:border-teal-600"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
@@ -628,7 +628,7 @@ export const FeedbackModal: React.FC = () => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={activeCategoryMeta.placeholder}
-                  className="w-full px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm leading-relaxed outline-none focus:border-teal-600 resize-y"
+                  className="w-full px-3.5 py-2.5 rounded-xl border text-base sm:text-sm leading-relaxed outline-none focus:border-teal-600 resize-y"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
@@ -690,7 +690,7 @@ export const FeedbackModal: React.FC = () => {
 
             {/* Alt Aksiyon Çubuğu */}
             <div
-              className="px-4 py-3 sm:px-5 border-t flex flex-wrap items-center justify-between gap-2 shrink-0"
+              className="px-4 py-3 pb-[max(0.85rem,env(safe-area-inset-bottom,0px))] sm:px-5 sm:pb-3 border-t flex flex-wrap items-center justify-between gap-2 shrink-0"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',

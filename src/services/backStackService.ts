@@ -15,6 +15,7 @@ export interface BackButtonGuardOptions {
 }
 
 const activeStack: BackStackEntry[] = [];
+const pushedGuardTokens = new Set<string>();
 let popListenerAttached = false;
 let keyListenerAttached = false;
 let pushedHistoryDepth = 0;
@@ -22,6 +23,10 @@ let ignoreNextPopCount = 0;
 let ignoreResetTimer: number | null = null;
 let reconcileTimer: number | null = null;
 let tokenCounter = 0;
+
+export function hasActiveBackStackEntries(): boolean {
+  return activeStack.length > 0;
+}
 
 function isTopLevelBrowser(): boolean {
   if (typeof window === 'undefined') return false;
@@ -49,11 +54,37 @@ function scheduleIgnoreSafetyReset(): void {
   }, 400);
 }
 
+function getCurrentGuardToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const st = window.history.state as Record<string, unknown> | null;
+    return typeof st?.__muallimunBackGuard === 'string' ? st.__muallimunBackGuard : null;
+  } catch {
+    return null;
+  }
+}
+
+function stripGuardFromCurrentState(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const rawState = window.history.state;
+    const nextState: Record<string, unknown> =
+      rawState && typeof rawState === 'object' ? { ...(rawState as Record<string, unknown>) } : {};
+    delete nextState.__muallimunBackGuard;
+    window.history.replaceState(nextState, '');
+  } catch {
+    // Geçmiş güncelleme kısıtlıysa sessizce devam et
+  }
+}
+
 /**
  * Tek mikro-görevde (setTimeout(..., 0)) tüm ardışık register/unregister değişimlerini
  * birleştirip tarayıcı geçmişini (history) tek adımda hedef derinlikle eşitler.
  * - Aynı tick içinde bir katman kapanıp yenisi açıldıysa (`desired === pushed > 0`),
  *   `history.back()` + `pushState` yarışına girmez; `replaceState` ile üst kaydı günceller.
+ * - Yığın boşaldığında yalnızca mevcut history kaydı gerçekten bizim ittiğimiz
+ *   `__muallimunBackGuard` belirtecine sahipse ve `history.length > 1` ise geri sarar;
+ *   aksi halde körlemesine `history.go(-diff)` çağırmaz, sadece sayacı ve state'i senkronlar.
  * - İframe önizlemelerinde `window.history` API'sine dokunmaz.
  */
 function reconcileHistory(): void {
@@ -66,6 +97,7 @@ function reconcileHistory(): void {
     if (desiredDepth > 0) {
       const topEntry = activeStack[desiredDepth - 1];
       try {
+        pushedGuardTokens.add(topEntry.token);
         window.history.replaceState(
           { ...(window.history.state ?? {}), __muallimunBackGuard: topEntry.token },
           '',
@@ -83,6 +115,7 @@ function reconcileHistory(): void {
     for (let i = startIdx; i < desiredDepth; i += 1) {
       const entry = activeStack[i];
       try {
+        pushedGuardTokens.add(entry.token);
         window.history.pushState(
           { ...(window.history.state ?? {}), __muallimunBackGuard: entry.token },
           '',
@@ -98,7 +131,35 @@ function reconcileHistory(): void {
 
   // desiredDepth < pushedHistoryDepth
   const diff = pushedHistoryDepth - desiredDepth;
+  const currentGuardToken = getCurrentGuardToken();
+  const isKnownGuardState =
+    currentGuardToken !== null && pushedGuardTokens.has(currentGuardToken);
+
+  if (!isKnownGuardState || window.history.length <= 1) {
+    // Mevcut geçmiş kaydı bizim aktif yığınımıza ait değil; asla tarayıcıyı geri döndürme!
+    pushedHistoryDepth = desiredDepth;
+    if (desiredDepth === 0) {
+      stripGuardFromCurrentState();
+      pushedGuardTokens.clear();
+    } else {
+      const topEntry = activeStack[desiredDepth - 1];
+      try {
+        pushedGuardTokens.add(topEntry.token);
+        window.history.replaceState(
+          { ...(window.history.state ?? {}), __muallimunBackGuard: topEntry.token },
+          '',
+        );
+      } catch {
+        // ignore
+      }
+    }
+    return;
+  }
+
   pushedHistoryDepth = desiredDepth;
+  if (desiredDepth === 0) {
+    pushedGuardTokens.clear();
+  }
   ignoreNextPopCount += diff;
   scheduleIgnoreSafetyReset();
   try {

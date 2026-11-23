@@ -498,7 +498,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
         </div>
 
         {/* Kaydırılabilir İçerik Alanı */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
           {/* SEKME 1: HAZIR SEÇKİLER */}
           {activeTab === 'preset' && (
             <div className="space-y-4">
@@ -512,7 +512,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                   value={presetQuery}
                   onChange={(e) => setPresetQuery(e.target.value)}
                   placeholder="Aşır veya sure ara (örn. Kürsî, Mülk, Yâsîn, Duhâ)..."
-                  className="w-full min-h-[42px] pl-9 pr-3 rounded-xl border text-sm outline-none focus:border-[var(--brand-primary)]"
+                  className="w-full min-h-[42px] pl-9 pr-3 rounded-xl border text-base sm:text-sm outline-none focus:border-[var(--brand-primary)]"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
@@ -825,7 +825,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                         const v = Math.max(1, Math.min(604, Number(e.target.value) || 1));
                         setSelectedPage(v);
                       }}
-                      className="flex-1 min-h-[40px] px-3 rounded-xl border text-center text-sm font-extrabold tabular-nums outline-none focus:border-[var(--brand-primary)]"
+                      className="flex-1 min-h-[40px] px-3 rounded-xl border text-center text-base sm:text-sm font-extrabold tabular-nums outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -935,7 +935,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                     aria-label="Cüz seç"
                     value={selectedJuz}
                     onChange={(e) => setSelectedJuz(Number(e.target.value))}
-                    className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold"
+                    className="min-h-[36px] px-2.5 rounded-xl border text-base sm:text-xs font-bold"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
                       borderColor: 'var(--border-subtle)',
@@ -992,7 +992,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                   value={surahQuery}
                   onChange={(e) => setSurahQuery(e.target.value)}
                   placeholder="Sure adı veya numarası ara (1–114)..."
-                  className="w-full min-h-[42px] pl-9 pr-3 rounded-xl border text-sm outline-none focus:border-[var(--brand-primary)]"
+                  className="w-full min-h-[42px] pl-9 pr-3 rounded-xl border text-base sm:text-sm outline-none focus:border-[var(--brand-primary)]"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
@@ -1205,7 +1205,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                   value={customTitle}
                   onChange={(e) => setCustomTitle(e.target.value)}
                   placeholder="Örn. Cuma Aşırı veya Akşam Ezberim"
-                  className="w-full min-h-[42px] px-3 rounded-xl border text-sm outline-none focus:border-[var(--brand-primary)]"
+                  className="w-full min-h-[42px] px-3 rounded-xl border text-base sm:text-sm outline-none focus:border-[var(--brand-primary)]"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
@@ -1234,7 +1234,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                         setDraftStart(1);
                         setDraftEnd(Math.min(maxA, 5));
                       }}
-                      className="w-full min-h-[40px] px-2.5 rounded-xl border text-xs sm:text-sm font-bold"
+                      className="w-full min-h-[40px] px-2.5 rounded-xl border text-base sm:text-sm font-bold"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -1261,7 +1261,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                       }}
                       aria-label="Başlangıç ayeti"
                       placeholder="Başlangıç"
-                      className="w-full min-h-[40px] px-2.5 rounded-xl border text-xs sm:text-sm font-bold tabular-nums"
+                      className="w-full min-h-[40px] px-2.5 rounded-xl border text-base sm:text-sm font-bold tabular-nums"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -1282,7 +1282,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
                       }}
                       aria-label="Bitiş ayeti"
                       placeholder="Bitiş"
-                      className="w-full min-h-[40px] px-2.5 rounded-xl border text-xs sm:text-sm font-bold tabular-nums"
+                      className="w-full min-h-[40px] px-2.5 rounded-xl border text-base sm:text-sm font-bold tabular-nums"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -1413,7 +1413,7 @@ export const CreatePoolModal: React.FC<CreatePoolModalProps> = ({
 
         {/* Sabit Alt Özet ve Onay Çubuğu */}
         <div
-          className="px-4 py-3.5 sm:px-5 border-t shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          className="px-4 py-3.5 pb-[max(0.95rem,env(safe-area-inset-bottom,0px))] sm:px-5 sm:pb-3.5 border-t shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
