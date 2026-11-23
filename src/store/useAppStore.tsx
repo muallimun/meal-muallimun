@@ -1168,6 +1168,8 @@ interface AppContextValue {
   setIsMobileReaderImmersive: (active: boolean) => void;
   isAudioBarExpanded: boolean;
   setIsAudioBarExpanded: (expanded: boolean) => void;
+  isAudioBarMinimized: boolean;
+  setIsAudioBarMinimized: (minimized: boolean) => void;
   selectedVerseKey: string | null;
   setSelectedVerseKey: (verseKey: string | null) => void;
   registerReaderSmartPlay: (
@@ -1322,6 +1324,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isMemorizationZenActive, setIsMemorizationZenActive] = useState(false);
   const [isMobileReaderImmersive, setIsMobileReaderImmersive] = useState(false);
   const [isAudioBarExpanded, setIsAudioBarExpanded] = useState(false);
+  const [isAudioBarMinimized, setIsAudioBarMinimized] = useState(false);
   const [selectedVerseKey, setSelectedVerseKey] = useState<string | null>(null);
   const readerSmartPlayHandlerRef = useRef<
     ((options?: { forceSwitchToSelected?: boolean }) => void) | null
@@ -2977,6 +2980,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsMobileReaderImmersive,
       isAudioBarExpanded,
       setIsAudioBarExpanded,
+      isAudioBarMinimized,
+      setIsAudioBarMinimized,
       selectedVerseKey,
       setSelectedVerseKey,
       registerReaderSmartPlay,
@@ -3121,6 +3126,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isMemorizationZenActive,
       isMobileReaderImmersive,
       isAudioBarExpanded,
+      isAudioBarMinimized,
       selectedVerseKey,
       registerReaderSmartPlay,
       triggerSmartReaderPlay,

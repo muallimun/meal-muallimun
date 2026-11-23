@@ -171,6 +171,7 @@ export const StudyPage: React.FC = () => {
     isMobileReaderImmersive,
     setIsMobileReaderImmersive,
     isAudioBarExpanded,
+    isAudioBarMinimized,
     selectedVerseKey,
     setSelectedVerseKey,
     registerReaderSmartPlay,
@@ -2281,14 +2282,27 @@ export const StudyPage: React.FC = () => {
     </div>
   );
 
+  const isFullAudioBarDocked =
+    audioState.isVisible && audioState.status !== 'idle' && !isAudioBarMinimized;
+  const isTajweedLegendVisible = Boolean(
+    settings.tajweedEnabled &&
+      settings.showTajweedLegend &&
+      !isMealOnlyContent &&
+      !isMobileReaderImmersive &&
+      !viewError,
+  );
   const needsBottomPlayerClearance =
-    audioState.isVisible &&
-    audioState.status !== 'idle' &&
-    !(viewMode === 'mushaf' && isEffectiveDualLeaf);
+    isFullAudioBarDocked && !(viewMode === 'mushaf' && isEffectiveDualLeaf);
 
   return (
     <div
-      className={`space-y-2.5 lg:space-y-3 ${needsBottomPlayerClearance ? 'pb-24 lg:pb-20' : 'pb-4'}`}
+      className={`space-y-2.5 lg:space-y-3 ${
+        needsBottomPlayerClearance
+          ? 'pb-32 lg:pb-24'
+          : isFullAudioBarDocked
+            ? 'pb-32 lg:pb-0'
+            : 'pb-4'
+      }`}
     >
       {/* ====================================================================
           A1. MASAÜSTÜ (>= 1024px) — BİRLEŞİK ÜST BAR PORTALI (AppShell <header>)
@@ -2566,12 +2580,11 @@ export const StudyPage: React.FC = () => {
               : null
           }
           autoScroll={audioPrefs.autoScroll}
-          isAudioBarVisible={audioState.isVisible && audioState.status !== 'idle'}
+          isAudioBarVisible={isFullAudioBarDocked}
           isAudioBarExpanded={
-            audioState.isVisible &&
-            audioState.status !== 'idle' &&
-            (isAudioBarExpanded || audioState.missingMealAudio)
+            isFullAudioBarDocked && (isAudioBarExpanded || audioState.missingMealAudio)
           }
+          isTajweedLegendVisible={isTajweedLegendVisible}
           bookmarkedSet={bookmarkedSet}
           isRefreshing={isLoadingView}
           onSelectVerse={(verse) => {

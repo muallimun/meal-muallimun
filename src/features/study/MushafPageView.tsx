@@ -76,6 +76,7 @@ interface MushafPageViewProps {
   autoScroll?: boolean;
   isAudioBarVisible?: boolean;
   isAudioBarExpanded?: boolean;
+  isTajweedLegendVisible?: boolean;
   bookmarkedSet: Set<number>;
   isRefreshing?: boolean;
   onSelectVerse: (verse: CombinedVerse) => void;
@@ -331,6 +332,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   autoScroll = true,
   isAudioBarVisible = false,
   isAudioBarExpanded = false,
+  isTajweedLegendVisible = false,
   bookmarkedSet,
   isRefreshing = false,
   onSelectVerse,
@@ -966,9 +968,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     const paneSide: 'left' | 'right' | null =
       leafPosition === 'left' ? 'left' : leafPosition === 'right' ? 'right' : null;
     const paneScrollPadding = isAudioBarExpanded
-      ? 'lg:pb-44'
+      ? 'lg:pb-8'
       : isAudioBarVisible
-        ? 'lg:pb-24'
+        ? 'lg:pb-5'
         : 'lg:pb-3';
     const showJumpChip = Boolean(
       paneSide && playingAyahId && detachedPanes[paneSide] && bundle.verses.some((v) => v.id === playingAyahId),
@@ -1242,18 +1244,28 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                             const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
                             const softPlayingBg =
                               settings.theme === 'dark'
-                                ? 'rgba(45, 212, 191, 0.13)'
-                                : 'rgba(13, 148, 136, 0.10)';
+                                ? 'rgba(16, 185, 129, 0.14)'
+                                : 'rgba(16, 185, 129, 0.11)';
+                            const softWordSyncPlayingBg =
+                              settings.theme === 'dark'
+                                ? 'rgba(16, 185, 129, 0.08)'
+                                : 'rgba(16, 185, 129, 0.06)';
 
                             const highlightBg = isPlaying
                               ? audioState.isWordSyncActive
-                                ? 'transparent'
+                                ? softWordSyncPlayingBg
                                 : softPlayingBg
                               : isSelected
-                                ? 'rgba(217, 119, 6, 0.20)'
+                                ? 'rgba(245, 158, 11, 0.14)'
                                 : highlightSajdah
                                   ? 'rgba(217, 119, 6, 0.10)'
                                   : 'transparent';
+
+                            const highlightRing = isPlaying
+                              ? 'inset 0 0 0 1px rgba(16, 185, 129, 0.28)'
+                              : isSelected
+                                ? 'inset 0 0 0 1px rgba(245, 158, 11, 0.36)'
+                                : undefined;
 
                             return (
                               <span
@@ -1281,6 +1293,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 }`}
                                 style={{
                                   backgroundColor: highlightBg,
+                                  boxShadow: highlightRing,
                                   boxDecorationBreak: 'clone',
                                   WebkitBoxDecorationBreak: 'clone',
                                 }}
@@ -1411,9 +1424,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     const paneSide: 'left' | 'right' | null =
       isDualPane ? (side === 'left' ? 'left' : 'right') : null;
     const paneScrollPadding = isAudioBarExpanded
-      ? 'lg:pb-44'
+      ? 'lg:pb-8'
       : isAudioBarVisible
-        ? 'lg:pb-24'
+        ? 'lg:pb-5'
         : 'lg:pb-3';
     const showJumpChip = Boolean(
       paneSide && playingAyahId && detachedPanes[paneSide] && bundle.verses.some((v) => v.id === playingAyahId),
@@ -2336,6 +2349,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     );
   };
 
+  const isAudioSessionActive = audioState.isVisible && audioState.status !== 'idle';
+  const isSelectedSameAsPlaying = Boolean(
+    explicitSelectedVerse && playingAyahId && explicitSelectedVerse.id === playingAyahId,
+  );
+  const desktopSpreadHeightClass =
+    isAudioBarVisible && isTajweedLegendVisible
+      ? 'lg:h-[calc(100dvh-14.25rem)] lg:min-h-[380px]'
+      : isAudioBarVisible
+        ? 'lg:h-[calc(100dvh-10.75rem)] lg:min-h-[420px]'
+        : isTajweedLegendVisible
+          ? 'lg:h-[calc(100dvh-8.75rem)] lg:min-h-[480px]'
+          : 'lg:h-[calc(100dvh-5.25rem)] lg:min-h-[540px]';
+
   return (
     <div className="space-y-3" onClick={handleMobileEmptySpaceTap}>
       {/* ====================================================================
@@ -2350,12 +2376,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       <div
         className={
           isBookSpread
-            ? `space-y-2.5 lg:flex lg:flex-col lg:gap-0 lg:space-y-0 lg:overflow-visible ${
-                isAudioBarVisible
-                  ? 'lg:h-[calc(100dvh-11.25rem)] lg:min-h-[460px]'
-                  : 'lg:h-[calc(100dvh-5.75rem)] lg:min-h-[640px]'
-              }`
-            : `max-w-[54rem] mx-auto w-full space-y-2 ${isAudioBarVisible ? 'pb-24 lg:pb-20' : ''}`
+            ? `space-y-2.5 lg:flex lg:flex-col lg:gap-0 lg:space-y-0 lg:overflow-visible ${desktopSpreadHeightClass}`
+            : `max-w-[54rem] mx-auto w-full space-y-2 ${isAudioBarVisible ? 'pb-32 lg:pb-24' : ''}`
         }
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -2590,19 +2612,25 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 </span>
                 <X className="w-3 h-3 shrink-0 opacity-75" />
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  onPlayFromVerse(explicitSelectedVerse, false);
-                }}
-                title={`${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah} ayetinden itibaren kesintisiz dinle`}
-                className="min-h-[30px] px-2.5 rounded-full text-[11px] sm:text-xs font-bold text-white inline-flex items-center gap-1 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
-              >
-                <Play className="w-3 h-3 fill-current shrink-0" />
-                <span>Dinle</span>
-              </button>
+              {(!isAudioSessionActive || !isSelectedSameAsPlaying) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    onPlayFromVerse(explicitSelectedVerse, false);
+                  }}
+                  title={`${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah} ayetinden itibaren kesintisiz dinle`}
+                  className="min-h-[30px] px-2.5 rounded-full text-[11px] sm:text-xs font-bold text-white inline-flex items-center gap-1 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                >
+                  <Play className="w-3 h-3 fill-current shrink-0" />
+                  <span>
+                    {isAudioSessionActive
+                      ? `${explicitSelectedVerse.ayah}. Ayete Geç`
+                      : 'Dinle'}
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -2620,7 +2648,13 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 }}
               >
                 <BookOpen className="w-3 h-3 shrink-0" />
-                <span>{isVerseDrawerOpen ? 'Kapat' : 'Meal & Analiz'}</span>
+                <span>
+                  {isVerseDrawerOpen
+                    ? 'Kapat'
+                    : isAudioSessionActive
+                      ? 'Meal'
+                      : 'Meal & Analiz'}
+                </span>
               </button>
             </>
           ) : (

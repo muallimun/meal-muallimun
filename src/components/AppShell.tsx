@@ -77,7 +77,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     setIsExamActive,
     isMemorizationZenActive,
     isMobileReaderImmersive,
-    isAudioBarExpanded,
+    isAudioBarMinimized,
     isOnline,
     isSidebarCollapsed,
     toggleSidebarCollapsed,
@@ -112,8 +112,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     !isMemorizationZenActive &&
     audioState.isVisible &&
     audioState.status !== 'idle';
-  const isAudioBarDetailsOpen =
-    isAudioBarVisible && (isAudioBarExpanded || audioState.missingMealAudio);
+  const isFullAudioBarDocked = isAudioBarVisible && !isAudioBarMinimized;
 
   const currentYear = new Date().getFullYear();
   const bookmarkCount = studyProgress.pageBookmarks.length;
@@ -869,12 +868,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 : 'px-3.5 pt-3.5 sm:px-5 lg:px-6 lg:pt-4'
           } ${
             isMobileReaderImmersive
-              ? isAudioBarDetailsOpen
-                ? `pb-56 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                : isAudioBarVisible
-                  ? `pb-28 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                  : `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-              : `pb-4 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+              ? isFullAudioBarDocked
+                ? `pb-32 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                : `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+              : isFullAudioBarDocked
+                ? `pb-10 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                : `pb-4 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
           }`}
         >
           {children}
@@ -893,10 +892,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           } mt-auto border-t ${
             isExamActive || isMemorizationZenActive
               ? 'pb-5 lg:pb-5'
-              : isAudioBarDetailsOpen
-                ? 'pb-60 lg:pb-52'
+              : isFullAudioBarDocked
+                ? 'pb-36 lg:pb-24'
                 : isAudioBarVisible
-                  ? 'pb-36 lg:pb-24'
+                  ? 'pb-24 lg:pb-14'
                   : 'pb-20 lg:pb-5'
           }`}
           style={{ borderColor: 'var(--border-subtle)' }}

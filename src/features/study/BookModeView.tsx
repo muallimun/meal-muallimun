@@ -754,8 +754,12 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                       const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
                       const softPlayingBg =
                         settings.theme === 'dark'
-                          ? 'rgba(45, 212, 191, 0.13)'
-                          : 'rgba(13, 148, 136, 0.10)';
+                          ? 'rgba(16, 185, 129, 0.14)'
+                          : 'rgba(16, 185, 129, 0.11)';
+                      const softWordSyncPlayingBg =
+                        settings.theme === 'dark'
+                          ? 'rgba(16, 185, 129, 0.08)'
+                          : 'rgba(16, 185, 129, 0.06)';
                       return (
                         <span
                           key={verse.id}
@@ -779,9 +783,9 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           }}
                           className={`inline rounded-xl px-1.5 py-0.5 transition-colors cursor-pointer ${
                             isPlaying
-                              ? 'text-[var(--text-primary)]'
+                              ? 'text-[var(--text-primary)] ring-1 ring-emerald-500/30'
                               : isSelected
-                                ? 'bg-[var(--brand-accent-soft)] ring-1 ring-[var(--brand-accent)]/50'
+                                ? 'bg-amber-500/[0.14] ring-1 ring-amber-500/40'
                                 : isSajdah
                                   ? 'bg-amber-500/12 underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
                                   : 'hover:bg-[var(--bg-surface-soft)]'
@@ -790,7 +794,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             isPlaying
                               ? {
                                   backgroundColor: audioState.isWordSyncActive
-                                    ? 'transparent'
+                                    ? softWordSyncPlayingBg
                                     : softPlayingBg,
                                 }
                               : undefined
@@ -1108,8 +1112,12 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                 const isFnOpen = openFootnoteAyahId === verse.id;
                 const softPlayingBg =
                   settings.theme === 'dark'
-                    ? 'rgba(45, 212, 191, 0.13)'
-                    : 'rgba(13, 148, 136, 0.10)';
+                    ? 'rgba(16, 185, 129, 0.14)'
+                    : 'rgba(16, 185, 129, 0.10)';
+                const softWordSyncPlayingBg =
+                  settings.theme === 'dark'
+                    ? 'rgba(16, 185, 129, 0.08)'
+                    : 'rgba(16, 185, 129, 0.06)';
                 const suppressSectionFill =
                   isPlaying && audioState.isWordSyncActive && bookMode === 'interleaved';
 
@@ -1138,18 +1146,20 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                         : 'first:pt-1 last:pb-1 -mx-2.5 sm:-mx-3.5'
                     } ${
                       isPlaying
-                        ? suppressSectionFill
-                          ? 'ring-1 ring-[var(--brand-primary)]/40'
-                          : 'ring-1 ring-[var(--brand-primary)]/45 shadow-xs'
+                        ? 'ring-1 ring-emerald-500/35 shadow-xs'
                         : isSelected
-                          ? 'bg-amber-500/10 ring-1 ring-amber-500/40 my-1'
+                          ? 'bg-amber-500/[0.13] ring-1 ring-amber-500/40 my-1'
                           : isSajdah
                             ? 'bg-amber-500/[0.07] ring-1 ring-amber-500/45 my-1.5'
                             : 'hover:bg-[var(--bg-surface-soft)]/45'
                     }`}
                     style={
-                      isPlaying && !suppressSectionFill
-                        ? { backgroundColor: softPlayingBg }
+                      isPlaying
+                        ? {
+                            backgroundColor: suppressSectionFill
+                              ? softWordSyncPlayingBg
+                              : softPlayingBg,
+                          }
                         : undefined
                     }
                   >
