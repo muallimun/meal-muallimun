@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   ArrowLeftRight,
   BookMarked,
@@ -21,6 +21,7 @@ import {
   StickyNote,
   Volume2,
 } from 'lucide-react';
+import { ResponsiveActionMenu } from '../../components/ResponsiveActionMenu';
 import {
   MEALS_CATALOG,
   findMealById,
@@ -156,6 +157,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNuzulNote, setShowNuzulNote] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const resolvedPrimaryMeal = primaryMeal ?? findMealById(settings.primaryMealId, manifest);
   const resolvedSecondaryMeal = secondaryMeal ?? findMealById(settings.secondaryMealId, manifest);
@@ -557,7 +559,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         </div>
 
         {/* Hızlı Aksiyonlar: Mobilde yalnızca 3 temiz ikon (Dinle · Yıldız · ⋯), masaüstünde tam aksiyonlar */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 ml-auto shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -649,6 +651,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 
           <div className="relative">
             <button
+              ref={menuTriggerRef}
               type="button"
               onClick={() => {
                 sfxService.play('click');
@@ -666,14 +669,12 @@ export const VerseCard: React.FC<VerseCardProps> = ({
               <MoreHorizontal className="w-4 h-4" />
             </button>
 
-            {menuOpen && (
-              <div
-                className="absolute right-0 top-10 z-30 w-56 rounded-2xl border shadow-xl p-1.5 space-y-0.5"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-strong)',
-                }}
-              >
+            <ResponsiveActionMenu
+              isOpen={menuOpen}
+              onClose={() => setMenuOpen(false)}
+              title={`${verse.surah}:${verse.ayah} · Ayet İşlemleri`}
+              triggerRef={menuTriggerRef}
+            >
                 {/* Mobilde sadeleştirmek için menüye alınan hızlı okuma aksiyonları */}
                 <button
                   type="button"
@@ -886,8 +887,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   <span>{copied ? 'Kopyalandı' : 'Ayeti Kopyala'}</span>
                 </button>
-              </div>
-            )}
+              </ResponsiveActionMenu>
           </div>
         </div>
       </div>

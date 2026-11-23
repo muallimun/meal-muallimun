@@ -607,7 +607,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5 ml-auto shrink-0">
                 <button
                   type="button"
                   onClick={() =>
@@ -1037,7 +1037,7 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 flex-wrap">
+              <div className="flex items-center gap-1 flex-wrap ml-auto shrink-0">
                 <button
                   type="button"
                   onClick={() => handlePlaySingleRange(hv.surah, hv.ayah, hv.ayah)}

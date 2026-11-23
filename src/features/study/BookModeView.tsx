@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   ArrowLeftRight,
   BookMarked,
@@ -23,6 +23,7 @@ import {
   StickyNote,
   Volume2,
 } from 'lucide-react';
+import { ResponsiveActionMenu } from '../../components/ResponsiveActionMenu';
 import {
   MEALS_CATALOG,
   getMealTextPresentation,
@@ -133,6 +134,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   const [openMenuAyahId, setOpenMenuAyahId] = useState<number | null>(null);
   const [openFootnoteAyahId, setOpenFootnoteAyahId] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const activeMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -305,7 +307,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 
     return (
       <div
-        className="relative flex items-center gap-1 shrink-0"
+        className="relative flex items-center gap-1 ml-auto shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -361,6 +363,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
         </button>
 
         <button
+          ref={isMenuOpen ? activeMenuTriggerRef : undefined}
           type="button"
           onClick={() => {
             sfxService.play('click');
@@ -374,8 +377,12 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           <MoreHorizontal className="w-4 h-4" />
         </button>
 
-        {isMenuOpen && (
-          <div className="absolute right-0 top-10 z-30 w-56 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-strong)] shadow-xl p-1.5 space-y-0.5">
+        <ResponsiveActionMenu
+          isOpen={isMenuOpen}
+          onClose={() => setOpenMenuAyahId(null)}
+          title={`${verse.surah}:${verse.ayah} · Ayet İşlemleri`}
+          triggerRef={activeMenuTriggerRef}
+        >
             <button
               type="button"
               onClick={() => {
@@ -558,8 +565,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                 </>
               )}
             </button>
-          </div>
-        )}
+        </ResponsiveActionMenu>
       </div>
     );
   };
@@ -1230,7 +1236,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     }
                   >
                     {/* Ayet Üst Satır */}
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
                         <span
                           className={`inline-flex items-center justify-center min-w-[34px] h-7 px-2 rounded-lg text-xs font-extrabold ${

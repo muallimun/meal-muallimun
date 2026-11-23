@@ -22,6 +22,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+import { ResponsiveActionMenu } from '../../components/ResponsiveActionMenu';
 import { audioQueueService } from '../../services/audioQueueService';
 import {
   buildAudioSegmentsFromItems,
@@ -163,7 +164,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   const [editDescDraft, setEditDescDraft] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
-  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
+  const actionsMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Hızlı Ayet Ekleme — Serbest klavye girişi için STRING state (onChange içinde zorla sınırlama YOK!)
   const [pickerSurah, setPickerSurah] = useState<number>(2);
@@ -199,18 +200,6 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     setNotebookSubView(initialSubViewOverride);
     onClearSubViewOverride?.();
   }, [initialSubViewOverride, onClearSubViewOverride]);
-
-  // '⋯' menüsünü dış tıklamayla kapat
-  useEffect(() => {
-    if (!isActionsMenuOpen) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target as Node)) {
-        setIsActionsMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    return () => document.removeEventListener('mousedown', onPointerDown);
-  }, [isActionsMenuOpen]);
 
   // Seçili konu silindiyse ilk konuya dön
   const activeTopic = useMemo<ResearchTopic | null>(() => {
@@ -977,8 +966,9 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                       </button>
 
                       {/* '⋯' Diğer İşlemler Açılır Menüsü */}
-                      <div ref={actionsMenuRef} className="relative">
+                      <div className="relative">
                         <button
+                          ref={actionsMenuTriggerRef}
                           type="button"
                           onClick={() => {
                             sfxService.play('click');
@@ -997,14 +987,12 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
 
-                        {isActionsMenuOpen && (
-                          <div
-                            className="absolute right-0 mt-1.5 w-56 rounded-2xl border shadow-xl p-1.5 z-30 space-y-1"
-                            style={{
-                              backgroundColor: 'var(--bg-surface)',
-                              borderColor: 'var(--border-strong)',
-                            }}
-                          >
+                        <ResponsiveActionMenu
+                          isOpen={isActionsMenuOpen}
+                          onClose={() => setIsActionsMenuOpen(false)}
+                          title={`${activeTopic.title} · İşlemler`}
+                          triggerRef={actionsMenuTriggerRef}
+                        >
                             <button
                               type="button"
                               disabled={displayItems.length === 0}
@@ -1081,8 +1069,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                                 <span>Başlığı Sil</span>
                               </button>
                             )}
-                          </div>
-                        )}
+                        </ResponsiveActionMenu>
                       </div>
                     </div>
                   </div>

@@ -17,6 +17,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { ResponsiveActionMenu } from '../../components/ResponsiveActionMenu';
 import { getMealTextPresentation } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { audioQueueService } from '../../services/audioQueueService';
@@ -94,18 +95,7 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
   const [isMobileActionsOpen, setIsMobileActionsOpen] = useState(false);
 
   const detailTopRef = useRef<HTMLDivElement | null>(null);
-  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!isMobileActionsOpen) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
-        setIsMobileActionsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    return () => document.removeEventListener('mousedown', onPointerDown);
-  }, [isMobileActionsOpen]);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   // 1. Konu Fihristi JSON dosyasını tembel yükle
   useEffect(() => {
@@ -813,8 +803,9 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
                     </button>
 
                     {/* Mobil (< sm) kompakt '⋯' Diğer İşlemler menüsü */}
-                    <div ref={mobileMenuRef} className="relative sm:hidden">
+                    <div className="relative sm:hidden">
                       <button
+                        ref={mobileMenuTriggerRef}
                         type="button"
                         onClick={() => {
                           sfxService.play('click');
@@ -832,49 +823,47 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
 
-                      {isMobileActionsOpen && (
-                        <div
-                          className="absolute right-0 mt-1.5 w-48 rounded-2xl border shadow-xl p-1.5 z-30 space-y-1"
-                          style={{
-                            backgroundColor: 'var(--bg-surface)',
-                            borderColor: 'var(--border-strong)',
+                      <ResponsiveActionMenu
+                        isOpen={isMobileActionsOpen}
+                        onClose={() => setIsMobileActionsOpen(false)}
+                        title={`${selectedTopic.title} · İşlemler`}
+                        triggerRef={mobileMenuTriggerRef}
+                        menuWidthClass="w-48"
+                      >
+                        <button
+                          type="button"
+                          disabled={selectedTopic.refs.length === 0}
+                          onClick={() => {
+                            sfxService.play('click');
+                            setIsMobileActionsOpen(false);
+                            setIsPrintOpen(true);
                           }}
+                          className="w-full min-h-[40px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer disabled:opacity-45 hover:bg-[var(--bg-surface-soft)]"
+                          style={{ color: 'var(--text-primary)' }}
                         >
-                          <button
-                            type="button"
-                            disabled={selectedTopic.refs.length === 0}
-                            onClick={() => {
-                              sfxService.play('click');
-                              setIsMobileActionsOpen(false);
-                              setIsPrintOpen(true);
-                            }}
-                            className="w-full min-h-[36px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer disabled:opacity-45 hover:bg-[var(--bg-surface-soft)]"
-                            style={{ color: 'var(--text-primary)' }}
-                          >
-                            <Printer className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                            <span>Yazdır / A4 PDF</span>
-                          </button>
+                          <Printer className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                          <span>Yazdır / A4 PDF</span>
+                        </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsMobileActionsOpen(false);
-                              handleCopyToNotebook();
-                            }}
-                            className="w-full min-h-[36px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer hover:bg-[var(--bg-surface-soft)]"
-                            style={{ color: 'var(--text-primary)' }}
-                          >
-                            {justCopiedId === selectedTopic.id ? (
-                              <Check className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                            ) : (
-                              <NotebookPen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                            )}
-                            <span>
-                              {justCopiedId === selectedTopic.id ? 'Deftere Kopyalandı' : 'Defterime Kopyala'}
-                            </span>
-                          </button>
-                        </div>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsMobileActionsOpen(false);
+                            handleCopyToNotebook();
+                          }}
+                          className="w-full min-h-[40px] px-3 rounded-xl text-xs font-bold flex items-center gap-2 text-left cursor-pointer hover:bg-[var(--bg-surface-soft)]"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {justCopiedId === selectedTopic.id ? (
+                            <Check className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                          ) : (
+                            <NotebookPen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                          )}
+                          <span>
+                            {justCopiedId === selectedTopic.id ? 'Deftere Kopyalandı' : 'Defterime Kopyala'}
+                          </span>
+                        </button>
+                      </ResponsiveActionMenu>
                     </div>
                   </div>
                 </div>
