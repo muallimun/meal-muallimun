@@ -15,28 +15,34 @@ import {
   BookOpen,
   BookText,
   ChevronDown,
+  ChevronRight,
   Columns2,
   Headphones,
   Languages,
   LayoutList,
+  ListMusic,
   Menu,
   Minus,
   MonitorPlay,
   Palette,
   Pause,
+  Play,
   Plus,
   RefreshCw,
+  Repeat,
   Search,
   SlidersHorizontal,
   Sparkles,
   Star,
   Type,
+  Volume2,
   X,
 } from 'lucide-react';
 import { PresentationModeOverlay } from '../../components/PresentationModeOverlay';
 import { VerseShareModal } from '../../components/VerseShareModal';
-import { ARABIC_FONTS } from '../../config/assetsConfig';
+import { ARABIC_FONTS, getDynamicMealAudioSources } from '../../config/assetsConfig';
 import { findMealById } from '../../config/mealsConfig';
+import { findReciterById } from '../../config/recitersConfig';
 import { audioQueueService } from '../../services/audioQueueService';
 import {
   dataService,
@@ -52,7 +58,9 @@ import type {
   DesktopCombinedLayout,
   DesktopPageLayout,
   PageBundle,
+  PlaybackRateOption,
   ReaderContentMode,
+  RepeatCountOption,
   StudyViewMode,
   SurahBundle,
   SurahMeta,
@@ -142,6 +150,7 @@ export const StudyPage: React.FC = () => {
     setLastRead,
     toggleBookmarkAyah,
     audioPrefs,
+    updateAudioPrefs,
     poolStats,
     manifest,
     meta,
@@ -153,6 +162,7 @@ export const StudyPage: React.FC = () => {
     openPresentationMode,
     closePresentationMode,
     openMealSelector,
+    openReciterSelector,
     openBookmarksDrawer,
     openSearchModal,
     openSettingsModal,
@@ -161,6 +171,9 @@ export const StudyPage: React.FC = () => {
     isMobileReaderImmersive,
     setIsMobileReaderImmersive,
     isAudioBarExpanded,
+    selectedVerseKey,
+    setSelectedVerseKey,
+    registerReaderSmartPlay,
   } = useAppStore();
 
   const audioState = useSyncExternalStore(
@@ -239,6 +252,7 @@ export const StudyPage: React.FC = () => {
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
   const [locationPickerTab, setLocationPickerTab] = useState<LocationPickerTab>('surah');
   const [isViewPopoverOpen, setIsViewPopoverOpen] = useState(false);
+  const [isListenPopoverOpen, setIsListenPopoverOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isMobileBarHidden, setIsMobileBarHidden] = useState(false);
   const [topbarPortalSlot, setTopbarPortalSlot] = useState<HTMLElement | null>(null);
@@ -250,7 +264,19 @@ export const StudyPage: React.FC = () => {
   } | null>(null);
 
   const viewPopoverRef = useRef<HTMLDivElement | null>(null);
+  const listenPopoverRef = useRef<HTMLDivElement | null>(null);
   const lastScrollYRef = useRef<number>(0);
+  const selectedVerseKeyRef = useRef<string | null>(selectedVerseKey);
+
+  useEffect(() => {
+    selectedVerseKeyRef.current = selectedVerseKey;
+  }, [selectedVerseKey]);
+
+  const activeReciter = useMemo(
+    () => findReciterById(audioPrefs.arabicReciterId, manifest),
+    [audioPrefs.arabicReciterId, manifest],
+  );
+  const mealAudioSources = useMemo(() => getDynamicMealAudioSources(manifest), [manifest]);
 
   const [isDesktopLg, setIsDesktopLg] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
@@ -305,6 +331,25 @@ export const StudyPage: React.FC = () => {
     };
   }, [isViewPopoverOpen]);
 
+  // Masaüstü Dinle ▾ popover dışına tıklanınca veya Escape ile kapat (geçmiş/history kullanmaz)
+  useEffect(() => {
+    if (!isListenPopoverOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (listenPopoverRef.current && !listenPopoverRef.current.contains(e.target as Node)) {
+        setIsListenPopoverOpen(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsListenPopoverOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [isListenPopoverOpen]);
+
   // Mobilde Kartlar & Kitap modlarında aşağı kaydırırken üst şeridi akıllıca gizle, yukarıda göster
   useEffect(() => {
     setIsMobileBarHidden(false);
@@ -355,11 +400,12 @@ export const StudyPage: React.FC = () => {
     setCurrentSurahNo(targetSurah);
     setCurrentPageNo(targetPage);
     setSelectedAyahId(targetSurah * 1000 + targetAyah);
+    setSelectedVerseKey(studyNavTarget.ayah ? `${targetSurah}:${targetAyah}` : null);
     setJumpToAyahNo(targetAyah);
     setJumpNonce((n) => n + 1);
     setNavResetNonce((n) => n + 1);
     clearStudyNavTarget();
-  }, [studyNavTarget, meta, currentSurahNo, clearStudyNavTarget]);
+  }, [studyNavTarget, meta, currentSurahNo, clearStudyNavTarget, setSelectedVerseKey]);
 
   // Sayfa (Tek veya Çift) ya da Sure verisini yükle + sonraki sayfayı arka planda önbelleğe al
   useEffect(() => {
@@ -394,6 +440,10 @@ export const StudyPage: React.FC = () => {
             : bundle.verses;
 
           if (combinedVerses.length > 0) {
+            const curKey = selectedVerseKeyRef.current;
+            if (curKey && !combinedVerses.some((v) => `${v.surah}:${v.ayah}` === curKey)) {
+              setSelectedVerseKey(null);
+            }
             const matched = combinedVerses.find((v) => v.id === selectedAyahId);
             const activeVerse = matched ?? combinedVerses[0];
             setSelectedAyahId(activeVerse.id);
@@ -412,6 +462,10 @@ export const StudyPage: React.FC = () => {
           setSurahBundle(bundle);
 
           if (bundle.verses.length > 0) {
+            const curKey = selectedVerseKeyRef.current;
+            if (curKey && !bundle.verses.some((v) => `${v.surah}:${v.ayah}` === curKey)) {
+              setSelectedVerseKey(null);
+            }
             const matched = bundle.verses.find((v) => v.id === selectedAyahId);
             const activeVerse = matched ?? bundle.verses[0];
             setSelectedAyahId(activeVerse.id);
@@ -772,54 +826,37 @@ export const StudyPage: React.FC = () => {
     [updateSettings],
   );
 
-  // Üstteki "Dinle" butonu
+  // Merkezi Akıllı Odak & Birleşik Dinleme Motoru
   const currentContextKey =
     viewMode === 'mushaf' ? `page:${currentPageNo}` : `surah:${currentSurahNo}`;
 
-  const isAudioOnCurrentView =
+  const explicitSelectedVerse = useMemo<CombinedVerse | null>(() => {
+    if (!selectedVerseKey || activeViewVerses.length === 0) return null;
+    return activeViewVerses.find((v) => `${v.surah}:${v.ayah}` === selectedVerseKey) ?? null;
+  }, [selectedVerseKey, activeViewVerses]);
+
+  const playingVerseKey =
+    audioState.currentSurah !== null && audioState.currentAyah !== null
+      ? `${audioState.currentSurah}:${audioState.currentAyah}`
+      : null;
+
+  const isAudioActivelyPlaying =
     audioState.isVisible &&
-    audioState.contextKey === currentContextKey &&
     (audioState.status === 'playing' || audioState.status === 'loading');
 
-  const handleHeaderListen = () => {
-    if (!manifest || !meta) return;
-
-    if (isAudioOnCurrentView) {
-      audioQueueService.togglePlayPause();
-      return;
-    }
-
-    if (
-      audioState.isVisible &&
-      audioState.contextKey === currentContextKey &&
-      audioState.status === 'paused'
-    ) {
-      audioQueueService.togglePlayPause();
-      return;
-    }
-
-    if (activeViewVerses.length > 0) {
-      const startIdx = Math.max(
-        0,
-        activeViewVerses.findIndex((v) => v.id === selectedAyahId),
-      );
-      audioQueueService.startQueue({
-        verses: activeViewVerses,
-        startIndex: startIdx,
-        context: viewMode === 'mushaf' ? 'page' : 'surah',
-        contextKey: currentContextKey,
-        manifest,
-        meta,
-        prefs: audioPrefs,
-      });
-    }
-  };
+  const hasDifferentSelectedWhilePlaying =
+    isAudioActivelyPlaying &&
+    explicitSelectedVerse !== null &&
+    selectedVerseKey !== null &&
+    selectedVerseKey !== playingVerseKey;
 
   const handlePlayFromVerse = useCallback(
     (verse: CombinedVerse, singleAyahOnly = false, modeOverride?: AudioPlayMode) => {
       if (!manifest || !meta || activeViewVerses.length === 0) return;
 
       const idx = activeViewVerses.findIndex((v) => v.id === verse.id);
+      setSelectedAyahId(verse.id);
+      setSelectedVerseKey(`${verse.surah}:${verse.ayah}`);
       audioQueueService.startQueue({
         verses: activeViewVerses,
         startIndex: Math.max(0, idx),
@@ -832,8 +869,145 @@ export const StudyPage: React.FC = () => {
         modeOverride,
       });
     },
-    [manifest, meta, activeViewVerses, viewMode, currentContextKey, audioPrefs],
+    [manifest, meta, activeViewVerses, viewMode, currentContextKey, audioPrefs, setSelectedVerseKey],
   );
+
+  const executeSmartReaderPlay = useCallback(
+    (options?: { forceSwitchToSelected?: boolean }): boolean => {
+      if (!manifest || !meta || activeViewVerses.length === 0) return false;
+
+      // 0. Ses aktif çalıyorsa
+      if (audioState.isVisible && (audioState.status === 'playing' || audioState.status === 'loading')) {
+        if (
+          options?.forceSwitchToSelected &&
+          explicitSelectedVerse &&
+          selectedVerseKey &&
+          selectedVerseKey !== playingVerseKey
+        ) {
+          handlePlayFromVerse(explicitSelectedVerse, false);
+          return true;
+        }
+        audioQueueService.pause();
+        return true;
+      }
+
+      // Öncelik 1: Kullanıcının açıkça seçtiği bir ayet varsa kesinlikle oradan başlat/devam et
+      if (explicitSelectedVerse) {
+        if (
+          audioQueueService.canResumeExactVerse(
+            explicitSelectedVerse.surah,
+            explicitSelectedVerse.ayah,
+          )
+        ) {
+          audioQueueService.togglePlayPause();
+        } else {
+          handlePlayFromVerse(explicitSelectedVerse, false);
+        }
+        return true;
+      }
+
+      // Öncelik 2: Duraklatılmış ses o an açık sayfa/sure içindeyse kaldığı saniyeden devam et
+      if (
+        audioState.isVisible &&
+        audioState.status === 'paused' &&
+        audioState.currentAyahId !== null &&
+        activeViewVerses.some((v) => v.id === audioState.currentAyahId)
+      ) {
+        audioQueueService.togglePlayPause();
+        return true;
+      }
+
+      // Öncelik 3: Açık Mushaf sayfasının / aktif surenin ilk ayetinden kesintisiz başlat
+      handlePlayFromVerse(activeViewVerses[0], false);
+      return true;
+    },
+    [
+      manifest,
+      meta,
+      activeViewVerses,
+      audioState.isVisible,
+      audioState.status,
+      audioState.currentAyahId,
+      explicitSelectedVerse,
+      selectedVerseKey,
+      playingVerseKey,
+      handlePlayFromVerse,
+    ],
+  );
+
+  useEffect(() => {
+    registerReaderSmartPlay(executeSmartReaderPlay);
+    return () => {
+      registerReaderSmartPlay(null);
+    };
+  }, [registerReaderSmartPlay, executeSmartReaderPlay]);
+
+  const handleHeaderListen = () => {
+    sfxService.play('click');
+    executeSmartReaderPlay({ forceSwitchToSelected: true });
+  };
+
+  const handleStartFromCurrentPageTop = () => {
+    if (activeViewVerses.length === 0) return;
+    sfxService.play('click');
+    setIsListenPopoverOpen(false);
+    handlePlayFromVerse(activeViewVerses[0], false);
+  };
+
+  const handleStartFromSurahBeginning = async () => {
+    if (!manifest || !meta) return;
+    sfxService.play('click');
+    setIsListenPopoverOpen(false);
+    try {
+      const bundle =
+        viewMode !== 'mushaf' && surahBundle && surahBundle.surahMeta.no === currentSurahNo
+          ? surahBundle
+          : await dataService.getSurahBundle(currentSurahNo);
+      if (bundle.verses.length === 0) return;
+      const firstVerse = bundle.verses[0];
+      setSelectedAyahId(firstVerse.id);
+      setSelectedVerseKey(`${firstVerse.surah}:${firstVerse.ayah}`);
+      audioQueueService.startQueue({
+        verses: bundle.verses,
+        startIndex: 0,
+        context: 'surah',
+        contextKey: `surah:${currentSurahNo}`,
+        queueTitle: bundle.surahMeta.nameTr,
+        manifest,
+        meta,
+        prefs: audioPrefs,
+        singleAyahOnly: false,
+      });
+    } catch {
+      // ignore load errors
+    }
+  };
+
+  const handleToggleCurrentScopeLoop = () => {
+    sfxService.play('click');
+    const isCurrentlyLooping = audioPrefs.queueLoop === 'infinite';
+    const nextLoop = isCurrentlyLooping ? 1 : ('infinite' as const);
+    updateAudioPrefs({ queueLoop: nextLoop });
+    if (nextLoop === 'infinite' && (!audioState.isVisible || audioState.status === 'idle') && manifest && meta) {
+      const startVerse = explicitSelectedVerse ?? activeViewVerses[0];
+      if (startVerse) {
+        const idx = Math.max(
+          0,
+          activeViewVerses.findIndex((v) => v.id === startVerse.id),
+        );
+        audioQueueService.startQueue({
+          verses: activeViewVerses,
+          startIndex: idx,
+          context: viewMode === 'mushaf' ? 'page' : 'surah',
+          contextKey: currentContextKey,
+          manifest,
+          meta,
+          prefs: { ...audioPrefs, queueLoop: 'infinite' },
+          singleAyahOnly: false,
+        });
+      }
+    }
+  };
 
   const handlePlayMealFromVerse = useCallback(
     (verse: CombinedVerse) => {
@@ -994,6 +1168,7 @@ export const StudyPage: React.FC = () => {
           type="button"
           onClick={() => {
             sfxService.play('click');
+            setIsListenPopoverOpen(false);
             setIsViewPopoverOpen((v) => !v);
           }}
           aria-expanded={isViewPopoverOpen}
@@ -1673,49 +1848,419 @@ export const StudyPage: React.FC = () => {
         )}
       </div>
 
-      {/* 5. 🎧 Dinle | ▾ (Bölünmüş Dinleme & Çalma Listesi Butonu) */}
-      <div
-        className="inline-flex items-center h-9 rounded-xl overflow-hidden shrink-0"
-        style={{ backgroundColor: 'var(--brand-primary)' }}
-      >
-        <button
-          type="button"
-          onClick={handleHeaderListen}
-          title={isAudioOnCurrentView ? 'Dinlemeyi duraklat' : 'Bu sayfayı / sureyi dinle'}
-          className="h-full pl-2.5 pr-2 xl:pl-3 xl:pr-2.5 text-xs font-bold text-white flex items-center gap-1.5 transition-opacity hover:opacity-95 active:scale-[0.98] cursor-pointer whitespace-nowrap"
+      {/* 5. [ 🎧 Dinle | ▾ ] — Akıllı Bölünmüş Dinleme Butonu & Hızlı Dinleme Menüsü */}
+      <div ref={listenPopoverRef} className="relative shrink-0">
+        <div
+          className="inline-flex items-center h-9 rounded-xl overflow-hidden shrink-0"
+          style={{ backgroundColor: 'var(--brand-primary)' }}
         >
-          {isAudioOnCurrentView ? (
-            <>
-              <Pause className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden xl:inline">Duraklat</span>
-            </>
-          ) : (
-            <>
-              <Headphones className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden xl:inline">Dinle</span>
-            </>
-          )}
-        </button>
-        <span className="w-px h-4 bg-white/25" aria-hidden="true" />
-        <button
-          type="button"
-          onClick={() => {
-            sfxService.play('click');
-            openListeningDrawer({
-              initialTab: 'quick',
-              scope: viewMode === 'mushaf' ? 'page' : 'surah',
-              surah: currentSurahNo,
-              page: currentPageNo,
-              startAyah: activeAyahNumber,
-              endAyah: activeAyahNumber,
-            });
-          }}
-          aria-label="Dinleme kapsamı, döngü ve çalma listeleri"
-          title="Dinleme kapsamı, döngü ve çalma listeleri"
-          className="h-full px-1.5 text-white/95 hover:bg-black/15 flex items-center justify-center cursor-pointer transition-colors"
-        >
-          <ChevronDown className="w-3.5 h-3.5" />
-        </button>
+          <button
+            type="button"
+            onClick={handleHeaderListen}
+            title={
+              hasDifferentSelectedWhilePlaying && explicitSelectedVerse
+                ? `Seçili ayetten (${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah}) dinlemeye geç`
+                : isAudioActivelyPlaying
+                  ? 'Dinlemeyi duraklat'
+                  : explicitSelectedVerse
+                    ? `Seçili ayetten (${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah}) dinle`
+                    : viewMode === 'mushaf'
+                      ? 'Bu sayfayı dinle'
+                      : 'Bu sureyi dinle'
+            }
+            className="h-full pl-2.5 pr-2 xl:pl-3 xl:pr-2.5 text-xs font-bold text-white flex items-center gap-1.5 transition-opacity hover:opacity-95 active:scale-[0.98] cursor-pointer whitespace-nowrap"
+          >
+            {hasDifferentSelectedWhilePlaying && explicitSelectedVerse ? (
+              <>
+                <Play className="w-3.5 h-3.5 shrink-0 fill-current" />
+                <span className="hidden xl:inline tabular-nums">
+                  {explicitSelectedVerse.ayah}. Ayete Geç
+                </span>
+              </>
+            ) : isAudioActivelyPlaying ? (
+              <>
+                <Pause className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden xl:inline tabular-nums">
+                  Duraklat{playingVerseKey ? ` · ${playingVerseKey}` : ''}
+                </span>
+              </>
+            ) : explicitSelectedVerse ? (
+              <>
+                <Play className="w-3.5 h-3.5 shrink-0 fill-current" />
+                <span className="hidden xl:inline tabular-nums">
+                  {explicitSelectedVerse.ayah}. Ayetten Dinle
+                </span>
+              </>
+            ) : (
+              <>
+                <Headphones className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden xl:inline">
+                  {viewMode === 'mushaf' ? 'Sayfayı Dinle' : 'Dinle'}
+                </span>
+              </>
+            )}
+          </button>
+          <span className="w-px h-4 bg-white/25" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setIsViewPopoverOpen(false);
+              setIsListenPopoverOpen((v) => !v);
+            }}
+            aria-expanded={isListenPopoverOpen}
+            aria-label="Hızlı dinleme ayarları ve kapsam seçenekleri"
+            title="Dinleme türü, okuyucu, başlangıç ve tekrar ayarları"
+            className="h-full px-1.5 text-white/95 hover:bg-black/15 flex items-center justify-center cursor-pointer transition-colors"
+          >
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${isListenPopoverOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+        </div>
+
+        {isListenPopoverOpen && (
+          <div
+            className="absolute right-0 top-11 z-50 w-[328px] max-w-[calc(100vw-1.5rem)] max-h-[82dvh] overflow-y-auto rounded-2xl border shadow-2xl p-3.5 space-y-3.5 text-left"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-strong)',
+            }}
+          >
+            {/* 1. Dinleme Türü */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className="text-[11px] font-extrabold uppercase tracking-wider"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Dinleme Türü
+                </span>
+                {isMealOnlyContent && (
+                  <span
+                    className="px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                  >
+                    Meal görünümü aktif
+                  </span>
+                )}
+              </div>
+              <div
+                className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+              >
+                {(
+                  [
+                    { id: 'ar', label: 'Arapça Tilavet' },
+                    { id: 'meal', label: 'Sesli Meal' },
+                    { id: 'ar_then_meal', label: 'AR + Meal' },
+                  ] as { id: AudioPlayMode; label: string }[]
+                ).map((opt) => {
+                  const active = audioPrefs.mode === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateAudioPrefs({ mode: opt.id });
+                      }}
+                      className="h-8 px-1.5 rounded-lg text-[11px] font-bold cursor-pointer whitespace-nowrap transition-colors"
+                      style={{
+                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Okuyucu & Meal Kaynağı */}
+            <div
+              className="pt-3 border-t space-y-2"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <span
+                className="block text-[11px] font-extrabold uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Okuyucu &amp; Meal Kaynağı
+              </span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setIsListenPopoverOpen(false);
+                  openReciterSelector();
+                }}
+                className="w-full h-9 px-2.5 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 cursor-pointer transition-colors hover:border-teal-600/40"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <Headphones
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  />
+                  <span className="truncate">{activeReciter.label}</span>
+                </span>
+                <span
+                  className="text-[11px] font-extrabold flex items-center gap-0.5 shrink-0"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  <span>Değiştir</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </span>
+              </button>
+
+              {mealAudioSources.length > 0 && (
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className="text-[11px] font-bold flex items-center gap-1.5"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    <Volume2 className="w-3.5 h-3.5 opacity-75" />
+                    <span>Sesli Meal:</span>
+                  </span>
+                  <div
+                    className="inline-flex items-center p-0.5 rounded-lg"
+                    style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                  >
+                    {mealAudioSources.map((src) => {
+                      const active = audioPrefs.mealAudioSource === src.id;
+                      const short =
+                        src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
+                      return (
+                        <button
+                          key={src.id}
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            updateAudioPrefs({ mealAudioSource: src.id });
+                          }}
+                          className="h-7 px-2.5 rounded-md text-[11px] font-bold cursor-pointer transition-colors"
+                          style={{
+                            backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                            color: active ? 'var(--brand-accent-text)' : 'var(--text-muted)',
+                            boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                          }}
+                        >
+                          {short}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Nereden Başlatılsın? */}
+            <div
+              className="pt-3 border-t space-y-1.5"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <span
+                className="block text-[11px] font-extrabold uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Nereden Başlatılsın?
+              </span>
+
+              {explicitSelectedVerse && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setIsListenPopoverOpen(false);
+                    handlePlayFromVerse(explicitSelectedVerse, false);
+                  }}
+                  className="w-full min-h-[34px] px-2.5 py-1.5 rounded-xl border text-xs font-extrabold flex items-center gap-2 cursor-pointer transition-colors text-left"
+                  style={{
+                    backgroundColor: 'var(--brand-primary-soft)',
+                    borderColor: 'var(--brand-primary)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <Play className="w-3.5 h-3.5 shrink-0 fill-current" />
+                  <span className="truncate tabular-nums">
+                    Seçili Ayetten Başlat ({explicitSelectedVerse.surah}:
+                    {explicitSelectedVerse.ayah})
+                  </span>
+                </button>
+              )}
+
+              {viewMode === 'mushaf' && pageBundle && (
+                <button
+                  type="button"
+                  onClick={handleStartFromCurrentPageTop}
+                  className="w-full min-h-[34px] px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors text-left hover:border-teal-600/40"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <Play className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                  <span className="truncate tabular-nums">
+                    Bu Sayfanın Başından Başlat (Sayfa {pageBundle.pageNo})
+                  </span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void handleStartFromSurahBeginning()}
+                className="w-full min-h-[34px] px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors text-left hover:border-teal-600/40"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <Play className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                <span className="truncate">
+                  Surenin Başından Başlat ({activeSurahMeta?.nameTr ?? 'Sure'} · 1. Ayet)
+                </span>
+              </button>
+            </div>
+
+            {/* 4. Hız & Tekrar Özeti */}
+            <div
+              className="pt-3 border-t space-y-2.5"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+                  Hız
+                </span>
+                <div
+                  className="inline-flex items-center p-0.5 rounded-lg"
+                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                >
+                  {([0.75, 1, 1.25, 1.5] as PlaybackRateOption[]).map((rate) => {
+                    const active = audioPrefs.playbackRate === rate;
+                    return (
+                      <button
+                        key={rate}
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          updateAudioPrefs({ playbackRate: rate });
+                        }}
+                        className="h-7 px-2 rounded-md text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {rate}x
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+                  Ayet Tekrarı
+                </span>
+                <div
+                  className="inline-flex items-center p-0.5 rounded-lg"
+                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                >
+                  {([1, 2, 3, 'infinite'] as RepeatCountOption[]).map((rep) => {
+                    const active = audioPrefs.repeatCount === rep;
+                    return (
+                      <button
+                        key={String(rep)}
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          updateAudioPrefs({ repeatCount: rep });
+                        }}
+                        className="h-7 px-2 rounded-md text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {rep === 'infinite' ? '∞' : `${rep}x`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleToggleCurrentScopeLoop}
+                className="w-full h-8 px-2.5 rounded-xl border text-[11px] font-bold flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                style={{
+                  backgroundColor:
+                    audioPrefs.queueLoop === 'infinite'
+                      ? 'var(--brand-accent-soft)'
+                      : 'var(--bg-surface-soft)',
+                  borderColor:
+                    audioPrefs.queueLoop === 'infinite'
+                      ? 'var(--brand-accent)'
+                      : 'var(--border-subtle)',
+                  color:
+                    audioPrefs.queueLoop === 'infinite'
+                      ? 'var(--brand-accent-text)'
+                      : 'var(--text-secondary)',
+                }}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Repeat className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {viewMode === 'mushaf' ? 'Bu Sayfayı Döngüye Al' : 'Bu Sureyi Döngüye Al'}
+                  </span>
+                </span>
+                <span className="font-extrabold">
+                  {audioPrefs.queueLoop === 'infinite' ? 'Açık (∞)' : 'Normal Akış'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setIsListenPopoverOpen(false);
+                  openListeningDrawer({
+                    initialTab: 'playlists',
+                    scope: viewMode === 'mushaf' ? 'page' : 'surah',
+                    surah: currentSurahNo,
+                    page: currentPageNo,
+                    startAyah: explicitSelectedVerse?.ayah ?? activeAyahNumber,
+                    endAyah: explicitSelectedVerse?.ayah ?? activeAyahNumber,
+                  });
+                }}
+                className="w-full pt-2 border-t flex items-center justify-between gap-2 text-xs font-extrabold cursor-pointer transition-opacity hover:opacity-80"
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <span className="flex items-center gap-1.5">
+                  <ListMusic className="w-3.5 h-3.5 shrink-0" />
+                  <span>Çalma Listeleri &amp; Gelişmiş Kapsam</span>
+                </span>
+                <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 6. Sunum Modu — Yalnızca İkon (w-9 h-9) */}
@@ -1736,8 +2281,15 @@ export const StudyPage: React.FC = () => {
     </div>
   );
 
+  const needsBottomPlayerClearance =
+    audioState.isVisible &&
+    audioState.status !== 'idle' &&
+    !(viewMode === 'mushaf' && isEffectiveDualLeaf);
+
   return (
-    <div className="space-y-2.5 lg:space-y-3 pb-4">
+    <div
+      className={`space-y-2.5 lg:space-y-3 ${needsBottomPlayerClearance ? 'pb-24 lg:pb-20' : 'pb-4'}`}
+    >
       {/* ====================================================================
           A1. MASAÜSTÜ (>= 1024px) — BİRLEŞİK ÜST BAR PORTALI (AppShell <header>)
           ==================================================================== */}
@@ -1835,18 +2387,42 @@ export const StudyPage: React.FC = () => {
             <button
               type="button"
               onClick={handleHeaderListen}
-              aria-label={isAudioOnCurrentView ? 'Dinlemeyi duraklat' : 'Dinle'}
-              title={isAudioOnCurrentView ? 'Dinlemeyi duraklat' : 'Bu sayfayı / sureyi dinle'}
+              aria-label={
+                hasDifferentSelectedWhilePlaying && explicitSelectedVerse
+                  ? `${explicitSelectedVerse.ayah}. ayetten dinle`
+                  : isAudioActivelyPlaying
+                    ? 'Dinlemeyi duraklat'
+                    : explicitSelectedVerse
+                      ? `${explicitSelectedVerse.ayah}. ayetten dinle`
+                      : 'Dinle'
+              }
+              title={
+                hasDifferentSelectedWhilePlaying && explicitSelectedVerse
+                  ? `Seçili ayetten (${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah}) dinlemeye geç`
+                  : isAudioActivelyPlaying
+                    ? 'Dinlemeyi duraklat'
+                    : explicitSelectedVerse
+                      ? `${explicitSelectedVerse.ayah}. ayetten dinle`
+                      : 'Bu sayfayı / sureyi dinle'
+              }
               className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-colors shrink-0"
               style={{
-                backgroundColor: isAudioOnCurrentView
-                  ? 'var(--brand-primary)'
-                  : 'var(--brand-primary-soft)',
-                color: isAudioOnCurrentView ? '#FFFFFF' : 'var(--brand-primary-text)',
+                backgroundColor:
+                  isAudioActivelyPlaying || explicitSelectedVerse
+                    ? 'var(--brand-primary)'
+                    : 'var(--brand-primary-soft)',
+                color:
+                  isAudioActivelyPlaying || explicitSelectedVerse
+                    ? '#FFFFFF'
+                    : 'var(--brand-primary-text)',
               }}
             >
-              {isAudioOnCurrentView ? (
+              {hasDifferentSelectedWhilePlaying ? (
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              ) : isAudioActivelyPlaying ? (
                 <Pause className="w-4 h-4" />
+              ) : explicitSelectedVerse ? (
+                <Play className="w-4 h-4 fill-current ml-0.5" />
               ) : (
                 <Headphones className="w-4 h-4" />
               )}

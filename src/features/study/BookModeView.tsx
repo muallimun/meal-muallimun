@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   ArrowLeftRight,
   BookMarked,
@@ -100,6 +100,8 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     manifest,
     meta,
     audioPrefs,
+    selectedVerseKey,
+    setSelectedVerseKey,
   } = useAppStore();
 
   const { getCount: getMutashabihatCount } = useMutashabihatData(true);
@@ -126,10 +128,20 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   } = useTajweedData(bookSurahNos, settings.tajweedEnabled);
 
   const [onlyFavorites, setOnlyFavorites] = useState(false);
-  const [selectedArabicAyahId, setSelectedArabicAyahId] = useState<number | null>(null);
   const [openMenuAyahId, setOpenMenuAyahId] = useState<number | null>(null);
   const [openFootnoteAyahId, setOpenFootnoteAyahId] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!selectedVerseKey) return;
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedVerseKey(null);
+      }
+    };
+    window.addEventListener('keydown', onEsc);
+    return () => window.removeEventListener('keydown', onEsc);
+  }, [selectedVerseKey, setSelectedVerseKey]);
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
@@ -181,10 +193,27 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     return map;
   }, [bundle.verses]);
 
-  const selectedArabicVerse = useMemo(
-    () => bundle.verses.find((v) => v.id === selectedArabicAyahId) ?? null,
-    [bundle.verses, selectedArabicAyahId],
-  );
+  const selectedArabicVerse = useMemo(() => {
+    if (!selectedVerseKey) return null;
+    const [sStr, aStr] = selectedVerseKey.split(':');
+    const s = Number(sStr);
+    const a = Number(aStr);
+    if (s !== bundle.surahMeta.no || !Number.isFinite(a)) return null;
+    return bundle.verses.find((v) => v.ayah === a) ?? null;
+  }, [bundle.surahMeta.no, bundle.verses, selectedVerseKey]);
+
+  const handleToggleSelectVerse = (verse: CombinedVerse) => {
+    const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
+    if (sel) return;
+    sfxService.play('click');
+    const key = `${verse.surah}:${verse.ayah}`;
+    if (selectedVerseKey === key) {
+      setSelectedVerseKey(null);
+      return;
+    }
+    setSelectedVerseKey(key);
+    audioQueueService.syncPausedSelection(verse, meta);
+  };
 
   const handleCopyVerse = async (verse: CombinedVerse) => {
     const pVerse = getPrimaryVerse(verse);
@@ -215,21 +244,57 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     }
   };
 
-  const renderVerseActionMenu = (verse: CombinedVerse) => {
+  const renderVerseActionMenu = (
+    verse: CombinedVerse,
+    isSelected: boolean,
+    isPlaying: boolean,
+  ) => {
     const originalIdx = verseIndexMap.get(verse.id) ?? 0;
     const isBookmarked = bookmarkedSet.has(verse.id);
     const isMenuOpen = openMenuAyahId === verse.id;
+    const showLabeledPlayActions = isSelected || isPlaying;
 
     return (
-      <div className="relative flex items-center gap-1 shrink-0">
+      <div
+        className="relative flex items-center gap-1 shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           type="button"
-          onClick={() => onPlayFromAyah(originalIdx)}
-          title="Bu ayetten itibaren dinle"
+          onClick={() => {
+            setSelectedVerseKey(`${verse.surah}:${verse.ayah}`);
+            onPlayFromAyah(originalIdx);
+          }}
+          title="Bu ayetten itibaren kesintisiz dinle"
           aria-label={`${verse.ayah}. ayetten itibaren dinle`}
-          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--brand-primary-soft)] hover:text-[var(--brand-primary-text)] transition-colors cursor-pointer"
+          className={`inline-flex items-center justify-center gap-1 h-8 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+            showLabeledPlayActions
+              ? 'px-2.5 bg-[var(--brand-primary)] text-white shadow-xs hover:opacity-90'
+              : 'w-8 sm:w-auto sm:px-2 text-[var(--text-secondary)] sm:opacity-75 sm:group-hover:opacity-100 hover:bg-[var(--brand-primary-soft)] hover:text-[var(--brand-primary-text)]'
+          }`}
         >
-          <Play className="w-4 h-4 fill-current" />
+          <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+          <span className={showLabeledPlayActions ? 'inline' : 'hidden sm:inline'}>
+            Buradan Dinle
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedVerseKey(`${verse.surah}:${verse.ayah}`);
+            onPlayFromAyah(originalIdx, 'meal');
+          }}
+          title="Bu ayetten itibaren Türkçe sesli mealini dinle"
+          aria-label={`${verse.ayah}. ayetten itibaren sesli meal dinle`}
+          className={`inline-flex items-center justify-center gap-1 h-8 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+            showLabeledPlayActions
+              ? 'px-2.5 bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border border-[var(--brand-accent)]/40 hover:opacity-90'
+              : 'hidden sm:inline-flex sm:px-2 text-[var(--brand-accent-text)] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 hover:bg-[var(--brand-accent-soft)]'
+          }`}
+        >
+          <Volume2 className="w-3.5 h-3.5 shrink-0" />
+          <span>Sesli Meal</span>
         </button>
 
         <button
@@ -677,7 +742,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     {visibleVerses.map((verse) => {
                       const isPlaying =
                         playingAyahId === verse.id && audioState.activePhase !== 'besmele';
-                      const isSelected = selectedArabicAyahId === verse.id;
+                      const isSelected = selectedArabicVerse?.id === verse.id;
                       const isBookmarked = bookmarkedSet.has(verse.id);
                       const isSajdah = SAJDAH_AYAH_IDS.has(verse.id) && settings.highlightSajdah;
                       const rukuEnd = settings.showRukuMarkers
@@ -702,18 +767,14 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               ? `Tilâvet Secdesi Ayeti — ${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`
                               : `${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`
                           }
-                          onClick={() => {
-                            sfxService.play('click');
-                            setSelectedArabicAyahId((prev) =>
-                              prev === verse.id ? null : verse.id,
-                            );
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleSelectVerse(verse);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              setSelectedArabicAyahId((prev) =>
-                                prev === verse.id ? null : verse.id,
-                              );
+                              handleToggleSelectVerse(verse);
                             }
                           }}
                           className={`inline rounded-xl px-1.5 py-0.5 transition-colors cursor-pointer ${
@@ -810,7 +871,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setSelectedArabicAyahId(null)}
+                      onClick={() => setSelectedVerseKey(null)}
                       className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] px-2 py-1 cursor-pointer"
                     >
                       Kapat
@@ -1052,12 +1113,26 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                 const suppressSectionFill =
                   isPlaying && audioState.isWordSyncActive && bookMode === 'interleaved';
 
+                const isSelected = selectedVerseKey === `${verse.surah}:${verse.ayah}`;
+
                 return (
                   <section
                     key={verse.id}
                     id={`book-ayah-${verse.id}`}
                     dir="ltr"
-                    className={`text-left py-4 sm:py-5 transition-all rounded-2xl px-2.5 sm:px-3.5 ${
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement | null;
+                      if (
+                        target?.closest(
+                          'button, a, [role="button"], input, select, [data-tajweed-rule], [data-waqf-sign], [data-ruku-badge]',
+                        )
+                      ) {
+                        return;
+                      }
+                      e.stopPropagation();
+                      handleToggleSelectVerse(verse);
+                    }}
+                    className={`group text-left py-4 sm:py-5 transition-all rounded-2xl px-2.5 sm:px-3.5 cursor-pointer ${
                       isDoubleBookLayout
                         ? 'border-b border-[var(--border-subtle)]/70'
                         : 'first:pt-1 last:pb-1 -mx-2.5 sm:-mx-3.5'
@@ -1066,9 +1141,11 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                         ? suppressSectionFill
                           ? 'ring-1 ring-[var(--brand-primary)]/40'
                           : 'ring-1 ring-[var(--brand-primary)]/45 shadow-xs'
-                        : isSajdah
-                          ? 'bg-amber-500/[0.07] ring-1 ring-amber-500/45 my-1.5'
-                          : 'hover:bg-[var(--bg-surface-soft)]/45'
+                        : isSelected
+                          ? 'bg-amber-500/10 ring-1 ring-amber-500/40 my-1'
+                          : isSajdah
+                            ? 'bg-amber-500/[0.07] ring-1 ring-amber-500/45 my-1.5'
+                            : 'hover:bg-[var(--bg-surface-soft)]/45'
                     }`}
                     style={
                       isPlaying && !suppressSectionFill
@@ -1083,13 +1160,27 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           className={`inline-flex items-center justify-center min-w-[34px] h-7 px-2 rounded-lg text-xs font-extrabold ${
                             isPlaying
                               ? 'bg-[var(--brand-primary)] text-white'
-                              : isSajdah
-                                ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border border-[var(--brand-accent)]/50'
-                                : 'bg-[var(--bg-surface-soft)] text-[var(--brand-primary-text)] border border-[var(--border-subtle)]'
+                              : isSelected
+                                ? 'bg-[var(--brand-accent)] text-white'
+                                : isSajdah
+                                  ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border border-[var(--brand-accent)]/50'
+                                  : 'bg-[var(--bg-surface-soft)] text-[var(--brand-primary-text)] border border-[var(--border-subtle)]'
                           }`}
                         >
                           {verse.surah}:{verse.ayah}
                         </span>
+
+                        {isSelected && !isPlaying && (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-extrabold"
+                            style={{
+                              backgroundColor: 'var(--brand-accent-soft)',
+                              color: 'var(--brand-accent-text)',
+                            }}
+                          >
+                            Seçili
+                          </span>
+                        )}
 
                         {isSajdah && (
                           <span
@@ -1167,7 +1258,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                         )}
                       </div>
 
-                      {renderVerseActionMenu(verse)}
+                      {renderVerseActionMenu(verse, isSelected, isPlaying)}
                     </div>
 
                     {/* Arapça Ayet (Yalnızca interleaved modda) */}

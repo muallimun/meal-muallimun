@@ -1,18 +1,16 @@
-import React, { useEffect, useMemo, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertCircle,
   BookOpen,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Headphones,
   ListMusic,
   Loader2,
-  MonitorPlay,
   Pause,
-  Pin,
   Play,
   Repeat,
-  Repeat1,
   SkipBack,
   SkipForward,
   Volume2,
@@ -28,22 +26,22 @@ import type {
   AudioPlayMode,
   MealAudioSourceId,
   PlaybackRateOption,
-  QueueLoopOption,
   RepeatCountOption,
 } from '../types/quran';
 
 const PLAYBACK_RATES: readonly PlaybackRateOption[] = [0.75, 1, 1.25, 1.5];
-const REPEAT_COUNTS: readonly RepeatCountOption[] = [1, 2, 3, 5, 10];
-const QUEUE_LOOPS: readonly QueueLoopOption[] = [1, 2, 3, 5, 10, 'infinite'];
+const REPEAT_COUNTS: readonly RepeatCountOption[] = [1, 2, 3, 5, 'infinite'];
 
-function formatLoopShort(val: RepeatCountOption | QueueLoopOption): string {
-  return val === 'infinite' ? '∞' : `${val}x`;
-}
-
-const MODE_LABELS: { id: AudioPlayMode; label: string }[] = [
+const COMPACT_MODE_OPTIONS: { id: AudioPlayMode; label: string }[] = [
   { id: 'ar', label: 'AR' },
   { id: 'meal', label: 'Meal' },
   { id: 'ar_then_meal', label: 'AR+Meal' },
+];
+
+const FULL_MODE_OPTIONS: { id: AudioPlayMode; label: string }[] = [
+  { id: 'ar', label: 'Arapça Tilavet' },
+  { id: 'meal', label: 'Sesli Meal' },
+  { id: 'ar_then_meal', label: 'Sıralı (AR + Meal)' },
 ];
 
 export const AudioPlayerBar: React.FC = () => {
@@ -58,21 +56,31 @@ export const AudioPlayerBar: React.FC = () => {
     setIsAudioBarExpanded: setIsExpanded,
     isSidebarCollapsed,
     activeTab,
-    setActiveTab,
     studyProgress,
     navigateToStudy,
-    openPresentationMode,
     openReciterSelector,
     openMealSelector,
     openListeningDrawer,
-    openQuickResearch,
     manifest,
+    meta,
+    setSelectedVerseKey,
+    triggerSmartReaderPlay,
   } = useAppStore();
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
   );
+
+  // Hızlı ayet atlama açılır seçicisi (useBackButtonGuard / history kullanmaz)
+  const [isAyahPickerOpen, setIsAyahPickerOpen] = useState(false);
+  const [ayahFilterText, setAyahFilterText] = useState('');
+  const ayahPickerRef = useRef<HTMLDivElement | null>(null);
+
+  // Genişletilmiş çekmece içi Ayet Aralığı Döngüsü
+  const [showRangeLoopEditor, setShowRangeLoopEditor] = useState(false);
+  const [rangeStart, setRangeStart] = useState<number>(1);
+  const [rangeEnd, setRangeEnd] = useState<number>(5);
 
   const activeReciter = useMemo(
     () => findReciterById(audioPrefs.arabicReciterId, manifest),
@@ -87,6 +95,25 @@ export const AudioPlayerBar: React.FC = () => {
     () => mealSources.find((s) => s.id === audioPrefs.mealAudioSource) ?? mealSources[0] ?? null,
     [mealSources, audioPrefs.mealAudioSource],
   );
+
+  const currentSurahMeta = useMemo(() => {
+    if (!meta || !audioState.currentSurah) return null;
+    return meta.surahs.find((s) => s.no === audioState.currentSurah) ?? null;
+  }, [meta, audioState.currentSurah]);
+
+  const maxAyahInSurah = currentSurahMeta?.ayahCount ?? Math.max(audioState.currentAyah ?? 1, 1);
+
+  const ayahOptions = useMemo(() => {
+    const query = ayahFilterText.trim();
+    const list: number[] = [];
+    for (let i = 1; i <= maxAyahInSurah; i += 1) {
+      if (!query || String(i).includes(query)) {
+        list.push(i);
+      }
+    }
+    return list;
+  }, [maxAyahInSurah, ayahFilterText]);
+
   const showUnvoicedMealBanner =
     !activePrimaryMeal.hasAudio &&
     (audioPrefs.mode !== 'ar' || audioState.activePhase === 'meal') &&
@@ -97,12 +124,40 @@ export const AudioPlayerBar: React.FC = () => {
     audioQueueService.syncPrefs(audioPrefs);
   }, [audioPrefs]);
 
-  // Oynatıcı kapanınca genişletilmiş çekmeceyi kapat
+  // Oynatıcı kapanınca açılır panelleri sıfırla
   useEffect(() => {
     if (!audioState.isVisible || audioState.status === 'idle') {
       setIsExpanded(false);
+      setIsAyahPickerOpen(false);
+      setShowRangeLoopEditor(false);
     }
   }, [audioState.isVisible, audioState.status, setIsExpanded]);
+
+  // Sure veya ayet değişince varsayılan aralık uçlarını güncel tut
+  useEffect(() => {
+    const start = audioState.currentAyah ?? 1;
+    setRangeStart(start);
+    setRangeEnd(Math.min(maxAyahInSurah, start + 4));
+  }, [audioState.currentSurah, audioState.currentAyah, maxAyahInSurah]);
+
+  // Mini ayet seçicisini dış tıklama veya Escape ile kapat
+  useEffect(() => {
+    if (!isAyahPickerOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (ayahPickerRef.current && !ayahPickerRef.current.contains(e.target as Node)) {
+        setIsAyahPickerOpen(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsAyahPickerOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [isAyahPickerOpen]);
 
   if (
     isExamActive ||
@@ -123,58 +178,27 @@ export const AudioPlayerBar: React.FC = () => {
       ? activeMealAudioSource?.shortLabel ?? 'Sesli Meal'
       : activeReciter.shortLabel);
 
-  const subtitlePrefix =
-    audioState.context === 'playlist' || audioState.context === 'custom'
-      ? audioState.queueTitle
-        ? `${audioState.queueTitle} · `
-        : ''
-      : '';
-
   const spokenMealForBar = resolveSpokenMealInfo(
     audioState.activePhase === 'meal' ? audioState.activeSourceKey : audioPrefs.mealAudioSource,
     manifest,
   );
-  const spokenMealDisplay = spokenMealForBar
-    ? spokenMealForBar.speakerName
-      ? `${spokenMealForBar.shortTag} (${spokenMealForBar.speakerName})`
-      : spokenMealForBar.shortTag
-    : activeMealAudioSource?.shortLabel ?? 'TDV';
+  const spokenMealShort =
+    spokenMealForBar?.shortTag ??
+    (activeMealAudioSource?.id === 'tdv'
+      ? 'TDV'
+      : activeMealAudioSource?.id === 'dib'
+        ? 'DİB'
+        : activeMealAudioSource?.shortLabel ?? 'TDV');
 
   const compactSubtitle = audioState.errorMessage
     ? audioState.errorMessage
-    : audioState.activePhase === 'meal'
-      ? `${subtitlePrefix}Sesli Meal: ${spokenMealDisplay}`
-      : audioState.activePhase === 'besmele'
-        ? `${subtitlePrefix}Besmele · ${resolvedReciterLabel}${
-            audioPrefs.mode === 'ar_then_meal' && spokenMealForBar
-              ? ` · Meal: ${spokenMealForBar.shortTag}`
-              : ''
-          }`
-        : audioPrefs.mode === 'ar_then_meal' && spokenMealForBar
-          ? `${subtitlePrefix}${resolvedReciterLabel} · Sesli Meal: ${spokenMealForBar.shortTag}`
-          : `${subtitlePrefix}${resolvedReciterLabel}`;
-
-  const cycleRate = () => {
-    sfxService.play('click');
-    const idx = PLAYBACK_RATES.indexOf(audioPrefs.playbackRate);
-    const next = PLAYBACK_RATES[(idx + 1) % PLAYBACK_RATES.length];
-    updateAudioPrefs({ playbackRate: next });
-  };
-
-  const cycleRepeat = () => {
-    sfxService.play('click');
-    const idx = REPEAT_COUNTS.indexOf(audioPrefs.repeatCount);
-    const next = REPEAT_COUNTS[(idx + 1) % REPEAT_COUNTS.length];
-    updateAudioPrefs({ repeatCount: next });
-  };
-
-  const cycleQueueLoop = () => {
-    sfxService.play('click');
-    const current = audioPrefs.queueLoop ?? 1;
-    const idx = QUEUE_LOOPS.indexOf(current);
-    const next = QUEUE_LOOPS[(idx + 1) % QUEUE_LOOPS.length];
-    updateAudioPrefs({ queueLoop: next });
-  };
+    : audioState.activePhase === 'besmele'
+      ? `Besmele · ${resolvedReciterLabel}`
+      : audioPrefs.mode === 'ar_then_meal'
+        ? `Sıralı: Arapça + Sesli Meal (${spokenMealShort})`
+        : audioPrefs.mode === 'meal' || audioState.activePhase === 'meal'
+          ? `${spokenMealShort} · Sesli Meal`
+          : `${activeReciter.shortLabel} · Arapça`;
 
   const handleModeChange = (mode: AudioPlayMode) => {
     sfxService.play('click');
@@ -186,16 +210,100 @@ export const AudioPlayerBar: React.FC = () => {
     updateAudioPrefs({ mealAudioSource });
   };
 
-  const handleOpenPresentation = () => {
-    setIsExpanded(false);
-    if (activeTab !== 'reader') {
-      setActiveTab('reader');
+  const handleMainPlayPause = () => {
+    sfxService.play('click');
+    if (activeTab === 'reader') {
+      const handled = triggerSmartReaderPlay({ forceSwitchToSelected: false });
+      if (handled) return;
     }
-    openPresentationMode();
+    audioQueueService.togglePlayPause();
+  };
+
+  const handleSelectQuickAyah = (ayahNo: number) => {
+    if (!audioState.currentSurah || !manifest || !meta) return;
+    sfxService.play('click');
+    setIsAyahPickerOpen(false);
+    setAyahFilterText('');
+    setSelectedVerseKey(`${audioState.currentSurah}:${ayahNo}`);
+    void audioQueueService.jumpToSurahAyah(
+      audioState.currentSurah,
+      ayahNo,
+      manifest,
+      meta,
+      audioPrefs,
+    );
+  };
+
+  const handleSetContinuousFlow = () => {
+    sfxService.play('click');
+    setShowRangeLoopEditor(false);
+    updateAudioPrefs({ queueLoop: 1 });
+  };
+
+  const handleLoopCurrentPage = () => {
+    sfxService.play('click');
+    setShowRangeLoopEditor(false);
+    updateAudioPrefs({ queueLoop: 'infinite' });
+    if (audioState.currentPage && manifest && meta) {
+      const pageNo = audioState.currentPage;
+      if (audioState.context !== 'page' || audioState.contextKey !== `page:${pageNo}`) {
+        void audioQueueService.startSegmentQueue({
+          items: [
+            {
+              id: `loop-page-${pageNo}`,
+              type: 'page_range',
+              label: `Sayfa ${pageNo}`,
+              startPage: pageNo,
+              endPage: pageNo,
+            },
+          ],
+          title: `Sayfa ${pageNo} Döngüsü`,
+          context: 'page',
+          contextKey: `page:${pageNo}`,
+          manifest,
+          meta,
+          prefs: { ...audioPrefs, queueLoop: 'infinite' },
+          queueLoopOverride: 'infinite',
+        });
+      }
+    }
+  };
+
+  const handleStartRangeLoop = () => {
+    if (!audioState.currentSurah || !manifest || !meta) return;
+    const safeStart = Math.max(1, Math.min(maxAyahInSurah, Math.floor(rangeStart) || 1));
+    const safeEnd = Math.max(safeStart, Math.min(maxAyahInSurah, Math.floor(rangeEnd) || safeStart));
+    sfxService.play('click');
+    setRangeStart(safeStart);
+    setRangeEnd(safeEnd);
+    setSelectedVerseKey(`${audioState.currentSurah}:${safeStart}`);
+    updateAudioPrefs({ queueLoop: 'infinite' });
+    void audioQueueService.startSegmentQueue({
+      items: [
+        {
+          id: `range-${audioState.currentSurah}-${safeStart}-${safeEnd}`,
+          type: 'ayah_range',
+          label: `${audioState.currentSurahName} ${safeStart}–${safeEnd}`,
+          surah: audioState.currentSurah,
+          startAyah: safeStart,
+          endAyah: safeEnd,
+        },
+      ],
+      title: `${audioState.currentSurahName} (${safeStart}–${safeEnd})`,
+      context: 'custom',
+      contextKey: `range:${audioState.currentSurah}:${safeStart}-${safeEnd}`,
+      manifest,
+      meta,
+      prefs: { ...audioPrefs, queueLoop: 'infinite' },
+      queueLoopOverride: 'infinite',
+    });
+    setShowRangeLoopEditor(false);
   };
 
   const handleOpenListeningDrawer = () => {
+    sfxService.play('click');
     setIsExpanded(false);
+    setIsAyahPickerOpen(false);
     openListeningDrawer({
       initialTab: audioState.context === 'playlist' ? 'playlists' : 'quick',
       surah: audioState.currentSurah ?? undefined,
@@ -209,6 +317,8 @@ export const AudioPlayerBar: React.FC = () => {
     if (!audioState.currentSurah || !audioState.currentAyah) return;
     sfxService.play('click');
     setIsExpanded(false);
+    setIsAyahPickerOpen(false);
+    setSelectedVerseKey(`${audioState.currentSurah}:${audioState.currentAyah}`);
     navigateToStudy({
       surah: audioState.currentSurah,
       ayah: audioState.currentAyah,
@@ -225,13 +335,26 @@ export const AudioPlayerBar: React.FC = () => {
             studyProgress.lastRead.page !== audioState.currentPage))));
 
   const activeLoopBadge =
-    audioState.totalQueueRounds !== 1
-      ? audioState.totalQueueRounds === 'infinite'
-        ? '∞'
-        : `${audioState.currentQueueRound}/${audioState.totalQueueRounds}`
-      : audioState.totalRepeats !== 1
-        ? `${audioState.currentRepeat}/${audioState.totalRepeats}`
-        : null;
+    audioState.totalRepeats === 'infinite'
+      ? '∞ Ayet'
+      : audioState.totalQueueRounds !== 1
+        ? audioState.totalQueueRounds === 'infinite'
+          ? '∞'
+          : `${audioState.currentQueueRound}/${audioState.totalQueueRounds}`
+        : audioState.totalRepeats !== 1
+          ? `${audioState.currentRepeat}/${audioState.totalRepeats}`
+          : null;
+
+  const isPageLoopActive =
+    audioPrefs.queueLoop === 'infinite' &&
+    audioState.context === 'page' &&
+    !showRangeLoopEditor;
+  const isRangeLoopActive =
+    showRangeLoopEditor ||
+    (audioState.context === 'custom' &&
+      Boolean(audioState.contextKey?.startsWith('range:')) &&
+      audioState.totalQueueRounds === 'infinite');
+  const isContinuousFlowActive = !isPageLoopActive && !isRangeLoopActive;
 
   return (
     <div
@@ -241,11 +364,13 @@ export const AudioPlayerBar: React.FC = () => {
         isSidebarCollapsed ? 'lg:left-0' : 'lg:left-64 xl:left-68'
       } z-[35] px-2 sm:px-4 pointer-events-none`}
     >
-      <div className="pointer-events-auto max-w-2xl mx-auto flex flex-col gap-1.5">
-        {/* Açılır Kompakt Ses Ayarları Paneli (Yalnızca ▴ ikonuyla açılır) */}
+      <div className="pointer-events-auto max-w-2xl mx-auto flex flex-col gap-1.5 relative">
+        {/* ================================================================
+            A. GENİŞLETİLMİŞ SES ÇEKMECESİ (Yalnızca ▴ ikonuyla açılır)
+            ================================================================ */}
         {showDetailsPanel && (
           <div
-            className="rounded-2xl border backdrop-blur-md shadow-xl p-3 space-y-2.5 text-xs"
+            className="rounded-2xl border backdrop-blur-md shadow-2xl p-3.5 space-y-3 text-xs max-h-[70dvh] overflow-y-auto"
             style={{
               backgroundColor: 'var(--bg-nav)',
               borderColor: 'var(--border-strong)',
@@ -260,7 +385,7 @@ export const AudioPlayerBar: React.FC = () => {
                   color: 'var(--brand-accent-text)',
                 }}
               >
-                <span className="font-semibold">Alternatif ses kaynağına geçin:</span>
+                <span className="font-semibold">Alternatif ses kaynağına geçebilirsiniz:</span>
                 <div className="flex flex-wrap items-center gap-1.5">
                   {mealSources.map((src) => (
                     <button
@@ -300,13 +425,7 @@ export const AudioPlayerBar: React.FC = () => {
                   className="font-semibold text-left hover:underline cursor-pointer truncate"
                 >
                   Metin: <strong>{activePrimaryMeal.shortLabel}</strong> · Ses:{' '}
-                  <strong>
-                    {activeMealAudioSource.id === 'tdv'
-                      ? 'TDV'
-                      : activeMealAudioSource.id === 'dib'
-                        ? 'DİB'
-                        : activeMealAudioSource.shortLabel}
-                  </strong>
+                  <strong>{spokenMealShort}</strong>
                 </button>
                 <button
                   type="button"
@@ -323,23 +442,29 @@ export const AudioPlayerBar: React.FC = () => {
               </div>
             )}
 
-            {/* Satır 1: Ses Akışı + Okuyucu (27 Kurrâ) */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            {/* 1. Dinleme Modu */}
+            <div className="space-y-1.5">
+              <span
+                className="block text-[10px] font-extrabold uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Dinleme Modu
+              </span>
               <div
-                className="flex items-center p-0.5 rounded-xl"
+                className="grid grid-cols-3 gap-1 p-1 rounded-xl"
                 style={{ backgroundColor: 'var(--bg-surface-soft)' }}
               >
-                {MODE_LABELS.map((item) => {
+                {FULL_MODE_OPTIONS.map((item) => {
                   const active = audioPrefs.mode === item.id;
                   return (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => handleModeChange(item.id)}
-                      className="min-h-[32px] px-2.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
+                      className="min-h-[32px] px-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
                       style={{
                         backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                        color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                         boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                       }}
                     >
@@ -348,184 +473,316 @@ export const AudioPlayerBar: React.FC = () => {
                   );
                 })}
               </div>
+            </div>
 
-              {audioPrefs.mode !== 'meal' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    openReciterSelector();
-                  }}
-                  title={`Kur'an okuyucu: ${activeReciter.label}`}
-                  className="min-h-[34px] px-2.5 rounded-xl border font-bold cursor-pointer max-w-[205px] flex items-center gap-1.5"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
-                  }}
-                >
+            {/* 2. Okuyucu & Sesli Meal Kaynağı */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  openReciterSelector();
+                }}
+                title={`Kur'an okuyucu: ${activeReciter.label}`}
+                className="min-h-[34px] px-2.5 rounded-xl border font-bold cursor-pointer flex-1 min-w-[180px] flex items-center justify-between gap-2"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <span className="flex items-center gap-1.5 min-w-0">
                   <Headphones
                     className="w-3.5 h-3.5 shrink-0"
                     style={{ color: 'var(--brand-primary-text)' }}
                   />
-                  <span className="truncate">{activeReciter.shortLabel}</span>
-                  <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65" />
-                </button>
+                  <span className="truncate">{activeReciter.label}</span>
+                </span>
+                <span
+                  className="text-[11px] font-extrabold flex items-center gap-0.5 shrink-0"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  <span>Değiştir</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </span>
+              </button>
+
+              {mealSources.length > 0 && (
+                <div
+                  className="flex items-center p-0.5 rounded-xl border shrink-0"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <span
+                    className="px-2 text-[10px] font-extrabold uppercase tracking-wider"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Meal
+                  </span>
+                  {mealSources.map((src) => {
+                    const active = audioPrefs.mealAudioSource === src.id;
+                    const label =
+                      src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
+                    return (
+                      <button
+                        key={src.id}
+                        type="button"
+                        onClick={() => handleMealSourceChange(src.id)}
+                        className="min-h-[30px] px-2.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-accent-text)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
-            {/* Satır 2: Sesli Meal Kaynağı + Hız + Tekrar + Sunum */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {(audioPrefs.mode !== 'ar' || audioState.activePhase === 'meal') &&
-                  mealSources.length > 0 && (
-                    <div
-                      className="flex items-center p-0.5 rounded-xl"
-                      style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-                    >
-                      {mealSources.map((src) => {
-                        const active = audioPrefs.mealAudioSource === src.id;
-                        const label =
-                          src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
-                        return (
-                          <button
-                            key={src.id}
-                            type="button"
-                            onClick={() => handleMealSourceChange(src.id)}
-                            className="min-h-[32px] px-2.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
-                            style={{
-                              backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                              color: active ? 'var(--brand-accent-text)' : 'var(--text-muted)',
-                            }}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                <button
-                  type="button"
-                  onClick={cycleRate}
-                  title="Oynatma hızı"
-                  className="min-h-[34px] px-2.5 rounded-xl border font-bold tabular-nums cursor-pointer"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
-                  }}
+            {/* 3. Okuma Hızı & Ayet Tekrarı */}
+            <div
+              className="pt-2.5 border-t grid grid-cols-1 sm:grid-cols-2 gap-2.5"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className="text-[11px] font-bold whitespace-nowrap"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
-                  {audioPrefs.playbackRate}x
-                </button>
-
-                <button
-                  type="button"
-                  onClick={cycleRepeat}
-                  title="Ayet tekrarı (1x · 2x · 3x · 5x · 10x)"
-                  className="min-h-[34px] px-2.5 rounded-xl border font-bold tabular-nums flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                  style={{
-                    backgroundColor:
-                      audioPrefs.repeatCount !== 1
-                        ? 'var(--brand-primary-soft)'
-                        : 'var(--bg-surface)',
-                    borderColor:
-                      audioPrefs.repeatCount !== 1 ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                    color:
-                      audioPrefs.repeatCount !== 1
-                        ? 'var(--brand-primary-text)'
-                        : 'var(--text-primary)',
-                  }}
+                  Okuma Hızı
+                </span>
+                <div
+                  className="inline-flex items-center p-0.5 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
                 >
-                  <Repeat1 className="w-3.5 h-3.5 shrink-0" />
-                  <span>Ayet {formatLoopShort(audioPrefs.repeatCount)}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={cycleQueueLoop}
-                  title="Bölüm / Liste döngüsü (1x · 2x · 3x · 5x · 10x · ∞)"
-                  className="min-h-[34px] px-2.5 rounded-xl border font-bold tabular-nums flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                  style={{
-                    backgroundColor:
-                      (audioPrefs.queueLoop ?? 1) !== 1
-                        ? 'var(--brand-accent-soft)'
-                        : 'var(--bg-surface)',
-                    borderColor:
-                      (audioPrefs.queueLoop ?? 1) !== 1
-                        ? 'var(--brand-accent)'
-                        : 'var(--border-subtle)',
-                    color:
-                      (audioPrefs.queueLoop ?? 1) !== 1
-                        ? 'var(--brand-accent-text)'
-                        : 'var(--text-primary)',
-                  }}
-                >
-                  <Repeat className="w-3.5 h-3.5 shrink-0" />
-                  <span>Liste {formatLoopShort(audioPrefs.queueLoop ?? 1)}</span>
-                </button>
+                  {PLAYBACK_RATES.map((rate) => {
+                    const active = audioPrefs.playbackRate === rate;
+                    return (
+                      <button
+                        key={rate}
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          updateAudioPrefs({ playbackRate: rate });
+                        }}
+                        className="h-7 px-2 rounded-lg text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {rate}x
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <button
-                  type="button"
-                  onClick={handleOpenListeningDrawer}
-                  title="Dinleme kapsamı, döngü ve çalma listeleri"
-                  className="min-h-[34px] px-2.5 rounded-xl border font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
-                  }}
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className="text-[11px] font-bold whitespace-nowrap"
+                  style={{ color: 'var(--text-secondary)' }}
                 >
-                  <ListMusic className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                  <span>Liste &amp; Kapsam</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleOpenPresentation}
-                  title="Tam ekran Sunum Modunu aç"
-                  className="min-h-[34px] px-2.5 rounded-xl border font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                  style={{
-                    backgroundColor: 'var(--brand-primary-soft)',
-                    borderColor: 'var(--brand-primary)',
-                    color: 'var(--brand-primary-text)',
-                  }}
+                  Ayet Tekrarı
+                </span>
+                <div
+                  className="inline-flex items-center p-0.5 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
                 >
-                  <MonitorPlay className="w-3.5 h-3.5 shrink-0" />
-                  <span>Sunum</span>
-                </button>
+                  {REPEAT_COUNTS.map((rep) => {
+                    const active = audioPrefs.repeatCount === rep;
+                    return (
+                      <button
+                        key={String(rep)}
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          updateAudioPrefs({ repeatCount: rep });
+                        }}
+                        className="h-7 px-2 rounded-lg text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {rep === 'infinite' ? '∞' : `${rep}x`}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Satır 3: Okunan Metni Ekranda Göster + Metne Git */}
+            {/* 4. Kapsam / Aralık Döngüsü */}
             <div
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t"
+              className="pt-2.5 border-t space-y-2"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <span
+                className="block text-[10px] font-extrabold uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Kapsam &amp; Aralık Döngüsü
+              </span>
+
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleSetContinuousFlow}
+                  className="min-h-[32px] px-2 rounded-xl border text-[11px] font-bold cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: isContinuousFlowActive
+                      ? 'var(--brand-primary-soft)'
+                      : 'var(--bg-surface)',
+                    borderColor: isContinuousFlowActive
+                      ? 'var(--brand-primary)'
+                      : 'var(--border-subtle)',
+                    color: isContinuousFlowActive
+                      ? 'var(--brand-primary-text)'
+                      : 'var(--text-secondary)',
+                  }}
+                >
+                  Sürekli İlerle
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLoopCurrentPage}
+                  className="min-h-[32px] px-2 rounded-xl border text-[11px] font-bold cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: isPageLoopActive
+                      ? 'var(--brand-accent-soft)'
+                      : 'var(--bg-surface)',
+                    borderColor: isPageLoopActive
+                      ? 'var(--brand-accent)'
+                      : 'var(--border-subtle)',
+                    color: isPageLoopActive
+                      ? 'var(--brand-accent-text)'
+                      : 'var(--text-secondary)',
+                  }}
+                >
+                  Bu Sayfayı Tekrarla
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setShowRangeLoopEditor((v) => !v);
+                  }}
+                  className="min-h-[32px] px-2 rounded-xl border text-[11px] font-bold cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: isRangeLoopActive
+                      ? 'var(--brand-accent-soft)'
+                      : 'var(--bg-surface)',
+                    borderColor: isRangeLoopActive
+                      ? 'var(--brand-accent)'
+                      : 'var(--border-subtle)',
+                    color: isRangeLoopActive
+                      ? 'var(--brand-accent-text)'
+                      : 'var(--text-secondary)',
+                  }}
+                >
+                  Ayet Aralığı Seç
+                </button>
+              </div>
+
+              {showRangeLoopEditor && audioState.currentSurah && (
+                <div
+                  className="rounded-xl border p-2.5 flex flex-wrap items-center justify-between gap-2"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className="text-[11px] font-extrabold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {audioState.currentSurahName}:
+                    </span>
+                    <label className="inline-flex items-center gap-1 text-[11px] font-semibold">
+                      <span style={{ color: 'var(--text-muted)' }}>Başlangıç</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={maxAyahInSurah}
+                        value={rangeStart}
+                        onChange={(e) => setRangeStart(Number(e.target.value))}
+                        className="w-14 h-7 px-1.5 rounded-lg border text-center font-bold tabular-nums"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-primary)',
+                        }}
+                      />
+                    </label>
+                    <span style={{ color: 'var(--text-muted)' }}>–</span>
+                    <label className="inline-flex items-center gap-1 text-[11px] font-semibold">
+                      <span style={{ color: 'var(--text-muted)' }}>Bitiş</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={maxAyahInSurah}
+                        value={rangeEnd}
+                        onChange={(e) => setRangeEnd(Number(e.target.value))}
+                        className="w-14 h-7 px-1.5 rounded-lg border text-center font-bold tabular-nums"
+                        style={{
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-primary)',
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleStartRangeLoop}
+                    className="h-8 px-3 rounded-lg text-[11px] font-extrabold text-white flex items-center gap-1.5 cursor-pointer shrink-0"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <Repeat className="w-3.5 h-3.5" />
+                    <span>Aralığı Döngüde Başlat</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 5. Takip Satırı & Çalma Listeleri */}
+            <div
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2.5 border-t"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
               <button
                 type="button"
                 role="switch"
-                aria-checked={audioPrefs.showTextOnStart}
+                aria-checked={audioPrefs.autoScroll}
                 onClick={() => {
                   sfxService.play('click');
-                  updateAudioPrefs({ showTextOnStart: !audioPrefs.showTextOnStart });
+                  const next = !audioPrefs.autoScroll;
+                  updateAudioPrefs({ autoScroll: next, showTextOnStart: next });
                 }}
-                className="flex items-center gap-2 text-left min-w-0 cursor-pointer py-0.5"
-                title="Dinleme başlatınca Okuma ekranını otomatik aç"
+                className="flex items-center gap-2 text-left cursor-pointer py-0.5"
+                title="Okunan ayeti ekranda otomatik ortala ve sayfa değiştir"
               >
                 <span
                   className="w-8 h-4.5 rounded-full p-0.5 transition-colors shrink-0 flex items-center"
                   style={{
-                    backgroundColor: audioPrefs.showTextOnStart
+                    backgroundColor: audioPrefs.autoScroll
                       ? 'var(--brand-primary)'
                       : 'var(--border-strong)',
                   }}
                 >
                   <span
                     className={`w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${
-                      audioPrefs.showTextOnStart ? 'translate-x-3.5' : 'translate-x-0'
+                      audioPrefs.autoScroll ? 'translate-x-3.5' : 'translate-x-0'
                     }`}
                   />
                 </span>
@@ -533,40 +790,16 @@ export const AudioPlayerBar: React.FC = () => {
                   className="text-[11px] font-bold leading-snug"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  Okunan metni ekranda göster
+                  Okunan Ayeti Ekranda Takip Et
                 </span>
               </button>
 
-              {audioState.currentSurah && audioState.currentAyah && (
-                <div className="grid grid-cols-2 sm:flex items-center gap-1.5 w-full sm:w-auto shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!audioState.currentSurah || !audioState.currentAyah) return;
-                      sfxService.play('click');
-                      openQuickResearch(
-                        audioState.currentSurah,
-                        audioState.currentAyah,
-                        audioState.currentAyah,
-                        audioState.currentPage ?? undefined,
-                      );
-                    }}
-                    title="Çalan ayeti araştırma defterime ekle"
-                    className="min-h-[34px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
-                    style={{
-                      backgroundColor: 'var(--brand-accent-soft)',
-                      borderColor: 'rgba(217, 119, 6, 0.35)',
-                      color: 'var(--brand-accent-text)',
-                    }}
-                  >
-                    <Pin className="w-3.5 h-3.5 shrink-0" />
-                    <span>Araştırmaya Ekle</span>
-                  </button>
-
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                {audioState.currentSurah && audioState.currentAyah && (
                   <button
                     type="button"
                     onClick={handleJumpToPlayingText}
-                    className="min-h-[34px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
+                    className="min-h-[32px] px-2.5 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
                       borderColor: 'var(--border-subtle)',
@@ -574,34 +807,53 @@ export const AudioPlayerBar: React.FC = () => {
                     }}
                   >
                     <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                    <span>Metne Git</span>
+                    <span>Okunan Ayete Git</span>
                   </button>
-                </div>
-              )}
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleOpenListeningDrawer}
+                  className="min-h-[32px] px-2.5 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <ListMusic
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  />
+                  <span>Çalma Listeleri</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Tek Satır İnce Mini Oynatıcı Barı (h-14) */}
+        {/* ================================================================
+            B. MİNİ YÜZEN OYNATICI ÇUBUĞU
+            ================================================================ */}
         <div
-          className="h-14 rounded-2xl border backdrop-blur-md shadow-xl px-2 sm:px-3.5 flex items-center justify-between gap-1.5 sm:gap-2"
+          className="min-h-[58px] py-1.5 rounded-2xl border backdrop-blur-md shadow-xl px-2 sm:px-3 flex items-center justify-between gap-1.5 sm:gap-2"
           style={{
             backgroundColor: 'var(--bg-nav)',
             borderColor: 'var(--border-strong)',
           }}
         >
-          {/* Sol: Sure:Ayet + Okuyucu (Tek dokunuşla detayları aç/kapa) */}
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setIsExpanded(!isExpanded);
-            }}
-            className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 text-left cursor-pointer"
-            title="Ses ayarlarını aç/kapat"
-          >
-            <span
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0"
+          {/* Sol: Ses İkonu + Tıklanabilir Sure · Ayet ▾ Seçici + İkinci Satır Bilgisi */}
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsAyahPickerOpen(false);
+                setIsExpanded(!isExpanded);
+              }}
+              title="Ses ayarlarını aç veya kapat"
+              aria-label="Ses ayarlarını aç veya kapat"
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-85"
               style={{
                 backgroundColor: audioState.missingMealAudio
                   ? 'var(--brand-accent-soft)'
@@ -616,13 +868,109 @@ export const AudioPlayerBar: React.FC = () => {
               ) : (
                 <Volume2 className={`w-4 h-4 ${isPlaying ? 'animate-pulse' : ''}`} />
               )}
-            </span>
+            </button>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 min-w-0">
-                <p className="text-xs sm:text-sm font-extrabold truncate tabular-nums leading-tight">
-                  {audioState.currentSurahName} : {audioState.currentAyah}
-                </p>
+                {/* Tıklanabilir Sure · Ayet ▾ Hızlı Atlayıcı */}
+                <div ref={ayahPickerRef} className="relative min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setAyahFilterText('');
+                      setIsAyahPickerOpen((v) => !v);
+                    }}
+                    aria-expanded={isAyahPickerOpen}
+                    title="Bu sure içinde başka bir ayete atla"
+                    className="inline-flex items-center gap-1 max-w-full px-1.5 py-0.5 -ml-1.5 rounded-lg text-xs sm:text-sm font-extrabold tabular-nums leading-tight cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <span className="truncate">
+                      {audioState.currentSurahName} · {audioState.currentAyah}. Ayet
+                    </span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 shrink-0 opacity-65 transition-transform ${
+                        isAyahPickerOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {isAyahPickerOpen && audioState.currentSurah && (
+                    <div
+                      className="absolute left-0 bottom-10 z-50 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border shadow-2xl p-2.5 space-y-2"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-strong)',
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className="text-[11px] font-extrabold truncate"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {audioState.currentSurahName} ({maxAyahInSurah} ayet)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsAyahPickerOpen(false)}
+                          aria-label="Ayet seçiciyi kapat"
+                          className="w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {maxAyahInSurah > 20 && (
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={ayahFilterText}
+                          onChange={(e) => setAyahFilterText(e.target.value)}
+                          placeholder="Ayet no ara..."
+                          className="w-full h-8 px-2.5 rounded-xl border text-xs font-semibold outline-none"
+                          style={{
+                            backgroundColor: 'var(--bg-surface-soft)',
+                            borderColor: 'var(--border-subtle)',
+                            color: 'var(--text-primary)',
+                          }}
+                        />
+                      )}
+
+                      <div className="grid grid-cols-5 gap-1 max-h-48 overflow-y-auto pr-0.5">
+                        {ayahOptions.map((ayahNo) => {
+                          const isCurrent = ayahNo === audioState.currentAyah;
+                          return (
+                            <button
+                              key={ayahNo}
+                              type="button"
+                              onClick={() => handleSelectQuickAyah(ayahNo)}
+                              className="h-8 rounded-lg text-xs font-bold tabular-nums cursor-pointer transition-colors"
+                              style={{
+                                backgroundColor: isCurrent
+                                  ? 'var(--brand-primary)'
+                                  : 'var(--bg-surface-soft)',
+                                color: isCurrent ? '#FFFFFF' : 'var(--text-primary)',
+                              }}
+                            >
+                              {ayahNo}
+                            </button>
+                          );
+                        })}
+                        {ayahOptions.length === 0 && (
+                          <p
+                            className="col-span-5 py-3 text-center text-[11px]"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            Eşleşen ayet bulunamadı.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {activeLoopBadge && (
                   <span
                     className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums shrink-0"
@@ -630,13 +978,14 @@ export const AudioPlayerBar: React.FC = () => {
                       backgroundColor: 'var(--brand-accent-soft)',
                       color: 'var(--brand-accent-text)',
                     }}
-                    title="Aktif döngü / tekrar"
+                    title="Aktif döngü veya ayet tekrarı"
                   >
                     <Repeat className="w-2.5 h-2.5" />
                     <span>{activeLoopBadge}</span>
                   </span>
                 )}
               </div>
+
               <p
                 className="text-[11px] font-medium truncate leading-tight mt-0.5"
                 style={{
@@ -650,7 +999,35 @@ export const AudioPlayerBar: React.FC = () => {
                 {compactSubtitle}
               </p>
             </div>
-          </button>
+          </div>
+
+          {/* Orta-Sağ (Masaüstü md+): Kompakt [ AR | Meal | AR+Meal ] Mod Anahtarı */}
+          <div
+            className="hidden md:flex items-center p-0.5 rounded-xl border shrink-0"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            {COMPACT_MODE_OPTIONS.map((item) => {
+              const active = audioPrefs.mode === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleModeChange(item.id)}
+                  className="h-7 px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                    color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  }}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
 
           {/* Sağ: (📖 Metne Git) ⏮ ▶/⏸ ⏭ ▴ ✕ */}
           <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
@@ -658,7 +1035,7 @@ export const AudioPlayerBar: React.FC = () => {
               <button
                 type="button"
                 onClick={handleJumpToPlayingText}
-                aria-label="Okunan metne git"
+                aria-label="Okunan ayete git"
                 title={`Okuma ekranında aç (${audioState.currentSurahName} ${audioState.currentAyah})`}
                 className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl border flex items-center justify-center gap-1 text-[11px] font-extrabold transition-colors cursor-pointer whitespace-nowrap"
                 style={{
@@ -685,7 +1062,7 @@ export const AudioPlayerBar: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => audioQueueService.togglePlayPause()}
+              onClick={handleMainPlayPause}
               disabled={audioState.missingMealAudio}
               aria-label={isPlaying ? 'Duraklat' : 'Oynat'}
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform active:scale-95 cursor-pointer disabled:opacity-45"
@@ -715,11 +1092,12 @@ export const AudioPlayerBar: React.FC = () => {
               type="button"
               onClick={() => {
                 sfxService.play('click');
+                setIsAyahPickerOpen(false);
                 setIsExpanded(!isExpanded);
               }}
               aria-label={isExpanded ? 'Ses ayarlarını gizle' : 'Ses ayarlarını göster'}
               aria-expanded={showDetailsPanel}
-              title={isExpanded ? 'Ayarları gizle' : 'Okuyucu, akış ve hız ayarları'}
+              title={isExpanded ? 'Ayarları gizle' : 'Dinleme modu, okuyucu, hız ve döngü ayarları'}
               className="w-8 sm:w-9 h-8 sm:h-9 rounded-xl border flex items-center justify-center transition-colors cursor-pointer"
               style={{
                 backgroundColor: showDetailsPanel

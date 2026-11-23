@@ -24,6 +24,7 @@ import {
   StickyNote,
   Trash2,
   Volume2,
+  X,
 } from 'lucide-react';
 import { BOOKMARK_COLOR_STYLES } from '../../components/PageBookmarksDrawer';
 import {
@@ -356,6 +357,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     manifest,
     meta,
     audioPrefs,
+    selectedVerseKey,
+    setSelectedVerseKey,
   } = useAppStore();
 
   const { getRukuEndingAt } = useRukusData(settings.showRukuMarkers);
@@ -469,12 +472,63 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     getVerseWords: getTjVerseWords,
   } = useTajweedData(visibleSurahNos, settings.tajweedEnabled);
 
-  const selectedVerse =
-    allVisibleVerses.find((v) => v.id === selectedVerseId) ?? allVisibleVerses[0] ?? null;
+  const explicitSelectedVerse = useMemo(() => {
+    if (!selectedVerseKey) return null;
+    const [sStr, aStr] = selectedVerseKey.split(':');
+    const s = Number(sStr);
+    const a = Number(aStr);
+    if (!Number.isFinite(s) || !Number.isFinite(a)) return null;
+    return allVisibleVerses.find((v) => v.surah === s && v.ayah === a) ?? null;
+  }, [selectedVerseKey, allVisibleVerses]);
 
-  const selectedSurahMeta = selectedVerse
-    ? surahMetaByNo.get(selectedVerse.surah) ?? pageBundle.segments[0]?.surahMeta ?? null
+  const inspectorVerse =
+    explicitSelectedVerse ??
+    allVisibleVerses.find((v) => v.id === selectedVerseId) ??
+    allVisibleVerses[0] ??
+    null;
+
+  const selectedSurahMeta = inspectorVerse
+    ? surahMetaByNo.get(inspectorVerse.surah) ?? pageBundle.segments[0]?.surahMeta ?? null
     : pageBundle.segments[0]?.surahMeta ?? null;
+
+  const handleSelectOrToggleVerse = useCallback(
+    (verse: CombinedVerse, source: 'arabic' | 'meal') => {
+      const selText =
+        typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
+      if (selText) return;
+
+      sfxService.play('click');
+      const verseKey = `${verse.surah}:${verse.ayah}`;
+      const isAlreadySelected = selectedVerseKey === verseKey;
+
+      if (source === 'arabic' && effectiveLayout === 'rahle_dual') {
+        setSelectedVerseKey(verseKey);
+        onSelectVerse(verse);
+        audioQueueService.syncPausedSelection(verse, meta);
+        setIsVerseDrawerOpen(true);
+        return;
+      }
+
+      if (isAlreadySelected && !isVerseDrawerOpen) {
+        setSelectedVerseKey(null);
+        return;
+      }
+
+      setSelectedVerseKey(verseKey);
+      onSelectVerse(verse);
+      audioQueueService.syncPausedSelection(verse, meta);
+
+      if (isDoubleMeal) {
+        if (source === 'arabic') {
+          syncLeftMealToVerse(verse.id);
+        } else {
+          syncRightMushafToVerse(verse.id);
+        }
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedVerseKey, effectiveLayout, isVerseDrawerOpen, isDoubleMeal, meta, onSelectVerse, setSelectedVerseKey],
+  );
 
   const bottomReservePx = isAudioBarExpanded ? 112 : isAudioBarVisible ? 32 : 20;
 
@@ -672,6 +726,15 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
         return;
       }
 
+      if (e.key === 'Escape') {
+        if (isVerseDrawerOpen) {
+          setIsVerseDrawerOpen(false);
+        } else if (selectedVerseKey) {
+          setSelectedVerseKey(null);
+        }
+        return;
+      }
+
       if (e.key === 'ArrowLeft' && !leftActionDisabled) {
         e.preventDefault();
         onChangePage(leftActionTarget);
@@ -683,7 +746,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [leftActionDisabled, leftActionTarget, rightActionDisabled, rightActionTarget, onChangePage]);
+  }, [
+    isVerseDrawerOpen,
+    selectedVerseKey,
+    setSelectedVerseKey,
+    leftActionDisabled,
+    leftActionTarget,
+    rightActionDisabled,
+    rightActionTarget,
+    onChangePage,
+  ]);
 
   // Mobilde yatay parmak kaydırma ile sayfa çevirme (LTR / RTL uyumlu)
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -1158,7 +1230,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           }}
                         >
                           {segment.verses.map((verse) => {
-                            const isSelected = selectedVerse?.id === verse.id;
+                            const isSelected = explicitSelectedVerse?.id === verse.id;
                             const isPlaying =
                               playingAyahId === verse.id && audioState.activePhase !== 'besmele';
                             const isSajdah = SAJDAH_AYAH_IDS.has(verse.id);
@@ -1178,7 +1250,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 ? 'transparent'
                                 : softPlayingBg
                               : isSelected
-                                ? 'rgba(217, 119, 6, 0.18)'
+                                ? 'rgba(217, 119, 6, 0.20)'
                                 : highlightSajdah
                                   ? 'rgba(217, 119, 6, 0.10)'
                                   : 'transparent';
@@ -1188,14 +1260,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 key={verse.id}
                                 id={`mushaf-ayah-${verse.id}`}
                                 data-ayah-id={verse.id}
-                                onClick={() => {
-                                  sfxService.play('click');
-                                  onSelectVerse(verse);
-                                  if (isDoubleMeal) {
-                                    syncLeftMealToVerse(verse.id);
-                                  }
-                                  setIsVerseDrawerOpen(true);
-                                }}
+                                onClick={() => handleSelectOrToggleVerse(verse, 'arabic')}
                                 role="button"
                                 tabIndex={0}
                                 title={
@@ -1206,12 +1271,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    sfxService.play('click');
-                                    onSelectVerse(verse);
-                                    if (isDoubleMeal) {
-                                      syncLeftMealToVerse(verse.id);
-                                    }
-                                    setIsVerseDrawerOpen(true);
+                                    handleSelectOrToggleVerse(verse, 'arabic');
                                   }
                                 }}
                                 className={`inline rounded-lg px-1.5 py-0.5 transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
@@ -1621,7 +1681,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                               ? (group.verses.find((v) => v.id === playingAyahId) ?? null)
                               : null;
                           const selectedVerseInGroup =
-                            group.verses.find((v) => v.id === selectedVerse?.id) ?? null;
+                            group.verses.find((v) => v.id === explicitSelectedVerse?.id) ?? null;
                           const targetVerse =
                             playingVerseInGroup ?? selectedVerseInGroup ?? group.verses[0];
                           const isGroupPlaying = Boolean(playingVerseInGroup);
@@ -1654,11 +1714,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                             : null;
 
                           const handleSelectGroupCard = () => {
-                            sfxService.play('click');
-                            onSelectVerse(targetVerse);
-                            if (isDoubleMeal) {
-                              syncRightMushafToVerse(targetVerse.id);
-                            }
+                            handleSelectOrToggleVerse(targetVerse, 'meal');
                           };
 
                           return (
@@ -1732,18 +1788,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                           const chipPlaying =
                                             playingAyahId === v.id &&
                                             audioState.activePhase !== 'besmele';
-                                          const chipSelected = selectedVerse?.id === v.id;
+                                          const chipSelected = explicitSelectedVerse?.id === v.id;
                                           return (
                                             <button
                                               key={`chip-${v.id}`}
                                               type="button"
-                                              onClick={() => {
-                                                sfxService.play('click');
-                                                onSelectVerse(v);
-                                                if (isDoubleMeal) {
-                                                  syncRightMushafToVerse(v.id);
-                                                }
-                                              }}
+                                              onClick={() => handleSelectOrToggleVerse(v, 'meal')}
                                               title={`${v.ayah}. ayeti Mushaf'ta göster`}
                                               className="min-w-[22px] h-5 px-1 rounded-md text-[10px] font-extrabold tabular-nums transition-colors cursor-pointer border"
                                               style={{
@@ -1862,7 +1912,13 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                   >
                                     <button
                                       type="button"
-                                      onClick={() => onPlayFromVerse(targetVerse, false)}
+                                      onClick={() => {
+                                        setSelectedVerseKey(
+                                          `${targetVerse.surah}:${targetVerse.ayah}`,
+                                        );
+                                        onSelectVerse(targetVerse);
+                                        onPlayFromVerse(targetVerse, false);
+                                      }}
                                       title={`${targetVerse.ayah}. ayetten dinle`}
                                       aria-label={`${targetVerse.ayah}. ayetten dinle`}
                                       className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
@@ -1990,7 +2046,11 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       type="button"
                                       onClick={() => {
                                         sfxService.play('click');
+                                        setSelectedVerseKey(
+                                          `${targetVerse.surah}:${targetVerse.ayah}`,
+                                        );
                                         onSelectVerse(targetVerse);
+                                        audioQueueService.syncPausedSelection(targetVerse, meta);
                                         setIsVerseDrawerOpen(true);
                                       }}
                                       title={`${targetVerse.ayah}. ayet detayı, dipnot ve kelime meali`}
@@ -2292,10 +2352,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           isBookSpread
             ? `space-y-2.5 lg:flex lg:flex-col lg:gap-0 lg:space-y-0 lg:overflow-visible ${
                 isAudioBarVisible
-                  ? 'lg:h-[calc(100dvh-10.25rem)] lg:min-h-[480px]'
+                  ? 'lg:h-[calc(100dvh-11.25rem)] lg:min-h-[460px]'
                   : 'lg:h-[calc(100dvh-5.75rem)] lg:min-h-[640px]'
               }`
-            : 'max-w-[54rem] mx-auto w-full space-y-2'
+            : `max-w-[54rem] mx-auto w-full space-y-2 ${isAudioBarVisible ? 'pb-24 lg:pb-20' : ''}`
         }
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -2456,9 +2516,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           </div>
         </div>
 
-        {/* Entegre Rahle Alt Kontrol Kapsülü (Tüm Sayfa & Ayet İncele Kontrolleri Korunur) */}
+        {/* Entegre Rahle Alt Kontrol Kapsülü (Tüm Sayfa & Seçili Ayet Aksiyonları Korunur) */}
         <div
-          className="relative z-20 -mt-2 lg:-mt-2.5 mx-auto w-fit max-w-full min-h-[34px] px-1.5 sm:px-2 py-1 rounded-full border shadow-md backdrop-blur-md flex items-center justify-center gap-1 sm:gap-1.5 shrink-0"
+          className="relative z-20 -mt-2 lg:-mt-2.5 mx-auto w-fit max-w-full min-h-[36px] px-1.5 sm:px-2 py-1 rounded-full border shadow-md backdrop-blur-md flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 shrink-0"
           style={{
             backgroundColor: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
             borderColor: 'var(--border-strong)',
@@ -2504,7 +2564,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               : `Sayfa ${pageBundle.pageNo}`}
           </button>
 
-          {selectedVerse && (
+          {explicitSelectedVerse ? (
             <>
               <span
                 aria-hidden="true"
@@ -2515,10 +2575,42 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 type="button"
                 onClick={() => {
                   sfxService.play('click');
+                  setSelectedVerseKey(null);
+                  setIsVerseDrawerOpen(false);
+                }}
+                title="Ayet seçimini temizle (Esc)"
+                className="min-h-[30px] px-2 rounded-full text-[11px] sm:text-xs font-extrabold tabular-nums inline-flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                <span>
+                  Seçili: {explicitSelectedVerse.surah}:{explicitSelectedVerse.ayah}
+                </span>
+                <X className="w-3 h-3 shrink-0 opacity-75" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  onPlayFromVerse(explicitSelectedVerse, false);
+                }}
+                title={`${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah} ayetinden itibaren kesintisiz dinle`}
+                className="min-h-[30px] px-2.5 rounded-full text-[11px] sm:text-xs font-bold text-white inline-flex items-center gap-1 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90"
+                style={{ backgroundColor: 'var(--brand-primary)' }}
+              >
+                <Play className="w-3 h-3 fill-current shrink-0" />
+                <span>Dinle</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
                   setIsVerseDrawerOpen((prev) => !prev);
                 }}
                 aria-pressed={isVerseDrawerOpen}
-                className="min-h-[30px] px-2.5 rounded-full border text-[11.5px] sm:text-xs font-bold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors"
+                className="min-h-[30px] px-2.5 rounded-full border text-[11px] sm:text-xs font-bold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors"
                 style={{
                   backgroundColor: isVerseDrawerOpen
                     ? 'var(--brand-primary)'
@@ -2528,15 +2620,44 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 }}
               >
                 <BookOpen className="w-3 h-3 shrink-0" />
-                <span>
-                  {isVerseDrawerOpen
-                    ? `Kapat (${selectedVerse.ayah})`
-                    : isArOnly || isDualArabic
-                      ? `Meal (${selectedVerse.ayah})`
-                      : `Ayet (${selectedVerse.ayah})`}
-                </span>
+                <span>{isVerseDrawerOpen ? 'Kapat' : 'Meal & Analiz'}</span>
               </button>
             </>
+          ) : (
+            inspectorVerse && (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="h-4 w-px shrink-0"
+                  style={{ backgroundColor: 'var(--border-subtle)' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setIsVerseDrawerOpen((prev) => !prev);
+                  }}
+                  aria-pressed={isVerseDrawerOpen}
+                  className="min-h-[30px] px-2.5 rounded-full border text-[11.5px] sm:text-xs font-bold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors"
+                  style={{
+                    backgroundColor: isVerseDrawerOpen
+                      ? 'var(--brand-primary)'
+                      : 'var(--brand-primary-soft)',
+                    borderColor: 'var(--brand-primary)',
+                    color: isVerseDrawerOpen ? '#FFFFFF' : 'var(--brand-primary-text)',
+                  }}
+                >
+                  <BookOpen className="w-3 h-3 shrink-0" />
+                  <span>
+                    {isVerseDrawerOpen
+                      ? 'Kapat'
+                      : isArOnly || isDualArabic
+                        ? 'Meal'
+                        : 'Ayet İncele'}
+                  </span>
+                </button>
+              </>
+            )
           )}
 
           <span
@@ -2571,15 +2692,21 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           ==================================================================== */}
       <DraggableVerseInspector
         isOpen={isVerseDrawerOpen}
-        verse={selectedVerse}
+        verse={inspectorVerse}
         surahMeta={selectedSurahMeta}
         settings={settings}
         wordMode={wordMode}
-        isBookmarked={Boolean(selectedVerse && bookmarkedSet.has(selectedVerse.id))}
-        isPlaying={Boolean(selectedVerse && playingAyahId === selectedVerse.id)}
+        isBookmarked={Boolean(inspectorVerse && bookmarkedSet.has(inspectorVerse.id))}
+        isPlaying={Boolean(inspectorVerse && playingAyahId === inspectorVerse.id)}
         onClose={() => setIsVerseDrawerOpen(false)}
-        onPlayFromVerse={(v) => onPlayFromVerse(v, false)}
-        onPlayMealFromVerse={onPlayMealFromVerse}
+        onPlayFromVerse={(v) => {
+          setSelectedVerseKey(`${v.surah}:${v.ayah}`);
+          onPlayFromVerse(v, false);
+        }}
+        onPlayMealFromVerse={(v) => {
+          setSelectedVerseKey(`${v.surah}:${v.ayah}`);
+          onPlayMealFromVerse(v);
+        }}
         onToggleBookmark={onToggleBookmark}
         onShareVerse={onShareVerse}
         onOpenSurahInfo={onOpenSurahInfo}

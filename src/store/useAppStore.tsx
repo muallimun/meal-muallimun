@@ -248,7 +248,7 @@ function createDefaultAudioPlaylists(): AudioPlaylist[] {
 }
 
 function isValidRepeatCount(val: unknown): val is RepeatCountOption {
-  return val === 1 || val === 2 || val === 3 || val === 5 || val === 10;
+  return val === 1 || val === 2 || val === 3 || val === 5 || val === 10 || val === 'infinite';
 }
 
 function isValidQueueLoop(val: unknown): val is QueueLoopOption {
@@ -1168,6 +1168,12 @@ interface AppContextValue {
   setIsMobileReaderImmersive: (active: boolean) => void;
   isAudioBarExpanded: boolean;
   setIsAudioBarExpanded: (expanded: boolean) => void;
+  selectedVerseKey: string | null;
+  setSelectedVerseKey: (verseKey: string | null) => void;
+  registerReaderSmartPlay: (
+    handler: ((options?: { forceSwitchToSelected?: boolean }) => void) | null,
+  ) => void;
+  triggerSmartReaderPlay: (options?: { forceSwitchToSelected?: boolean }) => boolean;
   quickMemorizeSeed: QuickMemorizeSeed | null;
   openQuickMemorize: (
     surah: number,
@@ -1316,6 +1322,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isMemorizationZenActive, setIsMemorizationZenActive] = useState(false);
   const [isMobileReaderImmersive, setIsMobileReaderImmersive] = useState(false);
   const [isAudioBarExpanded, setIsAudioBarExpanded] = useState(false);
+  const [selectedVerseKey, setSelectedVerseKey] = useState<string | null>(null);
+  const readerSmartPlayHandlerRef = useRef<
+    ((options?: { forceSwitchToSelected?: boolean }) => void) | null
+  >(null);
+  const registerReaderSmartPlay = useCallback(
+    (handler: ((options?: { forceSwitchToSelected?: boolean }) => void) | null) => {
+      readerSmartPlayHandlerRef.current = handler;
+    },
+    [],
+  );
+  const triggerSmartReaderPlay = useCallback(
+    (options?: { forceSwitchToSelected?: boolean }): boolean => {
+      if (readerSmartPlayHandlerRef.current) {
+        readerSmartPlayHandlerRef.current(options);
+        return true;
+      }
+      return false;
+    },
+    [],
+  );
   const [quickMemorizeSeed, setQuickMemorizeSeed] = useState<QuickMemorizeSeed | null>(null);
   const [quickResearchSeed, setQuickResearchSeed] = useState<QuickResearchSeed | null>(null);
 
@@ -2951,6 +2977,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsMobileReaderImmersive,
       isAudioBarExpanded,
       setIsAudioBarExpanded,
+      selectedVerseKey,
+      setSelectedVerseKey,
+      registerReaderSmartPlay,
+      triggerSmartReaderPlay,
       quickMemorizeSeed,
       openQuickMemorize,
       closeQuickMemorize,
@@ -3091,6 +3121,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isMemorizationZenActive,
       isMobileReaderImmersive,
       isAudioBarExpanded,
+      selectedVerseKey,
+      registerReaderSmartPlay,
+      triggerSmartReaderPlay,
       quickMemorizeSeed,
       openQuickMemorize,
       closeQuickMemorize,

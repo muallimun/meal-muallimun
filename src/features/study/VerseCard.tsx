@@ -117,6 +117,8 @@ export const VerseCard: React.FC<VerseCardProps> = ({
     manifest,
     meta,
     audioPrefs,
+    selectedVerseKey,
+    setSelectedVerseKey,
   } = useAppStore();
   const { getCount: getMutashabihatCount } = useMutashabihatData(true);
   const { getRukuEndingAt } = useRukusData(settings.showRukuMarkers);
@@ -357,27 +359,58 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   };
 
   const highlightSajdah = isSajdah && settings.highlightSajdah;
+  const verseKey = `${verse.surah}:${verse.ayah}`;
+  const isSelected = selectedVerseKey === verseKey;
+
+  const handleToggleSelectCard = () => {
+    const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
+    if (sel) return;
+    sfxService.play('click');
+    if (isSelected) {
+      setSelectedVerseKey(null);
+      return;
+    }
+    setSelectedVerseKey(verseKey);
+    audioQueueService.syncPausedSelection(verse, meta);
+  };
 
   return (
     <article
       id={`verse-card-${verse.id}`}
       data-ayah-id={verse.id}
-      className="surface-card rounded-2xl p-4 sm:p-6 transition-all"
+      onClick={(e) => {
+        const target = e.target as HTMLElement | null;
+        if (
+          target?.closest(
+            'button, a, [role="button"], input, select, [data-tajweed-rule], [data-waqf-sign], [data-ruku-badge]',
+          )
+        ) {
+          return;
+        }
+        handleToggleSelectCard();
+      }}
+      className="surface-card rounded-2xl p-4 sm:p-6 transition-all cursor-pointer"
       style={{
         borderColor: isPlayingThisAyah
           ? 'var(--brand-primary)'
-          : highlightSajdah
-            ? 'rgba(217, 119, 6, 0.55)'
-            : 'var(--border-subtle)',
+          : isSelected
+            ? 'rgba(217, 119, 6, 0.6)'
+            : highlightSajdah
+              ? 'rgba(217, 119, 6, 0.55)'
+              : 'var(--border-subtle)',
         backgroundColor:
-          highlightSajdah && !isPlayingThisAyah
-            ? 'color-mix(in srgb, var(--bg-surface) 95%, #D97706 5%)'
-            : undefined,
+          isSelected && !isPlayingThisAyah
+            ? 'color-mix(in srgb, var(--bg-surface) 94%, #D97706 6%)'
+            : highlightSajdah && !isPlayingThisAyah
+              ? 'color-mix(in srgb, var(--bg-surface) 95%, #D97706 5%)'
+              : undefined,
         boxShadow: isPlayingThisAyah
           ? '0 0 0 2px rgba(15, 118, 110, 0.22), var(--shadow-card)'
-          : highlightSajdah
-            ? '0 0 0 1px rgba(217, 119, 6, 0.18), var(--shadow-card)'
-            : 'var(--shadow-card)',
+          : isSelected
+            ? '0 0 0 2px rgba(217, 119, 6, 0.20), var(--shadow-card)'
+            : highlightSajdah
+              ? '0 0 0 1px rgba(217, 119, 6, 0.18), var(--shadow-card)'
+              : 'var(--shadow-card)',
       }}
     >
       {/* Üst Bar: Sure:Ayet · Cüz · Sayfa ve Aksiyon Butonları */}
@@ -386,20 +419,40 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         style={{ borderColor: 'var(--border-subtle)' }}
       >
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span
-            className="px-2.5 py-1 rounded-lg text-xs font-extrabold tabular-nums inline-flex items-center gap-1"
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleSelectCard();
+            }}
+            title={isSelected ? 'Ayet seçimini kaldır' : 'Bu ayeti dinleme odağı olarak seç'}
+            className="px-2.5 py-1 rounded-lg text-xs font-extrabold tabular-nums inline-flex items-center gap-1 cursor-pointer transition-colors"
             style={{
               backgroundColor: isPlayingThisAyah
                 ? 'var(--brand-primary)'
-                : 'var(--brand-primary-soft)',
-              color: isPlayingThisAyah ? '#FFFFFF' : 'var(--brand-primary-text)',
+                : isSelected
+                  ? 'var(--brand-accent)'
+                  : 'var(--brand-primary-soft)',
+              color:
+                isPlayingThisAyah || isSelected ? '#FFFFFF' : 'var(--brand-primary-text)',
             }}
           >
             {isPlayingThisAyah && <Volume2 className="w-3.5 h-3.5 animate-pulse" />}
             <span>
               {verse.surah}:{verse.ayah}
             </span>
-          </span>
+          </button>
+          {isSelected && !isPlayingThisAyah && (
+            <span
+              className="text-[10.5px] font-extrabold px-2 py-0.5 rounded-md"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                color: 'var(--brand-accent-text)',
+              }}
+            >
+              Seçili
+            </span>
+          )}
           <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
             {verse.cuz}. Cüz · Sayfa {verse.page}
           </span>
@@ -507,7 +560,10 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
-            onClick={() => onPlayFromHere(verse)}
+            onClick={() => {
+              setSelectedVerseKey(verseKey);
+              onPlayFromHere(verse);
+            }}
             title="Bu ayetten itibaren dinle"
             aria-label="Bu ayetten itibaren dinle"
             className="w-9 h-9 sm:w-auto sm:min-h-[38px] sm:px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
@@ -524,7 +580,10 @@ export const VerseCard: React.FC<VerseCardProps> = ({
 
           <button
             type="button"
-            onClick={() => onPlayMealFromHere(verse)}
+            onClick={() => {
+              setSelectedVerseKey(verseKey);
+              onPlayMealFromHere(verse);
+            }}
             title="Bu ayetten itibaren Türkçe sesli mealini dinle"
             className="hidden sm:flex min-h-[38px] px-2.5 rounded-xl border items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer"
             style={{

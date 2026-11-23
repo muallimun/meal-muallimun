@@ -879,7 +879,8 @@ class AudioQueueService {
     const mode = this.getEffectiveMode();
     const arabicSource = this.resolveArabicSource();
     const mealSource = this.resolveMealSource();
-    const numericRepeatCount = this.getEffectiveRepeatCount();
+    const effectiveRepeat = this.getEffectiveRepeatCount();
+    const numericRepeatCount = effectiveRepeat === 'infinite' ? 1 : effectiveRepeat;
     const steps: PlaybackStep[] = [];
 
     if (mode === 'meal' && !mealSource) {
@@ -952,6 +953,7 @@ class AudioQueueService {
     const combinedMealUrls = dedupeUrls([...primaryMealUrls, ...mergedStartMealUrls]);
 
     for (let rep = 1; rep <= numericRepeatCount; rep += 1) {
+      const stepRepeatIdx = effectiveRepeat === 'infinite' ? repeatStartNumber : rep;
       if ((mode === 'ar' || mode === 'ar_then_meal') && arabicSource && arUrls.length > 0) {
         steps.push({
           phase: 'ar',
@@ -959,7 +961,7 @@ class AudioQueueService {
           reciterLabel: arabicSource.shortLabel,
           urls: arUrls,
           verseIndex,
-          repeatIndex: rep,
+          repeatIndex: stepRepeatIdx,
           syncedReciterKey,
         });
       }
@@ -976,7 +978,7 @@ class AudioQueueService {
           reciterLabel: mealSource.label,
           urls: combinedMealUrls,
           verseIndex,
-          repeatIndex: rep,
+          repeatIndex: stepRepeatIdx,
         });
       }
     }
@@ -1028,6 +1030,8 @@ class AudioQueueService {
     let nextUrl: string | null = null;
     if (this.currentStepIndex + 1 < this.steps.length) {
       nextUrl = this.steps[this.currentStepIndex + 1].urls[0] ?? null;
+    } else if (this.getEffectiveRepeatCount() === 'infinite') {
+      nextUrl = this.steps[0]?.urls[0] ?? null;
     } else if (!this.singleAyahOnly && this.currentVerseIndex + 1 < this.verses.length) {
       const upcomingSteps = this.buildStepsForVerse(this.currentVerseIndex + 1, true);
       nextUrl = upcomingSteps[0]?.urls[0] ?? null;
@@ -1280,6 +1284,21 @@ class AudioQueueService {
       this.currentStepIndex += 1;
       this.playCurrentStep(0);
       return;
+    }
+
+    if (this.getEffectiveRepeatCount() === 'infinite' && this.verses.length > 0) {
+      const nextRepeatNumber = Math.max(2, this.snapshot.currentRepeat + 1);
+      const repeatedSteps = this.buildStepsForVerse(
+        this.currentVerseIndex,
+        false,
+        nextRepeatNumber,
+      );
+      if (repeatedSteps.length > 0) {
+        this.steps = repeatedSteps;
+        this.currentStepIndex = 0;
+        this.playCurrentStep(0);
+        return;
+      }
     }
 
     void this.advanceToNextVerse();
@@ -1843,6 +1862,96 @@ class AudioQueueService {
       this.setMediaPlaybackState('paused');
       this.emit({ status: 'paused' });
     }
+  }
+
+  /**
+   * Ses duraklatılmış veya hata durumundayken kullanıcı yeni bir ayete tıkladığında
+   * oynatıcı göstergesini anında seçili ayete eşitler ve eski ayete ait duraklatılmış
+   * audio örneğini temizler.
+   */
+  public syncPausedSelection(verse: CombinedVerse, meta?: MetaData | null): void {
+    if (!this.snapshot.isVisible) return;
+    if (
+      this.snapshot.status === 'playing' ||
+      this.snapshot.status === 'loading' ||
+      this.snapshot.status === 'idle'
+    ) {
+      return;
+    }
+
+    if (meta) {
+      this.meta = meta;
+    }
+
+    const sameVerse =
+      this.snapshot.currentSurah === verse.surah &&
+      this.snapshot.currentAyah === verse.ayah;
+
+    if (!sameVerse) {
+      this.teardownAudioElement();
+      const idxInQueue = this.verses.findIndex((v) => v.id === verse.id);
+      if (idxInQueue !== -1) {
+        this.currentVerseIndex = idxInQueue;
+        this.steps = this.buildStepsForVerse(idxInQueue, false);
+        this.currentStepIndex = 0;
+      }
+      const nav = this.updateNavigationAvailability();
+      this.emit({
+        currentSurah: verse.surah,
+        currentSurahName: this.getSurahName(verse.surah),
+        currentAyah: verse.ayah,
+        currentPage: verse.page,
+        currentAyahId: verse.id,
+        currentRepeat: 1,
+        canGoPrev: nav.canGoPrev,
+        canGoNext: nav.canGoNext,
+        errorMessage: null,
+        missingMealAudio: false,
+      });
+    }
+  }
+
+  /**
+   * Oynatıcının tam olarak belirtilen (sure:ayet) kaydının ortasında duraklatılıp
+   * duraklatılmadığını döndürür (kaldığı saniyeden devam kararında kullanılır).
+   */
+  public canResumeExactVerse(surah: number, ayah: number): boolean {
+    return (
+      this.snapshot.isVisible &&
+      this.snapshot.status === 'paused' &&
+      this.audio !== null &&
+      this.snapshot.currentSurah === surah &&
+      this.snapshot.currentAyah === ayah
+    );
+  }
+
+  /**
+   * Oynatıcı içindeki hızlı ayet seçicisinden seçilen sure ve ayetten kesintisiz kuyruğu başlatır.
+   */
+  public async jumpToSurahAyah(
+    surahNo: number,
+    ayahNo: number,
+    manifest: ManifestData,
+    meta: MetaData,
+    prefs: AudioPrefs,
+  ): Promise<void> {
+    const bundle = await dataService.getSurahBundle(surahNo);
+    if (!bundle.verses.length) return;
+    const idx = Math.max(
+      0,
+      bundle.verses.findIndex((v) => v.ayah === ayahNo),
+    );
+    this.startQueue({
+      verses: bundle.verses,
+      startIndex: idx,
+      context: 'surah',
+      contextKey: `surah:${surahNo}`,
+      queueTitle: bundle.surahMeta.nameTr,
+      manifest,
+      meta,
+      prefs,
+      singleAyahOnly: false,
+    });
   }
 
   public nextVerse(): void {
