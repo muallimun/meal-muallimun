@@ -51,7 +51,11 @@ import type {
   SurahBundle,
   SurahMeta,
 } from '../../types/quran';
-import { formatSafeArabicTitle, formatSurahTitle } from '../../utils/arabicUtils';
+import {
+  formatSafeArabicTitle,
+  formatSurahTitle,
+  getArabicDensityMetrics,
+} from '../../utils/arabicUtils';
 
 interface BookModeViewProps {
   bundle: SurahBundle;
@@ -803,13 +807,20 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                 const hasTajweedInBook =
                   settings.tajweedEnabled &&
                   visibleVerses.some((v) => Boolean(getTjVerseWords(v.surah, v.ayah)?.length));
+                const arabicDensity = getArabicDensityMetrics(settings.arabicTextDensity);
                 return (
                   <div
                     dir="rtl"
-                    className={`${hasTajweedInBook ? 'arabic-tajweed' : 'arabic-text'} text-justify text-[var(--text-primary)] leading-[2.35] ${
+                    className={`${hasTajweedInBook ? 'arabic-tajweed' : 'arabic-text'} text-justify text-[var(--text-primary)] ${
                       isDoubleBookLayout ? 'lg:columns-2 lg:gap-10' : ''
                     }`}
-                    style={{ fontSize: `${settings.arabicFontSize}px` }}
+                    style={{
+                      fontSize: `${settings.arabicFontSize}px`,
+                      lineHeight: hasTajweedInBook
+                        ? arabicDensity.tajweedLineHeight
+                        : arabicDensity.mushafLineHeight,
+                      wordSpacing: arabicDensity.wordSpacing,
+                    }}
                   >
                     {visibleVerses.map((verse) => {
                       const isPlaying =
@@ -853,7 +864,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               handleToggleSelectVerse(verse);
                             }
                           }}
-                          className={`inline rounded-xl px-1.5 py-0.5 transition-colors cursor-pointer ${
+                          className={`inline rounded-xl px-[0.16em] py-[0.04em] transition-colors cursor-pointer ${
                             isPlaying
                               ? 'text-[var(--text-primary)] ring-1 ring-emerald-500/30'
                               : isSelected
@@ -887,7 +898,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             <span
                               title="Tilâvet Secdesi Ayeti"
                               aria-label="Tilâvet Secdesi Ayeti"
-                              className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
+                              className="inline-flex items-center justify-center mx-[0.14em] px-[0.22em] py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
                               style={{
                                 backgroundColor: 'var(--brand-accent-soft)',
                                 borderColor: 'rgba(217, 119, 6, 0.5)',
@@ -906,7 +917,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             />
                           )}
                           <span
-                            className={`inline-flex items-center justify-center mx-1.5 px-2 py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border ${
+                            className={`inline-flex items-center justify-center mx-[0.18em] px-[0.35em] py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border ${
                               isPlaying
                                 ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]'
                                 : isBookmarked || isSajdah
@@ -1350,11 +1361,18 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           ? getTjVerseWords(verse.surah, verse.ayah)
                           : null;
                         const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
+                        const arabicDensity = getArabicDensityMetrics(settings.arabicTextDensity);
                         return (
                           <p
                             dir="rtl"
                             className={`${useVerseTajweed ? 'arabic-tajweed' : 'arabic-text'} text-right text-[var(--text-primary)] mb-3.5`}
-                            style={{ fontSize: `${settings.arabicFontSize}px` }}
+                            style={{
+                              fontSize: `${settings.arabicFontSize}px`,
+                              lineHeight: useVerseTajweed
+                                ? arabicDensity.tajweedLineHeight
+                                : arabicDensity.lineHeight,
+                              wordSpacing: arabicDensity.wordSpacing,
+                            }}
                           >
                             <SyncedVerseArabic
                               text={verse.ar.t}
@@ -1371,7 +1389,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               <span
                                 title="Tilâvet Secdesi Ayeti"
                                 aria-label="Tilâvet Secdesi Ayeti"
-                                className="inline-flex items-center justify-center mx-1.5 px-1.5 py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
+                                className="inline-flex items-center justify-center mx-[0.16em] px-[0.22em] py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
                                 style={{
                                   backgroundColor: 'var(--brand-accent-soft)',
                                   borderColor: 'rgba(217, 119, 6, 0.5)',
@@ -1383,7 +1401,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             )}
                             {(useVerseTajweed || !/[\u0660-\u0669\u06DD﴿﴾]\s*$/.test(verse.ar.t)) && (
                               <span
-                                className="arabic-text inline-block mx-1.5 text-[0.78em] select-none align-middle"
+                                className="arabic-text inline-block mx-[0.18em] text-[0.78em] select-none align-middle"
                                 style={{ color: 'var(--brand-primary-text)' }}
                               >
                                 ﴿{toArabicNumeral(verse.ayah)}﴾
@@ -1516,7 +1534,8 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             sfxService.play('click');
                             setOpenFootnoteAyahId((prev) => (prev === verse.id ? null : verse.id));
                           }}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-[var(--brand-accent-text)] bg-[var(--brand-accent-soft)]/70 hover:bg-[var(--brand-accent-soft)] cursor-pointer"
+                          aria-expanded={isFnOpen}
+                          className="inline-flex items-center gap-1.5 min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-bold text-[var(--brand-accent-text)] bg-[var(--brand-accent-soft)]/70 hover:bg-[var(--brand-accent-soft)] cursor-pointer"
                         >
                           <FileText className="w-3.5 h-3.5" />
                           <span>

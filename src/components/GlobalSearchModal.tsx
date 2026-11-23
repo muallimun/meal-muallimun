@@ -865,8 +865,11 @@ export const GlobalSearchModal: React.FC = () => {
             1. Üst Arama Giriş Çubuğu + Tek Satırlık Kaydırılabilir Filtre Şeridi
             ==================================================================== */}
         <div
-          className="px-3 sm:px-4 pt-3 pb-2 border-b space-y-2 shrink-0"
-          style={{ borderColor: 'var(--border-subtle)' }}
+          className="sticky top-0 z-10 px-3 sm:px-4 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:pt-3 pb-2 border-b space-y-2 shrink-0"
+          style={{
+            borderColor: 'var(--border-subtle)',
+            backgroundColor: 'var(--bg-surface)',
+          }}
         >
           <div className="flex items-center gap-2">
             <div
@@ -917,7 +920,8 @@ export const GlobalSearchModal: React.FC = () => {
                       }
                     }}
                     aria-label="Aramayı temizle"
-                    className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer shrink-0 hover:bg-black/5"
+                    title="Aramayı temizle"
+                    className="w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer shrink-0 hover:bg-black/5"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     <X className="w-4 h-4" />
@@ -961,6 +965,7 @@ export const GlobalSearchModal: React.FC = () => {
               type="button"
               onClick={closeSearchModal}
               aria-label="Aramayı kapat"
+              title="Aramayı kapat"
               className="min-w-[44px] min-h-[44px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center cursor-pointer shrink-0"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',

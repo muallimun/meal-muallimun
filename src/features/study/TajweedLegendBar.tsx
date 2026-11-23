@@ -220,13 +220,13 @@ export const TajweedLegendBar: React.FC<TajweedLegendBarProps> = ({
           }}
           title="Renk şeridini gizle"
           aria-label="Renk şeridini gizle"
-          className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-80"
+          className="w-9 h-9 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-80"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             color: 'var(--text-muted)',
           }}
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
         </button>
       </div>
 

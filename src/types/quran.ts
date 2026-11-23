@@ -430,6 +430,8 @@ export interface FeedbackModalSeed {
   prefillMessage?: string;
 }
 
+export type ArabicTextDensity = 'compact' | 'balanced' | 'relaxed';
+
 export interface AppSettings {
   theme: ThemeMode;
   preferredMeal: PreferredMeal;
@@ -442,6 +444,7 @@ export interface AppSettings {
   turkishFont: string;
   arabicFontSize: number; // 20..44
   turkishFontSize: number; // 14..24
+  arabicTextDensity: ArabicTextDensity;
   sfxEnabled: boolean;
   sfxVolume: number; // 0..1
   showOptionLettersInApp: boolean;

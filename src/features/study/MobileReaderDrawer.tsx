@@ -33,6 +33,7 @@ import type {
   StudyViewMode,
   WordMealMode,
 } from '../../types/quran';
+import { ARABIC_TEXT_DENSITY_OPTIONS } from '../../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 
 interface MobileReaderDrawerProps {
@@ -113,13 +114,13 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Okuma Menüsü"
-      className={`fixed inset-0 ${Z_LAYERS.DRAWER} flex items-end justify-center bg-black/55 backdrop-blur-xs lg:hidden`}
+      className={`fixed inset-0 ${Z_LAYERS.DRAWER} flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs lg:hidden`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="w-full max-w-lg max-h-[88dvh] rounded-t-3xl border-t border-x shadow-2xl flex flex-col overflow-hidden"
+        className="w-full h-[100dvh] max-h-[100dvh] sm:h-auto sm:max-w-lg sm:max-h-[88dvh] rounded-none sm:rounded-2xl border-0 sm:border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -127,22 +128,22 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        {/* Tutamak + Başlık */}
+        {/* Sabit Üst Başlık */}
         <div
-          className="px-4 pt-2.5 pb-3 border-b shrink-0"
+          className="sticky top-0 z-10 px-4 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-3 sm:py-3 border-b shrink-0"
           style={{
             borderColor: 'var(--border-subtle)',
             backgroundColor: 'var(--bg-surface-soft)',
           }}
         >
-          <div className="w-10 h-1 rounded-full mx-auto mb-2.5 opacity-30 bg-current" />
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-extrabold tracking-tight">Okuma Menüsü</h2>
+            <h2 className="text-sm sm:text-base font-extrabold tracking-tight">Okuma Menüsü</h2>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Menüyü kapat"
-              className="w-8 h-8 rounded-xl border flex items-center justify-center cursor-pointer"
+              aria-label="Okuma menüsünü kapat"
+              title="Okuma menüsünü kapat"
+              className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
@@ -598,16 +599,16 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
             >
               {!isMealOnlyContent && (
                 <div
-                  className="px-2.5 py-2 rounded-xl border flex items-center justify-between gap-1"
+                  className="px-2.5 py-2 rounded-xl border flex items-center justify-between gap-1.5"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  <span className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                  <span className="text-[11px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>
                     Arapça {settings.arabicFontSize}
                   </span>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={() =>
@@ -615,8 +616,9 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                           arabicFontSize: Math.max(20, settings.arabicFontSize - 2),
                         })
                       }
-                      aria-label="Arapça boyutunu küçült"
-                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
+                      aria-label="Arapça yazı boyutunu küçült"
+                      title="Arapça yazı boyutunu küçült"
+                      className="w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -631,8 +633,9 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                           arabicFontSize: Math.min(44, settings.arabicFontSize + 2),
                         })
                       }
-                      aria-label="Arapça boyutunu büyült"
-                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
+                      aria-label="Arapça yazı boyutunu büyüt"
+                      title="Arapça yazı boyutunu büyüt"
+                      className="w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -646,16 +649,16 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
 
               {!isArOnlyContent && (
                 <div
-                  className="px-2.5 py-2 rounded-xl border flex items-center justify-between gap-1"
+                  className="px-2.5 py-2 rounded-xl border flex items-center justify-between gap-1.5"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  <span className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                  <span className="text-[11px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>
                     Meal {settings.turkishFontSize}
                   </span>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={() =>
@@ -663,8 +666,9 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                           turkishFontSize: Math.max(14, settings.turkishFontSize - 1),
                         })
                       }
-                      aria-label="Meal boyutunu küçült"
-                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
+                      aria-label="Meal yazı boyutunu küçült"
+                      title="Meal yazı boyutunu küçült"
+                      className="w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -679,8 +683,9 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                           turkishFontSize: Math.min(24, settings.turkishFontSize + 1),
                         })
                       }
-                      aria-label="Meal boyutunu büyült"
-                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
+                      aria-label="Meal yazı boyutunu büyüt"
+                      title="Meal yazı boyutunu büyüt"
+                      className="w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -692,6 +697,61 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Arapça Metin Sıklığı (Sıkı | Dengeli | Ferah) */}
+            {!isMealOnlyContent && (
+              <div
+                className="px-3 py-2.5 rounded-xl border space-y-2"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className="text-[11px] font-extrabold"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Metin Sıklığı
+                  </span>
+                  <span
+                    className="text-[10px] font-semibold"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Kelime ve satır aralığı
+                  </span>
+                </div>
+                <div
+                  className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-surface)' }}
+                  role="group"
+                  aria-label="Arapça metin sıklığı"
+                >
+                  {ARABIC_TEXT_DENSITY_OPTIONS.map((opt) => {
+                    const active = (settings.arabicTextDensity ?? 'balanced') === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        aria-pressed={active}
+                        title={opt.description}
+                        onClick={() => {
+                          sfxService.play('click');
+                          onUpdateSettings({ arabicTextDensity: opt.id });
+                        }}
+                        className="min-h-[36px] px-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                        style={{
+                          backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Arapça Mushaf Hattı Seçici (Yalnızca Arapça Görünürken) */}
             {!isMealOnlyContent && (

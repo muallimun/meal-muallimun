@@ -170,14 +170,14 @@ export const MealSelectorModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center sm:p-4 bg-black/55 backdrop-blur-xs"
+      className="fixed inset-0 z-[95] flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs"
       role="dialog"
       aria-modal="true"
       aria-label="Meal ve Tefsir Seçici"
       onClick={closeMealSelector}
     >
       <div
-        className="w-full md:max-w-3xl lg:max-w-4xl max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full h-[100dvh] max-h-[100dvh] sm:h-auto md:max-w-3xl lg:max-w-4xl sm:max-h-[88dvh] rounded-none sm:rounded-2xl border-0 sm:border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -187,7 +187,7 @@ export const MealSelectorModal: React.FC = () => {
       >
         {/* Üst Başlık */}
         <div
-          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2.5 shrink-0"
+          className="sticky top-0 z-10 px-4 pt-[max(0.625rem,env(safe-area-inset-top,0px))] pb-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2.5 shrink-0"
           style={{
             borderColor: 'var(--border-subtle)',
             backgroundColor: 'var(--bg-surface-soft)',
@@ -219,6 +219,7 @@ export const MealSelectorModal: React.FC = () => {
             type="button"
             onClick={closeMealSelector}
             aria-label="Meal seçiciyi kapat"
+            title="Meal seçiciyi kapat"
             className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface)',

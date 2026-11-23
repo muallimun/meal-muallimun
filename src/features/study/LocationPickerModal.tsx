@@ -195,13 +195,13 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Hızlı Konum Seçici"
-      className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-xs"
+      className="fixed inset-0 z-[95] flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="w-full md:max-w-2xl lg:max-w-3xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full h-[100dvh] max-h-[100dvh] sm:h-auto md:max-w-2xl lg:max-w-3xl sm:max-h-[86dvh] rounded-none sm:rounded-2xl border-0 sm:border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -210,7 +210,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       >
         {/* Üst Başlık */}
         <div
-          className="px-4 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0"
+          className="sticky top-0 z-10 px-4 pt-[max(0.625rem,env(safe-area-inset-top,0px))] pb-2.5 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0"
           style={{
             borderColor: 'var(--border-subtle)',
             backgroundColor: 'var(--bg-surface-soft)',
@@ -240,7 +240,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Konum seçiciyi kapat"
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+            title="Konum seçiciyi kapat"
+            className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-subtle)',

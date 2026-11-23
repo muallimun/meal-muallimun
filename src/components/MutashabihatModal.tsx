@@ -14,11 +14,13 @@ import { getMealTextPresentation } from '../config/mealsConfig';
 import { useActiveMeals } from '../hooks/useActiveMeals';
 import { useMutashabihatData } from '../hooks/useStudyReferenceData';
 import { audioQueueService } from '../services/audioQueueService';
+import { useBackButtonGuard } from '../services/backStackService';
 import { dataService, toArabicIndicDigits } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { MutashabihatEntryTuple, MutashabihatWordRange } from '../types/fihrist';
 import type { CombinedVerse, SurahBundle } from '../types/quran';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { tokenizeArabicWithWaqf } from '../utils/wordSyncUtils';
 
 interface HighlightedArabicProps {
@@ -162,20 +164,15 @@ export const MutashabihatModal: React.FC = () => {
   const primaryPres = getMealTextPresentation(primaryMeal, Math.max(13, settings.turkishFontSize - 2));
   const secondaryPres = getMealTextPresentation(secondaryMeal, Math.max(13, settings.turkishFontSize - 2));
 
+  useBackButtonGuard('mutashabihat_modal', isOpen, closeMutashabihat);
+
   useEffect(() => {
     if (!isOpen) {
       setFocusedIndex(null);
       return;
     }
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeMutashabihat();
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, closeMutashabihat]);
+    return acquireBodyScrollLock();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || neededSurahs.length === 0) return;
@@ -318,7 +315,8 @@ export const MutashabihatModal: React.FC = () => {
           <button
             type="button"
             onClick={closeMutashabihat}
-            aria-label="Kapat"
+            aria-label="Müteşâbihât penceresini kapat"
+            title="Kapat"
             className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer shrink-0"
             style={{ backgroundColor: 'var(--bg-surface-soft)' }}
           >

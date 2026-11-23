@@ -27,10 +27,12 @@ import {
   getMealTextPresentation,
 } from '../config/mealsConfig';
 import { audioQueueService } from '../services/audioQueueService';
+import { useBackButtonGuard } from '../services/backStackService';
 import { SAJDAH_AYAH_IDS, dataService, toArabicIndicDigits } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { CombinedVerse, MealCategory, MealDefinition, SurahBundle } from '../types/quran';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { normalizeTurkish } from '../utils/textNormalize';
 
 type CompareFilterTab = 'all' | 'favorites' | MealCategory;
@@ -85,19 +87,12 @@ export const MealCompareModal: React.FC = () => {
   const surahNo = compareTarget?.surah ?? null;
   const ayahNo = compareTarget?.ayah ?? null;
 
-  // Escape ve Sol/Sağ ok kısayolları
+  useBackButtonGuard('meal_compare_modal', Boolean(compareTarget), closeMealCompare);
+
   useEffect(() => {
     if (!compareTarget) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        closeMealCompare();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown, true);
-    return () => window.removeEventListener('keydown', onKeyDown, true);
-  }, [compareTarget, closeMealCompare]);
+    return acquireBodyScrollLock();
+  }, [compareTarget]);
 
   // Ayet değiştiğinde açık dipnotları sıfırla (varsayılan kapalı başlar)
   useEffect(() => {

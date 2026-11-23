@@ -25,6 +25,7 @@ import { sfxService } from '../../services/sfxService';
 import { wakeLockService } from '../../services/wakeLockService';
 import { useAppStore } from '../../store/useAppStore';
 import type { ExamAnswerRecord, ExamSessionState } from '../../types/quran';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import {
   OPTION_LETTERS,
   formatClockTimer,
@@ -79,6 +80,12 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     },
     backGuardNonce,
   );
+
+  const hasOpenExamModal = showExitModal || showFinishModal || showPaletteModal;
+  useEffect(() => {
+    if (!hasOpenExamModal) return;
+    return acquireBodyScrollLock();
+  }, [hasOpenExamModal]);
 
   const isCompletingRef = useRef(false);
   const sessionStartedAtRef = useRef<number>(Date.now());
@@ -1699,6 +1706,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                 type="button"
                 onClick={() => setShowPaletteModal(false)}
                 aria-label="Paleti kapat"
+                title="Paleti kapat"
                 className="min-w-[38px] min-h-[38px] rounded-xl flex items-center justify-center cursor-pointer"
                 style={{ backgroundColor: 'var(--bg-surface-soft)' }}
               >

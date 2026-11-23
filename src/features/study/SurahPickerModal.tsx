@@ -65,7 +65,7 @@ export const SurahPickerModal: React.FC<SurahPickerModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-end sm:items-center justify-center p-0 sm:p-4`}
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-stretch sm:items-center justify-center p-0 sm:p-4`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="surah-picker-title"
@@ -77,22 +77,18 @@ export const SurahPickerModal: React.FC<SurahPickerModalProps> = ({
       />
 
       <div
-        className="relative z-10 w-full md:max-w-2xl lg:max-w-3xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
+        className="relative z-10 w-full h-[100dvh] max-h-[100dvh] sm:h-auto md:max-w-2xl lg:max-w-3xl sm:max-h-[86dvh] rounded-none sm:rounded-2xl border-0 sm:border flex flex-col overflow-hidden shadow-2xl"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
         }}
       >
-        <div className="sm:hidden pt-1.5 flex justify-center">
-          <div
-            className="w-10 h-1 rounded-full"
-            style={{ backgroundColor: 'var(--border-strong)' }}
-          />
-        </div>
-
         <div
-          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2.5 shrink-0"
-          style={{ borderColor: 'var(--border-subtle)' }}
+          className="sticky top-0 z-10 px-4 pt-[max(0.625rem,env(safe-area-inset-top,0px))] pb-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2.5 shrink-0"
+          style={{
+            borderColor: 'var(--border-subtle)',
+            backgroundColor: 'var(--bg-surface)',
+          }}
         >
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div
@@ -113,6 +109,7 @@ export const SurahPickerModal: React.FC<SurahPickerModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Sure seçiciyi kapat"
+            title="Sure seçiciyi kapat"
             className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] rounded-xl flex items-center justify-center border cursor-pointer shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',

@@ -62,7 +62,11 @@ import type {
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
-import { formatSafeArabicTitle, formatSurahTitle } from '../../utils/arabicUtils';
+import {
+  formatSafeArabicTitle,
+  formatSurahTitle,
+  getArabicDensityMetrics,
+} from '../../utils/arabicUtils';
 import { DraggableVerseInspector } from './DraggableVerseInspector';
 import type { LocationPickerTab } from './LocationPickerModal';
 
@@ -413,6 +417,33 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   const [isDesktopLg, setIsDesktopLg] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
   );
+
+  const arabicDensity = useMemo(
+    () => getArabicDensityMetrics(settings.arabicTextDensity),
+    [settings.arabicTextDensity],
+  );
+
+  useEffect(() => {
+    if (openRibbonPage === null) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenRibbonPage(null);
+      }
+    };
+    const onPointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-ribbon-menu-root="1"]')) return;
+      setOpenRibbonPage(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown, { passive: true });
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+    };
+  }, [openRibbonPage]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -845,7 +876,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           }
           aria-label={`Sayfa ${bundle.pageNo} ayracı`}
           aria-expanded={isMenuOpen}
-          className="relative flex items-center justify-center w-8 h-9 -mt-2 rounded-b-lg border-x border-b shadow-xs transition-transform hover:translate-y-0.5 cursor-pointer"
+          data-ribbon-menu-root="1"
+          className="relative flex items-center justify-center w-9 h-9 -mt-2 rounded-b-lg border-x border-b shadow-xs transition-transform hover:translate-y-0.5 cursor-pointer"
           style={{
             backgroundColor: ribbonColor ?? 'var(--bg-surface-soft)',
             borderColor: ribbonColor ? 'transparent' : 'var(--border-strong)',
@@ -857,7 +889,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
         {isMenuOpen && firstVerse && (
           <div
-            className="absolute left-0 top-9 z-30 w-60 rounded-2xl border shadow-xl p-2 space-y-1 text-left"
+            data-ribbon-menu-root="1"
+            className="absolute left-0 top-9 z-30 w-60 max-w-[calc(100vw-1.5rem)] rounded-2xl border shadow-xl p-2 space-y-1 text-left"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-strong)',
@@ -984,12 +1017,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     return (
       <div
         key={`mushaf-leaf-${bundle.pageNo}`}
-        className={`${paperClass} p-1.5 sm:p-2.5 transition-opacity duration-200 flex flex-col h-full ${
+        className={`${paperClass} p-1 sm:p-2.5 transition-opacity duration-200 flex flex-col h-full ${
           isDualPane ? 'lg:h-full lg:min-h-0' : ''
         } ${isRefreshing ? 'opacity-80' : 'opacity-100'}`}
       >
         <div
-          className={`mushaf-cetvel-outer rounded-xl p-1 flex-1 flex flex-col ${
+          className={`mushaf-cetvel-outer rounded-xl p-0.5 sm:p-1 flex-1 flex flex-col ${
             isDualPane ? 'lg:h-full lg:min-h-0' : ''
           }`}
         >
@@ -997,7 +1030,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             className={`mushaf-cetvel-inner rounded-[10px] relative flex-1 flex flex-col ${
               isDualPane ? 'lg:h-full lg:min-h-0' : 'justify-between'
             } ${
-              compactPadding ? 'px-3.5 py-3 sm:px-5 sm:py-4' : 'px-4 py-3.5 sm:px-8 md:px-10 sm:py-5'
+              compactPadding ? 'px-2.5 py-3 sm:px-5 sm:py-4' : 'px-2.5 py-3 sm:px-8 md:px-10 sm:py-5'
             }`}
             style={{ backgroundColor: 'var(--bg-surface)' }}
           >
@@ -1009,10 +1042,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
             {/* Klasik Mushaf Üst Şeridi: Sabit Başlık + Kurdele Ayraç + Aktif Ayete Git */}
             <div
-              className="pb-2.5 mb-3 border-b flex items-center justify-between gap-2 text-xs shrink-0"
+              className="pb-2.5 mb-3 border-b flex items-center justify-between gap-1 sm:gap-2 text-xs shrink-0 min-w-0"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   {renderRibbonBookmark(bundle)}
                   <button
                     type="button"
@@ -1229,7 +1262,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           className={hasTajweedOnSegment ? 'arabic-tajweed' : 'arabic-text'}
                           style={{
                             fontSize: `${settings.arabicFontSize}px`,
-                            lineHeight: 2.28,
+                            lineHeight: hasTajweedOnSegment
+                              ? arabicDensity.tajweedLineHeight
+                              : arabicDensity.mushafLineHeight,
+                            wordSpacing: arabicDensity.wordSpacing,
                             textAlign: 'justify',
                             textAlignLast: 'center',
                           }}
@@ -1289,7 +1325,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                     handleSelectOrToggleVerse(verse, 'arabic');
                                   }
                                 }}
-                                className={`inline rounded-lg px-1.5 py-0.5 transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
+                                className={`inline rounded-lg px-[0.16em] py-[0.04em] transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
                                   highlightSajdah
                                     ? 'underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
                                     : ''
@@ -1316,7 +1352,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                   <span
                                     title="Tilâvet Secdesi Ayeti"
                                     aria-label="Tilâvet Secdesi Ayeti"
-                                    className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-md border text-[0.64em] font-extrabold align-middle leading-none select-none"
+                                    className="inline-flex items-center justify-center mx-[0.14em] px-[0.22em] py-0.5 rounded-md border text-[0.64em] font-extrabold align-middle leading-none select-none"
                                     style={{
                                       backgroundColor: 'var(--brand-accent-soft)',
                                       borderColor: 'rgba(217, 119, 6, 0.5)',
@@ -1328,7 +1364,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                 )}
                                 {(useVerseTajweed || !hasDigitsAtEnd) && (
                                   <span
-                                    className="inline-block mx-1.5 text-[0.76em] select-none align-middle rounded-md transition-colors"
+                                    className="inline-block mx-[0.18em] text-[0.76em] select-none align-middle rounded-md transition-colors"
                                     style={{
                                       color:
                                         isPlaying && audioState.isWordSyncActive
@@ -1944,7 +1980,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayetten dinle`}
                                       aria-label={`${targetVerse.ayah}. ayetten dinle`}
-                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--brand-primary-text)' }}
                                     >
                                       <Play className="w-3.5 h-3.5 fill-current" />
@@ -1980,7 +2016,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayeti döngüde dinle`}
                                       aria-label={`${targetVerse.ayah}. ayeti döngüde dinle`}
-                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--brand-primary-text)' }}
                                     >
                                       <Repeat className="w-3.5 h-3.5" />
@@ -2005,7 +2041,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayeti çalma listesine ekle`}
                                       aria-label={`${targetVerse.ayah}. ayeti çalma listesine ekle`}
-                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--text-muted)' }}
                                     >
                                       <ListPlus className="w-3.5 h-3.5" />
@@ -2018,7 +2054,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayeti ${MEALS_CATALOG.length} meal ve tefsirde karşılaştır`}
                                       aria-label={`${targetVerse.ayah}. ayeti ${MEALS_CATALOG.length} meal ve tefsirde karşılaştır`}
-                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--brand-primary-text)' }}
                                     >
                                       <Scale className="w-3.5 h-3.5" />
@@ -2032,7 +2068,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                           : `${targetVerse.ayah}. ayeti favorile`
                                       }
                                       aria-label={isFav ? 'Favorilerden çıkar' : 'Favorile'}
-                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-amber-500/15 cursor-pointer"
+                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-amber-500/15 cursor-pointer"
                                       style={{
                                         color: isFav
                                           ? 'var(--brand-accent-text)'
@@ -2056,7 +2092,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                           : `${targetVerse.ayah}. ayete kişisel not ekle`
                                       }
                                       aria-label={`${targetVerse.ayah}. ayet notu`}
-                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{
                                         color: primaryGroupNoteStyle
                                           ? primaryGroupNoteStyle.dot
@@ -2078,7 +2114,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayet detayı, dipnot ve kelime meali`}
                                       aria-label={`${targetVerse.ayah}. ayet detayını aç`}
-                                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--text-muted)' }}
                                     >
                                       <Info className="w-3.5 h-3.5" />
@@ -2208,7 +2244,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                           );
                                         }}
                                         aria-expanded={isFootnoteOpen}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold cursor-pointer transition-colors"
+                                        className="inline-flex items-center gap-1.5 min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-colors"
                                         style={{
                                           backgroundColor: isFootnoteOpen
                                             ? 'var(--brand-primary-soft)'
@@ -2219,7 +2255,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                           color: 'var(--brand-primary-text)',
                                         }}
                                       >
-                                        <FileText className="w-3 h-3 shrink-0" />
+                                        <FileText className="w-3.5 h-3.5 shrink-0" />
                                         <span>
                                           {isFootnoteOpen
                                             ? 'Dipnotu Gizle'

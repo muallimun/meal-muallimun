@@ -410,7 +410,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
 
                 {isWordMenuOpen && (
                   <div
-                    className="absolute right-0 top-11 z-40 w-48 rounded-2xl border shadow-2xl p-1.5 space-y-0.5"
+                    className="absolute right-0 top-11 z-40 w-48 max-w-[calc(100vw-1.5rem)] rounded-2xl border shadow-2xl p-1.5 space-y-0.5"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
                       borderColor: 'var(--border-strong)',

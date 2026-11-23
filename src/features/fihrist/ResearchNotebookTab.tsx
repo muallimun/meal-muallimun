@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { ResponsiveActionMenu } from '../../components/ResponsiveActionMenu';
 import { audioQueueService } from '../../services/audioQueueService';
+import { useBackButtonGuard } from '../../services/backStackService';
 import {
   buildAudioSegmentsFromItems,
   countEntriesAyahs,
@@ -40,6 +41,7 @@ import type {
   ResearchTopic,
   ResearchVerseEntry,
 } from '../../types/fihrist';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { getSurahMap } from '../../utils/poolUtils';
 import { PersonalVerseNotesPanel } from './PersonalVerseNotesPanel';
 import { PrintableFihristModal } from './PrintableFihristModal';
@@ -186,6 +188,15 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     text: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useBackButtonGuard('research_backup_modal', isBackupModalOpen, () => {
+    setIsBackupModalOpen(false);
+  });
+
+  useEffect(() => {
+    if (!isBackupModalOpen) return;
+    return acquireBodyScrollLock();
+  }, [isBackupModalOpen]);
 
   // Dışarıdan kopyalanan veya yönlendirilen bir konuya doğrudan geçiş
   useEffect(() => {
@@ -1458,8 +1469,9 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
               <button
                 type="button"
                 onClick={() => setIsBackupModalOpen(false)}
-                aria-label="Kapat"
-                className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer"
+                aria-label="Yedekleme penceresini kapat"
+                title="Kapat"
+                className="w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer shrink-0"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',

@@ -33,6 +33,7 @@ import {
   getRangesPageLabel,
   getRangesSignature,
 } from '../../data/curatedAshrPresets';
+import { useBackButtonGuard } from '../../services/backStackService';
 import {
   applyStageChangeWithSrs,
   getReviewScheduleBadge,
@@ -53,6 +54,7 @@ import type {
   ZenSessionMode,
 } from '../../types/memorization';
 import { RETENTION_STAGE_META } from '../../types/memorization';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import {
   advanceClassicalLesson,
   computeClassicalStats,
@@ -125,6 +127,15 @@ export const MemorizationHubPage: React.FC = () => {
     text: string;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useBackButtonGuard('memorization_backup_modal', isBackupModalOpen, () => {
+    setIsBackupModalOpen(false);
+  });
+
+  useEffect(() => {
+    if (!isBackupModalOpen) return;
+    return acquireBodyScrollLock();
+  }, [isBackupModalOpen]);
 
   const showToast = useCallback((text: string) => {
     setToastMessage(text);
@@ -1468,7 +1479,8 @@ export const MemorizationHubPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsBackupModalOpen(false)}
-                aria-label="Kapat"
+                aria-label="Ezber yedekleme penceresini kapat"
+                title="Kapat"
                 className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
                 style={{
                   backgroundColor: 'var(--bg-surface)',

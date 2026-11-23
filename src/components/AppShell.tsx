@@ -23,6 +23,7 @@ import {
 import { Z_LAYERS } from '../config/zLayers';
 import { audioQueueService } from '../services/audioQueueService';
 import { hasActiveBackStackEntries, useBackButtonGuard } from '../services/backStackService';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
@@ -218,6 +219,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       setPendingNavTab(null);
     },
   );
+
+  useEffect(() => {
+    if (pendingNavTab === null) return;
+    return acquireBodyScrollLock();
+  }, [pendingNavTab]);
 
   // Genel Tam Ekran Durumu Senkronizasyonu
   useEffect(() => {
@@ -496,7 +502,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
                   {isModuleMenuOpen && (
                     <div
-                      className="absolute left-0 top-11 z-50 w-52 rounded-2xl border shadow-2xl p-1.5 space-y-0.5"
+                      className="absolute left-0 top-11 z-50 w-52 max-w-[calc(100vw-1.5rem)] rounded-2xl border shadow-2xl p-1.5 space-y-0.5"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-strong)',

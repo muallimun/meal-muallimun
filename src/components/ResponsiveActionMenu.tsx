@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 
 interface ResponsiveActionMenuProps {
   isOpen: boolean;
@@ -97,6 +98,11 @@ export const ResponsiveActionMenu: React.FC<ResponsiveActionMenuProps> = ({
     };
   }, [isOpen, isMobile, onClose, triggerRef]);
 
+  useEffect(() => {
+    if (!isOpen || !isMobile) return;
+    return acquireBodyScrollLock();
+  }, [isOpen, isMobile]);
+
   if (!isOpen) return null;
 
   if (isMobile && typeof document !== 'undefined') {
@@ -136,7 +142,8 @@ export const ResponsiveActionMenu: React.FC<ResponsiveActionMenuProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Menüyü kapat"
-              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
+              title="Menüyü kapat"
+              className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
               style={{ color: 'var(--text-muted)' }}
             >
               <X className="w-4 h-4" />

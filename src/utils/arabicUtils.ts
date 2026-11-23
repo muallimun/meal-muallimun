@@ -1,3 +1,5 @@
+import type { ArabicTextDensity } from '../types/quran';
+
 /**
  * Arapça sure başlıklarını her yazı tipinde eksiksiz (kutu/yuvarlak □/◌ glif hatası olmadan)
  * görüntülemek için güvenli Unicode normalizasyon yardımcıları.
@@ -52,4 +54,56 @@ export function formatSurahTitle(
   }
   return `${trimmed} Suresi`;
 }
+
+export const ARABIC_TEXT_DENSITY_OPTIONS: ReadonlyArray<{
+  id: ArabicTextDensity;
+  label: string;
+  description: string;
+}> = [
+  { id: 'compact', label: 'Sıkı', description: 'Daha fazla kelime, derli toplu satır' },
+  { id: 'balanced', label: 'Dengeli', description: 'Varsayılan okuma aralığı' },
+  { id: 'relaxed', label: 'Ferah', description: 'Geniş kelime ve satır aralığı' },
+];
+
+export interface ArabicDensityMetrics {
+  wordSpacing: string;
+  lineHeight: number;
+  tajweedLineHeight: number;
+  mushafLineHeight: number;
+}
+
+const DENSITY_METRIC_MAP: Record<ArabicTextDensity, ArabicDensityMetrics> = {
+  compact: {
+    wordSpacing: '-0.04em',
+    lineHeight: 1.98,
+    tajweedLineHeight: 2.06,
+    mushafLineHeight: 2.04,
+  },
+  balanced: {
+    wordSpacing: '0em',
+    lineHeight: 2.18,
+    tajweedLineHeight: 2.26,
+    mushafLineHeight: 2.24,
+  },
+  relaxed: {
+    wordSpacing: '0.11em',
+    lineHeight: 2.42,
+    tajweedLineHeight: 2.5,
+    mushafLineHeight: 2.46,
+  },
+};
+
+/**
+ * Arapça metin sıklığı ayarına göre hareke, med ve vakıf işaretlerinin üst/alt
+ * satırlarla asla çakışmayacağı güvenli satır yüksekliği ve kelime aralığı döner.
+ */
+export function getArabicDensityMetrics(
+  density: ArabicTextDensity | undefined,
+): ArabicDensityMetrics {
+  if (density === 'compact' || density === 'relaxed' || density === 'balanced') {
+    return DENSITY_METRIC_MAP[density];
+  }
+  return DENSITY_METRIC_MAP.balanced;
+}
+
 

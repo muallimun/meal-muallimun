@@ -163,11 +163,12 @@ export const WaqfPopoverHost: React.FC = () => {
         <button
           type="button"
           onClick={() => closeWaqfPopover()}
-          aria-label="Kapat"
-          className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
+          aria-label="Vakıf penceresini kapat"
+          title="Kapat"
+          className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
           style={{ backgroundColor: 'var(--bg-surface-soft)', color: 'var(--text-muted)' }}
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
         </button>
       </div>
 
@@ -330,11 +331,12 @@ export const RukuPopoverHost: React.FC = () => {
         <button
           type="button"
           onClick={() => closeRukuPopover()}
-          aria-label="Kapat"
-          className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
+          aria-label="Rükû penceresini kapat"
+          title="Kapat"
+          className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
           style={{ backgroundColor: 'var(--bg-surface-soft)', color: 'var(--text-muted)' }}
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
         </button>
       </div>
 
@@ -409,7 +411,7 @@ export const RukuMarkerBadge: React.FC<RukuMarkerBadgeProps> = ({
             handleTrigger(e.currentTarget);
           }
         }}
-        className="inline-flex items-center justify-center mx-1 px-1.5 py-0.5 rounded-md border text-[0.62em] font-extrabold align-middle leading-none select-none cursor-pointer transition-colors hover:opacity-85"
+        className="inline-flex items-center justify-center mx-[0.16em] px-[0.22em] py-0.5 rounded-md border text-[0.62em] font-extrabold align-middle leading-none select-none cursor-pointer transition-colors hover:opacity-85"
         style={{
           backgroundColor: 'var(--brand-primary-soft)',
           borderColor: 'rgba(13, 148, 136, 0.42)',

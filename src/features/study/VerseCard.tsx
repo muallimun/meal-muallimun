@@ -49,6 +49,7 @@ import type {
 } from '../../types/quran';
 import type { SurahExtraInfo } from '../../types/fihrist';
 import type { TajweedRuleDef, TajweedWord } from '../../types/tajweed';
+import { getArabicDensityMetrics } from '../../utils/arabicUtils';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import { WordMealGrid } from './WordMealGrid';
@@ -322,8 +323,11 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                 sfxService.play('click');
                 onToggleExpand();
               }}
-              className="font-bold cursor-pointer hover:underline shrink-0"
-              style={{ color: 'var(--brand-primary-text)' }}
+              className="min-h-[36px] px-2.5 py-1 rounded-lg font-bold cursor-pointer hover:underline shrink-0"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                color: 'var(--brand-primary-text)',
+              }}
             >
               Metni Göster
             </button>
@@ -349,8 +353,11 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                   sfxService.play('click');
                   onToggleExpand();
                 }}
-                className="mt-1.5 text-xs font-semibold cursor-pointer hover:underline"
-                style={{ color: 'var(--text-muted)' }}
+                className="mt-1.5 inline-flex items-center min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer hover:underline"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  color: 'var(--text-muted)',
+                }}
               >
                 Birleşik metni gizle
               </button>
@@ -920,11 +927,16 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             const useTajweed =
               settings.tajweedEnabled &&
               Boolean(tajweedWords && tajweedWords.length > 0 && tajweedRules);
+            const arabicDensity = getArabicDensityMetrics(settings.arabicTextDensity);
             return (
               <p
                 className={`${useTajweed ? 'arabic-tajweed' : 'arabic-text'} text-right break-words`}
                 style={{
                   fontSize: `${settings.arabicFontSize}px`,
+                  lineHeight: useTajweed
+                    ? arabicDensity.tajweedLineHeight
+                    : arabicDensity.lineHeight,
+                  wordSpacing: arabicDensity.wordSpacing,
                   color: 'var(--text-primary)',
                 }}
               >
@@ -945,7 +957,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                   <span
                     title="Tilâvet Secdesi Ayeti"
                     aria-label="Tilâvet Secdesi Ayeti"
-                    className="inline-flex items-center justify-center mx-1.5 px-1.5 py-0.5 rounded-md border text-[0.62em] font-extrabold align-middle leading-none select-none"
+                    className="inline-flex items-center justify-center mx-[0.16em] px-[0.22em] py-0.5 rounded-md border text-[0.62em] font-extrabold align-middle leading-none select-none"
                     style={{
                       backgroundColor: 'var(--brand-accent-soft)',
                       borderColor: 'rgba(217, 119, 6, 0.5)',
@@ -957,7 +969,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                 )}
                 {(useTajweed || !/[\u0660-\u0669\u06DD﴿﴾]\s*$/.test(verse.ar.t)) && (
                   <span
-                    className="arabic-text inline-block mx-1.5 text-[0.78em] select-none align-middle"
+                    className="arabic-text inline-block mx-[0.18em] text-[0.78em] select-none align-middle"
                     style={{ color: 'var(--brand-primary-text)' }}
                   >
                     ﴿{toArabicIndicDigits(verse.ayah)}﴾

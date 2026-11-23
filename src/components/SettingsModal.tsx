@@ -808,7 +808,7 @@ export const SettingsModal: React.FC = () => {
 
   return (
     <div
-      className={`fixed inset-0 z-[92] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-[2px] ${
+      className={`fixed inset-0 z-[92] flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-[2px] ${
         isReloadingAfterRestore ? 'pointer-events-none select-none' : ''
       }`}
       role="dialog"
@@ -819,7 +819,7 @@ export const SettingsModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full md:max-w-2xl lg:max-w-3xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full h-[100dvh] max-h-[100dvh] sm:h-auto md:max-w-2xl lg:max-w-3xl sm:max-h-[86dvh] rounded-none sm:rounded-2xl border-0 sm:border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -827,8 +827,11 @@ export const SettingsModal: React.FC = () => {
       >
         {/* Başlık */}
         <div
-          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
-          style={{ borderColor: 'var(--border-subtle)' }}
+          className="sticky top-0 z-10 px-4 pt-[max(0.625rem,env(safe-area-inset-top,0px))] pb-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
+          style={{
+            borderColor: 'var(--border-subtle)',
+            backgroundColor: 'var(--bg-surface)',
+          }}
         >
           <div className="min-w-0">
             <h2 id="settings-modal-title" className="text-sm sm:text-lg font-extrabold tracking-tight truncate">
@@ -842,6 +845,7 @@ export const SettingsModal: React.FC = () => {
             type="button"
             onClick={closeSettingsModal}
             aria-label="Ayarları kapat"
+            title="Ayarları kapat"
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-pointer shrink-0 transition-colors hover:bg-[var(--bg-surface-soft)]"
             style={{ color: 'var(--text-secondary)' }}
           >

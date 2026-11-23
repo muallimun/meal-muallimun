@@ -1203,7 +1203,7 @@ export const AudioPlayerBar: React.FC = () => {
 
                       {isAyahPickerOpen && audioState.currentSurah && (
                         <div
-                          className="absolute left-0 bottom-10 z-50 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border shadow-2xl p-2.5 space-y-2"
+                          className="absolute left-0 bottom-10 z-50 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border shadow-2xl p-2.5 space-y-2"
                           style={{
                             backgroundColor: 'var(--bg-surface)',
                             borderColor: 'var(--border-strong)',
@@ -1220,7 +1220,8 @@ export const AudioPlayerBar: React.FC = () => {
                               type="button"
                               onClick={() => setIsAyahPickerOpen(false)}
                               aria-label="Ayet seçiciyi kapat"
-                              className="w-6 h-6 rounded-lg flex items-center justify-center cursor-pointer"
+                              title="Ayet seçiciyi kapat"
+                              className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
                               style={{ color: 'var(--text-muted)' }}
                             >
                               <X className="w-3.5 h-3.5" />

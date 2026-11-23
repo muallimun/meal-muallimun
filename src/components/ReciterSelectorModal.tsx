@@ -420,7 +420,7 @@ export const ReciterSelectorModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[95] flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="reciter-selector-title"
@@ -429,24 +429,19 @@ export const ReciterSelectorModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full md:max-w-3xl lg:max-w-4xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full h-[100dvh] max-h-[100dvh] sm:h-auto md:max-w-3xl lg:max-w-4xl sm:max-h-[86dvh] rounded-none sm:rounded-2xl border-0 sm:border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
         }}
       >
-        {/* Mobil Tutamak Çizgisi */}
-        <div className="sm:hidden flex justify-center pt-1.5 pb-0 shrink-0">
-          <span
-            className="w-10 h-1 rounded-full opacity-40"
-            style={{ backgroundColor: 'var(--text-muted)' }}
-          />
-        </div>
-
         {/* Üst Başlık */}
         <div
-          className="px-4 py-2.5 sm:px-5 sm:py-3 border-b flex items-center justify-between gap-2.5 shrink-0"
-          style={{ borderColor: 'var(--border-subtle)' }}
+          className="sticky top-0 z-10 px-4 pt-[max(0.625rem,env(safe-area-inset-top,0px))] pb-2.5 sm:px-5 sm:py-3 border-b flex items-center justify-between gap-2.5 shrink-0"
+          style={{
+            borderColor: 'var(--border-subtle)',
+            backgroundColor: 'var(--bg-surface)',
+          }}
         >
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <span
@@ -484,6 +479,7 @@ export const ReciterSelectorModal: React.FC = () => {
             type="button"
             onClick={handleClose}
             aria-label="Okuyucu seçiciyi kapat"
+            title="Okuyucu seçiciyi kapat"
             className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)] shrink-0"
             style={{ color: 'var(--text-secondary)' }}
           >

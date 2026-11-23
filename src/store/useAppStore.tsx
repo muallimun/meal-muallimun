@@ -113,6 +113,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   turkishFont: TURKISH_FONTS[0].label, // 'Plus Jakarta Sans'
   arabicFontSize: 28,
   turkishFontSize: 16,
+  arabicTextDensity: 'balanced',
   sfxEnabled: true,
   sfxVolume: 0.75,
   showOptionLettersInApp: false,
@@ -582,6 +583,12 @@ function hydrateState(): PersistedAppState {
         typeof rawSettings.showOptionLettersInApp === 'boolean'
           ? rawSettings.showOptionLettersInApp
           : DEFAULT_SETTINGS.showOptionLettersInApp,
+      arabicTextDensity:
+        rawSettings.arabicTextDensity === 'compact' ||
+        rawSettings.arabicTextDensity === 'balanced' ||
+        rawSettings.arabicTextDensity === 'relaxed'
+          ? rawSettings.arabicTextDensity
+          : DEFAULT_SETTINGS.arabicTextDensity,
       wordByWordEnabled:
         typeof rawSettings.wordByWordEnabled === 'boolean'
           ? rawSettings.wordByWordEnabled

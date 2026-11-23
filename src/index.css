@@ -290,7 +290,7 @@
   background-color: rgba(245, 158, 11, 0.22);
   border-radius: 6px;
   box-shadow:
-    0 0 0 3px rgba(245, 158, 11, 0.22),
+    0 0 0 0.08em rgba(245, 158, 11, 0.22),
     inset 0 -2px 0 rgba(217, 119, 6, 0.85);
   transition: background-color 110ms ease-out, box-shadow 110ms ease-out;
 }
@@ -300,7 +300,7 @@
   background-color: rgba(251, 191, 36, 0.20);
   border-radius: 6px;
   box-shadow:
-    0 0 0 3px rgba(251, 191, 36, 0.20),
+    0 0 0 0.08em rgba(251, 191, 36, 0.20),
     inset 0 -2px 0 rgba(251, 191, 36, 0.85);
 }
 

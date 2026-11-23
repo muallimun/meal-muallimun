@@ -67,6 +67,9 @@ import type {
   ThemeMode,
   WordMealMode,
 } from '../../types/quran';
+import { useBackButtonGuard } from '../../services/backStackService';
+import { ARABIC_TEXT_DENSITY_OPTIONS } from '../../utils/arabicUtils';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { buildSurahQuestionCountMap, getSurahMap } from '../../utils/poolUtils';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { BookModeView } from './BookModeView';
@@ -258,6 +261,15 @@ export const StudyPage: React.FC = () => {
   const [isMobileBarHidden, setIsMobileBarHidden] = useState(false);
   const [topbarPortalSlot, setTopbarPortalSlot] = useState<HTMLElement | null>(null);
   const [isFavoritesDrawerOpen, setIsFavoritesDrawerOpen] = useState(false);
+
+  useBackButtonGuard('favorites_drawer', isFavoritesDrawerOpen, () => {
+    setIsFavoritesDrawerOpen(false);
+  });
+
+  useEffect(() => {
+    if (!isFavoritesDrawerOpen) return;
+    return acquireBodyScrollLock();
+  }, [isFavoritesDrawerOpen]);
   const [infoModalSurah, setInfoModalSurah] = useState<SurahMeta | null>(null);
   const [shareTarget, setShareTarget] = useState<{
     verse: CombinedVerse;
@@ -1681,6 +1693,7 @@ export const StudyPage: React.FC = () => {
                         });
                       }}
                       aria-label="Arapça yazı boyutunu küçült"
+                      title="Arapça yazı boyutunu küçült"
                       className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
@@ -1697,7 +1710,8 @@ export const StudyPage: React.FC = () => {
                           arabicFontSize: Math.min(44, settings.arabicFontSize + 2),
                         });
                       }}
-                      aria-label="Arapça yazı boyutunu büyült"
+                      aria-label="Arapça yazı boyutunu büyüt"
+                      title="Arapça yazı boyutunu büyüt"
                       className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
@@ -1725,6 +1739,7 @@ export const StudyPage: React.FC = () => {
                         });
                       }}
                       aria-label="Meal yazı boyutunu küçült"
+                      title="Meal yazı boyutunu küçült"
                       className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
@@ -1741,7 +1756,8 @@ export const StudyPage: React.FC = () => {
                           turkishFontSize: Math.min(24, settings.turkishFontSize + 1),
                         });
                       }}
-                      aria-label="Meal yazı boyutunu büyült"
+                      aria-label="Meal yazı boyutunu büyüt"
+                      title="Meal yazı boyutunu büyüt"
                       className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
@@ -1750,6 +1766,47 @@ export const StudyPage: React.FC = () => {
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {!isMealOnlyContent && (
+                <div className="pt-1.5 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold">Metin Sıklığı</span>
+                    <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                      Kelime &amp; satır aralığı
+                    </span>
+                  </div>
+                  <div
+                    className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                    style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                    role="group"
+                    aria-label="Arapça metin sıklığı"
+                  >
+                    {ARABIC_TEXT_DENSITY_OPTIONS.map((opt) => {
+                      const active = (settings.arabicTextDensity ?? 'balanced') === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          aria-pressed={active}
+                          title={opt.description}
+                          onClick={() => {
+                            sfxService.play('click');
+                            updateSettings({ arabicTextDensity: opt.id });
+                          }}
+                          className="h-8 px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                            color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                            boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -2339,7 +2396,7 @@ export const StudyPage: React.FC = () => {
         /* Birleşik h-12 (48px) Mobil Okuma Şeridi — Mushaf, Kartlar ve Kitap'ta ortak; Kartlar & Kitap'ta aşağı kaydırmada gizlenir */
         <header
           aria-label="Mobil okuma şeridi"
-          className={`lg:hidden sticky top-0 z-30 h-12 ${
+          className={`lg:hidden sticky top-0 z-30 h-12 max-w-full overflow-x-clip ${
             viewMode === 'cards' ? '-mx-2.5 sm:-mx-4 px-2 sm:px-3.5' : '-mx-1.5 sm:-mx-3 px-2 sm:px-3'
           } border-b backdrop-blur-md flex items-center justify-between gap-1.5 transition-transform duration-200 will-change-transform ${
             isMobileBarHidden ? '-translate-y-full' : 'translate-y-0'
@@ -2693,7 +2750,8 @@ export const StudyPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsFavoritesDrawerOpen(false)}
-                aria-label="Kapat"
+                aria-label="Favori ayetler penceresini kapat"
+                title="Kapat"
                 className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer"
                 style={{ backgroundColor: 'var(--bg-surface-soft)' }}
               >
@@ -2741,6 +2799,7 @@ export const StudyPage: React.FC = () => {
                       type="button"
                       onClick={() => toggleBookmarkAyah(item.ayahId)}
                       aria-label="Favorilerden çıkar"
+                      title="Favorilerden çıkar"
                       className="w-9 h-9 rounded-lg flex items-center justify-center cursor-pointer shrink-0"
                       style={{ color: 'var(--brand-accent-text)' }}
                     >
