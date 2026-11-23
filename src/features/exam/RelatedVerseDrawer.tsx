@@ -122,6 +122,7 @@ export const RelatedVerseDrawer: React.FC<RelatedVerseDrawerProps> = ({
                   surah: question.surah,
                   ayah: firstAyah,
                   page: firstPage,
+                  ensureMealVisible: true,
                 })
               }
               className="min-h-[44px] px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"

@@ -414,7 +414,15 @@ export const GlobalSearchModal: React.FC = () => {
       sfxService.play('click');
       saveRecentSearch(query);
       closeSearchModal();
-      navigateToStudy({ viewMode, surah, ayah, page });
+      navigateToStudy({
+        viewMode,
+        surah,
+        ayah,
+        page,
+        ...(viewMode === 'cards'
+          ? { ensureMealVisible: true }
+          : { ensureArabicVisible: true }),
+      });
     },
     [closeSearchModal, navigateToStudy, query, saveRecentSearch],
   );
@@ -441,6 +449,7 @@ export const GlobalSearchModal: React.FC = () => {
         surah: item.surah,
         ayah: item.ayah,
         page: item.page,
+        ensureArabicVisible: true,
       });
     },
     [closeSearchModal, navigateToStudy, query, saveRecentSearch],
@@ -2001,7 +2010,7 @@ export const GlobalSearchModal: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  handleJumpToVerse(hit.surah, hit.ayah, hit.page, 'mushaf')
+                                  handleJumpToVerse(hit.surah, hit.ayah, hit.page, 'cards')
                                 }
                                 className="min-h-[32px] px-2.5 rounded-lg text-xs font-bold text-white flex items-center gap-1 cursor-pointer whitespace-nowrap"
                                 style={{ backgroundColor: 'var(--brand-primary)' }}

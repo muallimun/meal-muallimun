@@ -607,7 +607,11 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                           type="button"
                           onClick={() => {
                             sfxService.play('click');
-                            navigateToStudy({ surah: item.surahNo, ayah: item.firstAyah });
+                            navigateToStudy({
+                              surah: item.surahNo,
+                              ayah: item.firstAyah,
+                              ensureMealVisible: true,
+                            });
                           }}
                           title={`${surahTitle} mealini Okuma ekranında aç`}
                           className="min-h-[34px] px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap print:hidden"

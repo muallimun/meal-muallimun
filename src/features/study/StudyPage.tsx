@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Columns2,
   Headphones,
+  Info,
   Languages,
   LayoutList,
   ListMusic,
@@ -77,7 +78,7 @@ import { LocationPickerModal, type LocationPickerTab } from './LocationPickerMod
 import { MobileReaderDrawer } from './MobileReaderDrawer';
 import { MushafPageView } from './MushafPageView';
 import { SurahInfoModal } from './SurahInfoModal';
-import { TajweedLegendBar } from './TajweedLegendBar';
+import { TAJWEED_DIACRITIC_NOTE, TajweedLegendBar } from './TajweedLegendBar';
 import { VerseCardsView } from './VerseCardsView';
 
 const EMPTY_TAJWEED_SURAH_NOS: readonly number[] = [];
@@ -1545,6 +1546,25 @@ export const StudyPage: React.FC = () => {
                       <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
                     </button>
                   )}
+
+                  <div
+                    className="w-full max-w-full min-w-0 rounded-lg border px-2.5 py-2 flex items-start gap-2"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <Info
+                      className="w-3.5 h-3.5 shrink-0 mt-0.5"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <p
+                      className="w-full max-w-full min-w-0 flex-1 whitespace-normal break-words text-xs leading-relaxed"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      {TAJWEED_DIACRITIC_NOTE}
+                    </p>
+                  </div>
 
                   {/* Kelime Takibi (Karaoke) */}
                   <button

@@ -274,6 +274,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
         page: pageNo,
         surah: info.firstSurah,
         ayah: info.firstAyah,
+        ensureArabicVisible: true,
       });
     },
     [meta, navigateToStudy],

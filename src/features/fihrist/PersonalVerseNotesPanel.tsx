@@ -117,6 +117,7 @@ export const PersonalVerseNotesPanel: React.FC = () => {
       surah: note.surah,
       ayah: note.ayah,
       page: note.page,
+      ensureMealVisible: true,
     });
   };
 

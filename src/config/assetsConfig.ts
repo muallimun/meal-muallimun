@@ -77,7 +77,7 @@ export const ARABIC_FONTS: readonly ArabicFontOption[] = [
     label: 'Elif Mushaf Hattı',
     fileName: 'elfmshf.ttf',
     fontFamily: '"Elif Mushaf Hattı"',
-    description: 'Klasik Türkiye mushaf okuma deneyimi (varsayılan)',
+    description: 'Klasik Türkiye mushaf okuma deneyimi',
   },
   {
     id: 'shaikh-book',
@@ -91,7 +91,7 @@ export const ARABIC_FONTS: readonly ArabicFontOption[] = [
     label: 'Şeyh Hamdullah Klasik',
     fileName: 'ShaikhHamdullahBasic.ttf',
     fontFamily: '"Şeyh Hamdullah Klasik"',
-    description: 'Geleneksel Osmanlı hat zarafeti',
+    description: 'Geleneksel Osmanlı hat zarafeti (varsayılan)',
   },
   {
     id: 'suleyman',
@@ -185,9 +185,14 @@ export const SFX_MAP: Record<SfxKey, readonly string[]> = {
   success: ['basari.mp3', 'tebrikler.mp3'],
 };
 
+export const DEFAULT_ARABIC_FONT_LABEL =
+  ARABIC_FONTS.find((f) => f.id === 'shaikh-basic')?.label ?? 'Şeyh Hamdullah Klasik';
+
 export function resolveArabicFontFamily(label: string): string {
   const found = ARABIC_FONTS.find((f) => f.label === label);
-  return found ? `${found.fontFamily}, "Elif Mushaf Hattı", serif` : '"Elif Mushaf Hattı", serif';
+  return found
+    ? `${found.fontFamily}, "Şeyh Hamdullah Klasik", "Elif Mushaf Hattı", serif`
+    : '"Şeyh Hamdullah Klasik", "Elif Mushaf Hattı", serif';
 }
 
 export function resolveTurkishFontStack(label: string): string {

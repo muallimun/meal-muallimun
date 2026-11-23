@@ -77,7 +77,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
     questionAudit,
     setSkipReportedInExams,
     openPoolModal,
-    setActiveTab,
+    navigateToStudy,
   } = useAppStore();
 
   const surahMap = useMemo(() => getSurahMap(meta), [meta]);
@@ -1176,7 +1176,15 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       <div className="flex items-center justify-center">
         <button
           type="button"
-          onClick={() => setActiveTab('reader')}
+          onClick={() => {
+            const firstTargetSurah =
+              selectedSingleSurah ?? targetSurahs[0] ?? poolStats.effectiveSurahs[0] ?? 1;
+            navigateToStudy({
+              surah: firstTargetSurah,
+              ayah: 1,
+              ensureMealVisible: true,
+            });
+          }}
           className="text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer hover:underline"
           style={{ color: 'var(--text-muted)' }}
         >

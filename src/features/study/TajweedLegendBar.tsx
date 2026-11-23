@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { BookOpenCheck, ChevronDown, Sparkles, X } from 'lucide-react';
+import { BookOpenCheck, ChevronDown, Info, Sparkles, X } from 'lucide-react';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type { ThemeMode } from '../../types/quran';
 import type { TajweedRuleDef } from '../../types/tajweed';
 import { resolveTajweedRuleColor } from './TajweedText';
+
+export const TAJWEED_DIACRITIC_NOTE =
+  'Harekeleme Notu: Renkli tecvit görünümünde Arap (Medine) Mushafı imlâ usulü esas alınır. Bu usulde ihfâ ve idğâm yapılan sâkin harflere cezim konulmaz; önceki âyetin sonuyla birleştirilerek (vasıl ile) okunan âyet başlarında ise ulama şeddesi bulunabilir.';
 
 interface TajweedLegendBarProps {
   rules: Record<string, TajweedRuleDef>;
@@ -110,6 +113,7 @@ export const TajweedLegendBar: React.FC<TajweedLegendBarProps> = ({
 }) => {
   const { openWaqfGuide } = useAppStore();
   const [expandedGroupId, setExpandedGroupId] = useState<LegendGroupDef['id'] | null>(null);
+  const [showDiacriticNote, setShowDiacriticNote] = useState(false);
 
   const groupedRules = useMemo(() => {
     const map: Record<LegendGroupDef['id'], TajweedRuleDef[]> = {
@@ -198,6 +202,28 @@ export const TajweedLegendBar: React.FC<TajweedLegendBarProps> = ({
 
         <button
           type="button"
+          onClick={() => {
+            sfxService.play('click');
+            setShowDiacriticNote((v) => !v);
+          }}
+          aria-expanded={showDiacriticNote}
+          title="Medine Mushafı Harekeleme Notu"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-bold whitespace-nowrap shrink-0 cursor-pointer transition-colors hover:opacity-85"
+          style={{
+            backgroundColor: showDiacriticNote
+              ? 'var(--brand-primary-soft)'
+              : 'var(--bg-surface-soft)',
+            borderColor: showDiacriticNote ? 'var(--brand-primary)' : 'var(--border-subtle)',
+            color: showDiacriticNote ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+          }}
+        >
+          <Info className="w-3 h-3 shrink-0" />
+          <span className="hidden md:inline">Harekeleme Notu</span>
+          <span className="md:hidden">Not</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => openWaqfGuide()}
           title="Secâvend Vakıf (Durak) İşaretleri Rehberi"
           className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-bold whitespace-nowrap shrink-0 cursor-pointer transition-colors hover:opacity-85"
@@ -229,6 +255,40 @@ export const TajweedLegendBar: React.FC<TajweedLegendBarProps> = ({
           <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
         </button>
       </div>
+
+      {/* Açılır/Kapanır Tam Genişlik Medine Mushafı Harekeleme Bilgi Notu */}
+      {showDiacriticNote && (
+        <div
+          className="w-full max-w-full min-w-0 px-3 py-2.5 border-t flex items-start gap-2"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <Info
+            className="w-4 h-4 shrink-0 mt-0.5"
+            style={{ color: 'var(--brand-primary-text)' }}
+          />
+          <p
+            className="w-full max-w-full min-w-0 flex-1 whitespace-normal break-words text-xs leading-relaxed"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {TAJWEED_DIACRITIC_NOTE}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setShowDiacriticNote(false);
+            }}
+            aria-label="Harekeleme notunu gizle"
+            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Seçilen Grup İçin Kısa Satır İçi Özet */}
       {activeGroupDef && (

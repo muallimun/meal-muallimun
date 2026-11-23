@@ -397,6 +397,7 @@ export interface StudyNavigationTarget {
   viewMode?: StudyViewMode;
   contentMode?: BookContentMode;
   ensureMealVisible?: boolean;
+  ensureArabicVisible?: boolean;
   surah?: number;
   ayah?: number;
   page?: number;

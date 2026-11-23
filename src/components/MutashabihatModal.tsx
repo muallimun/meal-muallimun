@@ -250,7 +250,7 @@ export const MutashabihatModal: React.FC = () => {
   const handleOpenInReader = (surah: number, ayah: number) => {
     sfxService.play('click');
     closeMutashabihat();
-    navigateToStudy({ surah, ayah, viewMode: 'cards' });
+    navigateToStudy({ surah, ayah, viewMode: 'cards', ensureMealVisible: true });
   };
 
   const sourcePrimaryMeal = sourceVerse ? getPrimaryVerse(sourceVerse) : null;

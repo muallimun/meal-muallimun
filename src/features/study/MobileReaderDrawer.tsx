@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Columns2,
   Eye,
+  Info,
   Languages,
   LayoutList,
   ListMusic,
@@ -35,6 +36,7 @@ import type {
 } from '../../types/quran';
 import { ARABIC_TEXT_DENSITY_OPTIONS } from '../../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
+import { TAJWEED_DIACRITIC_NOTE } from './TajweedLegendBar';
 
 interface MobileReaderDrawerProps {
   isOpen: boolean;
@@ -450,6 +452,25 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                     <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
                   </button>
                 )}
+
+                <div
+                  className="w-full max-w-full min-w-0 rounded-lg border px-2.5 py-2 flex items-start gap-2"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <Info
+                    className="w-3.5 h-3.5 shrink-0 mt-0.5"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  />
+                  <p
+                    className="w-full max-w-full min-w-0 flex-1 whitespace-normal break-words text-xs leading-relaxed"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {TAJWEED_DIACRITIC_NOTE}
+                  </p>
+                </div>
               </div>
             )}
 

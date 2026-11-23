@@ -122,6 +122,7 @@ const BazerganPassageCard: React.FC<BazerganPassageCardProps> = ({
       surah: entry.surah,
       ayah: firstAyah,
       viewMode: 'cards',
+      ensureMealVisible: true,
     });
   };
 

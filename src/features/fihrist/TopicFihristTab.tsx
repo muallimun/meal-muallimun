@@ -1023,6 +1023,7 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
                                   surah: verse.surah,
                                   ayah: verse.ayah,
                                   viewMode: 'cards',
+                                  ensureMealVisible: true,
                                 });
                               }}
                               title="Okuyucuda Aç"

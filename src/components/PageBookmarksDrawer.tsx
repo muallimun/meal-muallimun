@@ -106,6 +106,7 @@ export const PageBookmarksDrawer: React.FC = () => {
       page: bm.page,
       surah: bm.surah,
       ayah: bm.ayah,
+      ensureArabicVisible: true,
     });
   };
 
@@ -364,7 +365,7 @@ export const PageBookmarksDrawer: React.FC = () => {
                 type="button"
                 onClick={() => {
                   closeBookmarksDrawer();
-                  navigateToStudy({ viewMode: 'mushaf' });
+                  navigateToStudy({ viewMode: 'mushaf', ensureArabicVisible: true });
                 }}
                 className="min-h-[40px] px-4 rounded-xl text-xs font-bold text-white inline-flex items-center gap-1.5 cursor-pointer mt-1"
                 style={{ backgroundColor: 'var(--brand-primary)' }}

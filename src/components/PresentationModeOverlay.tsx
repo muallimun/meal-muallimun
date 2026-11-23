@@ -5,6 +5,7 @@ import {
   BookOpen,
   ChevronRight,
   Headphones,
+  Info,
   Loader2,
   Maximize2,
   Minimize2,
@@ -46,6 +47,7 @@ import { formatSafeArabicTitle, formatSurahTitle } from '../utils/arabicUtils';
 import { splitTrailingWaqf, WaqfMarkSpan } from '../utils/waqfTextUtils';
 import { mapQulWordIndexToDisplay, tokenizeArabicWithWaqf } from '../utils/wordSyncUtils';
 import { useActiveWordSync } from '../features/study/SyncedArabicText';
+import { TAJWEED_DIACRITIC_NOTE } from '../features/study/TajweedLegendBar';
 import { TajweedText } from '../features/study/TajweedText';
 
 type PresentationContentMode = 'both' | 'ar' | 'meal';
@@ -249,6 +251,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   };
   const [manualIndex, setManualIndex] = useState<number>(0);
   const [isSettingsPopoverOpen, setIsSettingsPopoverOpen] = useState(false);
+  const [showDiacriticNote, setShowDiacriticNote] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   );
@@ -735,7 +738,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             title={settings.tajweedEnabled ? 'Renkli Tecvit: Açık' : 'Renkli Tecvit: Kapalı'}
             onClick={() => {
               sfxService.play('click');
-              updateSettings({ tajweedEnabled: !settings.tajweedEnabled });
+              const next = !settings.tajweedEnabled;
+              updateSettings({ tajweedEnabled: next });
+              if (!next) setShowDiacriticNote(false);
             }}
             className="min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
             style={{
@@ -747,6 +752,29 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             <Sparkles className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden lg:inline whitespace-nowrap">Tecvit</span>
           </button>
+
+          {/* Renkli Tecvit Harekeleme Bilgi Notu Aç/Kapa */}
+          {settings.tajweedEnabled && (
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setShowDiacriticNote((v) => !v);
+              }}
+              aria-expanded={showDiacriticNote}
+              aria-label="Medine Mushafı Harekeleme Notu"
+              title="Medine Mushafı Harekeleme Notu"
+              className="min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
+              style={{
+                borderColor: showDiacriticNote ? palette.accent : palette.border,
+                backgroundColor: showDiacriticNote ? palette.accentSoft : 'transparent',
+                color: showDiacriticNote ? palette.accent : palette.muted,
+              }}
+            >
+              <Info className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden xl:inline whitespace-nowrap">Harekeleme Notu</span>
+            </button>
+          )}
 
           {/* Hızlı Kontrol 2: Kelime Takibi (Karaoke) */}
           <button
@@ -1058,6 +1086,42 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           </button>
         </div>
       </header>
+
+      {/* Renkli Tecvit Açıkken Açılır/Kapanır Tam Genişlik Harekeleme Notu */}
+      {settings.tajweedEnabled && showDiacriticNote && (
+        <div
+          className="w-full max-w-full min-w-0 px-4 sm:px-6 py-2.5 border-b shrink-0"
+          style={{
+            backgroundColor: palette.surface,
+            borderColor: palette.border,
+          }}
+        >
+          <div className="w-full max-w-5xl mx-auto min-w-0 flex items-start gap-2.5">
+            <Info
+              className="w-4 h-4 shrink-0 mt-0.5"
+              style={{ color: palette.accent }}
+            />
+            <p
+              className="w-full max-w-full min-w-0 flex-1 whitespace-normal break-words text-xs leading-relaxed text-left"
+              style={{ color: palette.text }}
+            >
+              {TAJWEED_DIACRITIC_NOTE}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setShowDiacriticNote(false);
+              }}
+              aria-label="Harekeleme notunu gizle"
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-80"
+              style={{ color: palette.muted }}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Orta Sahne: Kırpışmasız, Deterministik Ölçeklenen Geniş Ayet & Meal Alanı */}
       <main className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-12 lg:px-20 py-4 overflow-y-auto">

@@ -230,6 +230,7 @@ export const HatimPlannerModal: React.FC = () => {
       page: loc.page,
       surah: loc.surah,
       ayah: loc.ayah,
+      ensureArabicVisible: true,
     });
   };
 
@@ -263,6 +264,7 @@ export const HatimPlannerModal: React.FC = () => {
       page: loc.page,
       surah: loc.surah,
       ayah: loc.ayah,
+      ensureArabicVisible: true,
     });
   };
 

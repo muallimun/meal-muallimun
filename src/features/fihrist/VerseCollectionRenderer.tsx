@@ -254,7 +254,14 @@ export const VerseCollectionRenderer: React.FC<VerseCollectionRendererProps> = (
   const handleOpenInMushaf = (surah: number, ayah: number) => {
     sfxService.play('click');
     const page = meta ? findPageForSurahAyah(meta, surah, ayah) : undefined;
-    navigateToStudy({ surah, ayah, page, viewMode: 'mushaf' });
+    navigateToStudy({
+      surah,
+      ayah,
+      page,
+      viewMode: 'mushaf',
+      ensureArabicVisible: true,
+      ensureMealVisible: true,
+    });
   };
 
   const handlePlaySingleRange = (surah: number, startAyah: number, endAyah: number) => {

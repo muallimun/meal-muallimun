@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import {
   ARABIC_FONTS,
+  DEFAULT_ARABIC_FONT_LABEL,
   TURKISH_FONTS,
   resolveArabicFontFamily,
   resolveTurkishFontStack,
@@ -100,6 +101,7 @@ export type UserGuideTabId = 'quickstart' | 'modules' | 'offline_backup' | 'shor
 export const STORAGE_KEY = 'muallimun_meal_v1';
 export const INTRO_DISMISSED_KEY = 'muallimun_intro_dismissed_v1';
 export const SIDEBAR_COLLAPSED_KEY = 'muallimun_sidebar_collapsed_v1';
+export const READING_DEFAULTS_MIGRATION_KEY = 'muallimun_reading_defaults_v2';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'cream',
@@ -109,7 +111,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   mealDisplayMode: 'single',
   favoriteMealIds: [...DEFAULT_FAVORITE_MEAL_IDS],
   compareMealIds: [],
-  arabicFont: ARABIC_FONTS[0].label, // 'Elif Mushaf Hattı'
+  arabicFont: DEFAULT_ARABIC_FONT_LABEL, // 'Şeyh Hamdullah Klasik'
   turkishFont: TURKISH_FONTS[0].label, // 'Plus Jakarta Sans'
   arabicFontSize: 28,
   turkishFontSize: 16,
@@ -121,7 +123,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showFootnotes: true,
   highlightSajdah: true,
   keepScreenAwake: true,
-  tajweedEnabled: true,
+  tajweedEnabled: false,
   showTajweedLegend: false,
   wordSyncEnabled: true,
   showRukuMarkers: true,
@@ -471,7 +473,22 @@ function hydrateState(): PersistedAppState {
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
+    let hasReadingDefaultsMigrationV2 = false;
+    try {
+      hasReadingDefaultsMigrationV2 =
+        window.localStorage.getItem(READING_DEFAULTS_MIGRATION_KEY) === '1';
+    } catch {
+      hasReadingDefaultsMigrationV2 = false;
+    }
+
     if (!raw) {
+      if (!hasReadingDefaultsMigrationV2) {
+        try {
+          window.localStorage.setItem(READING_DEFAULTS_MIGRATION_KEY, '1');
+        } catch {
+          // Gizli mod / kota kısıtında sessizce devam et
+        }
+      }
       return createDefaultState(today);
     }
 
@@ -627,6 +644,19 @@ function hydrateState(): PersistedAppState {
       mushafLayout: DEFAULT_SETTINGS.mushafLayout,
       deskPrefs: sanitizeStudyDeskPrefs(rawSettings.deskPrefs),
     };
+
+    // Tek seferlik güvenli varsayılan okuma ayarları migrasyonu (v2):
+    // Mevcut kullanıcıları bir kez yeni varsayılanlara taşır; sonraki tüm tercihler korunur.
+    if (!hasReadingDefaultsMigrationV2) {
+      settings.tajweedEnabled = DEFAULT_SETTINGS.tajweedEnabled;
+      settings.arabicFont = DEFAULT_SETTINGS.arabicFont;
+      settings.arabicFontSize = DEFAULT_SETTINGS.arabicFontSize;
+      try {
+        window.localStorage.setItem(READING_DEFAULTS_MIGRATION_KEY, '1');
+      } catch {
+        // Gizli mod / kota kısıtında sessizce devam et
+      }
+    }
 
     const rawPool = parsed.studyPool;
     const studyPool: StudyPool = {
@@ -2504,33 +2534,73 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const navigateToStudy = useCallback((target: Omit<StudyNavigationTarget, 'nonce'>) => {
     sfxService.play('click');
-    if (target.viewMode || target.contentMode || target.ensureMealVisible) {
+    if (
+      target.viewMode ||
+      target.contentMode ||
+      target.ensureMealVisible ||
+      target.ensureArabicVisible
+    ) {
+      const isCompactViewport = typeof window !== 'undefined' && window.innerWidth < 1024;
       setPersisted((prev) => {
         const currentPrefs = prev.studyPrefs;
-        const nextViewMode = target.viewMode ?? currentPrefs.viewMode;
-        const nextReaderContentMode: ReaderContentMode = target.contentMode
+        let nextViewMode = target.viewMode ?? currentPrefs.viewMode;
+        let nextReaderContentMode: ReaderContentMode = target.contentMode
           ? bookModeToReaderContent(target.contentMode)
-          : target.ensureMealVisible && prev.settings.readerContentMode === 'ar_only'
-            ? 'ar_meal'
-            : prev.settings.readerContentMode;
+          : prev.settings.readerContentMode;
+        let nextDesktopCombinedLayout = prev.settings.desktopCombinedLayout;
+
+        if (!target.contentMode) {
+          if (target.ensureMealVisible && nextReaderContentMode === 'ar_only') {
+            nextReaderContentMode = 'ar_meal';
+          }
+          if (target.ensureArabicVisible && nextReaderContentMode === 'meal_only') {
+            nextReaderContentMode = 'ar_meal';
+          }
+        }
+
+        // Meal/anlam odaklı geçişlerde:
+        // - Mobilde (< 1024px) Mushaf görünümü meali doğrudan göstermediği için Kartlar görünümüne geç
+        //   (doğrudan Mushaf hedeflenmemişse).
+        // - Masaüstünde (>= 1024px) Mushaf + Rahle (tıklanan meal) modundaysa yan yana Meal panelini aç.
+        if (target.ensureMealVisible) {
+          if (
+            isCompactViewport &&
+            nextViewMode === 'mushaf' &&
+            !(target.viewMode === 'mushaf' && target.ensureArabicVisible)
+          ) {
+            nextViewMode = 'cards';
+          } else if (
+            !isCompactViewport &&
+            nextViewMode === 'mushaf' &&
+            nextDesktopCombinedLayout !== 'side_by_side'
+          ) {
+            nextDesktopCombinedLayout = 'side_by_side';
+          }
+        }
+
         const nextMushafLayout = computeMushafLayout(
           nextReaderContentMode,
           prev.settings.desktopPageLayout,
-          prev.settings.desktopCombinedLayout,
+          nextDesktopCombinedLayout,
         );
         const nextBookContentMode = readerContentToBookMode(nextReaderContentMode);
         const nextPageLayout = mushafLayoutToLegacyPageLayout(nextMushafLayout);
         const nextMealAudioFocusOnly = target.ensureMealVisible
           ? false
           : currentPrefs.mealAudioFocusOnly;
+        const nextMushafSidePanelOpen = target.ensureMealVisible
+          ? true
+          : currentPrefs.mushafSidePanelOpen;
 
         if (
           nextViewMode === currentPrefs.viewMode &&
           nextReaderContentMode === prev.settings.readerContentMode &&
+          nextDesktopCombinedLayout === prev.settings.desktopCombinedLayout &&
           nextMushafLayout === prev.settings.mushafLayout &&
           nextBookContentMode === currentPrefs.bookContentMode &&
           nextPageLayout === currentPrefs.pageLayout &&
-          nextMealAudioFocusOnly === currentPrefs.mealAudioFocusOnly
+          nextMealAudioFocusOnly === currentPrefs.mealAudioFocusOnly &&
+          nextMushafSidePanelOpen === currentPrefs.mushafSidePanelOpen
         ) {
           return prev;
         }
@@ -2540,6 +2610,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           settings: {
             ...prev.settings,
             readerContentMode: nextReaderContentMode,
+            desktopCombinedLayout: nextDesktopCombinedLayout,
             mushafLayout: nextMushafLayout,
           },
           studyPrefs: {
@@ -2548,6 +2619,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             bookContentMode: nextBookContentMode,
             pageLayout: nextPageLayout,
             mealAudioFocusOnly: nextMealAudioFocusOnly,
+            mushafSidePanelOpen: nextMushafSidePanelOpen,
           },
         };
       });

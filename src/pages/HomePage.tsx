@@ -503,12 +503,13 @@ export const HomePage: React.FC = () => {
         ayah: last.ayah,
         page: last.page,
         viewMode: last.viewMode,
+        ...(last.viewMode === 'mushaf' ? { ensureArabicVisible: true } : {}),
       });
       return;
     }
     const firstSurah = poolStats.effectiveSurahs[0];
     if (firstSurah) {
-      navigateToStudy({ surah: firstSurah, ayah: 1 });
+      navigateToStudy({ surah: firstSurah, ayah: 1, ensureMealVisible: true });
     } else {
       setActiveTab('reader');
     }
@@ -1458,6 +1459,7 @@ export const HomePage: React.FC = () => {
                         ayah: lastRead.ayah,
                         page: lastRead.page,
                         viewMode: lastRead.viewMode,
+                        ...(lastRead.viewMode === 'mushaf' ? { ensureArabicVisible: true } : {}),
                       });
                     } else {
                       handleOpenPoolReader();
@@ -2051,6 +2053,7 @@ export const HomePage: React.FC = () => {
                     page: previewAyah.pageNo,
                     viewMode: 'mushaf',
                     ensureMealVisible: true,
+                    ensureArabicVisible: true,
                   });
                 }}
                 className="min-h-[36px] px-3.5 rounded-xl font-bold inline-flex items-center gap-1.5 shrink-0 cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-45 whitespace-nowrap"
