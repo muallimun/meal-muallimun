@@ -21,6 +21,10 @@ import {
   StickyNote,
   Volume2,
 } from 'lucide-react';
+import {
+  AyahEndMarker,
+  ENDS_WITH_ARABIC_AYAH_MARKER,
+} from '../../components/AyahEndMarker';
 import { ResponsiveActionMenu } from '../../components/ResponsiveActionMenu';
 import {
   MEALS_CATALOG,
@@ -30,7 +34,7 @@ import {
 } from '../../config/mealsConfig';
 import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReferenceData';
 import { audioQueueService } from '../../services/audioQueueService';
-import { SAJDAH_AYAH_IDS, toArabicIndicDigits } from '../../services/dataService';
+import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import {
   VERSE_NOTE_COLOR_STYLES,
@@ -967,13 +971,14 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                     ۩
                   </span>
                 )}
-                {(useTajweed || !/[\u0660-\u0669\u06DD﴿﴾]\s*$/.test(verse.ar.t)) && (
-                  <span
-                    className="arabic-text inline-block mx-[0.18em] text-[0.78em] select-none align-middle"
-                    style={{ color: 'var(--brand-primary-text)' }}
-                  >
-                    ﴿{toArabicIndicDigits(verse.ayah)}﴾
-                  </span>
+                {(useTajweed || !ENDS_WITH_ARABIC_AYAH_MARKER.test(verse.ar.t)) && (
+                  <AyahEndMarker
+                    ayahNo={verse.ayah}
+                    isPlaying={isPlayingThisAyah}
+                    isHighlighted={highlightSajdah}
+                    theme={settings.theme}
+                    size="card"
+                  />
                 )}
                 {rukuEnd && (
                   <RukuMarkerBadge

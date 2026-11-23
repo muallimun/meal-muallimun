@@ -23,6 +23,10 @@ import {
   StickyNote,
   Volume2,
 } from 'lucide-react';
+import {
+  AyahEndMarker,
+  ENDS_WITH_ARABIC_AYAH_MARKER,
+} from '../../components/AyahEndMarker';
 import { ResponsiveActionMenu } from '../../components/ResponsiveActionMenu';
 import {
   MEALS_CATALOG,
@@ -69,15 +73,6 @@ interface BookModeViewProps {
   onSelectNextSurah: () => void;
   onOpenLocationPicker?: () => void;
   onToggleMobileImmersive?: () => void;
-}
-
-const ARABIC_INDIC = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-
-function toArabicNumeral(n: number): string {
-  return String(n)
-    .split('')
-    .map((ch) => ARABIC_INDIC[Number(ch)] ?? ch)
-    .join('');
 }
 
 export const BookModeView: React.FC<BookModeViewProps> = ({
@@ -908,6 +903,21 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               ۩
                             </span>
                           )}
+                          {(useVerseTajweed || !ENDS_WITH_ARABIC_AYAH_MARKER.test(verse.ar.t)) && (
+                            <AyahEndMarker
+                              ayahNo={verse.ayah}
+                              isPlaying={isPlaying}
+                              isWordSyncActive={audioState.isWordSyncActive}
+                              isHighlighted={isSelected || isBookmarked || isSajdah}
+                              theme={settings.theme}
+                              size="mushaf"
+                              title={
+                                isSajdah
+                                  ? `Tilâvet Secdesi · ${bundle.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
+                                  : `${bundle.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
+                              }
+                            />
+                          )}
                           {rukuEnd && (
                             <RukuMarkerBadge
                               ruku={rukuEnd}
@@ -915,18 +925,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               page={verse.page}
                               variant="inline"
                             />
-                          )}
-                          <span
-                            className={`inline-flex items-center justify-center mx-[0.18em] px-[0.35em] py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border ${
-                              isPlaying
-                                ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]'
-                                : isBookmarked || isSajdah
-                                  ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border-[var(--brand-accent)]/60'
-                                  : 'bg-[var(--bg-surface-soft)] text-[var(--brand-primary-text)] border-[var(--border-strong)]'
-                            }`}
-                          >
-                            ﴿{toArabicNumeral(verse.ayah)}﴾
-                          </span>{' '}
+                          )}{' '}
                         </span>
                       );
                     })}
@@ -1399,13 +1398,14 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                                 ۩
                               </span>
                             )}
-                            {(useVerseTajweed || !/[\u0660-\u0669\u06DD﴿﴾]\s*$/.test(verse.ar.t)) && (
-                              <span
-                                className="arabic-text inline-block mx-[0.18em] text-[0.78em] select-none align-middle"
-                                style={{ color: 'var(--brand-primary-text)' }}
-                              >
-                                ﴿{toArabicNumeral(verse.ayah)}﴾
-                              </span>
+                            {(useVerseTajweed || !ENDS_WITH_ARABIC_AYAH_MARKER.test(verse.ar.t)) && (
+                              <AyahEndMarker
+                                ayahNo={verse.ayah}
+                                isPlaying={isPlaying}
+                                isHighlighted={isSajdah}
+                                theme={settings.theme}
+                                size="card"
+                              />
                             )}
                           </p>
                         );

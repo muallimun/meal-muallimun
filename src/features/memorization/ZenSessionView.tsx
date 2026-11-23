@@ -34,6 +34,7 @@ import {
   Timer,
   Trash2,
 } from 'lucide-react';
+import { AyahEndMarker } from '../../components/AyahEndMarker';
 import { findReciterById } from '../../config/recitersConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useMutashabihatData } from '../../hooks/useStudyReferenceData';
@@ -82,15 +83,7 @@ interface ZenSessionViewProps {
   onExit: () => void;
 }
 
-const ARABIC_INDIC = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const MAX_RECORDING_SEC = 90;
-
-function toArabicNumeral(n: number): string {
-  return String(n)
-    .split('')
-    .map((ch) => ARABIC_INDIC[Number(ch)] ?? ch)
-    .join('');
-}
 
 function formatClock(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -2370,20 +2363,14 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                         }}
                       >
                         {renderMaskedArabic(verse, key)}
-                        <span
-                          className="inline-flex items-center justify-center mx-2 px-2 py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border"
-                          style={{
-                            backgroundColor: isActiveAudio
-                              ? 'var(--brand-primary)'
-                              : 'var(--bg-surface-soft)',
-                            borderColor: isActiveAudio
-                              ? 'var(--brand-primary)'
-                              : 'var(--border-strong)',
-                            color: isActiveAudio ? '#FFFFFF' : 'var(--brand-primary-text)',
-                          }}
-                        >
-                          ﴿{toArabicNumeral(verse.ayah)}﴾
-                        </span>
+                        <AyahEndMarker
+                          ayahNo={verse.ayah}
+                          isPlaying={isActiveAudio}
+                          highlightPlayingBg={isActiveAudio}
+                          theme={settings.theme}
+                          size="card"
+                          title={`${verse.ayah}. Ayet`}
+                        />
                       </p>
 
                       {/* Öz-Sınav Alt Değerlendirme Butonları */}
@@ -2586,20 +2573,14 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
                         }}
                       >
                         {inStep ? renderMaskedArabic(verse, key) : verse.ar.t}
-                        <span
-                          className="inline-flex items-center justify-center mx-1.5 px-2 py-0.5 rounded-full text-[0.55em] font-sans font-extrabold align-middle border"
-                          style={{
-                            backgroundColor: isActiveAudio
-                              ? 'var(--brand-primary)'
-                              : 'var(--bg-surface-soft)',
-                            borderColor: isActiveAudio
-                              ? 'var(--brand-primary)'
-                              : 'var(--border-strong)',
-                            color: isActiveAudio ? '#FFFFFF' : 'var(--brand-primary-text)',
-                          }}
-                        >
-                          ﴿{toArabicNumeral(verse.ayah)}﴾
-                        </span>{' '}
+                        <AyahEndMarker
+                          ayahNo={verse.ayah}
+                          isPlaying={isActiveAudio}
+                          highlightPlayingBg={isActiveAudio}
+                          theme={settings.theme}
+                          size="mushaf"
+                          title={`${verse.ayah}. Ayet`}
+                        />{' '}
                       </span>
                     );
                   })}

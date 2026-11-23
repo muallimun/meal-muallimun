@@ -26,6 +26,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { AyahEndMarker } from '../../components/AyahEndMarker';
 import { BOOKMARK_COLOR_STYLES } from '../../components/PageBookmarksDrawer';
 import {
   MEALS_CATALOG,
@@ -41,10 +42,7 @@ import { hasActiveBackStackEntries } from '../../services/backStackService';
 import { hatimStorage } from '../../services/hatimStorage';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
-import {
-  SAJDAH_AYAH_IDS,
-  toArabicIndicDigits,
-} from '../../services/dataService';
+import { SAJDAH_AYAH_IDS } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import {
   VERSE_NOTE_COLOR_STYLES,
@@ -1363,38 +1361,19 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                   </span>
                                 )}
                                 {(useVerseTajweed || !hasDigitsAtEnd) && (
-                                  <span
-                                    className="inline-block mx-[0.18em] text-[0.76em] select-none align-middle rounded-md transition-colors"
-                                    style={{
-                                      color:
-                                        isPlaying && audioState.isWordSyncActive
-                                          ? 'var(--brand-accent-text)'
-                                          : isPlaying
-                                            ? 'var(--brand-primary-text)'
-                                            : isSelected || highlightSajdah
-                                              ? 'var(--brand-accent-text)'
-                                              : 'var(--brand-primary-text)',
-                                      backgroundColor:
-                                        isPlaying && audioState.isWordSyncActive
-                                          ? settings.theme === 'dark'
-                                            ? 'rgba(251, 191, 36, 0.16)'
-                                            : 'rgba(245, 158, 11, 0.16)'
-                                          : 'transparent',
-                                      boxShadow:
-                                        isPlaying && audioState.isWordSyncActive
-                                          ? settings.theme === 'dark'
-                                            ? '0 0 0 2px rgba(251, 191, 36, 0.16)'
-                                            : '0 0 0 2px rgba(245, 158, 11, 0.16)'
-                                          : 'none',
-                                    }}
+                                  <AyahEndMarker
+                                    ayahNo={verse.ayah}
+                                    isPlaying={isPlaying}
+                                    isWordSyncActive={audioState.isWordSyncActive}
+                                    isHighlighted={isSelected || highlightSajdah}
+                                    theme={settings.theme}
+                                    size="mushaf"
                                     title={
                                       highlightSajdah
                                         ? `Tilâvet Secdesi · ${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
                                         : `${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
                                     }
-                                  >
-                                    ﴿{toArabicIndicDigits(verse.ayah)}﴾
-                                  </span>
+                                  />
                                 )}
                                 {settings.showRukuMarkers &&
                                   (() => {
