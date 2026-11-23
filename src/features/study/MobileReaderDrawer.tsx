@@ -28,8 +28,8 @@ import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
 import type {
   AppSettings,
-  BookContentMode,
   MealDefinition,
+  ReaderContentMode,
   StudyViewMode,
   WordMealMode,
 } from '../../types/quran';
@@ -46,8 +46,8 @@ interface MobileReaderDrawerProps {
   isDualMeal: boolean;
   onOpenMealSelector: () => void;
   onSetMealDisplayMode: (mode: 'single' | 'dual') => void;
-  contentMode: BookContentMode;
-  onChangeContentMode: (mode: BookContentMode) => void;
+  readerContentMode: ReaderContentMode;
+  onChangeReaderContentMode: (mode: ReaderContentMode) => void;
   wordMode: WordMealMode;
   onChangeWordMode: (mode: WordMealMode) => void;
   settings: AppSettings;
@@ -77,8 +77,8 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
   isDualMeal,
   onOpenMealSelector,
   onSetMealDisplayMode,
-  contentMode,
-  onChangeContentMode,
+  readerContentMode,
+  onChangeReaderContentMode,
   wordMode,
   onChangeWordMode,
   settings,
@@ -96,6 +96,9 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
   onOpenWaqfGuide,
   onOpenSettings,
 }) => {
+  const isMealOnlyContent = readerContentMode === 'meal_only';
+  const isArOnlyContent = readerContentMode === 'ar_only';
+
   useBackButtonGuard('mobile_reader_drawer', isOpen, onClose);
 
   useEffect(() => {
@@ -282,37 +285,32 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               </div>
             </div>
 
-            {/* İçerik & Sayfa Düzeni (Mushaf: Tek Sayfa / Mushaf + Meal / Sadece Meal | Kitap & Kartlar: AR + Meal / Sadece AR / Sadece Meal) */}
+            {/* Aşama 1 — İçerik (Tüm Okuma Modlarında Birleşik 3'lü Seçim) */}
             <div className="space-y-1">
               <span className="text-[11px] font-bold block" style={{ color: 'var(--text-muted)' }}>
-                {viewMode === 'mushaf' ? 'Mushaf Sayfa Düzeni' : 'İçerik Görünümü'}
+                İçerik
               </span>
               <div
                 className="grid grid-cols-3 gap-1 p-1 rounded-xl"
                 style={{ backgroundColor: 'var(--bg-surface-soft)' }}
               >
-                {(viewMode === 'mushaf'
-                  ? ([
-                      { id: 'ar_only', label: 'Tek Sayfa' },
-                      { id: 'interleaved', label: 'Mushaf + Meal' },
-                      { id: 'meal_only', label: 'Sadece Meal' },
-                    ] as { id: BookContentMode; label: string }[])
-                  : ([
-                      { id: 'interleaved', label: 'AR + Meal' },
-                      { id: 'ar_only', label: 'Sadece AR' },
-                      { id: 'meal_only', label: 'Sadece Meal' },
-                    ] as { id: BookContentMode; label: string }[])
+                {(
+                  [
+                    { id: 'ar_only', label: 'Sadece Arapça' },
+                    { id: 'ar_meal', label: 'Arapça + Meal' },
+                    { id: 'meal_only', label: 'Sadece Meal' },
+                  ] as { id: ReaderContentMode; label: string }[]
                 ).map((opt) => {
-                  const active = contentMode === opt.id;
+                  const active = readerContentMode === opt.id;
                   return (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => {
                         sfxService.play('click');
-                        onChangeContentMode(opt.id);
+                        onChangeReaderContentMode(opt.id);
                       }}
-                      className="min-h-[36px] px-1.5 rounded-lg text-[11px] sm:text-xs font-bold cursor-pointer whitespace-nowrap truncate"
+                      className="min-h-[38px] px-1 rounded-lg text-[11px] font-bold cursor-pointer whitespace-nowrap truncate"
                       style={{
                         backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                         color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -326,8 +324,8 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               </div>
             </div>
 
-            {/* Kelime Meali (Yalnızca Kartlar Modunda) */}
-            {settings.wordByWordEnabled && viewMode === 'cards' && (
+            {/* Kelime Meali (Yalnızca Kartlar Modunda ve Arapça Görünürken) */}
+            {settings.wordByWordEnabled && viewMode === 'cards' && !isMealOnlyContent && (
               <div className="space-y-1">
                 <span
                   className="text-[11px] font-bold flex items-center gap-1"
@@ -376,136 +374,140 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               </div>
             )}
 
-            {/* Renkli Tecvit (Etkileşimli Dokun-Öğren) */}
-            <div
-              className="px-3 py-2.5 rounded-xl border space-y-2"
-              style={{
-                backgroundColor: settings.tajweedEnabled
-                  ? 'var(--brand-primary-soft)'
-                  : 'var(--bg-surface-soft)',
-                borderColor: settings.tajweedEnabled
-                  ? 'var(--brand-primary)'
-                  : 'var(--border-subtle)',
-              }}
-            >
-              <button
-                type="button"
-                role="switch"
-                aria-checked={settings.tajweedEnabled}
-                onClick={() => {
-                  sfxService.play('click');
-                  onUpdateSettings({ tajweedEnabled: !settings.tajweedEnabled });
+            {/* Renkli Tecvit (Yalnızca Arapça Görünürken) */}
+            {!isMealOnlyContent && (
+              <div
+                className="px-3 py-2.5 rounded-xl border space-y-2"
+                style={{
+                  backgroundColor: settings.tajweedEnabled
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface-soft)',
+                  borderColor: settings.tajweedEnabled
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
                 }}
-                className="w-full flex items-center justify-between gap-2 text-left cursor-pointer"
               >
-                <div className="min-w-0">
-                  <span
-                    className="text-xs font-extrabold flex items-center gap-1.5"
-                    style={{
-                      color: settings.tajweedEnabled
-                        ? 'var(--brand-primary-text)'
-                        : 'var(--text-primary)',
-                    }}
-                  >
-                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                    <span>Renkli Tecvit</span>
-                  </span>
-                  <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Renkli harflere dokunarak tecvit kuralını gör
-                  </span>
-                </div>
-                <span
-                  className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
-                  style={{
-                    backgroundColor: settings.tajweedEnabled
-                      ? 'var(--brand-primary)'
-                      : 'var(--border-strong)',
-                  }}
-                >
-                  <span
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      settings.tajweedEnabled ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </span>
-              </button>
-
-              {settings.tajweedEnabled && (
                 <button
                   type="button"
+                  role="switch"
+                  aria-checked={settings.tajweedEnabled}
                   onClick={() => {
                     sfxService.play('click');
-                    onUpdateSettings({ showTajweedLegend: !settings.showTajweedLegend });
+                    onUpdateSettings({ tajweedEnabled: !settings.tajweedEnabled });
                   }}
-                  className="w-full min-h-[32px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: settings.showTajweedLegend
-                      ? 'var(--brand-primary-text)'
-                      : 'var(--text-secondary)',
-                  }}
+                  className="w-full flex items-center justify-between gap-2 text-left cursor-pointer"
                 >
-                  <span>Tecvit Renk Şeridini Göster</span>
-                  <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Kelime Takibi (Karaoke) */}
-            <div
-              className="px-3 py-2.5 rounded-xl border"
-              style={{
-                backgroundColor: settings.wordSyncEnabled
-                  ? 'var(--brand-primary-soft)'
-                  : 'var(--bg-surface-soft)',
-                borderColor: settings.wordSyncEnabled
-                  ? 'var(--brand-primary)'
-                  : 'var(--border-subtle)',
-              }}
-            >
-              <button
-                type="button"
-                role="switch"
-                aria-checked={settings.wordSyncEnabled}
-                onClick={() => {
-                  sfxService.play('click');
-                  onUpdateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
-                }}
-                className="w-full flex items-center justify-between gap-2 text-left cursor-pointer"
-              >
-                <div className="min-w-0">
+                  <div className="min-w-0">
+                    <span
+                      className="text-xs font-extrabold flex items-center gap-1.5"
+                      style={{
+                        color: settings.tajweedEnabled
+                          ? 'var(--brand-primary-text)'
+                          : 'var(--text-primary)',
+                      }}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                      <span>Renkli Tecvit</span>
+                    </span>
+                    <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      Renkli harflere dokunarak tecvit kuralını inceleyin
+                    </span>
+                  </div>
                   <span
-                    className="text-xs font-extrabold flex items-center gap-1.5"
+                    className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
                     style={{
-                      color: settings.wordSyncEnabled
-                        ? 'var(--brand-primary-text)'
-                        : 'var(--text-primary)',
+                      backgroundColor: settings.tajweedEnabled
+                        ? 'var(--brand-primary)'
+                        : 'var(--border-strong)',
                     }}
                   >
-                    <AudioLines className="w-3.5 h-3.5 shrink-0" />
-                    <span>Kelime Takibi (Karaoke)</span>
+                    <span
+                      className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                        settings.tajweedEnabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
                   </span>
-                  <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Destekli kurrâlarda okunan kelimeyi anlık vurgula
-                  </span>
-                </div>
-                <span
-                  className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
-                  style={{
-                    backgroundColor: settings.wordSyncEnabled
-                      ? 'var(--brand-primary)'
-                      : 'var(--border-strong)',
+                </button>
+
+                {settings.tajweedEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      onUpdateSettings({ showTajweedLegend: !settings.showTajweedLegend });
+                    }}
+                    className="w-full min-h-[32px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: settings.showTajweedLegend
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-secondary)',
+                    }}
+                  >
+                    <span>Tecvit Renk Şeridini Göster</span>
+                    <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Kelime Takibi (Karaoke — Yalnızca Arapça Görünürken) */}
+            {!isMealOnlyContent && (
+              <div
+                className="px-3 py-2.5 rounded-xl border"
+                style={{
+                  backgroundColor: settings.wordSyncEnabled
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface-soft)',
+                  borderColor: settings.wordSyncEnabled
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
+                }}
+              >
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={settings.wordSyncEnabled}
+                  onClick={() => {
+                    sfxService.play('click');
+                    onUpdateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
                   }}
+                  className="w-full flex items-center justify-between gap-2 text-left cursor-pointer"
                 >
+                  <div className="min-w-0">
+                    <span
+                      className="text-xs font-extrabold flex items-center gap-1.5"
+                      style={{
+                        color: settings.wordSyncEnabled
+                          ? 'var(--brand-primary-text)'
+                          : 'var(--text-primary)',
+                      }}
+                    >
+                      <AudioLines className="w-3.5 h-3.5 shrink-0" />
+                      <span>Kelime Takibi (Karaoke)</span>
+                    </span>
+                    <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      Destekli kurrâlarda okunan kelimeyi anlık vurgula
+                    </span>
+                  </div>
                   <span
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      settings.wordSyncEnabled ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </span>
-              </button>
-            </div>
+                    className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
+                    style={{
+                      backgroundColor: settings.wordSyncEnabled
+                        ? 'var(--brand-primary)'
+                        : 'var(--border-strong)',
+                    }}
+                  >
+                    <span
+                      className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                        settings.wordSyncEnabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Rükû (ع) İşaretleri + Secâvend Durak Rehberi */}
             <div
@@ -561,170 +563,182 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                 </span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  onClose();
-                  onOpenWaqfGuide();
-                }}
-                className="w-full min-h-[34px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                <span className="flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Secâvend Durak Rehberi</span>
-                </span>
-                <span className="flex items-center gap-0.5">
-                  <span>8 İşaret</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </span>
-              </button>
-            </div>
-
-            {/* Hızlı Font Boyutu */}
-            <div className="grid grid-cols-2 gap-2">
-              <div
-                className="px-2.5 py-2 rounded-xl border flex items-center justify-between gap-1"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                }}
-              >
-                <span className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
-                  Arapça {settings.arabicFontSize}
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        arabicFontSize: Math.max(20, settings.arabicFontSize - 2),
-                      })
-                    }
-                    aria-label="Arapça boyutunu küçült"
-                    className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        arabicFontSize: Math.min(44, settings.arabicFontSize + 2),
-                      })
-                    }
-                    aria-label="Arapça boyutunu büyült"
-                    className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              <div
-                className="px-2.5 py-2 rounded-xl border flex items-center justify-between gap-1"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                }}
-              >
-                <span className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
-                  Meal {settings.turkishFontSize}
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        turkishFontSize: Math.max(14, settings.turkishFontSize - 1),
-                      })
-                    }
-                    aria-label="Meal boyutunu küçült"
-                    className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onUpdateSettings({
-                        turkishFontSize: Math.min(24, settings.turkishFontSize + 1),
-                      })
-                    }
-                    aria-label="Meal boyutunu büyült"
-                    className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Arapça Mushaf Hattı Seçici */}
-            <div
-              className="px-3 py-2.5 rounded-xl border space-y-1.5"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <label
-                  htmlFor="mobile-reader-arabic-font"
-                  className="text-[11px] font-extrabold flex items-center gap-1.5"
-                  style={{ color: 'var(--text-secondary)' }}
+              {!isMealOnlyContent && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    onClose();
+                    onOpenWaqfGuide();
+                  }}
+                  className="w-full min-h-[34px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--brand-primary-text)',
+                  }}
                 >
-                  <Type className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                  <span>Arapça Mushaf Hattı</span>
-                </label>
-                {settings.tajweedEnabled && (
-                  <span className="text-[10px] font-bold" style={{ color: 'var(--brand-accent-text)' }}>
-                    Tecvit: Scheherazade
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Secâvend Durak Rehberi</span>
                   </span>
-                )}
-              </div>
-              <select
-                id="mobile-reader-arabic-font"
-                value={settings.arabicFont}
-                onChange={(e) => {
-                  sfxService.play('click');
-                  onUpdateSettings({ arabicFont: e.target.value });
-                }}
-                className="w-full min-h-[40px] px-2.5 rounded-lg border text-base sm:text-xs font-bold outline-none cursor-pointer"
+                  <span className="flex items-center gap-0.5">
+                    <span>8 İşaret</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* Hızlı Font Boyutu (Bağlama Duyarlı) */}
+            <div
+              className={`grid gap-2 ${
+                !isMealOnlyContent && !isArOnlyContent ? 'grid-cols-2' : 'grid-cols-1'
+              }`}
+            >
+              {!isMealOnlyContent && (
+                <div
+                  className="px-2.5 py-2 rounded-xl border flex items-center justify-between gap-1"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <span className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                    Arapça {settings.arabicFontSize}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateSettings({
+                          arabicFontSize: Math.max(20, settings.arabicFontSize - 2),
+                        })
+                      }
+                      aria-label="Arapça boyutunu küçült"
+                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateSettings({
+                          arabicFontSize: Math.min(44, settings.arabicFontSize + 2),
+                        })
+                      }
+                      aria-label="Arapça boyutunu büyült"
+                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!isArOnlyContent && (
+                <div
+                  className="px-2.5 py-2 rounded-xl border flex items-center justify-between gap-1"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <span className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                    Meal {settings.turkishFontSize}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateSettings({
+                          turkishFontSize: Math.max(14, settings.turkishFontSize - 1),
+                        })
+                      }
+                      aria-label="Meal boyutunu küçült"
+                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateSettings({
+                          turkishFontSize: Math.min(24, settings.turkishFontSize + 1),
+                        })
+                      }
+                      aria-label="Meal boyutunu büyült"
+                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Arapça Mushaf Hattı Seçici (Yalnızca Arapça Görünürken) */}
+            {!isMealOnlyContent && (
+              <div
+                className="px-3 py-2.5 rounded-xl border space-y-1.5"
                 style={{
-                  backgroundColor: 'var(--bg-surface)',
+                  backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
                 }}
               >
-                {ARABIC_FONTS.map((font) => (
-                  <option key={font.id} value={font.label}>
-                    {font.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <div className="flex items-center justify-between gap-2">
+                  <label
+                    htmlFor="mobile-reader-arabic-font"
+                    className="text-[11px] font-extrabold flex items-center gap-1.5"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    <Type className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                    <span>Arapça Mushaf Hattı</span>
+                  </label>
+                  {settings.tajweedEnabled && (
+                    <span className="text-[10px] font-bold" style={{ color: 'var(--brand-accent-text)' }}>
+                      Tecvit: Scheherazade
+                    </span>
+                  )}
+                </div>
+                <select
+                  id="mobile-reader-arabic-font"
+                  value={settings.arabicFont}
+                  onChange={(e) => {
+                    sfxService.play('click');
+                    onUpdateSettings({ arabicFont: e.target.value });
+                  }}
+                  className="w-full min-h-[40px] px-2.5 rounded-lg border text-base sm:text-xs font-bold outline-none cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {ARABIC_FONTS.map((font) => (
+                    <option key={font.id} value={font.label}>
+                      {font.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Saf Sayfa Odak Modu (Mushaf/Kitap) */}
             {(viewMode === 'mushaf' || viewMode === 'book') && (

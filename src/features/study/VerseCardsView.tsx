@@ -73,6 +73,14 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
   onOpenSurahInfo,
 }) => {
   const { surahMeta, verses, hasBesmele } = surahBundle;
+  const effectiveContentMode: BookContentMode =
+    settings.readerContentMode === 'ar_only'
+      ? 'ar_only'
+      : settings.readerContentMode === 'meal_only'
+        ? 'meal_only'
+        : contentMode === 'ar_only' || contentMode === 'meal_only'
+          ? contentMode
+          : 'interleaved';
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
@@ -356,8 +364,8 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
               )}
             </button>
 
-            {/* 2. Kelime Meali Hızlı Anahtarı (Kapalı / Açık / Kendini Dene) */}
-            {settings.wordByWordEnabled && (
+            {/* 2. Kelime Meali Hızlı Anahtarı (Kapalı / Açık / Kendini Dene — Sadece Meal modunda gizli) */}
+            {settings.wordByWordEnabled && effectiveContentMode !== 'meal_only' && (
               <div ref={wordMenuRef} className="relative">
                 <button
                   type="button"
@@ -567,32 +575,34 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
           </div>
         )}
 
-        {/* İnce Quiz İpucu (Yalnızca Kendini Dene aktifken) */}
-        {settings.wordByWordEnabled && wordMode === 'quiz' && (
-          <div
-            className="px-3.5 py-1.5 sm:px-5 border-t flex items-center justify-between gap-2 text-[11px] font-semibold"
-            style={{
-              backgroundColor: 'var(--brand-accent-soft)',
-              borderColor: 'rgba(217, 119, 6, 0.25)',
-              color: 'var(--brand-accent-text)',
-            }}
-          >
-            <span>Kendini Dene aktif — Türkçe anlamı görmek için kelimelere dokunun.</span>
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                onChangeWordMode('off');
+        {/* İnce Quiz İpucu (Yalnızca Kendini Dene aktifken ve Arapça görünürken) */}
+        {settings.wordByWordEnabled &&
+          effectiveContentMode !== 'meal_only' &&
+          wordMode === 'quiz' && (
+            <div
+              className="px-3.5 py-1.5 sm:px-5 border-t flex items-center justify-between gap-2 text-[11px] font-semibold"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                borderColor: 'rgba(217, 119, 6, 0.25)',
+                color: 'var(--brand-accent-text)',
               }}
-              className="underline font-bold cursor-pointer shrink-0"
             >
-              Kapat
-            </button>
-          </div>
-        )}
+              <span>Kendini Dene aktif — Türkçe anlamı görmek için kelimelere dokunun.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  onChangeWordMode('off');
+                }}
+                className="underline font-bold cursor-pointer shrink-0"
+              >
+                Kapat
+              </button>
+            </div>
+          )}
 
         {/* Zarif Besmele Şeridi */}
-        {hasBesmele && contentMode !== 'meal_only' && (
+        {hasBesmele && effectiveContentMode !== 'meal_only' && (
           <div
             className="px-4 py-2 border-t text-center transition-colors"
             style={{

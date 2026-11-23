@@ -48,10 +48,11 @@ import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type {
   AudioPlayMode,
-  BookContentMode,
   CombinedVerse,
+  DesktopCombinedLayout,
+  DesktopPageLayout,
   PageBundle,
-  PageLayoutMode,
+  ReaderContentMode,
   StudyViewMode,
   SurahBundle,
   SurahMeta,
@@ -69,6 +70,66 @@ import { TajweedLegendBar } from './TajweedLegendBar';
 import { VerseCardsView } from './VerseCardsView';
 
 const EMPTY_TAJWEED_SURAH_NOS: readonly number[] = [];
+
+type StageLayoutIconKind = 'single' | 'dual' | 'side_by_side' | 'rahle_dual';
+
+const StageLayoutIcon: React.FC<{ kind: StageLayoutIconKind; active?: boolean }> = ({
+  kind,
+  active = false,
+}) => {
+  const stroke = active ? 'currentColor' : 'var(--text-muted)';
+  if (kind === 'single') {
+    return (
+      <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true" className="shrink-0">
+        <rect x="3.5" y="1" width="9" height="12" rx="1.5" stroke={stroke} strokeWidth="1.3" />
+        <path d="M5.75 4.25h4.5M5.75 7h4.5M5.75 9.75h3" stroke={stroke} strokeWidth="1.1" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (kind === 'dual') {
+    return (
+      <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true" className="shrink-0">
+        <rect x="1" y="1" width="7" height="12" rx="1.2" stroke={stroke} strokeWidth="1.25" />
+        <rect x="8" y="1" width="7" height="12" rx="1.2" stroke={stroke} strokeWidth="1.25" />
+        <path
+          d="M2.8 4.5h3.4M2.8 7h3.4M2.8 9.5h2.4M9.8 4.5h3.4M9.8 7h3.4M9.8 9.5h2.4"
+          stroke={stroke}
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+  if (kind === 'side_by_side') {
+    return (
+      <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true" className="shrink-0">
+        <rect x="1" y="1" width="7" height="12" rx="1.2" stroke={stroke} strokeWidth="1.25" />
+        <rect
+          x="8"
+          y="1"
+          width="7"
+          height="12"
+          rx="1.2"
+          stroke={stroke}
+          strokeWidth="1.25"
+          fill="currentColor"
+          fillOpacity={active ? '0.14' : '0.07'}
+        />
+        <path d="M2.7 4.25h3.6M2.7 6.8h3.6M2.7 9.35h2.6" stroke={stroke} strokeWidth="1" strokeLinecap="round" />
+        <path d="M9.8 4.5h3.4M9.8 7.2h3.4M10.8 9.7h2.4" stroke={stroke} strokeWidth="1.25" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true" className="shrink-0">
+      <rect x="1" y="1" width="7" height="12" rx="1.2" stroke={stroke} strokeWidth="1.2" />
+      <rect x="8" y="1" width="7" height="12" rx="1.2" stroke={stroke} strokeWidth="1.2" />
+      <path d="M2.8 4.2h3.4M2.8 6.5h2.5M9.8 4.2h3.4M9.8 6.5h3.4" stroke={stroke} strokeWidth="1" strokeLinecap="round" />
+      <rect x="5" y="7.8" width="6.5" height="4.8" rx="1.1" fill="var(--bg-surface)" stroke={stroke} strokeWidth="1.2" />
+      <path d="M6.6 10.2h3.3" stroke={stroke} strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+};
 
 export const StudyPage: React.FC = () => {
   const {
@@ -191,8 +252,29 @@ export const StudyPage: React.FC = () => {
   const viewPopoverRef = useRef<HTMLDivElement | null>(null);
   const lastScrollYRef = useRef<number>(0);
 
+  const [isDesktopLg, setIsDesktopLg] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setIsDesktopLg(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
   const viewMode = studyPrefs.viewMode;
-  const isDoubleMushafPref = studyPrefs.pageLayout === 'double_mushaf';
+  const activeMushafLayout = settings.mushafLayout;
+  const readerContentMode = settings.readerContentMode;
+  const isMealOnlyContent = readerContentMode === 'meal_only';
+  const isArOnlyContent = readerContentMode === 'ar_only';
+  const isDualLeafMushaf =
+    activeMushafLayout === 'dual' ||
+    activeMushafLayout === 'rahle_dual' ||
+    activeMushafLayout === 'meal_dual';
+  const isEffectiveDualLeaf = isDualLeafMushaf && isDesktopLg;
   const bookmarkedSet = useMemo(
     () => new Set(studyProgress.bookmarkedAyahIds),
     [studyProgress.bookmarkedAyahIds],
@@ -289,16 +371,20 @@ export const StudyPage: React.FC = () => {
       setViewError(null);
       try {
         if (viewMode === 'mushaf') {
-          const shouldLoadSecond = isDoubleMushafPref && currentPageNo < pageBounds.maxPage;
+          const firstPageNo =
+            isEffectiveDualLeaf && currentPageNo >= pageBounds.maxPage
+              ? Math.max(pageBounds.minPage, pageBounds.maxPage - 1)
+              : currentPageNo;
+          const shouldLoadSecond = isEffectiveDualLeaf && firstPageNo < pageBounds.maxPage;
           const [bundle, nextBundle] = await Promise.all([
-            dataService.getPageBundle(currentPageNo),
-            shouldLoadSecond ? dataService.getPageBundle(currentPageNo + 1) : Promise.resolve(null),
+            dataService.getPageBundle(firstPageNo),
+            shouldLoadSecond ? dataService.getPageBundle(firstPageNo + 1) : Promise.resolve(null),
           ]);
           if (cancelled) return;
           setPageBundle(bundle);
           setSecondPageBundle(nextBundle);
 
-          const preloadPage = shouldLoadSecond ? currentPageNo + 2 : currentPageNo + 1;
+          const preloadPage = shouldLoadSecond ? firstPageNo + 2 : firstPageNo + 1;
           if (preloadPage <= pageBounds.maxPage) {
             dataService.getPageBundle(preloadPage).catch(() => {});
           }
@@ -355,7 +441,7 @@ export const StudyPage: React.FC = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meta, viewMode, currentPageNo, currentSurahNo, isDoubleMushafPref, reloadNonce]);
+  }, [meta, viewMode, currentPageNo, currentSurahNo, isEffectiveDualLeaf, reloadNonce]);
 
   // Mushaf modunda sayfanın son ayeti bitince otomatik sonraki sayfaya geçiş sağlayıcısı
   useEffect(() => {
@@ -366,10 +452,14 @@ export const StudyPage: React.FC = () => {
 
     audioQueueService.registerNextPageProvider(async (nextPageNo: number) => {
       if (nextPageNo > pageBounds.maxPage) return null;
-      const shouldLoadSecond = isDoubleMushafPref && nextPageNo < pageBounds.maxPage;
+      const firstPageNo =
+        isEffectiveDualLeaf && nextPageNo >= pageBounds.maxPage
+          ? Math.max(pageBounds.minPage, pageBounds.maxPage - 1)
+          : nextPageNo;
+      const shouldLoadSecond = isEffectiveDualLeaf && firstPageNo < pageBounds.maxPage;
       const [nextBundle, secondBundle] = await Promise.all([
-        dataService.getPageBundle(nextPageNo),
-        shouldLoadSecond ? dataService.getPageBundle(nextPageNo + 1) : Promise.resolve(null),
+        dataService.getPageBundle(firstPageNo),
+        shouldLoadSecond ? dataService.getPageBundle(firstPageNo + 1) : Promise.resolve(null),
       ]);
       if (nextBundle.verses.length === 0) return null;
 
@@ -379,7 +469,7 @@ export const StudyPage: React.FC = () => {
       setSelectedAyahId(nextBundle.verses[0].id);
       setCurrentSurahNo(nextBundle.verses[0].surah);
 
-      const preloadTarget = shouldLoadSecond ? nextPageNo + 2 : nextPageNo + 1;
+      const preloadTarget = shouldLoadSecond ? firstPageNo + 2 : firstPageNo + 1;
       if (preloadTarget <= pageBounds.maxPage) {
         dataService.getPageBundle(preloadTarget).catch(() => {});
       }
@@ -397,7 +487,7 @@ export const StudyPage: React.FC = () => {
     return () => {
       audioQueueService.registerNextPageProvider(null);
     };
-  }, [viewMode, meta, pageBounds.maxPage, isDoubleMushafPref]);
+  }, [viewMode, meta, pageBounds.minPage, pageBounds.maxPage, isEffectiveDualLeaf]);
 
   // Aktif çalan ayete otomatik senkronizasyon ve yumuşak kaydırma
   useEffect(() => {
@@ -433,19 +523,16 @@ export const StudyPage: React.FC = () => {
         if (audioPrefs.autoScroll && needsScroll) {
           lastScrolledAudioAyahRef.current = onThisPage.id;
           const isDesktopDualSpread =
-            (studyPrefs.pageLayout === 'double_meal' ||
-              studyPrefs.pageLayout === 'double_mushaf') &&
-            typeof window !== 'undefined' &&
-            window.innerWidth >= 1024;
+            (activeMushafLayout === 'mushaf_meal' || isDualLeafMushaf) && isDesktopLg;
           if (!isDesktopDualSpread) {
             const targetId = onThisPage.id;
-            const layout = studyPrefs.pageLayout;
+            const isMealView = readerContentMode === 'meal_only';
             if (autoScrollRafRef.current !== null) {
               window.cancelAnimationFrame(autoScrollRafRef.current);
             }
             autoScrollRafRef.current = window.requestAnimationFrame(() => {
               autoScrollRafRef.current = null;
-              if (layout === 'meal_only') {
+              if (isMealView) {
                 const mealEl = document.querySelector<HTMLElement>(
                   `[data-meal-ayahs~="${targetId}"]`,
                 );
@@ -462,8 +549,9 @@ export const StudyPage: React.FC = () => {
         isActivelyPlaying &&
         isNewAudioAyah &&
         audioState.currentPage &&
-        audioState.currentPage !== currentPageNo &&
-        audioState.currentPage !== secondPageBundle?.pageNo
+        audioState.currentPage !== pageBundle?.pageNo &&
+        audioState.currentPage !== secondPageBundle?.pageNo &&
+        audioState.currentPage !== currentPageNo
       ) {
         lastSyncedAudioAyahRef.current = audioState.currentAyahId;
         lastScrolledAudioAyahRef.current = null;
@@ -529,7 +617,10 @@ export const StudyPage: React.FC = () => {
     currentPageNo,
     currentSurahNo,
     viewMode,
-    studyPrefs.pageLayout,
+    activeMushafLayout,
+    isDualLeafMushaf,
+    isDesktopLg,
+    readerContentMode,
     pageBundle,
     secondPageBundle,
     surahBundle,
@@ -657,44 +748,28 @@ export const StudyPage: React.FC = () => {
     [viewMode, updateStudyPrefs],
   );
 
-  const handleChangePageLayout = useCallback(
-    (layout: PageLayoutMode) => {
+  const handleSelectReaderContentMode = useCallback(
+    (mode: ReaderContentMode) => {
       sfxService.play('click');
-      updateStudyPrefs({
-        pageLayout: layout,
-        mushafSidePanelOpen: false,
-      });
+      updateSettings({ readerContentMode: mode });
     },
-    [updateStudyPrefs],
+    [updateSettings],
   );
 
-  const mobileDrawerContentMode: BookContentMode =
-    viewMode === 'mushaf'
-      ? studyPrefs.pageLayout === 'double_meal'
-        ? 'interleaved'
-        : studyPrefs.pageLayout === 'meal_only'
-          ? 'meal_only'
-          : 'ar_only'
-      : studyPrefs.bookContentMode;
-
-  const handleMobileDrawerContentMode = useCallback(
-    (mode: BookContentMode) => {
-      if (viewMode === 'mushaf') {
-        const nextLayout: PageLayoutMode =
-          mode === 'interleaved'
-            ? 'double_meal'
-            : mode === 'meal_only'
-              ? 'meal_only'
-              : 'single';
-        updateStudyPrefs({
-          pageLayout: nextLayout,
-          mushafSidePanelOpen: false,
-        });
-      } else {
-        updateStudyPrefs({ bookContentMode: mode });
-      }
+  const handleSelectDesktopPageLayout = useCallback(
+    (layout: DesktopPageLayout) => {
+      sfxService.play('click');
+      updateSettings({ desktopPageLayout: layout });
     },
-    [viewMode, updateStudyPrefs],
+    [updateSettings],
+  );
+
+  const handleSelectDesktopCombinedLayout = useCallback(
+    (layout: DesktopCombinedLayout) => {
+      sfxService.play('click');
+      updateSettings({ desktopCombinedLayout: layout });
+    },
+    [updateSettings],
   );
 
   // Üstteki "Dinle" butonu
@@ -816,27 +891,27 @@ export const StudyPage: React.FC = () => {
   const isPureMobileView = viewMode === 'mushaf' || viewMode === 'book';
   const bookmarkCount = studyProgress.pageBookmarks.length;
 
-  const activeLayoutSummary =
-    viewMode === 'mushaf'
-      ? studyPrefs.pageLayout === 'double_mushaf'
-        ? '2 Sayfa'
-        : studyPrefs.pageLayout === 'double_meal'
-          ? 'Mushaf + Meal'
-          : studyPrefs.pageLayout === 'meal_only'
-            ? 'Sadece Meal'
-            : 'Tek Sayfa'
-      : (() => {
-          const contentLabel =
-            studyPrefs.bookContentMode === 'ar_only'
-              ? 'Sadece AR'
-              : studyPrefs.bookContentMode === 'meal_only'
-                ? 'Sadece Meal'
-                : 'AR + Meal';
-          if (viewMode === 'book') {
-            return `${contentLabel} · ${studyPrefs.pageLayout === 'single' ? 'Tek' : 'Çift'}`;
-          }
-          return contentLabel;
-        })();
+  const viewToolbarLabel = useMemo(() => {
+    if (viewMode === 'mushaf') {
+      switch (activeMushafLayout) {
+        case 'single':
+          return 'Görünüm · AR';
+        case 'dual':
+          return 'Görünüm · 2 Sayfa';
+        case 'mushaf_meal':
+          return 'Görünüm · AR+Meal';
+        case 'rahle_dual':
+          return 'Görünüm · Rahle';
+        case 'meal_only':
+          return 'Görünüm · Meal';
+        case 'meal_dual':
+          return 'Görünüm · 2s Meal';
+      }
+    }
+    if (readerContentMode === 'ar_only') return 'Görünüm · AR';
+    if (readerContentMode === 'meal_only') return 'Görünüm · Meal';
+    return 'Görünüm · AR+Meal';
+  }, [viewMode, activeMushafLayout, readerContentMode]);
 
   const desktopUnifiedToolbar = (
     <div
@@ -913,7 +988,7 @@ export const StudyPage: React.FC = () => {
         <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-75" />
       </button>
 
-      {/* 4. Görünüm & Okuma Tercihleri Popover (Düzen, Kelime Meali, Yazı Boyutu, Yazı Tipi, Tema) */}
+      {/* 4. Görünüm & Okuma Tercihleri Popover (İki Aşamalı İçerik + Sahne Düzeni, Bağlama Duyarlı) */}
       <div ref={viewPopoverRef} className="relative shrink-0">
         <button
           type="button"
@@ -922,9 +997,9 @@ export const StudyPage: React.FC = () => {
             setIsViewPopoverOpen((v) => !v);
           }}
           aria-expanded={isViewPopoverOpen}
-          aria-label="Görünüm, içerik ve kelime meali ayarları"
-          title={`Görünüm & Tercihler (${activeLayoutSummary})`}
-          className="h-9 w-9 2xl:w-auto 2xl:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
+          aria-label="Görünüm, içerik ve okuma tercihleri"
+          title={viewToolbarLabel}
+          className="h-9 w-9 xl:w-auto xl:px-2.5 rounded-xl border text-[11px] xl:text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
           style={{
             backgroundColor: isViewPopoverOpen ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
             borderColor: isViewPopoverOpen ? 'var(--brand-primary)' : 'var(--border-subtle)',
@@ -932,141 +1007,228 @@ export const StudyPage: React.FC = () => {
           }}
         >
           <SlidersHorizontal className="w-4 h-4 shrink-0" />
-          <span className="hidden 2xl:inline">Görünüm</span>
-          <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65 hidden 2xl:inline" />
+          <span className="hidden xl:inline">{viewToolbarLabel}</span>
+          <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65 hidden xl:inline" />
         </button>
 
         {isViewPopoverOpen && (
           <div
-            className="absolute right-0 top-11 z-50 w-[320px] max-w-[calc(100vw-1.5rem)] max-h-[82dvh] overflow-y-auto rounded-2xl border shadow-2xl p-3.5 space-y-3.5 text-left"
+            className="absolute right-0 top-11 z-50 w-[332px] max-w-[calc(100vw-1.5rem)] max-h-[82dvh] overflow-y-auto rounded-2xl border shadow-2xl p-3.5 space-y-3.5 text-left"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-strong)',
             }}
           >
-            {/* 1. Moda Duyarlı Sayfa / İçerik / Sütun Düzeni */}
+            {/* Aşama 1 — İÇERİK (Tüm okuma modlarında geçerli) */}
             <div className="space-y-2">
               <span
                 className="block text-[11px] font-extrabold uppercase tracking-wider"
                 style={{ color: 'var(--text-muted)' }}
               >
-                {viewMode === 'mushaf'
-                  ? 'Sayfa & İçerik Düzeni'
-                  : viewMode === 'book'
-                    ? 'İçerik & Sütun Düzeni'
-                    : 'İçerik Görünümü'}
+                İçerik
               </span>
 
-              {viewMode === 'mushaf' ? (
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(
-                    [
-                      { id: 'single', label: 'Tek Sayfa' },
-                      { id: 'double_mushaf', label: '2 Sayfa' },
-                      { id: 'double_meal', label: 'Mushaf + Meal' },
-                      { id: 'meal_only', label: 'Sadece Meal' },
-                    ] as const
-                  ).map((opt) => {
-                    const active = studyPrefs.pageLayout === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => handleChangePageLayout(opt.id)}
-                        className="h-9 px-2.5 rounded-xl border text-xs font-bold cursor-pointer whitespace-nowrap transition-colors"
-                        style={{
-                          backgroundColor: active
-                            ? 'var(--brand-primary-soft)'
-                            : 'var(--bg-surface-soft)',
-                          borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div
-                    className="grid grid-cols-3 gap-1 p-1 rounded-xl"
-                    style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-                  >
+              <div
+                className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+              >
+                {(
+                  [
+                    { id: 'ar_only', label: 'Sadece Arapça' },
+                    { id: 'ar_meal', label: 'Arapça + Meal' },
+                    { id: 'meal_only', label: 'Sadece Meal' },
+                  ] as { id: ReaderContentMode; label: string }[]
+                ).map((opt) => {
+                  const active = readerContentMode === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleSelectReaderContentMode(opt.id)}
+                      className="h-8 px-1 rounded-lg text-[11px] font-bold cursor-pointer whitespace-nowrap transition-colors"
+                      style={{
+                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Aşama 2 — SAYFA DÜZENİ (Masaüstü · lg+ · Sadece Mushaf Modunda) */}
+            {viewMode === 'mushaf' && (
+              <div
+                className="hidden lg:block pt-3 border-t space-y-2"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <span
+                  className="block text-[11px] font-extrabold uppercase tracking-wider"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Sayfa Düzeni (Masaüstü)
+                </span>
+
+                {readerContentMode === 'ar_only' && (
+                  <div className="space-y-1.5">
                     {(
                       [
-                        { id: 'interleaved', label: 'AR + Meal' },
-                        { id: 'ar_only', label: 'Sadece AR' },
-                        { id: 'meal_only', label: 'Sadece Meal' },
-                      ] as { id: BookContentMode; label: string }[]
+                        { id: 'single', label: 'Tek Sayfa', icon: 'single' },
+                        { id: 'dual', label: '2 Sayfa (Açık Mushaf)', icon: 'dual' },
+                      ] as const
                     ).map((opt) => {
-                      const active = studyPrefs.bookContentMode === opt.id;
+                      const active = settings.desktopPageLayout === opt.id;
                       return (
                         <button
                           key={opt.id}
                           type="button"
-                          onClick={() => {
-                            sfxService.play('click');
-                            updateStudyPrefs({ bookContentMode: opt.id });
-                          }}
-                          className="h-8 px-1.5 rounded-lg text-[11px] font-bold cursor-pointer whitespace-nowrap transition-colors"
+                          onClick={() => handleSelectDesktopPageLayout(opt.id)}
+                          className="w-full h-9 px-3 rounded-xl border text-xs font-bold flex items-center gap-2.5 cursor-pointer transition-colors"
                           style={{
-                            backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                            backgroundColor: active
+                              ? 'var(--brand-primary-soft)'
+                              : 'var(--bg-surface-soft)',
+                            borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
                             color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                            boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                           }}
                         >
-                          {opt.label}
+                          <StageLayoutIcon kind={opt.icon} active={active} />
+                          <span className="truncate">{opt.label}</span>
                         </button>
                       );
                     })}
                   </div>
+                )}
 
-                  {viewMode === 'book' && (
-                    <div
-                      className="grid grid-cols-2 gap-1 p-1 rounded-xl"
-                      style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-                    >
-                      {(
-                        [
-                          { id: 'single', label: 'Tek Sütun' },
-                          { id: 'double_mushaf', label: 'Çift Sütun' },
-                        ] as const
-                      ).map((colOpt) => {
-                        const active =
-                          colOpt.id === 'single'
-                            ? studyPrefs.pageLayout === 'single'
-                            : studyPrefs.pageLayout !== 'single';
-                        return (
-                          <button
-                            key={colOpt.id}
-                            type="button"
-                            onClick={() => {
-                              sfxService.play('click');
-                              updateStudyPrefs({ pageLayout: colOpt.id });
-                            }}
-                            className="h-8 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
-                            style={{
-                              backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                              color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                              boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                            }}
-                          >
-                            {colOpt.id === 'double_mushaf' && (
-                              <Columns2 className="w-3.5 h-3.5 shrink-0" />
-                            )}
-                            <span>{colOpt.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                {readerContentMode === 'meal_only' && (
+                  <div className="space-y-1.5">
+                    {(
+                      [
+                        { id: 'single', label: 'Tek Sayfa Meal', icon: 'single' },
+                        { id: 'dual', label: '2 Sayfa (Açık Kitap)', icon: 'dual' },
+                      ] as const
+                    ).map((opt) => {
+                      const active = settings.desktopPageLayout === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleSelectDesktopPageLayout(opt.id)}
+                          className="w-full h-9 px-3 rounded-xl border text-xs font-bold flex items-center gap-2.5 cursor-pointer transition-colors"
+                          style={{
+                            backgroundColor: active
+                              ? 'var(--brand-primary-soft)'
+                              : 'var(--bg-surface-soft)',
+                            borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                            color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          <StageLayoutIcon kind={opt.icon} active={active} />
+                          <span className="truncate">{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {readerContentMode === 'ar_meal' && (
+                  <div className="space-y-1.5">
+                    {(
+                      [
+                        {
+                          id: 'side_by_side',
+                          label: 'Karşılıklı (Mushaf + Meal)',
+                          icon: 'side_by_side',
+                        },
+                        {
+                          id: 'rahle_dual',
+                          label: '2 Sayfa Rahle (Tıklanan Meal)',
+                          icon: 'rahle_dual',
+                        },
+                      ] as const
+                    ).map((opt) => {
+                      const active = settings.desktopCombinedLayout === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleSelectDesktopCombinedLayout(opt.id)}
+                          className="w-full h-9 px-3 rounded-xl border text-xs font-bold flex items-center gap-2.5 cursor-pointer transition-colors"
+                          style={{
+                            backgroundColor: active
+                              ? 'var(--brand-primary-soft)'
+                              : 'var(--bg-surface-soft)',
+                            borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                            color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          <StageLayoutIcon kind={opt.icon} active={active} />
+                          <span className="truncate">{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                    {settings.desktopCombinedLayout === 'rahle_dual' && (
+                      <p
+                        className="text-[11px] leading-snug px-1 pt-0.5"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        Ayete dokunarak mealini, sesli okunuşunu ve analizini inceleyebilirsiniz.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Kitap Modu Sütun Düzeni (Masaüstü) */}
+            {viewMode === 'book' && (
+              <div
+                className="hidden lg:block pt-3 border-t space-y-2"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <span
+                  className="block text-[11px] font-extrabold uppercase tracking-wider"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Sütun Düzeni (Masaüstü)
+                </span>
+                <div
+                  className="grid grid-cols-2 gap-1 p-1 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                >
+                  {(
+                    [
+                      { id: 'single', label: 'Tek Sütun' },
+                      { id: 'dual', label: 'Çift Sütun' },
+                    ] as const
+                  ).map((colOpt) => {
+                    const active = settings.desktopPageLayout === colOpt.id;
+                    return (
+                      <button
+                        key={colOpt.id}
+                        type="button"
+                        onClick={() => handleSelectDesktopPageLayout(colOpt.id)}
+                        className="h-8 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
+                        style={{
+                          backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                        }}
+                      >
+                        {colOpt.id === 'dual' && <Columns2 className="w-3.5 h-3.5 shrink-0" />}
+                        <span>{colOpt.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* 2. Kelime Meali (Kapalı | Açık | Kendini Dene) */}
-            {settings.wordByWordEnabled && (
+            {/* 2. Kelime Meali (Yalnızca Kartlar modunda ve Arapça görünürken) */}
+            {settings.wordByWordEnabled && viewMode === 'cards' && !isMealOnlyContent && (
               <div
                 className="pt-3 border-t space-y-1.5"
                 style={{ borderColor: 'var(--border-subtle)' }}
@@ -1118,125 +1280,129 @@ export const StudyPage: React.FC = () => {
               </div>
             )}
 
-            {/* 2b. Renkli Tecvit (Etkileşimli Dokun-Öğren) */}
+            {/* 2b. Okuma Yardımcıları (Tecvit, Karaoke, Rükû, Secâvend — bağlama duyarlı) */}
             <div
               className="pt-3 border-t space-y-2"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
-              <button
-                type="button"
-                role="switch"
-                aria-checked={settings.tajweedEnabled}
-                onClick={() => {
-                  sfxService.play('click');
-                  updateSettings({ tajweedEnabled: !settings.tajweedEnabled });
-                }}
-                className="w-full flex items-center justify-between gap-2 text-left cursor-pointer group"
-              >
-                <div className="min-w-0">
-                  <span
-                    className="text-xs font-extrabold flex items-center gap-1.5"
-                    style={{
-                      color: settings.tajweedEnabled
-                        ? 'var(--brand-primary-text)'
-                        : 'var(--text-primary)',
+              {!isMealOnlyContent && (
+                <>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={settings.tajweedEnabled}
+                    onClick={() => {
+                      sfxService.play('click');
+                      updateSettings({ tajweedEnabled: !settings.tajweedEnabled });
                     }}
+                    className="w-full flex items-center justify-between gap-2 text-left cursor-pointer group"
                   >
-                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                    <span>Renkli Tecvit</span>
-                  </span>
-                  <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Renkli harflere dokunarak kuralları öğren
-                  </span>
-                </div>
-                <span
-                  className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
-                  style={{
-                    backgroundColor: settings.tajweedEnabled
-                      ? 'var(--brand-primary)'
-                      : 'var(--border-strong)',
-                  }}
-                >
-                  <span
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      settings.tajweedEnabled ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </span>
-              </button>
+                    <div className="min-w-0">
+                      <span
+                        className="text-xs font-extrabold flex items-center gap-1.5"
+                        style={{
+                          color: settings.tajweedEnabled
+                            ? 'var(--brand-primary-text)'
+                            : 'var(--text-primary)',
+                        }}
+                      >
+                        <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                        <span>Renkli Tecvit</span>
+                      </span>
+                      <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        Renkli harflere dokunarak kuralları inceleyin
+                      </span>
+                    </div>
+                    <span
+                      className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
+                      style={{
+                        backgroundColor: settings.tajweedEnabled
+                          ? 'var(--brand-primary)'
+                          : 'var(--border-strong)',
+                      }}
+                    >
+                      <span
+                        className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                          settings.tajweedEnabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </span>
+                  </button>
 
-              {settings.tajweedEnabled && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    updateSettings({ showTajweedLegend: !settings.showTajweedLegend });
-                  }}
-                  className="w-full h-8 px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer transition-colors"
-                  style={{
-                    backgroundColor: settings.showTajweedLegend
-                      ? 'var(--brand-primary-soft)'
-                      : 'var(--bg-surface-soft)',
-                    borderColor: settings.showTajweedLegend
-                      ? 'var(--brand-primary)'
-                      : 'var(--border-subtle)',
-                    color: settings.showTajweedLegend
-                      ? 'var(--brand-primary-text)'
-                      : 'var(--text-secondary)',
-                  }}
-                >
-                  <span>Tecvit Renk Şeridini Göster</span>
-                  <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
-                </button>
+                  {settings.tajweedEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateSettings({ showTajweedLegend: !settings.showTajweedLegend });
+                      }}
+                      className="w-full h-8 px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor: settings.showTajweedLegend
+                          ? 'var(--brand-primary-soft)'
+                          : 'var(--bg-surface-soft)',
+                        borderColor: settings.showTajweedLegend
+                          ? 'var(--brand-primary)'
+                          : 'var(--border-subtle)',
+                        color: settings.showTajweedLegend
+                          ? 'var(--brand-primary-text)'
+                          : 'var(--text-secondary)',
+                      }}
+                    >
+                      <span>Tecvit Renk Şeridini Göster</span>
+                      <span>{settings.showTajweedLegend ? 'Açık' : 'Gizli'}</span>
+                    </button>
+                  )}
+
+                  {/* Kelime Takibi (Karaoke) */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={settings.wordSyncEnabled}
+                    onClick={() => {
+                      sfxService.play('click');
+                      updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
+                    }}
+                    className="w-full pt-2 border-t flex items-center justify-between gap-2 text-left cursor-pointer"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <div className="min-w-0">
+                      <span
+                        className="text-xs font-extrabold flex items-center gap-1.5"
+                        style={{
+                          color: settings.wordSyncEnabled
+                            ? 'var(--brand-primary-text)'
+                            : 'var(--text-primary)',
+                        }}
+                      >
+                        <AudioLines className="w-3.5 h-3.5 shrink-0" />
+                        <span>Kelime Takibi (Karaoke)</span>
+                      </span>
+                      <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        Okunan kelimeyi sesle eşzamanlı vurgula
+                      </span>
+                    </div>
+                    <span
+                      className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
+                      style={{
+                        backgroundColor: settings.wordSyncEnabled
+                          ? 'var(--brand-primary)'
+                          : 'var(--border-strong)',
+                      }}
+                    >
+                      <span
+                        className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                          settings.wordSyncEnabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </span>
+                  </button>
+                </>
               )}
 
-              {/* Kelime Takibi (Karaoke) */}
-              <button
-                type="button"
-                role="switch"
-                aria-checked={settings.wordSyncEnabled}
-                onClick={() => {
-                  sfxService.play('click');
-                  updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
-                }}
-                className="w-full pt-2 border-t flex items-center justify-between gap-2 text-left cursor-pointer"
-                style={{ borderColor: 'var(--border-subtle)' }}
-              >
-                <div className="min-w-0">
-                  <span
-                    className="text-xs font-extrabold flex items-center gap-1.5"
-                    style={{
-                      color: settings.wordSyncEnabled
-                        ? 'var(--brand-primary-text)'
-                        : 'var(--text-primary)',
-                    }}
-                  >
-                    <AudioLines className="w-3.5 h-3.5 shrink-0" />
-                    <span>Kelime Takibi (Karaoke)</span>
-                  </span>
-                  <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Okunan kelimeyi sesle eşzamanlı vurgula
-                  </span>
-                </div>
-                <span
-                  className="w-10 h-6 rounded-full p-0.5 transition-colors flex items-center shrink-0"
-                  style={{
-                    backgroundColor: settings.wordSyncEnabled
-                      ? 'var(--brand-primary)'
-                      : 'var(--border-strong)',
-                  }}
-                >
-                  <span
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      settings.wordSyncEnabled ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </span>
-              </button>
-
-              {/* Rükû (ع) İşaretleri + Durak Rehberi */}
+              {/* Rükû (ع) İşaretleri + Secâvend Durak Rehberi */}
               <div
-                className="pt-2 border-t space-y-2"
+                className={!isMealOnlyContent ? 'pt-2 border-t space-y-2' : 'space-y-2'}
                 style={{ borderColor: 'var(--border-subtle)' }}
               >
                 <button
@@ -1281,32 +1447,34 @@ export const StudyPage: React.FC = () => {
                   </span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    setIsViewPopoverOpen(false);
-                    openWaqfGuide();
-                  }}
-                  className="w-full h-8 px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer transition-colors"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <BookOpen className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary-text)' }} />
-                    <span>Secâvend Durak Rehberi</span>
-                  </span>
-                  <span className="text-[10px] font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
-                    8 İşaret →
-                  </span>
-                </button>
+                {!isMealOnlyContent && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsViewPopoverOpen(false);
+                      openWaqfGuide();
+                    }}
+                    className="w-full h-8 px-2.5 rounded-lg border text-[11px] font-bold flex items-center justify-between cursor-pointer transition-colors"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5" style={{ color: 'var(--brand-primary-text)' }} />
+                      <span>Secâvend Durak Rehberi</span>
+                    </span>
+                    <span className="text-[10px] font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                      8 İşaret →
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* 3. Hızlı Yazı Boyutu (Arapça & Meal) */}
+            {/* 3. Hızlı Yazı Boyutu (Bağlama Duyarlı: Arapça & Meal) */}
             <div
               className="pt-3 border-t space-y-2"
               style={{ borderColor: 'var(--border-subtle)' }}
@@ -1318,130 +1486,136 @@ export const StudyPage: React.FC = () => {
                 Yazı Boyutu
               </span>
 
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold">
-                  Arapça Metin ({settings.arabicFontSize}px)
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      updateSettings({
-                        arabicFontSize: Math.max(20, settings.arabicFontSize - 2),
-                      });
-                    }}
-                    aria-label="Arapça yazı boyutunu küçült"
-                    className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      updateSettings({
-                        arabicFontSize: Math.min(44, settings.arabicFontSize + 2),
-                      });
-                    }}
-                    aria-label="Arapça yazı boyutunu büyült"
-                    className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
+              {!isMealOnlyContent && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold">
+                    Arapça Metin ({settings.arabicFontSize}px)
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateSettings({
+                          arabicFontSize: Math.max(20, settings.arabicFontSize - 2),
+                        });
+                      }}
+                      aria-label="Arapça yazı boyutunu küçült"
+                      className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateSettings({
+                          arabicFontSize: Math.min(44, settings.arabicFontSize + 2),
+                        });
+                      }}
+                      aria-label="Arapça yazı boyutunu büyült"
+                      className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold">
-                  Meal Metni ({settings.turkishFontSize}px)
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      updateSettings({
-                        turkishFontSize: Math.max(14, settings.turkishFontSize - 1),
-                      });
-                    }}
-                    aria-label="Meal yazı boyutunu küçült"
-                    className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      updateSettings({
-                        turkishFontSize: Math.min(24, settings.turkishFontSize + 1),
-                      });
-                    }}
-                    aria-label="Meal yazı boyutunu büyült"
-                    className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
+              {!isArOnlyContent && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold">
+                    Meal Metni ({settings.turkishFontSize}px)
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateSettings({
+                          turkishFontSize: Math.max(14, settings.turkishFontSize - 1),
+                        });
+                      }}
+                      aria-label="Meal yazı boyutunu küçült"
+                      className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateSettings({
+                          turkishFontSize: Math.min(24, settings.turkishFontSize + 1),
+                        });
+                      }}
+                      aria-label="Meal yazı boyutunu büyült"
+                      className="w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-extrabold cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* 4. Hızlı Arapça Yazı Tipi Seçimi */}
-            <div
-              className="pt-3 border-t space-y-1.5"
-              style={{ borderColor: 'var(--border-subtle)' }}
-            >
-              <label
-                htmlFor="quick-arabic-font-select"
-                className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                <Type className="w-3.5 h-3.5" />
-                <span>Arapça Yazı Tipi</span>
-              </label>
-              <select
-                id="quick-arabic-font-select"
-                value={settings.arabicFont}
-                onChange={(e) => {
-                  sfxService.play('click');
-                  updateSettings({ arabicFont: e.target.value });
-                }}
-                className="w-full h-9 px-2.5 rounded-xl border text-xs font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-600/40"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {ARABIC_FONTS.map((font) => (
-                  <option key={font.id} value={font.label}>
-                    {font.label}
-                  </option>
-                ))}
-              </select>
-              {settings.tajweedEnabled && (
-                <p className="text-[10px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  Tecvit açıkken harf birleşmeleri için Uthmani OpenType hattı kullanılır.
-                </p>
               )}
             </div>
+
+            {/* 4. Hızlı Arapça Yazı Tipi Seçimi (Yalnızca Arapça görünürken) */}
+            {!isMealOnlyContent && (
+              <div
+                className="pt-3 border-t space-y-1.5"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <label
+                  htmlFor="quick-arabic-font-select"
+                  className="text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1.5"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <Type className="w-3.5 h-3.5" />
+                  <span>Arapça Mushaf Hattı</span>
+                </label>
+                <select
+                  id="quick-arabic-font-select"
+                  value={settings.arabicFont}
+                  onChange={(e) => {
+                    sfxService.play('click');
+                    updateSettings({ arabicFont: e.target.value });
+                  }}
+                  className="w-full h-9 px-2.5 rounded-xl border text-xs font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-600/40"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {ARABIC_FONTS.map((font) => (
+                    <option key={font.id} value={font.label}>
+                      {font.label}
+                    </option>
+                  ))}
+                </select>
+                {settings.tajweedEnabled && (
+                  <p className="text-[10px] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                    Tecvit açıkken harf birleşmeleri için Uthmani OpenType hattı kullanılır.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* 5. Hızlı Tema Seçici (Açık / Krem / Gece) */}
             <div
@@ -1756,6 +1930,7 @@ export const StudyPage: React.FC = () => {
           ==================================================================== */}
       {settings.tajweedEnabled &&
         settings.showTajweedLegend &&
+        !isMealOnlyContent &&
         !isMobileReaderImmersive &&
         !viewError && (
           <TajweedLegendBar
@@ -1803,10 +1978,8 @@ export const StudyPage: React.FC = () => {
       ) : viewMode === 'mushaf' && pageBundle ? (
         <MushafPageView
           pageBundle={pageBundle}
-          secondPageBundle={isDoubleMushafPref ? secondPageBundle : null}
-          pageLayout={studyPrefs.pageLayout}
-          onChangePageLayout={handleChangePageLayout}
-          contentMode={studyPrefs.bookContentMode}
+          secondPageBundle={isEffectiveDualLeaf ? secondPageBundle : null}
+          mushafLayout={activeMushafLayout}
           besmele={meta.besmele}
           settings={settings}
           wordMode={studyPrefs.wordMode}
@@ -2019,8 +2192,8 @@ export const StudyPage: React.FC = () => {
         isDualMeal={isDualMeal}
         onOpenMealSelector={() => openMealSelector('primary')}
         onSetMealDisplayMode={setMealDisplayMode}
-        contentMode={mobileDrawerContentMode}
-        onChangeContentMode={handleMobileDrawerContentMode}
+        readerContentMode={readerContentMode}
+        onChangeReaderContentMode={handleSelectReaderContentMode}
         wordMode={studyPrefs.wordMode}
         onChangeWordMode={(mode) => updateStudyPrefs({ wordMode: mode })}
         settings={settings}

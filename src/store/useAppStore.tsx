@@ -38,6 +38,9 @@ import type {
   AudioPlaylist,
   AudioPlaylistItem,
   AudioPrefs,
+  BookContentMode,
+  DesktopCombinedLayout,
+  DesktopPageLayout,
   ExamHistoryRecord,
   ExamMode,
   ExamNavigationTarget,
@@ -50,6 +53,7 @@ import type {
   MealDisplayMode,
   MealKey,
   MetaData,
+  MushafLayout,
   NavTab,
   PageBookmark,
   PageBookmarkColor,
@@ -62,6 +66,7 @@ import type {
   QuestionIndexFile,
   QuestionIssueReason,
   QuestionIssueReport,
+  ReaderContentMode,
   RepeatCountOption,
   StudyNavigationTarget,
   StudyPool,
@@ -108,6 +113,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showTajweedLegend: false,
   wordSyncEnabled: true,
   showRukuMarkers: true,
+  readerContentMode: 'ar_meal',
+  desktopPageLayout: 'single',
+  desktopCombinedLayout: 'side_by_side',
+  mushafLayout: 'mushaf_meal',
   deskPrefs: { ...DEFAULT_DESK_PREFS },
 };
 
@@ -122,7 +131,7 @@ export const DEFAULT_STUDY_PREFS: StudyPrefs = {
   wordMode: 'off',
   bookContentMode: 'interleaved',
   mealAudioFocusOnly: false,
-  pageLayout: 'single',
+  pageLayout: 'double_meal',
   mushafSidePanelOpen: true,
 };
 
@@ -246,7 +255,122 @@ function isValidQueueLoop(val: unknown): val is QueueLoopOption {
   return val === 1 || val === 2 || val === 3 || val === 5 || val === 10 || val === 'infinite';
 }
 
-function resolveAudioModeForStudyPrefs(prefs: StudyPrefs): AudioPlayMode {
+export function computeMushafLayout(
+  contentMode: ReaderContentMode,
+  desktopPageLayout: DesktopPageLayout,
+  desktopCombinedLayout: DesktopCombinedLayout,
+): MushafLayout {
+  if (contentMode === 'ar_only') {
+    return desktopPageLayout === 'dual' ? 'dual' : 'single';
+  }
+  if (contentMode === 'meal_only') {
+    return desktopPageLayout === 'dual' ? 'meal_dual' : 'meal_only';
+  }
+  return desktopCombinedLayout === 'rahle_dual' ? 'rahle_dual' : 'mushaf_meal';
+}
+
+export function readerContentToBookMode(mode: ReaderContentMode): BookContentMode {
+  if (mode === 'ar_only') return 'ar_only';
+  if (mode === 'meal_only') return 'meal_only';
+  return 'interleaved';
+}
+
+export function bookModeToReaderContent(mode: BookContentMode): ReaderContentMode {
+  if (mode === 'ar_only') return 'ar_only';
+  if (mode === 'meal_only') return 'meal_only';
+  return 'ar_meal';
+}
+
+export function mushafLayoutToLegacyPageLayout(layout: MushafLayout): PageLayoutMode {
+  switch (layout) {
+    case 'dual':
+    case 'rahle_dual':
+      return 'double_mushaf';
+    case 'mushaf_meal':
+      return 'double_meal';
+    case 'meal_only':
+    case 'meal_dual':
+      return 'meal_only';
+    case 'single':
+    default:
+      return 'single';
+  }
+}
+
+function deriveStageFromLayoutToken(
+  token: string,
+  fallbackPageLayout: DesktopPageLayout = 'single',
+  fallbackCombinedLayout: DesktopCombinedLayout = 'side_by_side',
+): {
+  readerContentMode: ReaderContentMode;
+  desktopPageLayout: DesktopPageLayout;
+  desktopCombinedLayout: DesktopCombinedLayout;
+  mushafLayout: MushafLayout;
+} | null {
+  switch (token) {
+    case 'single':
+      return {
+        readerContentMode: 'ar_only',
+        desktopPageLayout: 'single',
+        desktopCombinedLayout: fallbackCombinedLayout,
+        mushafLayout: 'single',
+      };
+    case 'dual':
+    case 'double_mushaf':
+    case 'double':
+      return {
+        readerContentMode: 'ar_only',
+        desktopPageLayout: 'dual',
+        desktopCombinedLayout: fallbackCombinedLayout,
+        mushafLayout: 'dual',
+      };
+    case 'mushaf_meal':
+    case 'double_meal':
+      return {
+        readerContentMode: 'ar_meal',
+        desktopPageLayout: fallbackPageLayout,
+        desktopCombinedLayout: 'side_by_side',
+        mushafLayout: 'mushaf_meal',
+      };
+    case 'rahle_dual':
+      return {
+        readerContentMode: 'ar_meal',
+        desktopPageLayout: fallbackPageLayout,
+        desktopCombinedLayout: 'rahle_dual',
+        mushafLayout: 'rahle_dual',
+      };
+    case 'meal_only':
+      return {
+        readerContentMode: 'meal_only',
+        desktopPageLayout: 'single',
+        desktopCombinedLayout: fallbackCombinedLayout,
+        mushafLayout: 'meal_only',
+      };
+    case 'meal_dual':
+      return {
+        readerContentMode: 'meal_only',
+        desktopPageLayout: 'dual',
+        desktopCombinedLayout: fallbackCombinedLayout,
+        mushafLayout: 'meal_dual',
+      };
+    default:
+      return null;
+  }
+}
+
+function resolveAudioModeForContent(contentMode: ReaderContentMode): AudioPlayMode {
+  if (contentMode === 'ar_only') return 'ar';
+  if (contentMode === 'meal_only') return 'meal';
+  return 'ar_then_meal';
+}
+
+function resolveAudioModeForStudyPrefs(
+  prefs: StudyPrefs,
+  readerContentMode?: ReaderContentMode,
+): AudioPlayMode {
+  if (readerContentMode) {
+    return resolveAudioModeForContent(readerContentMode);
+  }
   if (prefs.viewMode === 'mushaf') {
     if (prefs.pageLayout === 'double_meal') return 'ar_then_meal';
     if (prefs.pageLayout === 'meal_only') return 'meal';
@@ -479,6 +603,10 @@ function hydrateState(): PersistedAppState {
         typeof rawSettings.showRukuMarkers === 'boolean'
           ? rawSettings.showRukuMarkers
           : DEFAULT_SETTINGS.showRukuMarkers,
+      readerContentMode: DEFAULT_SETTINGS.readerContentMode,
+      desktopPageLayout: DEFAULT_SETTINGS.desktopPageLayout,
+      desktopCombinedLayout: DEFAULT_SETTINGS.desktopCombinedLayout,
+      mushafLayout: DEFAULT_SETTINGS.mushafLayout,
       deskPrefs: sanitizeStudyDeskPrefs(rawSettings.deskPrefs),
     };
 
@@ -494,42 +622,110 @@ function hydrateState(): PersistedAppState {
     };
 
     const rawStudyPrefs = parsed.studyPrefs as
-      | (Partial<StudyPrefs> & { pageLayout?: string })
+      | (Omit<Partial<StudyPrefs>, 'pageLayout'> & { pageLayout?: string })
       | undefined;
-    const hydratedPageLayout: PageLayoutMode =
-      rawStudyPrefs?.pageLayout === 'double_mushaf' ||
-      rawStudyPrefs?.pageLayout === 'double_meal' ||
-      rawStudyPrefs?.pageLayout === 'meal_only' ||
-      rawStudyPrefs?.pageLayout === 'single'
-        ? rawStudyPrefs.pageLayout
-        : rawStudyPrefs?.pageLayout === 'double'
-          ? 'double_mushaf'
-          : DEFAULT_STUDY_PREFS.pageLayout;
+    const hydratedViewMode: StudyPrefs['viewMode'] =
+      rawStudyPrefs?.viewMode === 'mushaf' ||
+      rawStudyPrefs?.viewMode === 'cards' ||
+      rawStudyPrefs?.viewMode === 'book'
+        ? rawStudyPrefs.viewMode
+        : DEFAULT_STUDY_PREFS.viewMode;
+
+    // İki Aşamalı İçerik & Sahne Mimarisi: Eski localStorage/yedek kayıtlarından kayıpsız eşleme
+    const rawSettingsExt = rawSettings as Partial<AppSettings> & {
+      readerContentMode?: string;
+      desktopPageLayout?: string;
+      desktopCombinedLayout?: string;
+      mushafLayout?: string;
+    };
+    const hasExplicitContentMode =
+      rawSettingsExt.readerContentMode === 'ar_only' ||
+      rawSettingsExt.readerContentMode === 'ar_meal' ||
+      rawSettingsExt.readerContentMode === 'meal_only';
+    const explicitDesktopPage: DesktopPageLayout =
+      rawSettingsExt.desktopPageLayout === 'dual' ? 'dual' : 'single';
+    const explicitDesktopCombined: DesktopCombinedLayout =
+      rawSettingsExt.desktopCombinedLayout === 'rahle_dual' ? 'rahle_dual' : 'side_by_side';
+
+    let resolvedStage: {
+      readerContentMode: ReaderContentMode;
+      desktopPageLayout: DesktopPageLayout;
+      desktopCombinedLayout: DesktopCombinedLayout;
+      mushafLayout: MushafLayout;
+    };
+
+    if (hasExplicitContentMode) {
+      const contentMode = rawSettingsExt.readerContentMode as ReaderContentMode;
+      resolvedStage = {
+        readerContentMode: contentMode,
+        desktopPageLayout: explicitDesktopPage,
+        desktopCombinedLayout: explicitDesktopCombined,
+        mushafLayout: computeMushafLayout(contentMode, explicitDesktopPage, explicitDesktopCombined),
+      };
+    } else if (typeof rawSettingsExt.mushafLayout === 'string') {
+      const derived = deriveStageFromLayoutToken(
+        rawSettingsExt.mushafLayout,
+        explicitDesktopPage,
+        explicitDesktopCombined,
+      );
+      resolvedStage = derived ?? {
+        readerContentMode: DEFAULT_SETTINGS.readerContentMode,
+        desktopPageLayout: DEFAULT_SETTINGS.desktopPageLayout,
+        desktopCombinedLayout: DEFAULT_SETTINGS.desktopCombinedLayout,
+        mushafLayout: DEFAULT_SETTINGS.mushafLayout,
+      };
+    } else if (hydratedViewMode === 'mushaf' && typeof rawStudyPrefs?.pageLayout === 'string') {
+      const derived = deriveStageFromLayoutToken(rawStudyPrefs.pageLayout);
+      resolvedStage = derived ?? {
+        readerContentMode: DEFAULT_SETTINGS.readerContentMode,
+        desktopPageLayout: DEFAULT_SETTINGS.desktopPageLayout,
+        desktopCombinedLayout: DEFAULT_SETTINGS.desktopCombinedLayout,
+        mushafLayout: DEFAULT_SETTINGS.mushafLayout,
+      };
+    } else if (
+      rawStudyPrefs?.bookContentMode === 'ar_only' ||
+      rawStudyPrefs?.bookContentMode === 'meal_only' ||
+      rawStudyPrefs?.bookContentMode === 'interleaved'
+    ) {
+      const contentMode = bookModeToReaderContent(rawStudyPrefs.bookContentMode);
+      const legacyDual: DesktopPageLayout =
+        rawStudyPrefs.pageLayout === 'double_mushaf' || rawStudyPrefs.pageLayout === 'double'
+          ? 'dual'
+          : 'single';
+      resolvedStage = {
+        readerContentMode: contentMode,
+        desktopPageLayout: legacyDual,
+        desktopCombinedLayout: 'side_by_side',
+        mushafLayout: computeMushafLayout(contentMode, legacyDual, 'side_by_side'),
+      };
+    } else {
+      resolvedStage = {
+        readerContentMode: DEFAULT_SETTINGS.readerContentMode,
+        desktopPageLayout: DEFAULT_SETTINGS.desktopPageLayout,
+        desktopCombinedLayout: DEFAULT_SETTINGS.desktopCombinedLayout,
+        mushafLayout: DEFAULT_SETTINGS.mushafLayout,
+      };
+    }
+
+    settings.readerContentMode = resolvedStage.readerContentMode;
+    settings.desktopPageLayout = resolvedStage.desktopPageLayout;
+    settings.desktopCombinedLayout = resolvedStage.desktopCombinedLayout;
+    settings.mushafLayout = resolvedStage.mushafLayout;
 
     const studyPrefs: StudyPrefs = {
-      viewMode:
-        rawStudyPrefs?.viewMode === 'mushaf' ||
-        rawStudyPrefs?.viewMode === 'cards' ||
-        rawStudyPrefs?.viewMode === 'book'
-          ? rawStudyPrefs.viewMode
-          : DEFAULT_STUDY_PREFS.viewMode,
+      viewMode: hydratedViewMode,
       wordMode:
         rawStudyPrefs?.wordMode === 'off' ||
         rawStudyPrefs?.wordMode === 'visible' ||
         rawStudyPrefs?.wordMode === 'quiz'
           ? rawStudyPrefs.wordMode
           : DEFAULT_STUDY_PREFS.wordMode,
-      bookContentMode:
-        rawStudyPrefs?.bookContentMode === 'ar_only' ||
-        rawStudyPrefs?.bookContentMode === 'meal_only' ||
-        rawStudyPrefs?.bookContentMode === 'interleaved'
-          ? rawStudyPrefs.bookContentMode
-          : DEFAULT_STUDY_PREFS.bookContentMode,
+      bookContentMode: readerContentToBookMode(resolvedStage.readerContentMode),
       mealAudioFocusOnly:
         typeof rawStudyPrefs?.mealAudioFocusOnly === 'boolean'
           ? rawStudyPrefs.mealAudioFocusOnly
           : DEFAULT_STUDY_PREFS.mealAudioFocusOnly,
-      pageLayout: hydratedPageLayout,
+      pageLayout: mushafLayoutToLegacyPageLayout(resolvedStage.mushafLayout),
       mushafSidePanelOpen:
         typeof rawStudyPrefs?.mushafSidePanelOpen === 'boolean'
           ? rawStudyPrefs.mushafSidePanelOpen
@@ -1471,6 +1667,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const nextPreferredMeal: MealKey | 'both' =
         nextDisplayMode === 'dual' ? 'both' : nextPrimary === 'm2' ? 'm2' : 'm1';
 
+      const hasStagePatch =
+        patch.readerContentMode !== undefined ||
+        patch.desktopPageLayout !== undefined ||
+        patch.desktopCombinedLayout !== undefined ||
+        patch.mushafLayout !== undefined;
+
+      let nextReaderContentMode = prev.settings.readerContentMode;
+      let nextDesktopPageLayout = prev.settings.desktopPageLayout;
+      let nextDesktopCombinedLayout = prev.settings.desktopCombinedLayout;
+      let nextMushafLayout = prev.settings.mushafLayout;
+
+      if (hasStagePatch) {
+        if (
+          patch.mushafLayout !== undefined &&
+          patch.readerContentMode === undefined &&
+          patch.desktopPageLayout === undefined &&
+          patch.desktopCombinedLayout === undefined
+        ) {
+          const derived = deriveStageFromLayoutToken(
+            patch.mushafLayout,
+            prev.settings.desktopPageLayout,
+            prev.settings.desktopCombinedLayout,
+          );
+          if (derived) {
+            nextReaderContentMode = derived.readerContentMode;
+            nextDesktopPageLayout = derived.desktopPageLayout;
+            nextDesktopCombinedLayout = derived.desktopCombinedLayout;
+            nextMushafLayout = derived.mushafLayout;
+          }
+        } else {
+          nextReaderContentMode = patch.readerContentMode ?? prev.settings.readerContentMode;
+          nextDesktopPageLayout = patch.desktopPageLayout ?? prev.settings.desktopPageLayout;
+          nextDesktopCombinedLayout =
+            patch.desktopCombinedLayout ?? prev.settings.desktopCombinedLayout;
+          nextMushafLayout = computeMushafLayout(
+            nextReaderContentMode,
+            nextDesktopPageLayout,
+            nextDesktopCombinedLayout,
+          );
+        }
+      }
+
+      const nextStudyPrefs: StudyPrefs = hasStagePatch
+        ? {
+            ...prev.studyPrefs,
+            bookContentMode: readerContentToBookMode(nextReaderContentMode),
+            pageLayout: mushafLayoutToLegacyPageLayout(nextMushafLayout),
+          }
+        : prev.studyPrefs;
+
+      const audioSnap = audioQueueService.getSnapshot();
+      const isAudioActive = audioSnap.isVisible && audioSnap.status !== 'idle';
+      const shouldSyncAudioMode =
+        hasStagePatch &&
+        !isAudioActive &&
+        nextReaderContentMode !== prev.settings.readerContentMode;
+
       return {
         ...prev,
         settings: {
@@ -1480,7 +1733,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           secondaryMealId: nextSecondary,
           mealDisplayMode: nextDisplayMode,
           preferredMeal: nextPreferredMeal,
+          readerContentMode: nextReaderContentMode,
+          desktopPageLayout: nextDesktopPageLayout,
+          desktopCombinedLayout: nextDesktopCombinedLayout,
+          mushafLayout: nextMushafLayout,
         },
+        studyPrefs: nextStudyPrefs,
+        ...(shouldSyncAudioMode
+          ? {
+              audioPrefs: {
+                ...prev.audioPrefs,
+                mode: resolveAudioModeForContent(nextReaderContentMode),
+              },
+            }
+          : {}),
       };
     });
   }, []);
@@ -1610,10 +1876,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateStudyPrefs = useCallback((patch: Partial<StudyPrefs>) => {
     setPersisted((prev) => {
+      let nextReaderContentMode = prev.settings.readerContentMode;
+      let nextDesktopPageLayout = prev.settings.desktopPageLayout;
+      let nextDesktopCombinedLayout = prev.settings.desktopCombinedLayout;
+      let nextMushafLayout = prev.settings.mushafLayout;
+      let stageChanged = false;
+
+      if (patch.bookContentMode !== undefined) {
+        nextReaderContentMode = bookModeToReaderContent(patch.bookContentMode);
+        nextMushafLayout = computeMushafLayout(
+          nextReaderContentMode,
+          nextDesktopPageLayout,
+          nextDesktopCombinedLayout,
+        );
+        stageChanged = true;
+      } else if (patch.pageLayout !== undefined) {
+        const derived = deriveStageFromLayoutToken(
+          patch.pageLayout,
+          prev.settings.desktopPageLayout,
+          prev.settings.desktopCombinedLayout,
+        );
+        if (derived) {
+          nextReaderContentMode = derived.readerContentMode;
+          nextDesktopPageLayout = derived.desktopPageLayout;
+          nextDesktopCombinedLayout = derived.desktopCombinedLayout;
+          nextMushafLayout = derived.mushafLayout;
+          stageChanged = true;
+        }
+      }
+
       const nextStudyPrefs: StudyPrefs = {
         ...prev.studyPrefs,
         ...patch,
+        ...(stageChanged
+          ? {
+              bookContentMode: readerContentToBookMode(nextReaderContentMode),
+              pageLayout: mushafLayoutToLegacyPageLayout(nextMushafLayout),
+            }
+          : {}),
       };
+
       const audioSnap = audioQueueService.getSnapshot();
       const isAudioActive = audioSnap.isVisible && audioSnap.status !== 'idle';
       const shouldSyncAudioMode =
@@ -1621,14 +1923,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         (patch.viewMode !== undefined ||
           patch.pageLayout !== undefined ||
           patch.bookContentMode !== undefined);
+
       return {
         ...prev,
+        settings: stageChanged
+          ? {
+              ...prev.settings,
+              readerContentMode: nextReaderContentMode,
+              desktopPageLayout: nextDesktopPageLayout,
+              desktopCombinedLayout: nextDesktopCombinedLayout,
+              mushafLayout: nextMushafLayout,
+            }
+          : prev.settings,
         studyPrefs: nextStudyPrefs,
         ...(shouldSyncAudioMode
           ? {
               audioPrefs: {
                 ...prev.audioPrefs,
-                mode: resolveAudioModeForStudyPrefs(nextStudyPrefs),
+                mode: resolveAudioModeForStudyPrefs(nextStudyPrefs, nextReaderContentMode),
               },
             }
           : {}),
@@ -2101,23 +2413,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (target.viewMode || target.contentMode || target.ensureMealVisible) {
       setPersisted((prev) => {
         const currentPrefs = prev.studyPrefs;
-        const nextViewMode =
-          target.viewMode ??
-          (target.ensureMealVisible && currentPrefs.viewMode === 'mushaf'
-            ? 'cards'
-            : currentPrefs.viewMode);
-        const nextBookContentMode =
-          target.contentMode ??
-          (target.ensureMealVisible && currentPrefs.bookContentMode === 'ar_only'
-            ? 'interleaved'
-            : currentPrefs.bookContentMode);
+        const nextViewMode = target.viewMode ?? currentPrefs.viewMode;
+        const nextReaderContentMode: ReaderContentMode = target.contentMode
+          ? bookModeToReaderContent(target.contentMode)
+          : target.ensureMealVisible && prev.settings.readerContentMode === 'ar_only'
+            ? 'ar_meal'
+            : prev.settings.readerContentMode;
+        const nextMushafLayout = computeMushafLayout(
+          nextReaderContentMode,
+          prev.settings.desktopPageLayout,
+          prev.settings.desktopCombinedLayout,
+        );
+        const nextBookContentMode = readerContentToBookMode(nextReaderContentMode);
+        const nextPageLayout = mushafLayoutToLegacyPageLayout(nextMushafLayout);
         const nextMealAudioFocusOnly = target.ensureMealVisible
           ? false
           : currentPrefs.mealAudioFocusOnly;
 
         if (
           nextViewMode === currentPrefs.viewMode &&
+          nextReaderContentMode === prev.settings.readerContentMode &&
+          nextMushafLayout === prev.settings.mushafLayout &&
           nextBookContentMode === currentPrefs.bookContentMode &&
+          nextPageLayout === currentPrefs.pageLayout &&
           nextMealAudioFocusOnly === currentPrefs.mealAudioFocusOnly
         ) {
           return prev;
@@ -2125,10 +2443,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         return {
           ...prev,
+          settings: {
+            ...prev.settings,
+            readerContentMode: nextReaderContentMode,
+            mushafLayout: nextMushafLayout,
+          },
           studyPrefs: {
             ...currentPrefs,
             viewMode: nextViewMode,
             bookContentMode: nextBookContentMode,
+            pageLayout: nextPageLayout,
             mealAudioFocusOnly: nextMealAudioFocusOnly,
           },
         };

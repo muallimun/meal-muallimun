@@ -99,6 +99,14 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   onPlayMealFromHere,
   onShareVerse,
 }) => {
+  const effectiveContentMode: BookContentMode =
+    settings.readerContentMode === 'ar_only'
+      ? 'ar_only'
+      : settings.readerContentMode === 'meal_only'
+        ? 'meal_only'
+        : contentMode === 'ar_only' || contentMode === 'meal_only'
+          ? contentMode
+          : 'interleaved';
   const {
     openMealCompare,
     openMutashabihat,
@@ -846,8 +854,8 @@ export const VerseCard: React.FC<VerseCardProps> = ({
       )}
 
       {/* Arapça Metin (Sadece Meal veya Odaklı Sesli Meal modunda gizlenir) */}
-      {!mealAudioFocusOnly && contentMode !== 'meal_only' && (
-        <div className={contentMode === 'ar_only' ? '' : 'mb-4'}>
+      {!mealAudioFocusOnly && effectiveContentMode !== 'meal_only' && (
+        <div className={effectiveContentMode === 'ar_only' ? '' : 'mb-4'}>
           {(() => {
             const useTajweed =
               settings.tajweedEnabled &&
@@ -909,30 +917,33 @@ export const VerseCard: React.FC<VerseCardProps> = ({
         </div>
       )}
 
-      {/* Etkileşimli Kelime-Kelime Meal (Sadece Meal modunda da Kelime Meali açıldığında görünür) */}
-      {!mealAudioFocusOnly && showWordGrid && verse.words.length > 0 && (
-        <div
-          className="mb-4 p-3.5 rounded-xl border"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <WordMealGrid
-            ayahId={verse.id}
-            surah={verse.surah}
-            ayah={verse.ayah}
-            words={verse.words}
-            wordMode={effectiveWordMode}
-            arabicFontSize={settings.arabicFontSize}
-            isPlayingThisAyah={isPlayingThisAyah}
-            wordSyncEnabled={settings.wordSyncEnabled}
-          />
-        </div>
-      )}
+      {/* Etkileşimli Kelime-Kelime Meal (Sadece Meal modunda gizlenir) */}
+      {!mealAudioFocusOnly &&
+        effectiveContentMode !== 'meal_only' &&
+        showWordGrid &&
+        verse.words.length > 0 && (
+          <div
+            className="mb-4 p-3.5 rounded-xl border"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <WordMealGrid
+              ayahId={verse.id}
+              surah={verse.surah}
+              ayah={verse.ayah}
+              words={verse.words}
+              wordMode={effectiveWordMode}
+              arabicFontSize={settings.arabicFontSize}
+              isPlayingThisAyah={isPlayingThisAyah}
+              wordSyncEnabled={settings.wordSyncEnabled}
+            />
+          </div>
+        )}
 
       {/* Seçili Meal / Çift Meal (Meal & Tefsir Desteği — Sadece AR modunda gizlenir) */}
-      {contentMode !== 'ar_only' && (
+      {effectiveContentMode !== 'ar_only' && (
         <div className="space-y-3.5">
           {resolvedPrimaryVerse ? (
             renderMealBlock(
@@ -979,7 +990,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
       )}
 
       {/* Dipnotlar (fn) Akordeonu */}
-      {contentMode !== 'ar_only' && totalFootnotes > 0 && (
+      {effectiveContentMode !== 'ar_only' && totalFootnotes > 0 && (
         <div
           className="mt-4 pt-3 border-t"
           style={{ borderColor: 'var(--border-subtle)' }}

@@ -11,6 +11,16 @@ export type ThemeMode = 'light' | 'cream' | 'dark';
 export type NavTab = 'home' | 'reader' | 'fihrist' | 'memorize' | 'exam' | 'mistakes';
 
 export type StudyViewMode = 'mushaf' | 'cards' | 'book';
+export type ReaderContentMode = 'ar_only' | 'ar_meal' | 'meal_only';
+export type DesktopPageLayout = 'single' | 'dual';
+export type DesktopCombinedLayout = 'side_by_side' | 'rahle_dual';
+export type MushafLayout =
+  | 'single'
+  | 'dual'
+  | 'mushaf_meal'
+  | 'rahle_dual'
+  | 'meal_only'
+  | 'meal_dual';
 export type BookContentMode = 'ar_only' | 'meal_only' | 'interleaved';
 export type PageLayoutMode = 'single' | 'double_mushaf' | 'double_meal' | 'meal_only';
 export type WordMealMode = 'off' | 'visible' | 'quiz';
@@ -443,6 +453,10 @@ export interface AppSettings {
   showTajweedLegend: boolean;
   wordSyncEnabled: boolean;
   showRukuMarkers: boolean;
+  readerContentMode: ReaderContentMode;
+  desktopPageLayout: DesktopPageLayout;
+  desktopCombinedLayout: DesktopCombinedLayout;
+  mushafLayout: MushafLayout;
   deskPrefs: StudyDeskPrefs;
 }
 

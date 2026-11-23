@@ -52,11 +52,10 @@ import { useAppStore } from '../../store/useAppStore';
 import type {
   AppSettings,
   BesmeleInfo,
-  BookContentMode,
   CombinedVerse,
   MealVerse,
+  MushafLayout,
   PageBundle,
-  PageLayoutMode,
   SurahMeta,
   WordMealMode,
 } from '../../types/quran';
@@ -67,9 +66,7 @@ import type { LocationPickerTab } from './LocationPickerModal';
 interface MushafPageViewProps {
   pageBundle: PageBundle;
   secondPageBundle?: PageBundle | null;
-  pageLayout?: PageLayoutMode;
-  onChangePageLayout?: (layout: PageLayoutMode) => void;
-  contentMode?: BookContentMode;
+  mushafLayout?: MushafLayout;
   besmele: BesmeleInfo;
   settings: AppSettings;
   wordMode: WordMealMode;
@@ -324,9 +321,7 @@ const CornerOrnament: React.FC<{ position: 'tl' | 'tr' | 'bl' | 'br' }> = ({ pos
 export const MushafPageView: React.FC<MushafPageViewProps> = ({
   pageBundle,
   secondPageBundle = null,
-  pageLayout = 'single',
-  onChangePageLayout,
-  contentMode = 'interleaved',
+  mushafLayout,
   besmele,
   settings,
   wordMode,
@@ -348,6 +343,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   onToggleMobileImmersive,
 }) => {
   const {
+    updateSettings,
     studyProgress,
     upsertPageBookmark,
     moveHatimBookmark,
@@ -407,18 +403,39 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   });
   const prevPlayingAyahIdRef = useRef<number | null>(null);
 
-  const isArOnly = contentMode === 'ar_only' || pageLayout === 'single';
-  const isDoubleMushaf = pageLayout === 'double_mushaf' && Boolean(secondPageBundle);
-  const isDoubleMeal = pageLayout === 'double_meal';
-  const isMealOnly = pageLayout === 'meal_only';
-  const isBookSpread = isDoubleMushaf || isDoubleMeal;
+  const [isDesktopLg, setIsDesktopLg] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setIsDesktopLg(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  const effectiveLayout: MushafLayout = mushafLayout ?? settings.mushafLayout;
+  const isLtrBook = settings.readerContentMode === 'meal_only';
+  const isArOnly = settings.readerContentMode === 'ar_only';
+  const isMealMode = effectiveLayout === 'meal_only' || effectiveLayout === 'meal_dual';
+  const isMealDual = effectiveLayout === 'meal_dual' && isDesktopLg && Boolean(secondPageBundle);
+  const isDualArabic =
+    (effectiveLayout === 'dual' || effectiveLayout === 'rahle_dual') &&
+    isDesktopLg &&
+    Boolean(secondPageBundle);
+  const isDoubleMeal =
+    effectiveLayout === 'mushaf_meal' || (effectiveLayout === 'rahle_dual' && !isDesktopLg);
+  const isAnyDualPages = isDualArabic || isMealDual;
+  const isBookSpread = isDesktopLg && (isAnyDualPages || isDoubleMeal);
 
   const allVisibleVerses = useMemo(() => {
-    if (isDoubleMushaf && secondPageBundle) {
+    if (isAnyDualPages && secondPageBundle) {
       return [...pageBundle.verses, ...secondPageBundle.verses];
     }
     return pageBundle.verses;
-  }, [isDoubleMushaf, pageBundle.verses, secondPageBundle]);
+  }, [isAnyDualPages, pageBundle.verses, secondPageBundle]);
 
   const surahMetaByNo = useMemo(() => {
     const map = new Map<number, SurahMeta>();
@@ -465,12 +482,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     (side: 'left' | 'right', ayahId: number): HTMLElement | null => {
       const paneEl = side === 'left' ? leftPaneRef.current : rightPaneRef.current;
       if (!paneEl) return null;
-      if (isDoubleMeal && side === 'left') {
+      if (isMealDual || (isDoubleMeal && side === 'left')) {
         return paneEl.querySelector<HTMLElement>(`[data-meal-ayahs~="${ayahId}"]`);
       }
       return paneEl.querySelector<HTMLElement>(`[data-ayah-id="${ayahId}"]`);
     },
-    [isDoubleMeal],
+    [isMealDual, isDoubleMeal],
   );
 
   const scrollPaneProgrammatically = useCallback(
@@ -556,7 +573,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       rightPaneRef.current?.scrollTo({ top: 0, behavior: 'auto' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageBundle.pageNo, secondPageBundle?.pageNo, pageLayout]);
+  }, [pageBundle.pageNo, secondPageBundle?.pageNo, effectiveLayout]);
 
   // Sesli okuma sırasında her iki bağımsız paneli çakışmasız (pane.scrollTo) olarak aktif ayete ortala
   useEffect(() => {
@@ -608,10 +625,42 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     scrollPaneProgrammatically,
   ]);
 
-  // Klavye sol/sağ ok tuşları (Mushaf yönü: Sol = Sonraki, Sağ = Önceki)
-  const pageStep = isDoubleMushaf ? 2 : 1;
+  // Akıllı Okuma Yönü Motoru:
+  // - Sadece Meal (LTR): Sol = Önceki Sayfa, Sağ = Sonraki Sayfa
+  // - Arapça / Arapça + Meal (RTL): Sol = Sonraki Sayfa, Sağ = Önceki Sayfa
+  const pageStep = isAnyDualPages ? 2 : 1;
+  const canGoPrev = pageBundle.pageNo > pageBundle.minPage;
+  const canGoNext =
+    (isAnyDualPages && secondPageBundle ? secondPageBundle.pageNo : pageBundle.pageNo) <
+    pageBundle.maxPage;
+  const prevTargetPage = Math.max(pageBundle.minPage, pageBundle.pageNo - pageStep);
+  const nextTargetPage = Math.min(pageBundle.maxPage, pageBundle.pageNo + pageStep);
+
+  const leftActionDisabled = isLtrBook ? !canGoPrev : !canGoNext;
+  const leftActionTarget = isLtrBook ? prevTargetPage : nextTargetPage;
+  const leftActionLabel = isLtrBook
+    ? isAnyDualPages
+      ? 'Önceki 2 Sayfa'
+      : 'Önceki Sayfa'
+    : isAnyDualPages
+      ? 'Sonraki 2 Sayfa'
+      : 'Sonraki Sayfa';
+  const leftActionDisabledTitle = isLtrBook ? 'İlk sayfadasınız' : 'Son sayfadasınız';
+
+  const rightActionDisabled = isLtrBook ? !canGoNext : !canGoPrev;
+  const rightActionTarget = isLtrBook ? nextTargetPage : prevTargetPage;
+  const rightActionLabel = isLtrBook
+    ? isAnyDualPages
+      ? 'Sonraki 2 Sayfa'
+      : 'Sonraki Sayfa'
+    : isAnyDualPages
+      ? 'Önceki 2 Sayfa'
+      : 'Önceki Sayfa';
+  const rightActionDisabledTitle = isLtrBook ? 'Son sayfadasınız' : 'İlk sayfadasınız';
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
       const target = e.target as HTMLElement | null;
       if (
         target &&
@@ -623,20 +672,20 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
         return;
       }
 
-      if (e.key === 'ArrowLeft' && pageBundle.pageNo < pageBundle.maxPage) {
+      if (e.key === 'ArrowLeft' && !leftActionDisabled) {
         e.preventDefault();
-        onChangePage(Math.min(pageBundle.maxPage, pageBundle.pageNo + pageStep));
-      } else if (e.key === 'ArrowRight' && pageBundle.pageNo > pageBundle.minPage) {
+        onChangePage(leftActionTarget);
+      } else if (e.key === 'ArrowRight' && !rightActionDisabled) {
         e.preventDefault();
-        onChangePage(Math.max(pageBundle.minPage, pageBundle.pageNo - pageStep));
+        onChangePage(rightActionTarget);
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [pageBundle.pageNo, pageBundle.minPage, pageBundle.maxPage, pageStep, onChangePage]);
+  }, [leftActionDisabled, leftActionTarget, rightActionDisabled, rightActionTarget, onChangePage]);
 
-  // Mobilde yatay parmak kaydırma ile sayfa çevirme
+  // Mobilde yatay parmak kaydırma ile sayfa çevirme (LTR / RTL uyumlu)
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length !== 1) return;
     touchStartRef.current = {
@@ -652,20 +701,26 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     touchStartRef.current = null;
 
     if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
-    // RTL Mushaf sayfa çevirme: Sağa kaydır -> sonraki sayfa, Sola kaydır -> önceki sayfa
-    if (dx > 0 && pageBundle.pageNo < pageBundle.maxPage) {
-      sfxService.play('click');
-      onChangePage(Math.min(pageBundle.maxPage, pageBundle.pageNo + pageStep));
-    } else if (dx < 0 && pageBundle.pageNo > pageBundle.minPage) {
-      sfxService.play('click');
-      onChangePage(Math.max(pageBundle.minPage, pageBundle.pageNo - pageStep));
+    if (isLtrBook) {
+      // LTR Türkçe Kitap: Sola kaydır -> sonraki sayfa, Sağa kaydır -> önceki sayfa
+      if (dx < 0 && canGoNext) {
+        sfxService.play('click');
+        onChangePage(nextTargetPage);
+      } else if (dx > 0 && canGoPrev) {
+        sfxService.play('click');
+        onChangePage(prevTargetPage);
+      }
+    } else {
+      // RTL Mushaf: Sağa kaydır -> sonraki sayfa, Sola kaydır -> önceki sayfa
+      if (dx > 0 && canGoNext) {
+        sfxService.play('click');
+        onChangePage(nextTargetPage);
+      } else if (dx < 0 && canGoPrev) {
+        sfxService.play('click');
+        onChangePage(prevTargetPage);
+      }
     }
   };
-
-  const canGoPrev = pageBundle.pageNo > pageBundle.minPage;
-  const canGoNext =
-    (isDoubleMushaf && secondPageBundle ? secondPageBundle.pageNo : pageBundle.pageNo) <
-    pageBundle.maxPage;
 
   const handleMobileEmptySpaceTap = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!onToggleMobileImmersive || typeof window === 'undefined' || window.innerWidth >= 1024) {
@@ -1269,7 +1324,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     );
   };
 
-  // Mushaf Çerçeveli Türkçe Meal Yaprağı (Sağ Mushaf · Sol Meal VE Sadece Türkçe Meal modları)
+  // Mushaf Çerçeveli Türkçe Meal Yaprağı (Karşılıklı Meal, Tek Sayfa Meal ve 2 Sayfa Açık Kitap Meal modları)
   const renderFacingMealLeaf = (
     bundle: PageBundle,
     side: 'single' | 'right' | 'left' = 'left',
@@ -1277,6 +1332,13 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     const mealTitle = isDual
       ? `${primaryMeal.shortLabel} & ${secondaryMeal.shortLabel}`
       : primaryMeal.label;
+
+    const surahTitlesTr = Array.from(
+      new Set(bundle.segments.map((s) => formatSurahTitle(s.surahMeta.nameTr, s.surahMeta.no))),
+    ).join(' · ');
+
+    const pageHasSajdah =
+      settings.highlightSajdah && bundle.verses.some((v) => SAJDAH_AYAH_IDS.has(v.id));
 
     const paperClass =
       side === 'right'
@@ -1319,102 +1381,171 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             <CornerOrnament position="bl" />
             <CornerOrnament position="br" />
 
-            {/* Sol Meal Sayfası Sabit Üst Şeridi (+ Aktif Ayete Git + ◫ Kapat veya Mushaf'a Dön ikonu) */}
-            <div
-              className="pb-2.5 mb-3 border-b flex items-center justify-between gap-2 text-xs shrink-0"
-              style={{ borderColor: 'var(--border-subtle)' }}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                {isMealOnly && side === 'single' && renderRibbonBookmark(bundle)}
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    openMealSelector('primary');
-                  }}
-                  title={`${MEALS_CATALOG.length} meal ve tefsir arasından değiştir`}
-                  className="font-extrabold truncate hover:underline text-left cursor-pointer"
-                  style={{ color: 'var(--brand-primary-text)' }}
-                >
-                  {mealTitle}
-                </button>
-              </div>
+            {/* Meal Yaprağı Sabit Üst Şeridi */}
+            {isMealMode ? (
+              <div
+                className="pb-2.5 mb-3 border-b flex items-center justify-between gap-2 text-xs shrink-0"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <div className="flex items-center gap-2 shrink-0">
+                  {renderRibbonBookmark(bundle)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      onOpenLocationPicker?.('page');
+                    }}
+                    title="Sayfa değiştir"
+                    className="font-extrabold tabular-nums hover:underline cursor-pointer"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  >
+                    Sayfa {bundle.pageNo}
+                  </button>
+                </div>
 
-              <div className="flex items-center gap-1.5 shrink-0">
-                {showJumpChip && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      sfxService.play('click');
-                      handleJumpToActiveVerse();
-                    }}
-                    title="Aktif okunan ayete geri dön"
-                    className="h-6 px-2 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap"
-                    style={{
-                      backgroundColor: 'var(--brand-primary)',
-                      color: '#FFFFFF',
-                    }}
-                  >
-                    <LocateFixed className="w-3 h-3 shrink-0" />
-                    <span>Aktif Ayete Git</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfxService.play('click');
-                    onOpenLocationPicker?.('page');
-                  }}
-                  title="Sayfa değiştir"
-                  className="font-bold tabular-nums px-2 py-0.5 rounded-lg text-[11px] hover:opacity-80 cursor-pointer whitespace-nowrap"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  Sayfa {bundle.pageNo} Meali
-                </button>
-                {isMealOnly && onChangePageLayout && (
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => {
                       sfxService.play('click');
-                      onChangePageLayout('single');
+                      onOpenLocationPicker?.('juz');
                     }}
-                    title="Arapça Mushaf sayfasına dön"
-                    className="h-7 px-2 rounded-lg border text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors hover:opacity-85 whitespace-nowrap"
-                    style={{
-                      backgroundColor: 'var(--brand-primary-soft)',
-                      borderColor: 'var(--brand-primary)',
-                      color: 'var(--brand-primary-text)',
-                    }}
-                  >
-                    <BookOpen className="w-3 h-3 shrink-0" />
-                    <span className="hidden sm:inline">Mushaf</span>
-                  </button>
-                )}
-                {isDoubleMeal && side === 'left' && onChangePageLayout && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      onChangePageLayout('single');
-                    }}
-                    title="Meal sayfasını kapat (Tek Sayfa Mushaf)"
-                    aria-label="Meal sayfasını kapat"
-                    className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer transition-colors hover:opacity-85"
+                    title="Cüz seç"
+                    className="font-bold tabular-nums text-center px-2.5 py-0.5 rounded-lg text-[11px] hover:opacity-80 cursor-pointer"
                     style={{
                       backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
                       color: 'var(--text-secondary)',
                     }}
                   >
-                    <PanelRightClose className="w-3.5 h-3.5" />
+                    {bundle.cuzs.map((c) => `${c}. Cüz`).join(' / ')}
                   </button>
-                )}
+                  {pageHasSajdah && (
+                    <span
+                      title="Bu sayfada Tilâvet Secdesi ayeti bulunmaktadır"
+                      className="font-extrabold px-2 py-0.5 rounded-lg border text-[11px] inline-flex items-center gap-1 whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--brand-accent-soft)',
+                        borderColor: 'rgba(217, 119, 6, 0.45)',
+                        color: 'var(--brand-accent-text)',
+                      }}
+                    >
+                      <span>۩</span>
+                      <span className="hidden sm:inline">Secde</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 min-w-0 justify-end">
+                  {showJumpChip && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sfxService.play('click');
+                        handleJumpToActiveVerse();
+                      }}
+                      title="Aktif okunan ayete geri dön"
+                      className="h-6 px-2 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap shrink-0"
+                      style={{
+                        backgroundColor: 'var(--brand-primary)',
+                        color: '#FFFFFF',
+                      }}
+                    >
+                      <LocateFixed className="w-3 h-3 shrink-0" />
+                      <span>Aktif Ayete Git</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      onOpenLocationPicker?.('surah');
+                    }}
+                    title="Sure seç"
+                    className="text-right min-w-0 font-bold truncate hover:underline cursor-pointer"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {surahTitlesTr}
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div
+                className="pb-2.5 mb-3 border-b flex items-center justify-between gap-2 text-xs shrink-0"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      openMealSelector('primary');
+                    }}
+                    title={`${MEALS_CATALOG.length} meal ve tefsir arasından değiştir`}
+                    className="font-extrabold truncate hover:underline text-left cursor-pointer"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  >
+                    {mealTitle}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {showJumpChip && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sfxService.play('click');
+                        handleJumpToActiveVerse();
+                      }}
+                      title="Aktif okunan ayete geri dön"
+                      className="h-6 px-2 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--brand-primary)',
+                        color: '#FFFFFF',
+                      }}
+                    >
+                      <LocateFixed className="w-3 h-3 shrink-0" />
+                      <span>Aktif Ayete Git</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      onOpenLocationPicker?.('page');
+                    }}
+                    title="Sayfa değiştir"
+                    className="font-bold tabular-nums px-2 py-0.5 rounded-lg text-[11px] hover:opacity-80 cursor-pointer whitespace-nowrap"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    Sayfa {bundle.pageNo} Meali
+                  </button>
+                  {isDoubleMeal && side === 'left' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateSettings({ readerContentMode: 'ar_only' });
+                      }}
+                      title="Meal sayfasını kapat (Sadece Arapça)"
+                      aria-label="Meal sayfasını kapat"
+                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer transition-colors hover:opacity-85"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      <PanelRightClose className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Bağımsız Kaydırılabilir Meal Gövdesi (lg+ ikili görünümde) */}
             <div
@@ -2113,8 +2244,30 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 className="mt-4 pt-2 border-t flex items-center justify-between gap-2 text-[11px] font-semibold shrink-0"
                 style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
               >
-                <span>Senkronize Meal Sayfası</span>
-                <span className="tabular-nums">Sayfa {bundle.pageNo}</span>
+                {isMealMode ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        openMealSelector('primary');
+                      }}
+                      title={`${MEALS_CATALOG.length} meal ve tefsir arasından değiştir`}
+                      className="truncate hover:underline text-left cursor-pointer font-bold"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      {mealTitle}
+                    </button>
+                    <span className="tabular-nums shrink-0 font-bold">
+                      — {bundle.pageNo} / {bundle.maxPage} —
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span>Senkronize Meal Sayfası</span>
+                    <span className="tabular-nums">Sayfa {bundle.pageNo}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -2126,10 +2279,13 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   return (
     <div className="space-y-3" onClick={handleMobileEmptySpaceTap}>
       {/* ====================================================================
-          ANA ALAN: Gerçekçi Mushaf Kitap Çerçevesi
-          - Tek Sayfa: Odaklı ortalanmış Mushaf yaprağı (tıklanan ayet DraggableVerseInspector açar)
-          - 2 Sayfa: Yan yana 2 bağımsız kaydırılabilir Arapça Mushaf yaprağı (lg+)
-          - Mushaf + Meal: Sağ Mushaf · Sol Bağımsız Kaydırılabilir Senkronize Meal yaprağı (lg+)
+          ANA ALAN: 6 Modlu İki Aşamalı Mushaf & Meal Kitap Sahnesi
+          - single: Tek Sayfa Arapça Mushaf
+          - dual: 2 Sayfa Açık Mushaf (RTL: Sağ N, Sol N+1)
+          - mushaf_meal: Karşılıklı (Sağ Mushaf · Sol Senkronize Meal)
+          - rahle_dual: 2 Sayfa Rahle (RTL 2 Sayfa Mushaf + Tıklanan Ayet İnceleyici)
+          - meal_only: Tek Sayfa Türkçe Meal
+          - meal_dual: 2 Sayfa Açık Kitap Meal (LTR: Sol N, Sağ N+1)
           ==================================================================== */}
       <div
         className={
@@ -2144,13 +2300,13 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Masaüstü (lg+) Sağ/Sol Dış Kenar Sayfa Çevirme Okları + Mushaf Çerçevesi (RTL: Sol = Sonraki, Sağ = Önceki) */}
+        {/* Masaüstü (lg+) Sağ/Sol Dış Kenar Sayfa Çevirme Okları + Kitap Çerçevesi (Akıllı LTR/RTL Yönü) */}
         <div
           className={`flex items-stretch justify-center gap-0 lg:gap-3 ${
             isBookSpread ? 'lg:flex-1 lg:min-h-0' : ''
           }`}
         >
-          {/* Sol Dış Kenar: Sonraki Sayfa (RTL Kitap Yönü) */}
+          {/* Sol Dış Kenar Oku (LTR: Önceki Sayfa | RTL: Sonraki Sayfa) */}
           <div
             className={`hidden lg:flex flex-col items-center shrink-0 w-11 ${
               isBookSpread ? 'justify-center' : 'justify-start'
@@ -2158,20 +2314,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           >
             <button
               type="button"
-              disabled={!canGoNext}
+              disabled={leftActionDisabled}
               onClick={() => {
                 sfxService.play('click');
-                onChangePage(Math.min(pageBundle.maxPage, pageBundle.pageNo + pageStep));
+                onChangePage(leftActionTarget);
               }}
               title={
-                canGoNext
-                  ? `${isDoubleMushaf ? 'Sonraki 2 Sayfa' : 'Sonraki Sayfa'} (Sayfa ${Math.min(
-                      pageBundle.maxPage,
-                      pageBundle.pageNo + pageStep,
-                    )})`
-                  : 'Son sayfadasınız'
+                !leftActionDisabled
+                  ? `${leftActionLabel} (Sayfa ${leftActionTarget})`
+                  : leftActionDisabledTitle
               }
-              aria-label={isDoubleMushaf ? 'Sonraki 2 sayfa' : 'Sonraki sayfa'}
+              aria-label={leftActionLabel}
               className={`${
                 isBookSpread ? '' : 'sticky top-1/2 -translate-y-1/2'
               } w-11 py-3 rounded-2xl border flex flex-col items-center justify-center gap-1 opacity-55 hover:opacity-100 focus-visible:opacity-100 transition-all cursor-pointer disabled:opacity-15 disabled:cursor-not-allowed shadow-xs hover:border-[var(--brand-primary)]`}
@@ -2182,83 +2335,87 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               }}
             >
               <ChevronLeft className="w-5 h-5 shrink-0" />
-              {canGoNext && (
+              {!leftActionDisabled && (
                 <span
                   className="text-[10px] font-extrabold tabular-nums leading-none"
                   style={{ color: 'var(--text-muted)' }}
                 >
-                  {Math.min(pageBundle.maxPage, pageBundle.pageNo + pageStep)}
+                  {leftActionTarget}
                 </span>
               )}
             </button>
           </div>
 
-          {/* Orta: Mushaf Yaprak Çerçevesi */}
+          {/* Orta: Yaprak Çerçevesi */}
           <div
             className={`flex-1 min-w-0 ${
               isBookSpread ? 'lg:flex lg:flex-col lg:min-h-0' : 'max-w-3xl mx-auto w-full'
             }`}
           >
-        {isMealOnly ? (
-          isDoubleMushaf && secondPageBundle ? (
-            <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
-              <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch lg:flex-1 lg:min-h-0">
-                <div
-                  aria-hidden="true"
-                  className="hidden lg:block pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-8 z-10 mushaf-spine-seam"
-                />
-                <div className="lg:h-full lg:min-h-0">{renderFacingMealLeaf(pageBundle, 'left')}</div>
-                <div className="lg:h-full lg:min-h-0">
-                  {renderFacingMealLeaf(secondPageBundle, 'right')}
+            {isMealMode ? (
+              isMealDual && secondPageBundle ? (
+                /* 2 SAYFA AÇIK KİTAP MEAL (LTR Türkçe Kitap Yönü — SOLDA pageNo, SAĞDA pageNo+1) */
+                <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
+                  <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch lg:flex-1 lg:min-h-0">
+                    <div
+                      aria-hidden="true"
+                      className="hidden lg:block pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-8 z-10 mushaf-spine-seam"
+                    />
+                    <div className="lg:h-full lg:min-h-0">
+                      {renderFacingMealLeaf(pageBundle, 'left')}
+                    </div>
+                    <div className="lg:h-full lg:min-h-0">
+                      {renderFacingMealLeaf(secondPageBundle, 'right')}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* TEK SAYFA MEAL (Odaklı ortalanmış Türkçe Meal yaprağı) */
+                <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5">
+                  {renderFacingMealLeaf(pageBundle, 'single')}
+                </div>
+              )
+            ) : isDualArabic && secondPageBundle ? (
+              /* AÇIK MUSHAF / 2 SAYFA RAHLE (Gerçek RTL kitap açılımı — SAĞDA pageNo, SOLDA pageNo+1) */
+              <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
+                <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch lg:flex-1 lg:min-h-0">
+                  <div
+                    aria-hidden="true"
+                    className="hidden lg:block pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-8 z-10 mushaf-spine-seam"
+                  />
+                  <div className="order-2 lg:order-1 lg:h-full lg:min-h-0">
+                    {renderMushafLeaf(secondPageBundle, 'left')}
+                  </div>
+                  <div className="order-1 lg:order-2 lg:h-full lg:min-h-0">
+                    {renderMushafLeaf(pageBundle, 'right')}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5">
-              {renderFacingMealLeaf(pageBundle, 'single')}
-            </div>
-          )
-        ) : isDoubleMushaf && secondPageBundle ? (
-          /* AÇIK MUSHAF YAYILIMI (2 Sayfa Arapça): Gerçek RTL kitap açılımı — SAĞDA pageNo, SOLDA pageNo+1 */
-          <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
-            <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch lg:flex-1 lg:min-h-0">
-              <div
-                aria-hidden="true"
-                className="hidden lg:block pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-8 z-10 mushaf-spine-seam"
-              />
-              <div className="order-2 lg:order-1 lg:h-full lg:min-h-0">
-                {renderMushafLeaf(secondPageBundle, 'left')}
+            ) : isDoubleMeal ? (
+              /* SAĞ MUSHAF · SOL MEAL AÇIK KİTAP YAYILIMI (Mobilde üstte Mushaf, altta Meal) */
+              <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
+                <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch lg:flex-1 lg:min-h-0">
+                  <div
+                    aria-hidden="true"
+                    className="hidden lg:block pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-8 z-10 mushaf-spine-seam"
+                  />
+                  <div className="order-2 lg:order-1 lg:h-full lg:min-h-0">
+                    {renderFacingMealLeaf(pageBundle, 'left')}
+                  </div>
+                  <div className="order-1 lg:order-2 lg:h-full lg:min-h-0">
+                    {renderMushafLeaf(pageBundle, 'right')}
+                  </div>
+                </div>
               </div>
-              <div className="order-1 lg:order-2 lg:h-full lg:min-h-0">
-                {renderMushafLeaf(pageBundle, 'right')}
+            ) : (
+              /* TEK SAYFA MUSHAF (Katmanlı Yaprak Kenarlı Cilt Çerçevesi) */
+              <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5">
+                {renderMushafLeaf(pageBundle, 'single')}
               </div>
-            </div>
-          </div>
-        ) : isDoubleMeal ? (
-          /* SAĞ MUSHAF · SOL MEAL AÇIK KİTAP YAYILIMI (Bağımsız Kaydırılabilir Paneller) */
-          <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
-            <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-stretch lg:flex-1 lg:min-h-0">
-              <div
-                aria-hidden="true"
-                className="hidden lg:block pointer-events-none absolute inset-y-1 left-1/2 -translate-x-1/2 w-8 z-10 mushaf-spine-seam"
-              />
-              <div className="order-2 lg:order-1 lg:h-full lg:min-h-0">
-                {renderFacingMealLeaf(pageBundle, 'left')}
-              </div>
-              <div className="order-1 lg:order-2 lg:h-full lg:min-h-0">
-                {renderMushafLeaf(pageBundle, 'right')}
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* TEK SAYFA MUSHAF (Katmanlı Yaprak Kenarlı Cilt Çerçevesi) */
-          <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5">
-            {renderMushafLeaf(pageBundle, 'single')}
-          </div>
-        )}
+            )}
           </div>
 
-          {/* Sağ Dış Kenar: Önceki Sayfa (RTL Kitap Yönü) */}
+          {/* Sağ Dış Kenar Oku (LTR: Sonraki Sayfa | RTL: Önceki Sayfa) */}
           <div
             className={`hidden lg:flex flex-col items-center shrink-0 w-11 ${
               isBookSpread ? 'justify-center' : 'justify-start'
@@ -2266,20 +2423,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           >
             <button
               type="button"
-              disabled={!canGoPrev}
+              disabled={rightActionDisabled}
               onClick={() => {
                 sfxService.play('click');
-                onChangePage(Math.max(pageBundle.minPage, pageBundle.pageNo - pageStep));
+                onChangePage(rightActionTarget);
               }}
               title={
-                canGoPrev
-                  ? `${isDoubleMushaf ? 'Önceki 2 Sayfa' : 'Önceki Sayfa'} (Sayfa ${Math.max(
-                      pageBundle.minPage,
-                      pageBundle.pageNo - pageStep,
-                    )})`
-                  : 'İlk sayfadasınız'
+                !rightActionDisabled
+                  ? `${rightActionLabel} (Sayfa ${rightActionTarget})`
+                  : rightActionDisabledTitle
               }
-              aria-label={isDoubleMushaf ? 'Önceki 2 sayfa' : 'Önceki sayfa'}
+              aria-label={rightActionLabel}
               className={`${
                 isBookSpread ? '' : 'sticky top-1/2 -translate-y-1/2'
               } w-11 py-3 rounded-2xl border flex flex-col items-center justify-center gap-1 opacity-55 hover:opacity-100 focus-visible:opacity-100 transition-all cursor-pointer disabled:opacity-15 disabled:cursor-not-allowed shadow-xs hover:border-[var(--brand-primary)]`}
@@ -2290,26 +2444,26 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               }}
             >
               <ChevronRight className="w-5 h-5 shrink-0" />
-              {canGoPrev && (
+              {!rightActionDisabled && (
                 <span
                   className="text-[10px] font-extrabold tabular-nums leading-none"
                   style={{ color: 'var(--text-muted)' }}
                 >
-                  {Math.max(pageBundle.minPage, pageBundle.pageNo - pageStep)}
+                  {rightActionTarget}
                 </span>
               )}
             </button>
           </div>
         </div>
 
-        {/* Sade Sayfa Geçiş Kontrolleri + Ayet İncele Tetikleyicisi */}
+        {/* Sade Sayfa Geçiş Kontrolleri + Ayet İncele Tetikleyicisi (Akıllı LTR/RTL Yönü) */}
         <div className="flex items-center justify-between gap-2 shrink-0">
           <button
             type="button"
-            disabled={!canGoNext}
+            disabled={leftActionDisabled}
             onClick={() => {
               sfxService.play('click');
-              onChangePage(Math.min(pageBundle.maxPage, pageBundle.pageNo + pageStep));
+              onChangePage(leftActionTarget);
             }}
             className="flex-1 sm:flex-initial min-h-[40px] px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
             style={{
@@ -2319,9 +2473,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             }}
           >
             <ChevronLeft className="w-4 h-4 shrink-0" />
-            <span className="whitespace-nowrap">
-              {isDoubleMushaf ? 'Sonraki 2 Sayfa' : 'Sonraki Sayfa'}
-            </span>
+            <span className="whitespace-nowrap">{leftActionLabel}</span>
           </button>
 
           <div className="flex items-center justify-center gap-2 shrink-0">
@@ -2334,7 +2486,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               className="hidden sm:inline-flex text-xs font-bold tabular-nums hover:underline cursor-pointer"
               style={{ color: 'var(--text-muted)' }}
             >
-              {isDoubleMushaf && secondPageBundle
+              {isAnyDualPages && secondPageBundle
                 ? `Sayfa ${pageBundle.pageNo}–${secondPageBundle.pageNo}`
                 : `Sayfa ${pageBundle.pageNo}`}
             </button>
@@ -2360,7 +2512,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 <span>
                   {isVerseDrawerOpen
                     ? `Kapat (${selectedVerse.ayah})`
-                    : isArOnly || isDoubleMushaf
+                    : isArOnly || isDualArabic
                       ? `Meal (${selectedVerse.ayah})`
                       : `Ayet (${selectedVerse.ayah})`}
                 </span>
@@ -2370,10 +2522,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
           <button
             type="button"
-            disabled={!canGoPrev}
+            disabled={rightActionDisabled}
             onClick={() => {
               sfxService.play('click');
-              onChangePage(Math.max(pageBundle.minPage, pageBundle.pageNo - pageStep));
+              onChangePage(rightActionTarget);
             }}
             className="flex-1 sm:flex-initial min-h-[40px] px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
             style={{
@@ -2382,9 +2534,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               color: 'var(--text-primary)',
             }}
           >
-            <span className="whitespace-nowrap">
-              {isDoubleMushaf ? 'Önceki 2 Sayfa' : 'Önceki Sayfa'}
-            </span>
+            <span className="whitespace-nowrap">{rightActionLabel}</span>
             <ChevronRight className="w-4 h-4 shrink-0" />
           </button>
         </div>

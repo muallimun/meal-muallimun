@@ -88,7 +88,6 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 }) => {
   const {
     settings,
-    studyPrefs,
     studyProgress,
     toggleBookmarkAyah,
     moveHatimBookmark,
@@ -150,8 +149,13 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     [audioState.activePhase, audioState.activeSourceKey, audioPrefs.mealAudioSource, manifest],
   );
 
-  const bookMode: BookContentMode = studyPrefs.bookContentMode;
-  const isDoubleBookLayout = studyPrefs.pageLayout !== 'single';
+  const bookMode: BookContentMode =
+    settings.readerContentMode === 'ar_only'
+      ? 'ar_only'
+      : settings.readerContentMode === 'meal_only'
+        ? 'meal_only'
+        : 'interleaved';
+  const isDoubleBookLayout = settings.desktopPageLayout === 'dual';
   const useRtlDoubleGrid = isDoubleBookLayout && bookMode !== 'meal_only';
   const isHatimOnSurahStart = studyProgress.pageBookmarks.some(
     (b) => b.isHatim && b.page === bundle.surahMeta.pageStart,
