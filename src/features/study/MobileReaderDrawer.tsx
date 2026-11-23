@@ -605,9 +605,20 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  <span className="text-[11px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>
-                    Arapça {settings.arabicFontSize}
-                  </span>
+                  <div className="flex flex-col leading-tight min-w-0">
+                    <span
+                      className="text-[11px] font-semibold leading-tight"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Arapça
+                    </span>
+                    <span
+                      className="text-sm font-extrabold tabular-nums leading-tight shrink-0"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {settings.arabicFontSize}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
@@ -618,7 +629,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                       }
                       aria-label="Arapça yazı boyutunu küçült"
                       title="Arapça yazı boyutunu küçült"
-                      className="w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer"
+                      className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer shrink-0"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -635,7 +646,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                       }
                       aria-label="Arapça yazı boyutunu büyüt"
                       title="Arapça yazı boyutunu büyüt"
-                      className="w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer"
+                      className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer shrink-0"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -655,9 +666,20 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  <span className="text-[11px] font-bold truncate" style={{ color: 'var(--text-muted)' }}>
-                    Meal {settings.turkishFontSize}
-                  </span>
+                  <div className="flex flex-col leading-tight min-w-0">
+                    <span
+                      className="text-[11px] font-semibold leading-tight"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Meal
+                    </span>
+                    <span
+                      className="text-sm font-extrabold tabular-nums leading-tight shrink-0"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {settings.turkishFontSize}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
@@ -668,7 +690,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                       }
                       aria-label="Meal yazı boyutunu küçült"
                       title="Meal yazı boyutunu küçült"
-                      className="w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer"
+                      className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer shrink-0"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -685,7 +707,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                       }
                       aria-label="Meal yazı boyutunu büyüt"
                       title="Meal yazı boyutunu büyüt"
-                      className="w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer"
+                      className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg border flex items-center justify-center cursor-pointer shrink-0"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-subtle)',
@@ -809,7 +831,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                   onToggleImmersive();
                   onClose();
                 }}
-                className="w-full min-h-[42px] px-3 rounded-xl border text-xs font-bold flex items-center justify-between cursor-pointer"
+                className="w-full min-h-[42px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-between gap-3 cursor-pointer"
                 style={{
                   backgroundColor: isImmersive
                     ? 'var(--brand-primary-soft)'
@@ -818,11 +840,13 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                   color: isImmersive ? 'var(--brand-primary-text)' : 'var(--text-primary)',
                 }}
               >
-                <span className="flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
+                <span className="flex items-center gap-2 text-left min-w-0 leading-snug">
+                  <Eye className="w-4 h-4 shrink-0" />
                   <span>%100 Saf Sayfa Modu (Üst/Alt Barı Gizle)</span>
                 </span>
-                <span className="text-[11px] font-extrabold">{isImmersive ? 'Açık' : 'Kapalı'}</span>
+                <span className="text-[11px] font-extrabold shrink-0">
+                  {isImmersive ? 'Açık' : 'Kapalı'}
+                </span>
               </button>
             )}
             {/* Ekranı Açık Tut (Akıllı Wake Lock) */}
