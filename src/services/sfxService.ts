@@ -28,11 +28,21 @@ class SfxService {
   // Birincil yol: Sıfır HTMLAudioElement maliyetiyle Web Audio API AudioBuffer önbelleği
   private bufferCache = new Map<string, AudioBuffer>();
   private loadingBuffers = new Map<string, Promise<AudioBuffer | null>>();
+  private failedBufferUrls = new Set<string>();
+  private onlineListenerBound = false;
 
   // Yedek yol: Maksimum 4 elemanlı sabit döner <audio> havuzu (sınırsız cloneNode yok)
   private htmlAudioPool: HTMLAudioElement[] = [];
   private poolAbortControllers: (AbortController | null)[] = [];
   private poolCursor = 0;
+
+  private ensureOnlineRecoveryListener(): void {
+    if (this.onlineListenerBound || typeof window === 'undefined') return;
+    this.onlineListenerBound = true;
+    window.addEventListener('online', () => {
+      this.failedBufferUrls.clear();
+    });
+  }
 
   public configure(enabled: boolean, volume: number): void {
     this.config.enabled = enabled;
@@ -177,8 +187,11 @@ class SfxService {
   }
 
   private preloadAudioBuffer(url: string, ctx: AudioContext): Promise<AudioBuffer | null> {
+    this.ensureOnlineRecoveryListener();
     const cached = this.bufferCache.get(url);
     if (cached) return Promise.resolve(cached);
+
+    if (this.failedBufferUrls.has(url)) return Promise.resolve(null);
 
     const inflight = this.loadingBuffers.get(url);
     if (inflight) return inflight;
@@ -186,12 +199,16 @@ class SfxService {
     const promise = (async (): Promise<AudioBuffer | null> => {
       try {
         const response = await fetch(url);
-        if (!response.ok) return null;
+        if (!response.ok) {
+          this.failedBufferUrls.add(url);
+          return null;
+        }
         const arrayBuffer = await response.arrayBuffer();
         const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
         this.bufferCache.set(url, decoded);
         return decoded;
       } catch {
+        this.failedBufferUrls.add(url);
         return null;
       } finally {
         this.loadingBuffers.delete(url);

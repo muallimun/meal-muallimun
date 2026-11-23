@@ -30,12 +30,14 @@ import { BOOKMARK_COLOR_STYLES } from '../../components/PageBookmarksDrawer';
 import {
   MEALS_CATALOG,
   getMealTextPresentation,
+  resolveMealBesmelePresentation,
   resolveSpokenMealInfo,
 } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useRukusData } from '../../hooks/useStudyReferenceData';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
+import { hasActiveBackStackEntries } from '../../services/backStackService';
 import { hatimStorage } from '../../services/hatimStorage';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
@@ -716,6 +718,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || hasActiveBackStackEntries()) return;
       if (e.altKey || e.ctrlKey || e.metaKey) return;
       const target = e.target as HTMLElement | null;
       if (
@@ -1673,15 +1676,22 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                           settings.theme === 'dark'
                             ? 'rgba(45, 212, 191, 0.13)'
                             : 'rgba(13, 148, 136, 0.10)';
+                        const mealBesmele = resolveMealBesmelePresentation(primaryMeal, besmele);
                         return (
                           <p
-                            className="turkish-reading text-xs sm:text-sm italic text-center font-semibold py-1 px-2 rounded-lg transition-colors"
+                            dir={mealBesmele.dir}
+                            lang={mealBesmele.isArabic ? 'ar' : primaryMeal.lang ?? 'tr'}
+                            className={`${
+                              mealBesmele.isArabic
+                                ? 'arabic-text text-lg sm:text-xl leading-[2.0]'
+                                : 'turkish-reading text-xs sm:text-sm italic font-semibold'
+                            } text-center py-1 px-2 rounded-lg transition-colors`}
                             style={{
                               color: 'var(--brand-primary-text)',
                               backgroundColor: isBesmeleMealPlaying ? softPlayingBg : 'transparent',
                             }}
                           >
-                            {primaryMeal.id === 'm2' ? besmele.dib : besmele.tdv}
+                            {mealBesmele.text}
                           </p>
                         );
                       })()}

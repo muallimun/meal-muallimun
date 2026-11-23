@@ -12,6 +12,7 @@ import {
   Loader2,
   MessageSquareHeart,
   Play,
+  RefreshCw,
   RotateCcw,
   ShieldCheck,
   SlidersHorizontal,
@@ -69,6 +70,12 @@ import {
 } from '../utils/examUtils';
 import { PwaInstallControl } from './PwaInstallControl';
 import { OfflinePackCard } from './OfflinePackCard';
+import {
+  applyPwaUpdate,
+  checkForPwaUpdate,
+  isPwaUpdateAvailable,
+  subscribePwaUpdate,
+} from '../utils/pwaUtils';
 
 const MAX_BACKUP_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
 
@@ -272,12 +279,38 @@ export const SettingsModal: React.FC = () => {
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
   );
+  const pwaUpdateReady = useSyncExternalStore(
+    subscribePwaUpdate,
+    isPwaUpdateAvailable,
+  );
 
   const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
+  const [isCheckingPwaUpdate, setIsCheckingPwaUpdate] = useState(false);
+  const [pwaUpdateMessage, setPwaUpdateMessage] = useState<string | null>(null);
   const [backupStatus, setBackupStatus] = useState<{
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+
+  const handleManualPwaUpdateCheck = async () => {
+    sfxService.play('click');
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setPwaUpdateMessage('Çevrimdışı görünüyorsunuz. Güncelleme denetimi için internet bağlantısı gerekir.');
+      return;
+    }
+    setIsCheckingPwaUpdate(true);
+    setPwaUpdateMessage(null);
+    try {
+      const hasUpdate = await checkForPwaUpdate();
+      setPwaUpdateMessage(
+        hasUpdate
+          ? 'Yeni sürüm bulundu! Yüklemek için aşağıdaki düğmeye dokunabilirsiniz.'
+          : 'Uygulamanız güncel.',
+      );
+    } finally {
+      setIsCheckingPwaUpdate(false);
+    }
+  };
   const [pendingBackupRestore, setPendingBackupRestore] = useState<PendingBackupPreview | null>(
     null,
   );
@@ -1527,6 +1560,104 @@ export const SettingsModal: React.FC = () => {
                 <div className="pt-0.5">
                   <PwaInstallControl variant="settings" />
                 </div>
+              </section>
+
+              {/* Uygulama Sürümü & Manuel Güncelleme Kontrolü */}
+              <section
+                className="p-3.5 sm:p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                style={{
+                  backgroundColor: pwaUpdateReady
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface-soft)',
+                  borderColor: pwaUpdateReady
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: pwaUpdateReady
+                        ? 'var(--brand-primary)'
+                        : 'var(--brand-primary-soft)',
+                      color: pwaUpdateReady ? '#FFFFFF' : 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 ${isCheckingPwaUpdate ? 'animate-spin' : ''}`}
+                    />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <h3
+                        className="text-xs sm:text-sm font-extrabold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        Uygulama Sürümü &amp; Güncelleme Kontrolü
+                      </h3>
+                      {manifest?.dataVersion && (
+                        <span
+                          className="px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums"
+                          style={{
+                            backgroundColor: 'var(--bg-surface)',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-subtle)',
+                          }}
+                        >
+                          v{manifest.dataVersion}
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className="text-[11px] mt-0.5 leading-snug"
+                      style={{
+                        color: pwaUpdateReady
+                          ? 'var(--brand-primary-text)'
+                          : 'var(--text-muted)',
+                      }}
+                    >
+                      {pwaUpdateReady
+                        ? 'Yeni uygulama sürümü hazır. Yenileme işlemini şimdi başlatabilirsiniz.'
+                        : pwaUpdateMessage ??
+                          'Yeni sürüm olup olmadığını istediğiniz zaman el ile denetleyebilirsiniz.'}
+                    </p>
+                  </div>
+                </div>
+
+                {pwaUpdateReady ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      void applyPwaUpdate();
+                    }}
+                    className="min-h-[38px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 shrink-0 cursor-pointer shadow-sm"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                    <span>Yeni Sürümü Yükle</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isCheckingPwaUpdate}
+                    onClick={() => void handleManualPwaUpdateCheck()}
+                    className="min-h-[38px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-60 transition-colors hover:border-[var(--brand-primary)]"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-strong)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    {isCheckingPwaUpdate ? (
+                      <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                    )}
+                    <span>{isCheckingPwaUpdate ? 'Denetleniyor…' : 'Güncellemeleri Denetle'}</span>
+                  </button>
+                )}
               </section>
             </div>
           )}

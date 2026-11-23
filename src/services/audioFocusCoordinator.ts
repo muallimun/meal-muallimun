@@ -46,8 +46,10 @@ export function claimAudioFocus(activeOwner: AudioOwnerId): void {
     for (const pauseOrStopFn of Array.from(callbacks)) {
       try {
         pauseOrStopFn();
-      } catch {
-        // Diğer ses kaynağını durdururken oluşan beklenmedik hataları yut
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn('[audioFocus]', ownerId, err);
+        }
       }
     }
   }

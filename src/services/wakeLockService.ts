@@ -25,6 +25,7 @@ class WakeLockService {
 
   private sentinel: WakeLockSentinelLike | null = null;
   private acquiring = false;
+  private requestGen = 0;
   private idleTimer: number | null = null;
   private listenersBound = false;
   private lastActivityAt = 0;
@@ -119,9 +120,10 @@ class WakeLockService {
     if (!nav.wakeLock || typeof nav.wakeLock.request !== 'function') return;
 
     this.acquiring = true;
+    const gen = ++this.requestGen;
     try {
       const lock = await nav.wakeLock.request('screen');
-      if (!this.shouldHoldLock()) {
+      if (gen !== this.requestGen || !this.shouldHoldLock()) {
         try {
           await lock.release();
         } catch {
@@ -137,13 +139,19 @@ class WakeLockService {
       });
     } catch {
       // Tarayıcı / pil tasarrufu / iFrame kısıtlamasında sessizce geç
-      this.sentinel = null;
+      if (gen === this.requestGen) {
+        this.sentinel = null;
+      }
     } finally {
-      this.acquiring = false;
+      if (gen === this.requestGen) {
+        this.acquiring = false;
+      }
     }
   }
 
   private async release(): Promise<void> {
+    this.requestGen += 1;
+    this.acquiring = false;
     const lock = this.sentinel;
     this.sentinel = null;
     if (!lock) return;

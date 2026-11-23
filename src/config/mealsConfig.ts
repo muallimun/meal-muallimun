@@ -1,4 +1,5 @@
 import type {
+  BesmeleInfo,
   ManifestData,
   MealCategory,
   MealDefinition,
@@ -579,4 +580,41 @@ export function isDisplayedMealMatchingAudio(params: {
   const spoken = resolveSpokenMealInfo(params.activeSourceKey, params.manifest);
   if (!spoken) return false;
   return spoken.mealId === params.displayedMealId;
+}
+
+export interface MealBesmelePresentation {
+  text: string;
+  dir: 'ltr' | 'rtl';
+  isArabic: boolean;
+}
+
+/**
+ * "Sadece Meal" modunda gösterilecek Besmele metnini ve yazı yönünü
+ * seçili meal/tefsir kaynağına ve diline göre çözümler.
+ */
+export function resolveMealBesmelePresentation(
+  meal: Pick<MealDefinition, 'id' | 'lang' | 'dir'>,
+  besmele: BesmeleInfo,
+): MealBesmelePresentation {
+  if (meal.id === 'm1') {
+    return { text: besmele.tdv, dir: 'ltr', isArabic: false };
+  }
+  if (meal.id === 'm2') {
+    return { text: besmele.dib, dir: 'ltr', isArabic: false };
+  }
+  if (meal.lang === 'ar' || meal.dir === 'rtl') {
+    return { text: besmele.ar, dir: 'rtl', isArabic: true };
+  }
+  if (meal.lang === 'en') {
+    return {
+      text: 'In the name of Allah, the Entirely Merciful, the Especially Merciful.',
+      dir: 'ltr',
+      isArabic: false,
+    };
+  }
+  return {
+    text: 'Rahmân ve Rahîm olan Allah’ın adıyla.',
+    dir: 'ltr',
+    isArabic: false,
+  };
 }

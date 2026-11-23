@@ -21,15 +21,16 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         globIgnores: ['data/**', 'fonts/**', 'sfx/**'],
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/quran_vocab/],
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern:
               /(?:^https:\/\/kuran\.muallimun\.net)?\/data\/(?:manifest|meta|quality_report|fihrist\/.*|q\/index|tj\/meta|seg\/meta)\.json$/i,
-            handler: 'StaleWhileRevalidate',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'muallimun-core-meta',
+              networkTimeoutSeconds: 3,
               expiration: {
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 60,

@@ -22,4 +22,19 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
+  {
+    files: [
+      'src/store/useAppStore.tsx',
+      'src/utils/waqfTextUtils.tsx',
+      'src/components/PageBookmarksDrawer.tsx',
+      'src/components/QuestionReportModal.tsx',
+      'src/features/games/StagePromptBanner.tsx',
+      'src/features/study/SyncedArabicText.tsx',
+      'src/features/study/TajweedRulePopover.tsx',
+      'src/features/study/TajweedText.tsx',
+    ],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 );

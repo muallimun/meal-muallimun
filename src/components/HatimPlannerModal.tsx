@@ -237,13 +237,17 @@ export const HatimPlannerModal: React.FC = () => {
     if (!activePlan) return;
     const res = hatimStorage.completeTodayQuota();
     if (!res) return;
-    sfxService.play('correct');
-    syncBookmarkToPage(res.plan.currentPage);
     if (res.markedPages.length > 0) {
+      sfxService.play('correct');
+      syncBookmarkToPage(res.plan.currentPage);
       setFeedback(
         `${res.markedPages.length} sayfa okundu işaretlendi. Hatim ayracınız Sayfa ${res.plan.currentPage} konumuna taşındı.`,
       );
+    } else if (summary && summary.remainingPages > 0) {
+      sfxService.play('click');
+      setFeedback('Bugünkü okuma hedefiniz zaten tamamlandı.');
     } else {
+      sfxService.play('click');
       setFeedback('Tüm sayfalar tamamlanmış görünüyor.');
     }
   };
@@ -954,7 +958,7 @@ export const HatimPlannerModal: React.FC = () => {
                       <span className="truncate">
                         {summary.todayRemainingPages > 0
                           ? `Bugünkü Hedefi Okudum İşaretle (+${summary.todayRemainingPages} Sayfa)`
-                          : `Ekstra Vird İşaretle (+${Math.min(summary.remainingPages, summary.todayTargetPages)} Sayfa)`}
+                          : 'Bugünkü Hedef Tamamlandı'}
                       </span>
                     </button>
                   </div>

@@ -343,12 +343,14 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           onCloseRef.current();
         }
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
         if (audioStatusRef.current !== 'idle') {
           audioQueueService.nextVerse();
         } else {
           setManualIndex((i) => Math.min(Math.max(0, versesLenRef.current - 1), i + 1));
         }
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
         if (audioStatusRef.current !== 'idle') {
           audioQueueService.prevVerse();
         } else {

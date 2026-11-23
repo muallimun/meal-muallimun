@@ -1405,16 +1405,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     wakeLockService.setContinuousReason('exam_active', isExamActive);
   }, [isExamActive]);
 
+  const lastReadPage = persisted.studyProgress.lastRead?.page;
+  const lastReadSurah = persisted.studyProgress.lastRead?.surah;
+  const lastReadAyah = persisted.studyProgress.lastRead?.ayah;
   useEffect(() => {
-    if (activeTab === 'reader' && persisted.studyProgress.lastRead) {
+    if (
+      activeTab === 'reader' &&
+      (lastReadPage !== undefined || lastReadSurah !== undefined || lastReadAyah !== undefined)
+    ) {
       wakeLockService.notifyUserActivity();
     }
-  }, [
-    activeTab,
-    persisted.studyProgress.lastRead?.page,
-    persisted.studyProgress.lastRead?.surah,
-    persisted.studyProgress.lastRead?.ayah,
-  ]);
+  }, [activeTab, lastReadPage, lastReadSurah, lastReadAyah]);
   const [reciterSelectorContext, setReciterSelectorContext] = useState<'default' | 'memorize'>(
     'default',
   );
@@ -2958,8 +2959,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       openUserGuide(target.guideTab);
     }
 
+    const isShareableReaderLink =
+      target.kind === 'verse' || target.kind === 'page' || target.kind === 'juz';
+
     try {
-      if (window.self === window.top && window.location.search) {
+      if (!isShareableReaderLink && window.self === window.top && window.location.search) {
         window.history.replaceState(
           window.history.state,
           '',
@@ -2971,24 +2975,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [meta, navigateToStudy, navigateToExam, setActiveTab, openUserGuide]);
 
-  // Sekme değiştiğinde /mushaf/ gibi eski okuma rotasını history.replaceState ile temiz köke senkronize et
+  // Okuma sekmesi dışına geçildiğinde /mushaf/ gibi eski alt rotaları ve okuma sorgu parametrelerini temizle
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!initialUrlHandledRef.current) return;
     if (activeTab === 'reader') return;
 
     try {
-      const { pathname, hash } = window.location;
+      if (window.self !== window.top) return;
+      const { pathname, search, hash } = window.location;
       const shouldCleanPath =
         isReaderSubroutePath(pathname) ||
         (activeTab === 'home' && isKnownAppSubroutePath(pathname));
-      if (shouldCleanPath) {
-        window.history.replaceState(window.history.state, '', `/${hash}`);
+      if (shouldCleanPath || Boolean(search)) {
+        const cleanPath = shouldCleanPath ? '/' : pathname;
+        window.history.replaceState(window.history.state, '', `${cleanPath}${hash}`);
       }
     } catch {
       // Kısıtlı ortamda sessiz geç
     }
   }, [activeTab]);
+
+  // Sekme ve aktif okuma konumuna göre tarayıcı sekmesi başlığını (document.title) dinamik güncelle
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const baseTitle = "Muallimun Kur'an & Meal";
+
+    if (activeTab === 'home') {
+      document.title = "Muallimun Kur'an, Meal & Araştırma Platformu";
+      return;
+    }
+
+    if (activeTab === 'reader') {
+      const activeSurahNo = lastReadSurah ?? 1;
+      const activePageNo = lastReadPage ?? 1;
+      const surahMeta = meta?.surahs.find((s) => s.no === activeSurahNo);
+      if (surahMeta) {
+        document.title = `${surahMeta.nameTr} · Sayfa ${activePageNo} — ${baseTitle}`;
+      } else {
+        document.title = `Sayfa ${activePageNo} — ${baseTitle}`;
+      }
+      return;
+    }
+
+    if (activeTab === 'fihrist') {
+      document.title = `Fihrist & Araştırma — ${baseTitle}`;
+      return;
+    }
+
+    if (activeTab === 'memorize') {
+      document.title = `Ezber & Hafızlık — ${baseTitle}`;
+      return;
+    }
+
+    document.title = `Sınav Merkezi & Oyunlar — ${baseTitle}`;
+  }, [activeTab, meta, lastReadSurah, lastReadPage]);
 
   const poolStats = useMemo(
     () => computePoolStats(persisted.studyPool, meta, questionIndex),

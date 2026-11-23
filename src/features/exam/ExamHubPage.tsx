@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -21,10 +21,14 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { PrintableExamModal } from '../../components/PrintableExamModal';
 import { QuestionAuditManagerModal } from '../../components/QuestionAuditManagerModal';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
+
+const PrintableExamModal = lazyWithRetry(() =>
+  import('../../components/PrintableExamModal').then((m) => ({ default: m.PrintableExamModal })),
+);
 import type {
   ArenaTimeLimit,
   ExamConfig,
@@ -1182,11 +1186,15 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       </div>
 
       {/* A4 Yazdırılabilir Sınav Kâğıdı ve Cevap Anahtarı Penceresi */}
-      <PrintableExamModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        initialSurahNo={selectedSingleSurah}
-      />
+      {isPrintModalOpen && (
+        <Suspense fallback={null}>
+          <PrintableExamModal
+            isOpen={isPrintModalOpen}
+            onClose={() => setIsPrintModalOpen(false)}
+            initialSurahNo={selectedSingleSurah}
+          />
+        </Suspense>
+      )}
 
       {/* Hatalı İşaretlenen Sorular & JSON Denetim Raporu Penceresi */}
       <QuestionAuditManagerModal

@@ -7,10 +7,19 @@
  * - 16 KB gövde sınırı, honeypot bot filtresi, alan doğrulama ve Google Sheets formül koruması.
  */
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 const MAX_BODY_BYTES = 16 * 1024;
+const MAX_UPSTREAM_BODY_BYTES = 32 * 1024;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
+const EMAIL_RATE_LIMIT_MAX_REQUESTS = 3;
 const MAX_TRACKED_IPS = 2000;
+const MAX_TRACKED_EMAILS = 2000;
 const UPSTREAM_TIMEOUT_MS = 10 * 1000;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -18,9 +27,38 @@ const FORMULA_PREFIX_REGEX = /^[=+\-@\t\r]/;
 
 /** @type {Map<string, number[]>} */
 const ipRateLimitMap = new Map();
+/** @type {Map<string, number[]>} */
+const emailRateLimitMap = new Map();
+
+/**
+ * Origin başlığının izin verilen uygulama alan adlarından gelip gelmediğini doğrular.
+ * @param {string} originHeader
+ */
+function isAllowedOrigin(originHeader) {
+  try {
+    const parsed = new URL(originHeader);
+    const hostname = parsed.hostname.toLowerCase();
+    if (parsed.protocol === 'https:') {
+      if (hostname === 'kuran.muallimun.net' || hostname === 'muallimun.net' || hostname.endsWith('.muallimun.net')) {
+        return true;
+      }
+      if (hostname.endsWith('.vercel.app')) {
+        return true;
+      }
+      return false;
+    }
+    if (parsed.protocol === 'http:') {
+      return hostname === 'localhost' || hostname === '127.0.0.1';
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * IP adresini vekil (proxy) başlıklarından güvenli biçimde çözümler.
+ * Öncelik sırası: x-vercel-forwarded-for > x-real-ip > cf-connecting-ip > x-forwarded-for.
  * @param {import('http').IncomingMessage & { headers?: Record<string, string | string[] | undefined>, socket?: { remoteAddress?: string } }} req
  */
 function resolveClientIp(req) {
@@ -54,34 +92,36 @@ function resolveClientIp(req) {
 }
 
 /**
- * IP bazlı hız sınırı kontrolü (LRU tahliyeli).
- * @param {string} ip
+ * Bellek içi LRU tahliyeli hız sınırı kontrolü (IP ve e-posta için ortak).
+ * @param {Map<string, number[]>} map
+ * @param {string} key
+ * @param {number} maxRequests
+ * @param {number} maxTracked
  * @param {number} now
  */
-function checkRateLimit(ip, now) {
-  const existing = ipRateLimitMap.get(ip);
+function checkMapRateLimit(map, key, maxRequests, maxTracked, now) {
+  const existing = map.get(key);
   const recent = (existing || []).filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
 
   if (existing) {
     // LRU tazeleme: silip sona ekle
-    ipRateLimitMap.delete(ip);
+    map.delete(key);
   }
 
-  if (recent.length >= RATE_LIMIT_MAX_REQUESTS) {
-    ipRateLimitMap.set(ip, recent);
+  if (recent.length >= maxRequests) {
+    map.set(key, recent);
     const oldest = recent[0];
     const retryAfterSec = Math.max(1, Math.ceil((RATE_LIMIT_WINDOW_MS - (now - oldest)) / 1000));
     return { allowed: false, retryAfterSec };
   }
 
   recent.push(now);
-  ipRateLimitMap.set(ip, recent);
+  map.set(key, recent);
 
-  // Maksimum 2000 IP üst sınırı (en eski kayıtları temizle)
-  while (ipRateLimitMap.size > MAX_TRACKED_IPS) {
-    const oldestKey = ipRateLimitMap.keys().next().value;
+  while (map.size > maxTracked) {
+    const oldestKey = map.keys().next().value;
     if (oldestKey === undefined) break;
-    ipRateLimitMap.delete(oldestKey);
+    map.delete(oldestKey);
   }
 
   return { allowed: true, retryAfterSec: 0 };
@@ -177,6 +217,58 @@ async function readJsonBody(req) {
   });
 }
 
+/**
+ * Üst servis yanıt gövdesini en fazla `maxBytes` (32 KB) olacak şekilde akışlı okur.
+ * @param {Response} upstreamRes
+ * @param {number} maxBytes
+ */
+async function readUpstreamTextCapped(upstreamRes, maxBytes) {
+  const declared = upstreamRes.headers?.get('content-length');
+  if (declared !== null && declared !== undefined) {
+    const parsedLen = Number(declared);
+    if (Number.isFinite(parsedLen) && parsedLen > maxBytes) {
+      try {
+        await upstreamRes.body?.cancel();
+      } catch {
+        // ignore cancel failure
+      }
+      return { exceeded: true, text: '' };
+    }
+  }
+
+  if (upstreamRes.body && typeof upstreamRes.body.getReader === 'function') {
+    const reader = upstreamRes.body.getReader();
+    /** @type {Buffer[]} */
+    const chunks = [];
+    let totalBytes = 0;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value) continue;
+        const buf = Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+        totalBytes += buf.length;
+        if (totalBytes > maxBytes) {
+          await reader.cancel().catch(() => {});
+          return { exceeded: true, text: '' };
+        }
+        chunks.push(buf);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    return { exceeded: false, text: Buffer.concat(chunks).toString('utf8') };
+  }
+
+  const arr = await upstreamRes.arrayBuffer();
+  if (arr.byteLength > maxBytes) {
+    return { exceeded: true, text: '' };
+  }
+  return { exceeded: false, text: Buffer.from(arr).toString('utf8') };
+}
+
 function sendJson(res, statusCode, payload, extraHeaders = {}) {
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -192,6 +284,12 @@ function readOptionalString(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function readHeaderString(headers, name) {
+  const raw = headers?.[name];
+  if (Array.isArray(raw)) return String(raw[0] ?? '').trim();
+  return typeof raw === 'string' ? raw.trim() : '';
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return sendJson(
@@ -202,17 +300,48 @@ export default async function handler(req, res) {
     );
   }
 
+  const secFetchSite = readHeaderString(req.headers, 'sec-fetch-site').toLowerCase();
+  if (secFetchSite === 'cross-site') {
+    return sendJson(res, 403, {
+      ok: false,
+      error: 'Çapraz kaynaklı gönderim reddedildi.',
+    });
+  }
+
+  const originHeader = readHeaderString(req.headers, 'origin');
+  if (originHeader && !isAllowedOrigin(originHeader)) {
+    return sendJson(res, 403, {
+      ok: false,
+      error: 'İzin verilmeyen istek kaynağı.',
+    });
+  }
+
+  const contentTypeHeader = readHeaderString(req.headers, 'content-type').toLowerCase();
+  if (!contentTypeHeader.includes('application/json')) {
+    return sendJson(res, 415, {
+      ok: false,
+      error: 'İstek içeriği application/json olmalıdır.',
+    });
+  }
+
+  const now = Date.now();
   const clientIp = resolveClientIp(req);
-  const rateCheck = checkRateLimit(clientIp, Date.now());
-  if (!rateCheck.allowed) {
+  const ipRateCheck = checkMapRateLimit(
+    ipRateLimitMap,
+    clientIp,
+    RATE_LIMIT_MAX_REQUESTS,
+    MAX_TRACKED_IPS,
+    now,
+  );
+  if (!ipRateCheck.allowed) {
     return sendJson(
       res,
       429,
       {
         ok: false,
-        error: `Çok sık gönderim yapıldı. Lütfen ${rateCheck.retryAfterSec} saniye sonra tekrar deneyin.`,
+        error: `Çok sık gönderim yapıldı. Lütfen ${ipRateCheck.retryAfterSec} saniye sonra tekrar deneyin.`,
       },
-      { 'Retry-After': String(rateCheck.retryAfterSec) },
+      { 'Retry-After': String(ipRateCheck.retryAfterSec) },
     );
   }
 
@@ -257,6 +386,26 @@ export default async function handler(req, res) {
     });
   }
 
+  const normalizedEmail = email.toLowerCase();
+  const emailRateCheck = checkMapRateLimit(
+    emailRateLimitMap,
+    normalizedEmail,
+    EMAIL_RATE_LIMIT_MAX_REQUESTS,
+    MAX_TRACKED_EMAILS,
+    now,
+  );
+  if (!emailRateCheck.allowed) {
+    return sendJson(
+      res,
+      429,
+      {
+        ok: false,
+        error: `Aynı e-posta adresi ile çok sık gönderim yapıldı. Lütfen ${emailRateCheck.retryAfterSec} saniye sonra tekrar deneyin.`,
+      },
+      { 'Retry-After': String(emailRateCheck.retryAfterSec) },
+    );
+  }
+
   if (category.length > 150) {
     return sendJson(res, 400, {
       ok: false,
@@ -285,11 +434,8 @@ export default async function handler(req, res) {
     });
   }
 
-  const webhookUrl = (
-    process.env.FEEDBACK_SCRIPT_URL ||
-    process.env.VITE_FEEDBACK_SCRIPT_URL ||
-    ''
-  ).trim();
+  // Yalnızca sunucu tarafı gizli ortam değişkenini oku (istemciye sızabilecek VITE_ yedeği kullanılmaz)
+  const webhookUrl = (process.env.FEEDBACK_SCRIPT_URL || '').trim();
 
   if (!webhookUrl) {
     return sendJson(res, 503, {
@@ -341,14 +487,14 @@ export default async function handler(req, res) {
       signal: controller.signal,
     });
 
-    const rawText = await upstreamRes.text();
-    const trimmed = rawText.trim();
+    const capped = await readUpstreamTextCapped(upstreamRes, MAX_UPSTREAM_BODY_BYTES);
+    const trimmed = capped.text.trim();
     const isHtmlResponse =
-      /^<!doctype html/i.test(trimmed) ||
+      /^<!doctype\s+html/i.test(trimmed) ||
       /^<html[\s>]/i.test(trimmed) ||
       trimmed.includes('accounts.google.com');
 
-    if (!upstreamRes.ok || isHtmlResponse) {
+    if (!upstreamRes.ok || capped.exceeded || !trimmed || isHtmlResponse) {
       return sendJson(res, 502, {
         ok: false,
         error: 'Bildirim servisi şu anda yanıt veremiyor. Lütfen daha sonra tekrar deneyin.',
@@ -360,9 +506,12 @@ export default async function handler(req, res) {
       try {
         parsedJson = JSON.parse(trimmed);
       } catch {
-        // JSON formatında olmayan düz metin yanıtları başarılı kabul edilir
+        return sendJson(res, 502, {
+          ok: false,
+          error: 'Bildirim servisi şu anda yanıt veremiyor. Lütfen daha sonra tekrar deneyin.',
+        });
       }
-      if (parsedJson && typeof parsedJson === 'object' && parsedJson.ok === false) {
+      if (!parsedJson || typeof parsedJson !== 'object' || parsedJson.ok === false) {
         return sendJson(res, 502, {
           ok: false,
           error: 'Bildirim servisi şu anda yanıt veremiyor. Lütfen daha sonra tekrar deneyin.',

@@ -26,12 +26,14 @@ import {
 import {
   MEALS_CATALOG,
   getMealTextPresentation,
+  resolveMealBesmelePresentation,
   resolveSpokenMealInfo,
 } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReferenceData';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
+import { hasActiveBackStackEntries } from '../../services/backStackService';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
@@ -133,15 +135,62 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!selectedVerseKey) return;
-    const onEsc = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || hasActiveBackStackEntries()) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
       if (e.key === 'Escape') {
-        setSelectedVerseKey(null);
+        if (selectedVerseKey) {
+          setSelectedVerseKey(null);
+        }
+        return;
+      }
+
+      const isLtrReading = settings.readerContentMode === 'meal_only';
+      if (e.key === 'ArrowLeft') {
+        if (isLtrReading) {
+          if (bundle.surahMeta.no > 1) {
+            e.preventDefault();
+            onSelectPrevSurah();
+          }
+        } else if (bundle.surahMeta.no < 114) {
+          e.preventDefault();
+          onSelectNextSurah();
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (isLtrReading) {
+          if (bundle.surahMeta.no < 114) {
+            e.preventDefault();
+            onSelectNextSurah();
+          }
+        } else if (bundle.surahMeta.no > 1) {
+          e.preventDefault();
+          onSelectPrevSurah();
+        }
       }
     };
-    window.addEventListener('keydown', onEsc);
-    return () => window.removeEventListener('keydown', onEsc);
-  }, [selectedVerseKey, setSelectedVerseKey]);
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    selectedVerseKey,
+    setSelectedVerseKey,
+    settings.readerContentMode,
+    bundle.surahMeta.no,
+    onSelectPrevSurah,
+    onSelectNextSurah,
+  ]);
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
@@ -693,16 +742,33 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     />
                   </p>
                 )}
-                {bookMode === 'meal_only' && (
-                  <p
-                    className="turkish-reading text-sm font-semibold italic text-[var(--text-secondary)] rounded-lg px-2 py-1 transition-colors"
-                    style={{
-                      backgroundColor: isBesmelePlaying ? softPlayingBg : 'transparent',
-                    }}
-                  >
-                    Rahmân ve Rahîm olan Allah’ın adıyla.
-                  </p>
-                )}
+                {bookMode === 'meal_only' && (() => {
+                  const besmeleInfo = meta?.besmele ?? {
+                    ayahId: 1001,
+                    audioCode: '001001',
+                    excludeSurahs: [1, 9],
+                    ar: besmeleAr,
+                    tdv: 'Rahmân ve Rahîm olan Allah’ın adıyla.',
+                    dib: 'Rahmân ve Rahîm olan Allah’ın adıyla.',
+                  };
+                  const mealBesmele = resolveMealBesmelePresentation(primaryMeal, besmeleInfo);
+                  return (
+                    <p
+                      dir={mealBesmele.dir}
+                      lang={mealBesmele.isArabic ? 'ar' : primaryMeal.lang ?? 'tr'}
+                      className={`${
+                        mealBesmele.isArabic
+                          ? 'arabic-text text-lg sm:text-xl leading-[2.0] text-[var(--text-primary)]'
+                          : 'turkish-reading text-sm font-semibold italic text-[var(--text-secondary)]'
+                      } text-center rounded-lg px-2 py-1 transition-colors`}
+                      style={{
+                        backgroundColor: isBesmelePlaying ? softPlayingBg : 'transparent',
+                      }}
+                    >
+                      {mealBesmele.text}
+                    </p>
+                  );
+                })()}
               </div>
             );
           })()}

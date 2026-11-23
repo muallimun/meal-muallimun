@@ -373,7 +373,7 @@ export function resolveCurrentTurnLesson(plan: ClassicalHifzPlan): ResolvedTurnL
     followingHasPages.length > 0 ? followingHasPages : priorHasPages;
 
   const fullLessonPages = [hamPage, ...orderedChainHas].sort((a, b) => a - b);
-  const nearChainPages = [hamPage, ...orderedChainHas.slice(0, 4)].sort((a, b) => a - b);
+  const nearChainPages = [hamPage, ...followingHasPages.slice(0, 4)].sort((a, b) => a - b);
 
   // Bugünkü Ham tamamlandığında sıradaki adımın önizlemesi
   const projectedHas = new Set<number>(hasSet);

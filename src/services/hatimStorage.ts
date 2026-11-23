@@ -119,7 +119,20 @@ export function findNextUnreadPage(
 }
 
 function isValidDateStamp(val: unknown): val is string {
-  return typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim());
+  if (typeof val !== 'string') return false;
+  const trimmed = val.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const dt = new Date(year, month - 1, day);
+  return (
+    dt.getFullYear() === year &&
+    dt.getMonth() === month - 1 &&
+    dt.getDate() === day
+  );
 }
 
 function sanitizeGoalMode(raw: unknown): HatimGoalMode {
@@ -664,9 +677,7 @@ export const hatimStorage = {
     if (!state.activePlan) return null;
     const base = rollToday(state.activePlan);
     const summary = computeHatimSummary(base);
-    const countToMark = summary.todayRemainingPages > 0
-      ? summary.todayRemainingPages
-      : Math.min(summary.remainingPages, Math.max(1, summary.todayTargetPages));
+    const countToMark = summary.todayRemainingPages;
 
     if (countToMark <= 0) {
       return { plan: base, markedPages: [] };

@@ -1,35 +1,84 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 import { AppShell } from './components/AppShell';
 import { AudioPlayerBar } from './components/AudioPlayerBar';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FeedbackModal } from './components/FeedbackModal';
 import { IntroSplash } from './components/IntroSplash';
+import { MealSelectorModal } from './components/MealSelectorModal';
 import { PageBookmarksDrawer } from './components/PageBookmarksDrawer';
 import { PoolSelectorModal } from './components/PoolSelectorModal';
-import { GlobalSearchModal } from './components/GlobalSearchModal';
-import { HatimPlannerModal } from './components/HatimPlannerModal';
-import { ListeningDrawerModal } from './components/ListeningDrawerModal';
-import { MealCompareModal } from './components/MealCompareModal';
-import { MealSelectorModal } from './components/MealSelectorModal';
-import { MutashabihatModal } from './components/MutashabihatModal';
 import { ReciterSelectorModal } from './components/ReciterSelectorModal';
-import { SettingsModal } from './components/SettingsModal';
-import { UserGuideModal } from './components/UserGuideModal';
 import { VerseNoteModal } from './components/VerseNoteModal';
 import { WaqfGuideModal } from './components/WaqfGuideModal';
-import { ExamCenterPage } from './features/exam/ExamCenterPage';
-import { FihristHubPage } from './features/fihrist/FihristHubPage';
 import { QuickAddToResearchModal } from './features/fihrist/QuickAddToResearchModal';
-import { MemorizationHubPage } from './features/memorization/MemorizationHubPage';
 import { QuickMemorizeFromVerseModal } from './features/memorization/QuickMemorizeFromVerseModal';
 import { StudyPage } from './features/study/StudyPage';
 import { RukuPopoverHost, WaqfPopoverHost } from './features/study/StudyPopovers';
 import { TajweedRulePopoverHost } from './features/study/TajweedRulePopover';
 import { HomePage } from './pages/HomePage';
 import { AppProvider, useAppStore } from './store/useAppStore';
+import { lazyWithRetry } from './utils/lazyWithRetry';
+
+const FihristHubPage = lazyWithRetry(() =>
+  import('./features/fihrist/FihristHubPage').then((m) => ({ default: m.FihristHubPage })),
+);
+const MemorizationHubPage = lazyWithRetry(() =>
+  import('./features/memorization/MemorizationHubPage').then((m) => ({
+    default: m.MemorizationHubPage,
+  })),
+);
+const ExamCenterPage = lazyWithRetry(() =>
+  import('./features/exam/ExamCenterPage').then((m) => ({ default: m.ExamCenterPage })),
+);
+
+const GlobalSearchModal = lazyWithRetry(() =>
+  import('./components/GlobalSearchModal').then((m) => ({ default: m.GlobalSearchModal })),
+);
+const HatimPlannerModal = lazyWithRetry(() =>
+  import('./components/HatimPlannerModal').then((m) => ({ default: m.HatimPlannerModal })),
+);
+const SettingsModal = lazyWithRetry(() =>
+  import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal })),
+);
+const UserGuideModal = lazyWithRetry(() =>
+  import('./components/UserGuideModal').then((m) => ({ default: m.UserGuideModal })),
+);
+const ListeningDrawerModal = lazyWithRetry(() =>
+  import('./components/ListeningDrawerModal').then((m) => ({ default: m.ListeningDrawerModal })),
+);
+const MealCompareModal = lazyWithRetry(() =>
+  import('./components/MealCompareModal').then((m) => ({ default: m.MealCompareModal })),
+);
+const MutashabihatModal = lazyWithRetry(() =>
+  import('./components/MutashabihatModal').then((m) => ({ default: m.MutashabihatModal })),
+);
+
+const RouteLoadingFallback: React.FC = () => (
+  <div
+    className="min-h-[42vh] flex flex-col items-center justify-center gap-2.5 text-xs font-bold"
+    style={{ color: 'var(--text-muted)' }}
+    role="status"
+    aria-live="polite"
+  >
+    <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--brand-primary)' }} />
+    <span>Modül yükleniyor…</span>
+  </div>
+);
 
 const MainRouter: React.FC = () => {
-  const { activeTab, setActiveTab, settings } = useAppStore();
+  const {
+    activeTab,
+    setActiveTab,
+    settings,
+    isSearchModalOpen,
+    isHatimModalOpen,
+    isSettingsModalOpen,
+    isUserGuideOpen,
+    isListeningDrawerOpen,
+    compareTarget,
+    mutashabihatTarget,
+  } = useAppStore();
 
   return (
     <AppShell>
@@ -42,24 +91,44 @@ const MainRouter: React.FC = () => {
           <HomePage />
         ) : activeTab === 'reader' ? (
           <StudyPage />
-        ) : activeTab === 'fihrist' ? (
-          <FihristHubPage />
-        ) : activeTab === 'memorize' ? (
-          <MemorizationHubPage />
         ) : (
-          <ExamCenterPage />
+          <Suspense fallback={<RouteLoadingFallback />}>
+            {activeTab === 'fihrist' ? (
+              <FihristHubPage />
+            ) : activeTab === 'memorize' ? (
+              <MemorizationHubPage />
+            ) : (
+              <ExamCenterPage />
+            )}
+          </Suspense>
         )}
       </ErrorBoundary>
 
       <ErrorBoundary scope="modals">
         <AudioPlayerBar />
-        <ListeningDrawerModal />
+        {isListeningDrawerOpen && (
+          <Suspense fallback={null}>
+            <ListeningDrawerModal />
+          </Suspense>
+        )}
         <PoolSelectorModal />
-        <SettingsModal />
+        {isSettingsModalOpen && (
+          <Suspense fallback={null}>
+            <SettingsModal />
+          </Suspense>
+        )}
         <ReciterSelectorModal />
         <MealSelectorModal />
-        <MealCompareModal />
-        <MutashabihatModal />
+        {compareTarget !== null && (
+          <Suspense fallback={null}>
+            <MealCompareModal />
+          </Suspense>
+        )}
+        {mutashabihatTarget !== null && (
+          <Suspense fallback={null}>
+            <MutashabihatModal />
+          </Suspense>
+        )}
         <WaqfGuideModal />
         <WaqfPopoverHost />
         <RukuPopoverHost />
@@ -67,10 +136,22 @@ const MainRouter: React.FC = () => {
         <QuickMemorizeFromVerseModal />
         <QuickAddToResearchModal />
         <PageBookmarksDrawer />
-        <HatimPlannerModal />
+        {isHatimModalOpen && (
+          <Suspense fallback={null}>
+            <HatimPlannerModal />
+          </Suspense>
+        )}
         <VerseNoteModal />
-        <GlobalSearchModal />
-        <UserGuideModal />
+        {isSearchModalOpen && (
+          <Suspense fallback={null}>
+            <GlobalSearchModal />
+          </Suspense>
+        )}
+        {isUserGuideOpen && (
+          <Suspense fallback={null}>
+            <UserGuideModal />
+          </Suspense>
+        )}
         <FeedbackModal />
         <IntroSplash />
       </ErrorBoundary>

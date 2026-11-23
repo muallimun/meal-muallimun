@@ -57,14 +57,31 @@ function generateCompassRound(
     };
   }
 
-  // Ayet Sayısı Tartısı: Ayet sayıları kesinlikle farklı iki sure seç
-  const shuffled = shuffleArray(tierSurahs);
-  const first = shuffled[0] ?? tierSurahs[0];
-  let second = shuffled.find((s) => s.no !== first.no && s.ayahCount !== first.ayahCount);
-  if (!second) {
-    second = tierSurahs.find((s) => s.no !== first.no) ?? first;
+  // Ayet Sayısı Tartısı: Yalnızca ayet sayıları kesinlikle farklı çiftler arasından seç; yoksa kadrana dön
+  const distinctPairs: Array<[EnrichedGameSurah, EnrichedGameSurah]> = [];
+  for (let i = 0; i < tierSurahs.length; i += 1) {
+    for (let j = i + 1; j < tierSurahs.length; j += 1) {
+      const a = tierSurahs[i];
+      const b = tierSurahs[j];
+      if (a.no !== b.no && a.ayahCount !== b.ayahCount) {
+        distinctPairs.push([a, b]);
+      }
+    }
   }
-  const longer = first.ayahCount >= second.ayahCount ? first : second;
+
+  if (distinctPairs.length === 0) {
+    const target = pool[Math.floor(Math.random() * pool.length)] ?? tierSurahs[0];
+    usedNos.add(target.no);
+    return {
+      id: `d-${roundIndex}-${target.no}-${Math.random().toString(36).slice(2, 6)}`,
+      kind: 'dial',
+      targetSurah: target,
+    };
+  }
+
+  const [pairA, pairB] = shuffleArray(distinctPairs)[0];
+  const [first, second] = Math.random() < 0.5 ? [pairA, pairB] : [pairB, pairA];
+  const longer = first.ayahCount > second.ayahCount ? first : second;
   return {
     id: `s-${roundIndex}-${first.no}-${second.no}-${Math.random().toString(36).slice(2, 6)}`,
     kind: 'scale',

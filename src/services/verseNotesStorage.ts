@@ -37,7 +37,7 @@ export const VERSE_NOTE_COLOR_STYLES: Record<VerseNoteColor, VerseNoteColorStyle
     dot: '#0F766E',
     softBg: 'rgba(15, 118, 110, 0.10)',
     border: 'rgba(15, 118, 110, 0.34)',
-    badgeText: '#0F766E',
+    badgeText: 'color-mix(in srgb, #10b981 65%, var(--text-primary))',
   },
   amber: {
     id: 'amber',
@@ -45,7 +45,7 @@ export const VERSE_NOTE_COLOR_STYLES: Record<VerseNoteColor, VerseNoteColorStyle
     dot: '#D97706',
     softBg: 'rgba(217, 119, 6, 0.11)',
     border: 'rgba(217, 119, 6, 0.36)',
-    badgeText: '#B45309',
+    badgeText: 'color-mix(in srgb, #f59e0b 68%, var(--text-primary))',
   },
   sky: {
     id: 'sky',
@@ -53,7 +53,7 @@ export const VERSE_NOTE_COLOR_STYLES: Record<VerseNoteColor, VerseNoteColorStyle
     dot: '#0284C7',
     softBg: 'rgba(2, 132, 199, 0.10)',
     border: 'rgba(2, 132, 199, 0.34)',
-    badgeText: '#0369A1',
+    badgeText: 'color-mix(in srgb, #0ea5e9 68%, var(--text-primary))',
   },
   rose: {
     id: 'rose',
@@ -61,7 +61,7 @@ export const VERSE_NOTE_COLOR_STYLES: Record<VerseNoteColor, VerseNoteColorStyle
     dot: '#E11D48',
     softBg: 'rgba(225, 29, 72, 0.09)',
     border: 'rgba(225, 29, 72, 0.32)',
-    badgeText: '#BE123C',
+    badgeText: 'color-mix(in srgb, #f43f5e 68%, var(--text-primary))',
   },
 };
 
