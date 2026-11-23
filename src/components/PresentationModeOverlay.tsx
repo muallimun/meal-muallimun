@@ -27,7 +27,7 @@ import { useActiveMeals } from '../hooks/useActiveMeals';
 import { useTajweedData } from '../hooks/useTajweedData';
 import { audioQueueService } from '../services/audioQueueService';
 import { useBackButtonGuard } from '../services/backStackService';
-import { SAJDAH_AYAH_IDS } from '../services/dataService';
+import { SAJDAH_AYAH_IDS, toArabicIndicDigits } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { wordAudioService } from '../services/wordAudioService';
 import { useAppStore } from '../store/useAppStore';
@@ -65,7 +65,9 @@ interface PresentationModeOverlayProps {
   activeVerse: CombinedVerse | null;
   surahMap: Map<number, SurahMeta>;
   besmele?: BesmeleInfo;
+  scopeMode?: 'page' | 'surah';
   onStartAudioFromActive?: (verse: CombinedVerse) => void;
+  onStartMealAudioFromActive?: (verse: CombinedVerse) => void;
 }
 
 const RATES: readonly PlaybackRateOption[] = [0.75, 1, 1.25, 1.5];
@@ -130,7 +132,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   activeVerse,
   surahMap,
   besmele = DEFAULT_BESMELE,
+  scopeMode,
   onStartAudioFromActive,
+  onStartMealAudioFromActive,
 }) => {
   const {
     settings,
@@ -546,6 +550,36 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       onStartAudioFromActive(displayedVerse);
     }
   };
+
+  const handlePlayMealQuick = () => {
+    sfxService.play('click');
+    if (isAudioRunning && audioPrefs.mode === 'meal') {
+      audioQueueService.togglePlayPause();
+      return;
+    }
+    updateAudioPrefs({ mode: 'meal' });
+    if (displayedVerse) {
+      if (onStartMealAudioFromActive) {
+        onStartMealAudioFromActive(displayedVerse);
+      } else if (onStartAudioFromActive) {
+        onStartAudioFromActive(displayedVerse);
+      }
+    }
+  };
+
+  const isPageScope =
+    scopeMode === 'page' ||
+    (scopeMode !== 'surah' && Boolean(surahMeta && verses.length < surahMeta.ayahCount));
+  const footerLocationText =
+    displayedVerse && currentIdx >= 0
+      ? isPageScope
+        ? `Sayfa ${displayedVerse.page} · ${currentIdx + 1}/${verses.length}${
+            surahMeta ? ` (${surahMeta.shortNameTr} ${displayedVerse.ayah}/${surahMeta.ayahCount})` : ''
+          }`
+        : `${surahMeta?.shortNameTr ?? `${displayedVerse.surah}. Sure`} · ${displayedVerse.ayah} / ${
+            surahMeta?.ayahCount ?? verses.length
+          }. Ayet`
+      : 'Hazır';
 
   const handleToggleFullscreen = async () => {
     sfxService.play('click');
@@ -971,7 +1005,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             {/* Sure Başı Besmelesi (1. Ayette — Fâtiha ve Tevbe hariç) */}
             {showBesmele && (contentMode === 'both' || contentMode === 'ar') && (
               <div
-                className={`w-full max-w-3xl mx-auto rounded-2xl px-5 py-2.5 sm:py-3 border transition-all duration-200 ${karaokeThemeClass}`}
+                className={`w-fit max-w-full mx-auto rounded-2xl px-8 sm:px-12 py-2.5 border transition-all duration-200 ${karaokeThemeClass}`}
                 style={{
                   backgroundColor:
                     isBesmeleHighlighted && !suppressBesmeleFill
@@ -1068,7 +1102,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
             {showBesmele && contentMode === 'meal' && (
               <div
-                className="w-full max-w-3xl mx-auto rounded-2xl px-5 py-2 border transition-all duration-200"
+                className="w-fit max-w-full mx-auto rounded-2xl px-8 sm:px-12 py-2 border transition-all duration-200"
                 style={{
                   backgroundColor: isBesmeleHighlighted ? softArabicPlayingBg : 'transparent',
                   borderColor: isBesmeleHighlighted ? palette.accent : palette.border,
@@ -1195,14 +1229,12 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   </span>
                 )}
                 <span
-                  className="inline-flex items-center justify-center mx-2.5 text-[0.56em] font-bold tabular-nums px-2.5 py-0.5 rounded-full align-middle"
+                  className="arabic-text inline-block mx-2.5 text-[0.82em] align-middle select-none"
                   style={{
-                    backgroundColor: palette.accentSoft,
                     color: palette.accent,
-                    fontFamily: 'var(--font-turkish)',
                   }}
                 >
-                  ﴿{displayedVerse.ayah}﴾
+                  ﴿{toArabicIndicDigits(displayedVerse.ayah)}﴾
                 </span>
               </div>
             )}
@@ -1343,21 +1375,25 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         )}
       </main>
 
-      {/* Sade Alt Kontrol Barı: Yalnızca İlerleme, ⏮ ▶/⏸ ⏭ ve Hız (1x) */}
+      {/* Sade Alt Kontrol Barı: Konum, ⏮ ▶/⏸ Sesli Meal ⏭ ve Hız (1x) */}
       <footer
-        className="h-16 px-4 sm:px-6 border-t flex items-center justify-between gap-2 shrink-0 backdrop-blur-md"
+        className="min-h-16 py-2 px-3 sm:px-6 border-t flex items-center justify-between gap-2 shrink-0 backdrop-blur-md"
         style={{
           backgroundColor: palette.surface,
           borderColor: palette.border,
         }}
       >
-        {/* Sol: İlerleme Bilgisi */}
-        <div className="text-xs font-bold tabular-nums min-w-[64px]" style={{ color: palette.muted }}>
-          {currentIdx >= 0 ? `${currentIdx + 1} / ${verses.length}` : 'Hazır'}
+        {/* Sol: Bağlam Duyarlı Konum ve İlerleme Bilgisi */}
+        <div
+          className="text-[11px] sm:text-xs font-bold tabular-nums min-w-0 max-w-[38%] sm:max-w-none truncate"
+          style={{ color: palette.muted }}
+          title={footerLocationText}
+        >
+          {footerLocationText}
         </div>
 
-        {/* Orta: Oynatma Kontrolleri */}
-        <div className="flex items-center gap-2">
+        {/* Orta: Oynatma Kontrolleri + Hızlı Sesli Meal */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             type="button"
             onClick={handlePrev}
@@ -1373,7 +1409,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             type="button"
             onClick={handlePlayPause}
             aria-label={isPlaying ? 'Duraklat' : 'Oynat'}
-            className="h-10 px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95"
+            className="h-10 px-4 sm:px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95"
             style={{
               backgroundColor: palette.accent,
               color: '#071413',
@@ -1391,6 +1427,33 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
           <button
             type="button"
+            onClick={handlePlayMealQuick}
+            disabled={!displayedVerse}
+            title="Türkçe Sesli Meal ile dinle"
+            aria-label="Sesli Meal dinle"
+            aria-pressed={isMealAudioFlowActive && audioPrefs.mode === 'meal'}
+            className="h-10 px-3 sm:px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-40"
+            style={{
+              backgroundColor:
+                isMealAudioFlowActive && audioPrefs.mode === 'meal'
+                  ? palette.accentSoft
+                  : 'transparent',
+              borderColor:
+                isMealAudioFlowActive && audioPrefs.mode === 'meal'
+                  ? palette.accent
+                  : palette.border,
+              color:
+                isMealAudioFlowActive && audioPrefs.mode === 'meal'
+                  ? palette.accent
+                  : palette.text,
+            }}
+          >
+            <Headphones className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline whitespace-nowrap">Sesli Meal</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleNext}
             disabled={!canNext}
             aria-label="Sonraki ayet"
@@ -1401,8 +1464,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           </button>
         </div>
 
-        {/* Sağ: Yalnızca Oynatma Hızı */}
-        <div className="min-w-[64px] flex justify-end">
+        {/* Sağ: Oynatma Hızı */}
+        <div className="min-w-[52px] flex justify-end shrink-0">
           <button
             type="button"
             onClick={cycleRate}

@@ -271,7 +271,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
       : `Sayfa ${surahMeta.pageStart}–${surahMeta.pageEnd}`;
 
   return (
-    <div className="space-y-3">
+    <div className="max-w-5xl mx-auto space-y-3">
       {/* Tek Satır Zarif Sure Başlığı + Açılır Arama/Filtre */}
       <div className="surface-card rounded-2xl">
         {/* Ana Satır: Sure Bilgisi (Sol) + Kompakt Aksiyon Grubu (Sağ) */}

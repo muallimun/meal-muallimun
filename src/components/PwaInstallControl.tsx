@@ -259,7 +259,7 @@ export const PwaInstallControl: React.FC<PwaInstallControlProps> = ({ variant })
 
     return (
       <>
-        <section aria-label="Uygulamayı cihaza kur">
+        <section aria-label="Uygulamayı cihaza kur" className="lg:hidden">
           <div
             className="surface-card rounded-2xl p-4 sm:p-5 border-l-4"
             style={{ borderLeftColor: 'var(--brand-primary)' }}
@@ -277,11 +277,11 @@ export const PwaInstallControl: React.FC<PwaInstallControlProps> = ({ variant })
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm sm:text-base font-extrabold tracking-tight">
-                    Muallimun&apos;u Cihazına Kur
+                    Muallimun&apos;u Cihazınıza Kurun
                   </h3>
                   <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                    Ana ekranından tam ekran aç, daha önce açtığın sure ve soruları internet yokken
-                    de çalış.
+                    Ana ekranınızdan tam ekran açın; daha önce açtığınız sure ve soruları internet
+                    yokken de çalışın.
                   </p>
                 </div>
               </div>

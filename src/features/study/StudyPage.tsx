@@ -30,7 +30,6 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
-  Trophy,
   Type,
   X,
 } from 'lucide-react';
@@ -59,7 +58,6 @@ import type {
   ThemeMode,
   WordMealMode,
 } from '../../types/quran';
-import { formatSurahTitle } from '../../utils/arabicUtils';
 import { buildSurahQuestionCountMap, getSurahMap } from '../../utils/poolUtils';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { BookModeView } from './BookModeView';
@@ -1561,33 +1559,6 @@ export const StudyPage: React.FC = () => {
       >
         <MonitorPlay className="w-4 h-4 shrink-0" />
       </button>
-
-      {/* 7. Sure Testi — Kompakt İkon + Mini Sayaç (Soru varsa) */}
-      {activeSurahMeta && activeSurahQuestionCount > 0 && (
-        <button
-          type="button"
-          onClick={() => navigateToExam({ surahNo: activeSurahMeta.no })}
-          title={`${formatSurahTitle(activeSurahMeta.nameTr, activeSurahMeta.no)}nden Test Çöz (${activeSurahQuestionCount} Soru)`}
-          aria-label={`${activeSurahMeta.nameTr} Suresi Testi (${activeSurahQuestionCount} Soru)`}
-          className="relative w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0 transition-colors hover:opacity-90"
-          style={{
-            backgroundColor: 'var(--brand-accent-soft)',
-            borderColor: 'rgba(217, 119, 6, 0.35)',
-            color: 'var(--brand-accent-text)',
-          }}
-        >
-          <Trophy className="w-4 h-4 shrink-0" />
-          <span
-            className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-extrabold tabular-nums flex items-center justify-center text-white leading-none pointer-events-none"
-            style={{
-              backgroundColor: 'var(--brand-accent)',
-              boxShadow: '0 0 0 1.5px var(--bg-nav)',
-            }}
-          >
-            {activeSurahQuestionCount > 99 ? '99+' : activeSurahQuestionCount}
-          </span>
-        </button>
-      )}
     </div>
   );
 
@@ -2094,7 +2065,9 @@ export const StudyPage: React.FC = () => {
         activeVerse={activeSelectedVerse}
         surahMap={surahMap}
         besmele={meta?.besmele}
+        scopeMode={viewMode === 'mushaf' ? 'page' : 'surah'}
         onStartAudioFromActive={(v) => handlePlayFromVerse(v, false)}
+        onStartMealAudioFromActive={handlePlayMealFromVerse}
       />
     </div>
   );

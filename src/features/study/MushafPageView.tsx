@@ -865,7 +865,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             className={`mushaf-cetvel-inner rounded-[10px] relative flex-1 flex flex-col ${
               isDualPane ? 'lg:h-full lg:min-h-0' : 'justify-between'
             } ${
-              compactPadding ? 'px-3.5 py-3 sm:px-5 sm:py-4' : 'px-3.5 py-3.5 sm:px-6 sm:py-5'
+              compactPadding ? 'px-3.5 py-3 sm:px-5 sm:py-4' : 'px-4 py-3.5 sm:px-8 md:px-10 sm:py-5'
             }`}
             style={{ backgroundColor: 'var(--bg-surface)' }}
           >
@@ -963,6 +963,15 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                     >
                       {surahTitlesTr}
                     </span>
+                    {surahTitlesTr && surahTitlesAr && (
+                      <span
+                        aria-hidden="true"
+                        className="hidden sm:inline text-xs font-bold opacity-45 shrink-0"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        ·
+                      </span>
+                    )}
                     <span
                       className="arabic-title text-base sm:text-lg leading-none truncate"
                       style={{ color: 'var(--text-primary)' }}
@@ -1150,12 +1159,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                     setIsVerseDrawerOpen(true);
                                   }
                                 }}
-                                className={`inline rounded-lg px-1 py-0.5 transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
+                                className={`inline rounded-lg px-1.5 py-0.5 transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
                                   highlightSajdah
                                     ? 'underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
                                     : ''
                                 }`}
-                                style={{ backgroundColor: highlightBg }}
+                                style={{
+                                  backgroundColor: highlightBg,
+                                  boxDecorationBreak: 'clone',
+                                  WebkitBoxDecorationBreak: 'clone',
+                                }}
                               >
                                 <SyncedVerseArabic
                                   text={verse.ar.t}
@@ -2126,11 +2139,66 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   ? 'lg:h-[calc(100dvh-13.25rem)] lg:min-h-[420px]'
                   : 'lg:h-[calc(100dvh-8.75rem)] lg:min-h-[480px]'
               }`
-            : 'max-w-3xl mx-auto w-full space-y-3'
+            : 'max-w-[54rem] mx-auto w-full space-y-3'
         }
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Masaüstü (lg+) Sağ/Sol Dış Kenar Sayfa Çevirme Okları + Mushaf Çerçevesi (RTL: Sol = Sonraki, Sağ = Önceki) */}
+        <div
+          className={`flex items-stretch justify-center gap-0 lg:gap-3 ${
+            isBookSpread ? 'lg:flex-1 lg:min-h-0' : ''
+          }`}
+        >
+          {/* Sol Dış Kenar: Sonraki Sayfa (RTL Kitap Yönü) */}
+          <div
+            className={`hidden lg:flex flex-col items-center shrink-0 w-11 ${
+              isBookSpread ? 'justify-center' : 'justify-start'
+            }`}
+          >
+            <button
+              type="button"
+              disabled={!canGoNext}
+              onClick={() => {
+                sfxService.play('click');
+                onChangePage(Math.min(pageBundle.maxPage, pageBundle.pageNo + pageStep));
+              }}
+              title={
+                canGoNext
+                  ? `${isDoubleMushaf ? 'Sonraki 2 Sayfa' : 'Sonraki Sayfa'} (Sayfa ${Math.min(
+                      pageBundle.maxPage,
+                      pageBundle.pageNo + pageStep,
+                    )})`
+                  : 'Son sayfadasınız'
+              }
+              aria-label={isDoubleMushaf ? 'Sonraki 2 sayfa' : 'Sonraki sayfa'}
+              className={`${
+                isBookSpread ? '' : 'sticky top-1/2 -translate-y-1/2'
+              } w-11 py-3 rounded-2xl border flex flex-col items-center justify-center gap-1 opacity-55 hover:opacity-100 focus-visible:opacity-100 transition-all cursor-pointer disabled:opacity-15 disabled:cursor-not-allowed shadow-xs hover:border-[var(--brand-primary)]`}
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <ChevronLeft className="w-5 h-5 shrink-0" />
+              {canGoNext && (
+                <span
+                  className="text-[10px] font-extrabold tabular-nums leading-none"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {Math.min(pageBundle.maxPage, pageBundle.pageNo + pageStep)}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Orta: Mushaf Yaprak Çerçevesi */}
+          <div
+            className={`flex-1 min-w-0 ${
+              isBookSpread ? 'lg:flex lg:flex-col lg:min-h-0' : 'max-w-3xl mx-auto w-full'
+            }`}
+          >
         {isMealOnly ? (
           isDoubleMushaf && secondPageBundle ? (
             <div className="mushaf-cover-frame rounded-[22px] sm:rounded-[26px] p-1.5 sm:p-2.5 lg:flex-1 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden">
@@ -2188,6 +2256,51 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             {renderMushafLeaf(pageBundle, 'single')}
           </div>
         )}
+          </div>
+
+          {/* Sağ Dış Kenar: Önceki Sayfa (RTL Kitap Yönü) */}
+          <div
+            className={`hidden lg:flex flex-col items-center shrink-0 w-11 ${
+              isBookSpread ? 'justify-center' : 'justify-start'
+            }`}
+          >
+            <button
+              type="button"
+              disabled={!canGoPrev}
+              onClick={() => {
+                sfxService.play('click');
+                onChangePage(Math.max(pageBundle.minPage, pageBundle.pageNo - pageStep));
+              }}
+              title={
+                canGoPrev
+                  ? `${isDoubleMushaf ? 'Önceki 2 Sayfa' : 'Önceki Sayfa'} (Sayfa ${Math.max(
+                      pageBundle.minPage,
+                      pageBundle.pageNo - pageStep,
+                    )})`
+                  : 'İlk sayfadasınız'
+              }
+              aria-label={isDoubleMushaf ? 'Önceki 2 sayfa' : 'Önceki sayfa'}
+              className={`${
+                isBookSpread ? '' : 'sticky top-1/2 -translate-y-1/2'
+              } w-11 py-3 rounded-2xl border flex flex-col items-center justify-center gap-1 opacity-55 hover:opacity-100 focus-visible:opacity-100 transition-all cursor-pointer disabled:opacity-15 disabled:cursor-not-allowed shadow-xs hover:border-[var(--brand-primary)]`}
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <ChevronRight className="w-5 h-5 shrink-0" />
+              {canGoPrev && (
+                <span
+                  className="text-[10px] font-extrabold tabular-nums leading-none"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {Math.max(pageBundle.minPage, pageBundle.pageNo - pageStep)}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Sade Sayfa Geçiş Kontrolleri + Ayet İncele Tetikleyicisi */}
         <div className="flex items-center justify-between gap-2 shrink-0">

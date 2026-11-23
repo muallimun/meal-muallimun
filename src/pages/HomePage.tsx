@@ -902,7 +902,7 @@ export const HomePage: React.FC = () => {
             )}
           </div>
 
-          {/* Kompakt Tek Satırlık Mini Özet Şeridi (Sınav kapalıysa Okuma / Hatim odaklı metrikler) */}
+          {/* Kompakt Tek Satırlık Mini Özet Şeridi */}
           <div
             className="grid grid-cols-2 sm:grid-cols-4 border-t"
             style={{
@@ -923,21 +923,21 @@ export const HomePage: React.FC = () => {
               </span>
             </div>
 
-            <div
-              className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b sm:border-b-0 sm:border-r"
-              style={{ borderColor: 'var(--border-subtle)' }}
-            >
-              <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
-                <Star className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                <span>Toplam Puan</span>
-              </span>
-              <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
-                {formatNumberTr(gamification.totalXp)}
-              </span>
-            </div>
-
-            {deskPrefs.showPoolAndExamSection ? (
+            {deskPrefs.showPoolAndExamSection && gamification.solvedCount > 0 ? (
               <>
+                <div
+                  className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b sm:border-b-0 sm:border-r"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
+                  <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <Star className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                    <span>Toplam Puan</span>
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                    {formatNumberTr(gamification.totalXp)}
+                  </span>
+                </div>
+
                 <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
                   <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
@@ -958,8 +958,21 @@ export const HomePage: React.FC = () => {
                   </span>
                 </div>
               </>
-            ) : (
+            ) : !deskPrefs.showPoolAndExamSection && gamification.solvedCount > 0 ? (
               <>
+                <div
+                  className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b sm:border-b-0 sm:border-r"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
+                  <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <Star className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                    <span>Toplam Puan</span>
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                    {formatNumberTr(gamification.totalXp)}
+                  </span>
+                </div>
+
                 <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
                   <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
                     <BookOpenCheck className="w-3.5 h-3.5 shrink-0" style={{ color: '#047857' }} />
@@ -973,10 +986,51 @@ export const HomePage: React.FC = () => {
                 <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
                   <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
                     <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
-                    <span>Okuma</span>
+                    <span>Son Konum</span>
                   </span>
                   <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
-                    {lastRead ? `Sayfa ${lastRead.page}` : 'Başlanmadı'}
+                    {lastRead ? `Sayfa ${lastRead.page}` : 'Hazır'}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b sm:border-b-0 sm:border-r"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
+                  <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                    <span>Son Konum</span>
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap truncate">
+                    {lastRead
+                      ? `${lastSurahMeta?.shortNameTr ?? ''} · s.${lastRead.page}`.replace(/^\s*·\s*/, '')
+                      : 'İlk Okuma'}
+                  </span>
+                </div>
+
+                <div className="px-3.5 py-2.5 flex items-center justify-between gap-2 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <Layers className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
+                    <span>Aktif Havuz</span>
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                    {formatNumberTr(poolStats.surahCount)} Sure · {formatNumberTr(poolStats.ayahCount)} Ayet
+                  </span>
+                </div>
+
+                <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold flex items-center gap-1.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <Bookmark className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-accent-text)' }} />
+                    <span>Not / Ayraç</span>
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold tabular-nums whitespace-nowrap">
+                    {formatNumberTr(personalVerseNotes.length)} Not ·{' '}
+                    {formatNumberTr(
+                      studyProgress.pageBookmarks.length + studyProgress.bookmarkedAyahIds.length,
+                    )}{' '}
+                    Ayraç
                   </span>
                 </div>
               </>

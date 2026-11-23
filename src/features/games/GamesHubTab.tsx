@@ -152,29 +152,29 @@ export const GamesHubTab: React.FC = () => {
     playerMode === 'duel' ? '2 Oyunculu Başlat' : 'Tek Oyuncu Oyna';
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       {/* Üst Başlık, Atlas Butonu ve İlerleme Özeti */}
       <section
-        className="rounded-2xl border p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5"
+        className="rounded-2xl border p-3 sm:p-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
         }}
       >
-        <div className="space-y-1 min-w-0">
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold" style={{ color: 'var(--brand-primary-text)' }}>
-            <Compass className="w-4 h-4" />
+        <div className="space-y-0.5 min-w-0">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold" style={{ color: 'var(--brand-primary-text)' }}>
+            <Compass className="w-3.5 h-3.5" />
             <span>Kur’ân &amp; Mushaf Eğitsel Oyunlar Atölyesi</span>
           </div>
-          <h2 className="text-lg sm:text-xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-base sm:text-lg font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
             7 Zümrüt Masa Oyunu ile Sureleri Uygulayarak Pekiştirin
           </h2>
-          <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             Tek oyuncu veya 2 oyunculu — 15 özel sure grubu, canlı Bilgi Notu ve tilavet desteğiyle.
           </p>
         </div>
 
-        <div className="shrink-0 flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
+        <div className="shrink-0 flex flex-wrap items-center gap-2 self-start lg:self-auto">
           <button
             type="button"
             disabled={isLoadingExtras || enrichedSurahs.length === 0}
@@ -182,7 +182,7 @@ export const GamesHubTab: React.FC = () => {
               sfxService.play('click');
               setIsAtlasOpen(true);
             }}
-            className="min-h-[46px] px-3.5 py-2 rounded-xl border text-xs sm:text-[13px] font-extrabold inline-flex items-center gap-2 cursor-pointer transition-colors hover:opacity-95 disabled:opacity-50"
+            className="min-h-[40px] px-3 py-1.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors hover:opacity-95 disabled:opacity-50"
             style={{
               backgroundColor: 'var(--brand-accent-soft)',
               borderColor: 'rgba(217, 119, 6, 0.34)',
@@ -194,26 +194,26 @@ export const GamesHubTab: React.FC = () => {
           </button>
 
           <div
-            className="rounded-xl border px-3.5 py-2 flex items-center gap-2.5"
+            className="rounded-xl border px-3 py-1.5 flex items-center gap-2"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
             }}
           >
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
               style={{
                 backgroundColor: 'var(--brand-accent-soft)',
                 color: '#D97706',
               }}
             >
-              <Star className="w-4 h-4" fill="currentColor" />
+              <Star className="w-3.5 h-3.5" fill="currentColor" />
             </div>
             <div>
-              <div className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+              <div className="text-[10px] font-semibold leading-none" style={{ color: 'var(--text-muted)' }}>
                 Atölye Yıldızları
               </div>
-              <div className="text-sm font-extrabold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+              <div className="text-xs sm:text-sm font-extrabold tabular-nums mt-0.5 leading-none" style={{ color: 'var(--text-primary)' }}>
                 {totalEarnedStars} / {MAX_TOTAL_STARS}
               </div>
             </div>
@@ -222,9 +222,9 @@ export const GamesHubTab: React.FC = () => {
       </section>
 
       {/* 1. Kademe Seçici (6 Kademeli Seviye Haritası) */}
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <div className="flex items-center justify-between gap-2 px-0.5">
-          <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          <h3 className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
             1. Kademe Seçin
           </h3>
           <span className="text-xs font-semibold" style={{ color: 'var(--brand-primary-text)' }}>
@@ -232,7 +232,7 @@ export const GamesHubTab: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
           {GAME_TIERS.map((tier) => {
             const isSelected = selectedTier === tier.id;
             const earned = getTierEarnedStars(progressMap, tier.id);
@@ -248,7 +248,7 @@ export const GamesHubTab: React.FC = () => {
                   sfxService.play('click');
                   setSelectedTier(tier.id);
                 }}
-                className="rounded-2xl border p-3 sm:p-3.5 text-left transition-all cursor-pointer flex flex-col justify-between gap-2"
+                className="rounded-2xl border p-2.5 sm:p-3 text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5"
                 style={{
                   backgroundColor: isSelected ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
                   borderColor: isSelected ? 'var(--brand-primary)' : 'var(--border-subtle)',
@@ -257,10 +257,10 @@ export const GamesHubTab: React.FC = () => {
                     : '0 1px 2px rgba(15, 23, 42, 0.04)',
                 }}
               >
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <div className="flex items-center justify-between gap-1.5">
                     <span
-                      className="text-[10px] sm:text-[11px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md"
+                      className="text-[10px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md"
                       style={{
                         backgroundColor: isSelected
                           ? 'var(--brand-primary)'
@@ -271,7 +271,7 @@ export const GamesHubTab: React.FC = () => {
                       Kademe {tier.order}
                     </span>
                     <span
-                      className="text-[11px] font-bold tabular-nums inline-flex items-center gap-0.5"
+                      className="text-[10.5px] font-bold tabular-nums inline-flex items-center gap-0.5"
                       style={{
                         color: earned > 0 ? '#D97706' : 'var(--text-muted)',
                       }}
@@ -284,22 +284,22 @@ export const GamesHubTab: React.FC = () => {
                   </div>
 
                   <div
-                    className="text-xs sm:text-sm font-extrabold leading-snug"
+                    className="text-xs sm:text-[13px] font-extrabold leading-snug pt-0.5"
                     style={{ color: 'var(--text-primary)' }}
                   >
                     {tier.title}
                   </div>
                   <p
-                    className="text-[11px] sm:text-xs leading-snug line-clamp-2"
+                    className="text-[11px] leading-snug line-clamp-1 sm:line-clamp-2"
                     style={{ color: 'var(--text-secondary)' }}
                   >
                     {tier.subtitle}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-0.5">
+                <div className="flex items-center justify-between">
                   <span
-                    className="text-[10px] sm:text-[11px] font-semibold"
+                    className="text-[10px] font-semibold"
                     style={{
                       color: tier.isSpecialGroups
                         ? 'var(--brand-accent-text)'
@@ -309,7 +309,7 @@ export const GamesHubTab: React.FC = () => {
                     {countText}
                   </span>
                   {tier.isSpecialGroups && (
-                    <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--brand-accent-text)' }} />
+                    <Sparkles className="w-3 h-3" style={{ color: 'var(--brand-accent-text)' }} />
                   )}
                 </div>
               </button>
@@ -318,149 +318,152 @@ export const GamesHubTab: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. Oyuncu Modu & Tempo Seçimi */}
-      <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        {/* İkili Oyuncu Seçici: Tek Oyuncu | 2 Oyuncu */}
-        <div
-          className="grid grid-cols-2 sm:inline-flex p-1 rounded-xl border gap-1"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              handleSelectPlayerMode('single');
-            }}
-            className="min-h-[38px] px-3.5 sm:px-4 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            style={{
-              backgroundColor: playerMode === 'single' ? 'var(--bg-surface)' : 'transparent',
-              color:
-                playerMode === 'single' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-              boxShadow: playerMode === 'single' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-            }}
-          >
-            <User className="w-3.5 h-3.5 shrink-0" />
-            <span>Tek Oyuncu</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              handleSelectPlayerMode('duel');
-            }}
-            className="min-h-[38px] px-3.5 sm:px-4 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            style={{
-              backgroundColor: playerMode === 'duel' ? 'var(--bg-surface)' : 'transparent',
-              color: playerMode === 'duel' ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
-              boxShadow: playerMode === 'duel' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-            }}
-          >
-            <Users className="w-3.5 h-3.5 shrink-0" />
-            <span>2 Oyuncu</span>
-          </button>
-        </div>
-
-        {/* Tempo Seçimi */}
-        <div
-          className="grid grid-cols-2 sm:inline-flex p-1 rounded-xl border gap-1"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setTempo('calm');
-            }}
-            className="min-h-[38px] px-3 sm:px-4 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            style={{
-              backgroundColor: tempo === 'calm' ? 'var(--bg-surface)' : 'transparent',
-              color: tempo === 'calm' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-              boxShadow: tempo === 'calm' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-            }}
-          >
-            <Compass className="w-3.5 h-3.5" />
-            <span>Sakin Mod (Süresiz)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setTempo('timed');
-            }}
-            className="min-h-[38px] px-3 sm:px-4 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            style={{
-              backgroundColor: tempo === 'timed' ? 'var(--bg-surface)' : 'transparent',
-              color: tempo === 'timed' ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
-              boxShadow: tempo === 'timed' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-            }}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Zaman Yarışı (Süreli)</span>
-          </button>
-        </div>
-      </section>
-
-      {/* 2 Oyuncu İsteğe Bağlı Özel İsim Şeridi */}
-      {playerMode === 'duel' && (
-        <section
-          className="rounded-xl border px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <span
-            className="text-[11px] font-extrabold uppercase tracking-wider shrink-0"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            Oyuncu İsimleri (İsteğe Bağlı):
-          </span>
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              type="text"
-              maxLength={20}
-              value={playerNames.p1}
-              onChange={(e) => setPlayerNames((prev) => ({ ...prev, p1: e.target.value }))}
-              placeholder="1. Oyuncu (ör. Zeynep)"
-              aria-label="1. Oyuncu adı"
-              className="w-full min-h-[38px] px-3 rounded-lg border text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500/35"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-              }}
-            />
-            <input
-              type="text"
-              maxLength={20}
-              value={playerNames.p2}
-              onChange={(e) => setPlayerNames((prev) => ({ ...prev, p2: e.target.value }))}
-              placeholder="2. Oyuncu (ör. Ömer)"
-              aria-label="2. Oyuncu adı"
-              className="w-full min-h-[38px] px-3 rounded-lg border text-xs font-semibold outline-none focus:ring-2 focus:ring-amber-500/35"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-              }}
-            />
-          </div>
-        </section>
-      )}
-
-      {/* 3. 7 Oyun Kartı (Aşama 1 + Aşama 2 + Aşama 3) */}
+      {/* 2. Oyun Seçin ve Masaya Geçin + Satır İçi Oyuncu Modu & Tempo Seçicileri */}
       <section className="space-y-2.5">
-        <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider px-0.5" style={{ color: 'var(--text-muted)' }}>
-          2. Oyun Seçin ve Masaya Geçin
-        </h3>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
+          <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            2. Oyun Seçin ve Masaya Geçin
+          </h3>
+
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* İkili Oyuncu Seçici: Tek Oyuncu | 2 Oyuncu */}
+            <div
+              className="grid grid-cols-2 sm:inline-flex p-0.5 rounded-xl border gap-0.5 flex-1 sm:flex-initial"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  handleSelectPlayerMode('single');
+                }}
+                className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                style={{
+                  backgroundColor: playerMode === 'single' ? 'var(--bg-surface)' : 'transparent',
+                  color:
+                    playerMode === 'single' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                  boxShadow: playerMode === 'single' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                <User className="w-3.5 h-3.5 shrink-0" />
+                <span>Tek Oyuncu</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  handleSelectPlayerMode('duel');
+                }}
+                className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                style={{
+                  backgroundColor: playerMode === 'duel' ? 'var(--bg-surface)' : 'transparent',
+                  color: playerMode === 'duel' ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
+                  boxShadow: playerMode === 'duel' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                <Users className="w-3.5 h-3.5 shrink-0" />
+                <span>2 Oyuncu</span>
+              </button>
+            </div>
+
+            {/* Tempo Seçimi: Sakin Mod | Zaman Yarışı */}
+            <div
+              className="grid grid-cols-2 sm:inline-flex p-0.5 rounded-xl border gap-0.5 flex-1 sm:flex-initial"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <button
+                type="button"
+                title="Sakin Mod (Süresiz)"
+                onClick={() => {
+                  sfxService.play('click');
+                  setTempo('calm');
+                }}
+                className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                style={{
+                  backgroundColor: tempo === 'calm' ? 'var(--bg-surface)' : 'transparent',
+                  color: tempo === 'calm' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                  boxShadow: tempo === 'calm' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                <Compass className="w-3.5 h-3.5 shrink-0" />
+                <span>Sakin Mod</span>
+              </button>
+
+              <button
+                type="button"
+                title="Zaman Yarışı (Süreli)"
+                onClick={() => {
+                  sfxService.play('click');
+                  setTempo('timed');
+                }}
+                className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                style={{
+                  backgroundColor: tempo === 'timed' ? 'var(--bg-surface)' : 'transparent',
+                  color: tempo === 'timed' ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
+                  boxShadow: tempo === 'timed' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                <Clock className="w-3.5 h-3.5 shrink-0" />
+                <span>Zaman Yarışı</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 2 Oyuncu İsteğe Bağlı Özel İsim Şeridi */}
+        {playerMode === 'duel' && (
+          <div
+            className="rounded-xl border px-3 py-2 flex flex-col sm:flex-row sm:items-center gap-2"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <span
+              className="text-[11px] font-extrabold uppercase tracking-wider shrink-0"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Oyuncu İsimleri (İsteğe Bağlı):
+            </span>
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input
+                type="text"
+                maxLength={20}
+                value={playerNames.p1}
+                onChange={(e) => setPlayerNames((prev) => ({ ...prev, p1: e.target.value }))}
+                placeholder="1. Oyuncu (ör. Zeynep)"
+                aria-label="1. Oyuncu adı"
+                className="w-full min-h-[36px] px-3 rounded-lg border text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500/35"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+              <input
+                type="text"
+                maxLength={20}
+                value={playerNames.p2}
+                onChange={(e) => setPlayerNames((prev) => ({ ...prev, p2: e.target.value }))}
+                placeholder="2. Oyuncu (ör. Ömer)"
+                aria-label="2. Oyuncu adı"
+                className="w-full min-h-[36px] px-3 rounded-lg border text-xs font-semibold outline-none focus:ring-2 focus:ring-amber-500/35"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {GAME_DEFINITIONS.map((game) => {

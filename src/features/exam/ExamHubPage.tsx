@@ -123,17 +123,25 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
     return availableSurahs;
   }, [selectedSingleSurah, poolQuestionSurahs, availableSurahs]);
 
-  // Mevcut filtrelere göre q/index.json üzerinden anlık soru adedi hesabı (hatalı işaretlenenler ayara göre atlanır)
-  const { filteredIndexItems, skippedReportedCount } = useMemo(() => {
-    if (!questionIndex) return { filteredIndexItems: [], skippedReportedCount: 0 };
+  // Mevcut filtrelere göre q/index.json üzerinden anlık soru adedi ve zorluk dağılımı hesabı
+  const { filteredIndexItems, skippedReportedCount, scopeDifficultyBreakdown } = useMemo(() => {
+    if (!questionIndex) {
+      return {
+        filteredIndexItems: [],
+        skippedReportedCount: 0,
+        scopeDifficultyBreakdown: { total: 0, easy: 0, medium: 0, hard: 0 },
+      };
+    }
     const surahSet = new Set(targetSurahs);
     const reportsList = Object.values(questionAudit.reports);
     const kept: typeof questionIndex.items = [];
     let skipped = 0;
+    let easy = 0;
+    let medium = 0;
+    let hard = 0;
 
     for (const item of questionIndex.items) {
       if (surahSet.size > 0 && !surahSet.has(item.surah)) continue;
-      if (difficulty !== 'all' && item.difficulty !== difficulty) continue;
 
       if (questionAudit.skipReportedInExams && reportsList.length > 0) {
         const isReported = Boolean(
@@ -147,10 +155,19 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
         }
       }
 
+      if (item.difficulty === 1) easy += 1;
+      else if (item.difficulty === 2) medium += 1;
+      else if (item.difficulty === 3) hard += 1;
+
+      if (difficulty !== 'all' && item.difficulty !== difficulty) continue;
       kept.push(item);
     }
 
-    return { filteredIndexItems: kept, skippedReportedCount: skipped };
+    return {
+      filteredIndexItems: kept,
+      skippedReportedCount: skipped,
+      scopeDifficultyBreakdown: { total: easy + medium + hard, easy, medium, hard },
+    };
   }, [
     questionIndex,
     targetSurahs,
@@ -226,7 +243,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               </h3>
               <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
                 {Object.keys(resumableSession.answers).length} / {resumableSession.questions.length}{' '}
-                soru yanıtlandı · Kaldığın soru: {resumableSession.currentIndex + 1}
+                soru yanıtlandı · Kaldığınız soru: {resumableSession.currentIndex + 1}
               </p>
             </div>
           </div>
@@ -277,23 +294,6 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setIsPrintModalOpen(true);
-            }}
-            className="min-h-[38px] px-3.5 rounded-xl border-2 text-xs font-extrabold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-all hover:brightness-[0.98] active:scale-[0.98] whitespace-nowrap shadow-xs"
-            style={{
-              backgroundColor: 'var(--brand-accent-soft)',
-              borderColor: 'var(--brand-accent)',
-              color: 'var(--brand-accent-text)',
-            }}
-          >
-            <Printer className="w-4 h-4 shrink-0" />
-            <span>A4 Yazılı Sınav Hazırla</span>
-          </button>
-
           <button
             type="button"
             onClick={() => {
@@ -458,7 +458,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
 
             {selectedSingleSurah === null && poolQuestionSurahs.length === 0 && (
               <p className="text-[11px] leading-snug" style={{ color: 'var(--brand-accent-text)' }}>
-                Aktif havuzundaki surelerde henüz soru olmadığı için mevcut soru bankası kapsama
+                Aktif havuzunuzdaki surelerde henüz soru olmadığı için mevcut soru bankası kapsama
                 alındı.
               </p>
             )}
@@ -503,6 +503,69 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Seçili Kapsam Özeti */}
+            <div
+              className="rounded-xl border p-2.5 space-y-1.5"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <div className="flex items-center justify-between gap-2 text-[11px]">
+                <span className="font-bold" style={{ color: 'var(--text-muted)' }}>
+                  Seçili Kapsam Özeti
+                </span>
+                <span className="font-extrabold tabular-nums" style={{ color: 'var(--brand-primary-text)' }}>
+                  {formatNumberTr(targetSurahs.length)} Sure ·{' '}
+                  {formatNumberTr(scopeDifficultyBreakdown.total)} Hazır Soru
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5 text-[11px] tabular-nums">
+                <div
+                  className="px-2 py-1 rounded-lg border flex items-center justify-between"
+                  style={{
+                    backgroundColor:
+                      difficulty === 1 ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+                    borderColor:
+                      difficulty === 1 ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                  }}
+                >
+                  <span style={{ color: 'var(--text-muted)' }}>Kolay</span>
+                  <strong style={{ color: '#059669' }}>
+                    {formatNumberTr(scopeDifficultyBreakdown.easy)}
+                  </strong>
+                </div>
+                <div
+                  className="px-2 py-1 rounded-lg border flex items-center justify-between"
+                  style={{
+                    backgroundColor:
+                      difficulty === 2 ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+                    borderColor:
+                      difficulty === 2 ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                  }}
+                >
+                  <span style={{ color: 'var(--text-muted)' }}>Orta</span>
+                  <strong style={{ color: 'var(--brand-accent-text)' }}>
+                    {formatNumberTr(scopeDifficultyBreakdown.medium)}
+                  </strong>
+                </div>
+                <div
+                  className="px-2 py-1 rounded-lg border flex items-center justify-between"
+                  style={{
+                    backgroundColor:
+                      difficulty === 3 ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+                    borderColor:
+                      difficulty === 3 ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                  }}
+                >
+                  <span style={{ color: 'var(--text-muted)' }}>Zor</span>
+                  <strong style={{ color: '#DC2626' }}>
+                    {formatNumberTr(scopeDifficultyBreakdown.hard)}
+                  </strong>
+                </div>
               </div>
             </div>
           </div>
@@ -649,7 +712,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
 
                 <h4 className="text-sm font-extrabold mb-1">Hızlı Antrenman</h4>
                 <p className="text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
-                  Süre baskısı olmadan her soruda anında açıklama ve ayet mealini incele.
+                  Süre baskısı olmadan her soruda anında açıklama ve ayet mealini inceleyin.
                 </p>
               </div>
 
@@ -960,10 +1023,10 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               className="w-6 h-6 mx-auto mb-2"
               style={{ color: 'var(--brand-primary-text)' }}
             />
-            <p className="text-sm font-bold mb-1">Henüz tamamlanmış sınav kaydın yok</p>
+            <p className="text-sm font-bold mb-1">Henüz tamamlanmış sınav kaydınız bulunmuyor</p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              İlk sınavını tamamladığında başarı oranın, puanın ve gelişim geçmişin burada
-              görünecek.
+              İlk sınavınızı tamamladığınızda başarı oranınız, puanınız ve gelişim geçmişiniz
+              burada görünecektir.
             </p>
           </div>
         ) : (

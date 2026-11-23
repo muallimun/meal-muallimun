@@ -88,10 +88,10 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
   }, [result.questions, result.answers, filter]);
 
   const scoreMessage = (() => {
-    if (result.scorePct >= 90) return 'Olağanüstü! Surelerin meallerine derinlemesine hâkimsin.';
-    if (result.scorePct >= 75) return 'Çok başarılı! Kısa bir tekrarla mükemmel seviyeye ulaşabilirsin.';
-    if (result.scorePct >= 50) return 'Güzel bir başlangıç! Yanlışlarını inceleyerek hızlıca güçlenebilirsin.';
-    return 'Her deneme yeni bir öğrenme fırsatıdır. Hatalı soruları inceleyip tekrar dene!';
+    if (result.scorePct >= 90) return 'Olağanüstü! Surelerin meallerine derinlemesine hâkimsiniz.';
+    if (result.scorePct >= 75) return 'Çok başarılı! Kısa bir tekrarla mükemmel seviyeye ulaşabilirsiniz.';
+    if (result.scorePct >= 50) return 'Güzel bir başlangıç! Yanlışlarınızı inceleyerek hızlıca güçlenebilirsiniz.';
+    return 'Her deneme yeni bir öğrenme fırsatıdır. Hatalı soruları inceleyip tekrar deneyebilirsiniz.';
   })();
 
   // SVG dairesel başarı halkası

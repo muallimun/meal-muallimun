@@ -565,6 +565,26 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
               {bundle.surahMeta.ayahCount} Ayet • Sayfa {bundle.surahMeta.pageStart}–
               {bundle.surahMeta.pageEnd}
             </p>
+            {bookMode !== 'ar_only' && (
+              <span
+                className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <span>{primaryMeal.label}</span>
+                {isDual && (
+                  <>
+                    <span aria-hidden="true" className="opacity-50">
+                      ·
+                    </span>
+                    <span>{secondaryMeal.shortLabel}</span>
+                  </>
+                )}
+              </span>
+            )}
           </button>
 
           {bundle.hasBesmele && !onlyFavorites && (() => {
@@ -625,7 +645,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
             <div className="py-10 text-center space-y-3">
               <Star className="w-8 h-8 mx-auto text-[var(--text-muted)]" />
               <p className="text-sm font-semibold text-[var(--text-secondary)]">
-                Bu surede henüz favori ayetiniz yok.
+                Bu surede henüz favori ayetiniz bulunmuyor.
               </p>
               <button
                 type="button"
@@ -1182,6 +1202,14 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                                 }}
                               >
                                 ۩
+                              </span>
+                            )}
+                            {(useVerseTajweed || !/[\u0660-\u0669\u06DD﴿﴾]\s*$/.test(verse.ar.t)) && (
+                              <span
+                                className="arabic-text inline-block mx-1.5 text-[0.78em] select-none align-middle"
+                                style={{ color: 'var(--brand-primary-text)' }}
+                              >
+                                ﴿{toArabicNumeral(verse.ayah)}﴾
                               </span>
                             )}
                           </p>

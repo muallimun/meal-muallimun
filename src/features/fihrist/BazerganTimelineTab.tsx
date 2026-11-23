@@ -11,7 +11,11 @@ import {
 import { getMealTextPresentation } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { audioQueueService } from '../../services/audioQueueService';
-import { dataService, toArabicIndicDigits } from '../../services/dataService';
+import {
+  dataService,
+  findPageForSurahAyah,
+  toArabicIndicDigits,
+} from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type { BazerganEntry, BazerganTimelineFile } from '../../types/fihrist';
@@ -119,6 +123,22 @@ const BazerganPassageCard: React.FC<BazerganPassageCardProps> = ({
     });
   };
 
+  const passageAyahCount = useMemo(
+    () =>
+      entry.ranges.reduce((sum, [rawStart, rawEnd]) => {
+        const start = Math.max(1, Math.min(rawStart, rawEnd));
+        const end = Math.max(start, Math.max(rawStart, rawEnd));
+        return sum + (end - start + 1);
+      }, 0),
+    [entry.ranges],
+  );
+
+  const startPage = useMemo(() => {
+    if (!meta) return null;
+    const firstAyah = entry.ranges[0]?.[0] ?? 1;
+    return findPageForSurahAyah(meta, entry.surah, firstAyah);
+  }, [meta, entry.surah, entry.ranges]);
+
   return (
     <article
       className="surface-card rounded-2xl overflow-hidden transition-all"
@@ -127,16 +147,16 @@ const BazerganPassageCard: React.FC<BazerganPassageCardProps> = ({
       }}
     >
       {/* Akordeon Başlık Satırı */}
-      <button
-        type="button"
-        onClick={() => {
-          sfxService.play('click');
-          onToggle();
-        }}
-        aria-expanded={isExpanded}
-        className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]/60"
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-center justify-between gap-2 pr-3 sm:pr-4 hover:bg-[var(--bg-surface-soft)]/60 transition-colors">
+        <button
+          type="button"
+          onClick={() => {
+            sfxService.play('click');
+            onToggle();
+          }}
+          aria-expanded={isExpanded}
+          className="flex-1 min-w-0 px-3.5 sm:px-4 py-3 flex items-center gap-2.5 text-left cursor-pointer"
+        >
           <span
             className="px-2 py-1 rounded-lg text-[11px] font-extrabold tabular-nums shrink-0"
             style={{
@@ -146,7 +166,7 @@ const BazerganPassageCard: React.FC<BazerganPassageCardProps> = ({
           >
             #{entry.order}
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs sm:text-sm font-extrabold truncate">
               {entry.surahName} Suresi{' '}
               <span className="font-semibold" style={{ color: 'var(--text-muted)' }}>
@@ -154,18 +174,64 @@ const BazerganPassageCard: React.FC<BazerganPassageCardProps> = ({
               </span>
             </p>
           </div>
-        </div>
+        </button>
 
-        <span
-          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-          style={{
-            backgroundColor: 'var(--bg-surface-soft)',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </span>
-      </button>
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <span
+            className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold tabular-nums"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            {passageAyahCount} ayet
+          </span>
+          {startPage !== null && (
+            <span
+              className="hidden md:inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold tabular-nums"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              Sayfa {startPage}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenInReader();
+            }}
+            title={`${entry.surahName} Suresi pasajını okuyucuda aç`}
+            className="min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors hover:border-[var(--brand-primary)]"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--brand-primary-text)',
+            }}
+          >
+            <BookOpen className="w-3.5 h-3.5 shrink-0" />
+            <span>Oku</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              onToggle();
+            }}
+            aria-label={isExpanded ? 'Pasajı daralt' : 'Pasajı genişlet'}
+            aria-expanded={isExpanded}
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 cursor-pointer"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
 
       {/* Akordeon İçeriği */}
       {isExpanded && (
@@ -440,7 +506,7 @@ export const BazerganTimelineTab: React.FC = () => {
               <h3 className="text-sm sm:text-base font-extrabold tracking-tight leading-snug">
                 Mehdi Bazergan&apos;a Göre Vahiy Kronolojisi{' '}
                 <span className="font-semibold" style={{ color: 'var(--brand-primary-text)' }}>
-                  (Seyr-i Tahavvül-i Kur&apos;ân)
+                  (Seyr-i Tahavvül-i Kur’ân)
                 </span>
               </h3>
               <p
@@ -453,17 +519,17 @@ export const BazerganTimelineTab: React.FC = () => {
                 dönüşümünü istatistiksel yöntemle inceleyerek oluşturduğu pasaj bazlı tarihlendirme
                 modelini esas alır.
               </p>
-              {timeline?.methodologyNote && (
-                <p
-                  className="text-[11px] leading-relaxed pt-1 border-t"
-                  style={{
-                    color: 'var(--text-muted)',
-                    borderColor: 'var(--border-subtle)',
-                  }}
-                >
-                  {timeline.methodologyNote}
-                </p>
-              )}
+              <p
+                className="text-[11px] leading-relaxed pt-1.5 border-t"
+                style={{
+                  color: 'var(--text-muted)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                Not: Klasik Mushaf ve nüzul tertibinin yerine geçmez; vahyin üslup ve pasaj seyrini
+                mukayeseli incelemek isteyen araştırmacılar için yardımcı bir model olarak
+                sunulmuştur.
+              </p>
             </div>
           </div>
         </div>
@@ -514,21 +580,25 @@ export const BazerganTimelineTab: React.FC = () => {
           )}
         </div>
 
-        {/* Yatay Kaydırılabilir Yıl Şeridi */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        {/* Yıl Seçim Şeridi: Mobilde yatay kaydırma, masaüstünde (md+) düzenli satır kırılımı */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar md:flex-wrap md:overflow-visible md:pb-0">
           {filteredYears.map((group) => {
             const active = activeYear?.year === group.year;
             const isMedine = group.phase === 'Medine';
+            const compactYearLabel = group.year
+              .replace(/^Vahyin\s+/i, '')
+              .replace(/\s*Yılı$/i, ' Yıl');
             return (
               <button
                 key={group.year}
                 type="button"
+                title={`${group.year} (${group.entries.length} pasaj)`}
                 onClick={() => {
                   sfxService.play('click');
                   setSelectedYearName(group.year);
                   setExpandedKey(null);
                 }}
-                className="min-h-[36px] px-3 rounded-xl border text-xs font-bold whitespace-nowrap shrink-0 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold whitespace-nowrap shrink-0 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 style={{
                   backgroundColor: active
                     ? isMedine
@@ -543,12 +613,17 @@ export const BazerganTimelineTab: React.FC = () => {
                   color: active ? '#FFFFFF' : 'var(--text-secondary)',
                 }}
               >
-                <span>{group.year}</span>
+                <span>{compactYearLabel}</span>
                 <span
-                  className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                  aria-hidden="true"
+                  className="opacity-55 text-[10px]"
+                >
+                  ·
+                </span>
+                <span
+                  className="text-[11px] font-extrabold tabular-nums"
                   style={{
-                    backgroundColor: active ? 'rgba(255,255,255,0.2)' : 'var(--bg-surface)',
-                    color: active ? '#FFFFFF' : 'var(--text-muted)',
+                    color: active ? 'rgba(255,255,255,0.92)' : 'var(--text-muted)',
                   }}
                 >
                   {group.entries.length}

@@ -314,8 +314,8 @@ const InteractiveStudyCard: React.FC<InteractiveStudyCardProps> = ({
                 {selectedIndex === null
                   ? 'Çözüm Açıklaması'
                   : isCorrect
-                    ? 'Harika! Bu soruyu doğru çözdün.'
-                    : 'Tekrar deneyebilir veya ilgili ayeti inceleyebilirsin.'}
+                    ? 'Harika! Bu soruyu doğru çözdünüz.'
+                    : 'Tekrar deneyebilir veya ilgili ayeti inceleyebilirsiniz.'}
               </span>
 
               <button
@@ -462,8 +462,8 @@ export const MistakeCampPage: React.FC = () => {
             Hata Kampı &amp; Favori Sorular
           </h2>
           <p className="text-xs sm:text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Yanlış yaptığın soruları telafi et, yıldızladıklarını tekrar et ve kalıcı öğrenmeye
-            dönüştür.
+            Yanlış yaptığınız soruları telafi edin, yıldızladıklarınızı tekrar edin ve kalıcı
+            öğrenmeye dönüştürün.
           </p>
         </div>
       </section>
@@ -553,8 +553,8 @@ export const MistakeCampPage: React.FC = () => {
               </h3>
             </div>
             <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Telafi sınavında doğru çözdüğün her soru otomatik olarak Hata Kampı&apos;ndan düşer ve{' '}
-              <strong>Temizlenen Hatalar</strong> arşivine eklenir.
+              Telafi sınavında doğru çözdüğünüz her soru otomatik olarak Hata Kampı&apos;ndan düşer
+              ve <strong>Temizlenen Hatalar</strong> arşivine eklenir.
             </p>
           </div>
 
@@ -680,11 +680,11 @@ export const MistakeCampPage: React.FC = () => {
           {activeCampTab === 'mistakes' ? (
             <>
               <h3 className="text-xl font-extrabold tracking-tight">
-                Harika! Hata kampın tertemiz.
+                Harika! Hata kampınız tertemiz.
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Yeni bir sınavla kendini sınamaya ne dersin? Yanlış yaptığın sorular olursa burada
-                senin için otomatik olarak toplanacak.
+                Yeni bir sınavla kendinizi sınamaya ne dersiniz? Yanlış yaptığınız sorular olursa
+                burada sizin için otomatik olarak toplanacaktır.
               </p>
               <div className="pt-2">
                 <button
@@ -701,21 +701,21 @@ export const MistakeCampPage: React.FC = () => {
           ) : activeCampTab === 'bookmarked' ? (
             <>
               <h3 className="text-lg font-extrabold tracking-tight">
-                Henüz yıldızladığın bir soru yok
+                Henüz yıldızladığınız bir soru bulunmuyor
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Sınav sırasında veya sonuç karnesinde tekrar bakmak istediğin soruların yıldız
-                simgesine dokunarak buraya kaydedebilirsin.
+                Sınav sırasında veya sonuç karnesinde tekrar bakmak istediğiniz soruların yıldız
+                simgesine dokunarak buraya kaydedebilirsiniz.
               </p>
             </>
           ) : (
             <>
               <h3 className="text-lg font-extrabold tracking-tight">
-                Temizlenen hatalar arşivin burada birikecek
+                Temizlenen hatalar arşiviniz burada birikecek
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Hata Kampı telafi sınavlarında doğru çözdüğün veya anladığını onayladığın sorular
-                burada başarı arşivi olarak listelenir.
+                Hata Kampı telafi sınavlarında doğru çözdüğünüz veya anladığınızı onayladığınız
+                sorular burada başarı arşivi olarak listelenir.
               </p>
             </>
           )}

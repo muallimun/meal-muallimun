@@ -29,7 +29,7 @@ import {
 } from '../../config/mealsConfig';
 import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReferenceData';
 import { audioQueueService } from '../../services/audioQueueService';
-import { SAJDAH_AYAH_IDS } from '../../services/dataService';
+import { SAJDAH_AYAH_IDS, toArabicIndicDigits } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import {
   VERSE_NOTE_COLOR_STYLES,
@@ -885,6 +885,14 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                     }}
                   >
                     ۩
+                  </span>
+                )}
+                {(useTajweed || !/[\u0660-\u0669\u06DD﴿﴾]\s*$/.test(verse.ar.t)) && (
+                  <span
+                    className="arabic-text inline-block mx-1.5 text-[0.78em] select-none align-middle"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  >
+                    ﴿{toArabicIndicDigits(verse.ayah)}﴾
                   </span>
                 )}
                 {rukuEnd && (

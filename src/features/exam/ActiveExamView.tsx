@@ -1550,8 +1550,8 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                   Sınavdan çıkmak istediğinize emin misiniz?
                 </h3>
                 <p className="text-xs sm:text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  İstersen ilerlemeni saklayıp sonra kaldığın yerden devam edebilir ya da sınavı
-                  tamamen iptal edebilirsin.
+                  İsterseniz ilerlemenizi saklayıp sonra kaldığınız yerden devam edebilir ya da
+                  sınavı tamamen iptal edebilirsiniz.
                 </p>
               </div>
             </div>
@@ -1612,8 +1612,8 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
 
             <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
               {blankCount > 0
-                ? `Henüz cevaplanmamış ${blankCount} soru var. Yine de sınavı bitirip sonuç karneni ve çözüm açıklamalarını görmek istiyor musun?`
-                : 'Sınavı sonlandırdığında tüm soruların doğruları, çözüm açıklamaları ve ilgili ayet mealleri karnende açılacak.'}
+                ? `Henüz cevaplanmamış ${blankCount} soru var. Yine de sınavı bitirip sonuç karnenizi ve çözüm açıklamalarını görmek istiyor musunuz?`
+                : 'Sınavı sonlandırdığınızda tüm soruların doğruları, çözüm açıklamaları ve ilgili ayet mealleri karnenizde açılacaktır.'}
             </p>
 
             <div className="flex items-center gap-2.5 pt-1">

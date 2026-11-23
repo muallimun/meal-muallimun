@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle,
+  Check,
   CheckCircle2,
   ChevronRight,
   CloudDownload,
@@ -216,10 +217,38 @@ const SETTINGS_TABS: {
   { id: 'backup', label: 'Yedekleme & Veri', shortLabel: 'Yedekleme', icon: HardDrive },
 ];
 
-const THEME_OPTIONS: { id: ThemeMode; label: string; desc: string; swatch: string }[] = [
-  { id: 'light', label: 'Açık', desc: 'Ferah beyaz', swatch: '#FFFFFF' },
-  { id: 'cream', label: 'Krem Mushaf', desc: 'Sıcak kâğıt', swatch: '#FAF6EE' },
-  { id: 'dark', label: 'Gece', desc: 'Göz dostu', swatch: '#0B1314' },
+const THEME_OPTIONS: {
+  id: ThemeMode;
+  label: string;
+  desc: string;
+  swatch: string;
+  accent: string;
+  border: string;
+}[] = [
+  {
+    id: 'light',
+    label: 'Açık',
+    desc: 'Ferah beyaz',
+    swatch: '#FFFFFF',
+    accent: '#0F766E',
+    border: '#CBD5E1',
+  },
+  {
+    id: 'cream',
+    label: 'Krem Mushaf',
+    desc: 'Sıcak kâğıt',
+    swatch: '#FAF6EE',
+    accent: '#B45309',
+    border: '#D6C7A9',
+  },
+  {
+    id: 'dark',
+    label: 'Gece',
+    desc: 'Göz dostu',
+    swatch: '#0B1314',
+    accent: '#2DD4BF',
+    border: '#334155',
+  },
 ];
 
 export const SettingsModal: React.FC = () => {
@@ -253,7 +282,6 @@ export const SettingsModal: React.FC = () => {
   );
   const [isBackupBusy, setIsBackupBusy] = useState(false);
   const backupFileInputRef = useRef<HTMLInputElement | null>(null);
-  const backupSectionRef = useRef<HTMLElement | null>(null);
 
   useBackButtonGuard('settings_modal', isSettingsModalOpen, closeSettingsModal);
 
@@ -264,14 +292,6 @@ export const SettingsModal: React.FC = () => {
     }
     return acquireBodyScrollLock();
   }, [isSettingsModalOpen]);
-
-  const handleJumpToBackup = () => {
-    sfxService.play('click');
-    setActiveTab('backup');
-    window.setTimeout(() => {
-      backupSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 60);
-  };
 
   const exportCurrentBackupFile = async (): Promise<{
     localKeysCount: number;
@@ -764,35 +784,18 @@ export const SettingsModal: React.FC = () => {
               Ayarlar ve Kişiselleştirme
             </h2>
             <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-              Tüm tercihler cihazında otomatik olarak saklanır.
+              Tüm tercihler cihazınızda otomatik olarak saklanır.
             </p>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={handleJumpToBackup}
-              title="Çalışma verilerini yedekle veya geri yükle"
-              className="min-h-[36px] px-2.5 rounded-xl border text-[11px] sm:text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
-              style={{
-                backgroundColor: 'var(--brand-primary-soft)',
-                borderColor: 'rgba(13, 148, 136, 0.35)',
-                color: 'var(--brand-primary-text)',
-              }}
-            >
-              <HardDrive className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Yedekle / Taşı</span>
-              <span className="sm:hidden">Yedekle</span>
-            </button>
-            <button
-              type="button"
-              onClick={closeSettingsModal}
-              aria-label="Ayarları kapat"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={closeSettingsModal}
+            aria-label="Ayarları kapat"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-pointer shrink-0 transition-colors hover:bg-[var(--bg-surface-soft)]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* 3 Sade Sekme Şeridi: Genel & Görünüm | Çevrimdışı & Kurulum | Yedekleme & Veri */}
@@ -832,7 +835,7 @@ export const SettingsModal: React.FC = () => {
         </div>
 
         {/* Sekme İçerikleri */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 pb-[max(2.25rem,env(safe-area-inset-bottom,0px))] space-y-5">
           {/* ================================================================
               SEKME 1: GENEL & GÖRÜNÜM
               ================================================================ */}
@@ -850,11 +853,12 @@ export const SettingsModal: React.FC = () => {
                       <button
                         key={t.id}
                         type="button"
+                        aria-pressed={active}
                         onClick={() => {
                           sfxService.play('click');
                           updateSettings({ theme: t.id });
                         }}
-                        className="p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer"
+                        className="relative p-2.5 sm:p-3 rounded-xl border-2 text-left transition-all cursor-pointer"
                         style={{
                           backgroundColor: active
                             ? 'var(--brand-primary-soft)'
@@ -862,15 +866,36 @@ export const SettingsModal: React.FC = () => {
                           borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
                         }}
                       >
-                        <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                        {active && (
                           <span
-                            className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border shrink-0"
+                            className="absolute top-1.5 right-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold text-white leading-none"
+                            style={{ backgroundColor: 'var(--brand-primary)' }}
+                          >
+                            <Check className="w-2.5 h-2.5 shrink-0" />
+                            <span className="hidden sm:inline">Seçili</span>
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span
+                            aria-hidden="true"
+                            className="w-6 h-5 rounded-md border overflow-hidden flex flex-col justify-between p-0.5 shrink-0 shadow-2xs"
                             style={{
                               backgroundColor: t.swatch,
-                              borderColor: 'var(--border-strong)',
+                              borderColor: t.border,
                             }}
-                          />
-                          <span className="text-xs sm:text-sm font-extrabold truncate">{t.label}</span>
+                          >
+                            <span
+                              className="h-1 w-full rounded-xs"
+                              style={{ backgroundColor: t.accent }}
+                            />
+                            <span
+                              className="h-0.5 w-2/3 rounded-xs opacity-40"
+                              style={{ backgroundColor: t.accent }}
+                            />
+                          </span>
+                          <span className="text-xs sm:text-sm font-extrabold truncate pr-4 sm:pr-10">
+                            {t.label}
+                          </span>
                         </div>
                         <p className="text-[10.5px] sm:text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
                           {t.desc}
@@ -1495,7 +1520,6 @@ export const SettingsModal: React.FC = () => {
             <div className="space-y-4">
               {/* Çalışma Verilerimi Yedekle & Taşı */}
               <section
-                ref={backupSectionRef}
                 className="p-3.5 sm:p-4 rounded-2xl border space-y-3"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',

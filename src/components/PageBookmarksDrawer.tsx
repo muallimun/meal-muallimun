@@ -200,8 +200,8 @@ export const PageBookmarksDrawer: React.FC = () => {
               </h2>
               <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
                 {sortedBookmarks.length > 0
-                  ? `${sortedBookmarks.length} kayıtlı ayraç · Tek tıkla Mushaf sayfasına git`
-                  : 'Mushaf sayfalarına ayraç koyarak kaldığın yeri işaretle'}
+                  ? `${sortedBookmarks.length} kayıtlı ayraç · Tek tıkla Mushaf sayfasına gidin`
+                  : 'Mushaf sayfalarına ayraç koyarak kaldığınız yeri işaretleyin'}
               </p>
             </div>
           </div>
@@ -354,11 +354,11 @@ export const PageBookmarksDrawer: React.FC = () => {
               >
                 <Bookmark className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-extrabold">Henüz sayfa ayracın yok</h3>
+              <h3 className="text-sm font-extrabold">Henüz sayfa ayracınız bulunmuyor</h3>
               <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 Mushaf veya Kitap Modu sayfasının üst köşesindeki kurdele ayraç ikonuna dokunarak
-                <strong> Hatim Ayracını</strong> taşıyabilir veya dilediğin kadar sayfa ayracı
-                ekleyebilirsin.
+                <strong> Hatim Ayracını</strong> taşıyabilir veya dilediğiniz kadar sayfa ayracı
+                ekleyebilirsiniz.
               </p>
               <button
                 type="button"

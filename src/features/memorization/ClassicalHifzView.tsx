@@ -479,7 +479,7 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                   )}
                 </div>
                 <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  1. Tur · 1. Cüz · Sayfa 20 ile ilk Ham dersten başla.
+                  1. Tur · 1. Cüz · Sayfa 20 ile ilk Ham dersten başlayın.
                 </p>
               </button>
 
