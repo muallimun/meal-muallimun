@@ -1,1 +1,2325 @@
-{"s":24,"questions":[{"id":"Q_024_001","uid":"873651ba98","surah":24,"cuz":18,"scope":"surah_info","refs":[{"sure":24,"from":1,"to":64}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi adını aşağıdakilerin hangisinde belirtilen gerekçeyle almıştır?","options":["35. ayetinde bir temsille anlatılan 'Allah'ın göklerin ve yerin nûru' olmasından","Kıyamet günü müminlerin önlerinden koşacak nurun zikredilmesinden","İlk ayetinde Kur'an'ın karanlıkları aydınlatan nur olduğuna yemin edilmesinden","Medine'de müminlerin yüzlerindeki nuraniyetin tasvir edilmesinden"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi genel bilgilerine göre sûre ismini, 35. âyette bir temsille anlatılan 'Allah'ın göklerin ve yerin nûru' olmasından alır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_002","uid":"417d397186","surah":24,"cuz":18,"scope":"surah_info","refs":[{"sure":24,"from":1,"to":64}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi'nin nüzul yeri, ayet sayısı, Mushaf tertibi ve iniş sırası hakkında verilen aşağıdaki bilgilerden hangisi doğrudur?","options":["Medine'de inmiştir, 64 ayettir, Mushaf'ta 24, iniş sırasına göre 102. suredir.","Mekke döneminin sonunda inmiştir, 34 ayettir, Mushaf'ta 24, iniş sırasına göre 57. suredir.","Medine'de inmiştir, 18 ayettir, Mushaf'ta 49, iniş sırasına göre 102. suredir.","Mekke'de inmiştir, 64 ayettir, Mushaf'ta 24, iniş sırasına göre 105. suredir."],"answerIndex":0,"lockOrder":false,"explanation":"Sure bilgileri tablosuna göre Nûr Suresi Medine'de nâzil olmuştur, 64 âyettir; Mushaf tertîbine göre 24, iniş sırasına göre 102. sûredir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_003","uid":"95eefac385","surah":24,"cuz":18,"scope":"surah_info","refs":[{"sure":24,"from":1,"to":64}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi nüzul kronolojisi bakımından Medine döneminde aşağıdaki surelerin hangisinden sonra, hangisinden önce nâzil olmuştur?","options":["Ahzâb Suresi'nden sonra, Lokman Suresi'nden önce","Mü'minûn Suresi'nden sonra, Furkân Suresi'nden önce","Haşr Suresi'nden sonra, Hac Suresi'nden önce","Mücâdele Suresi'nden sonra, Tahrîm Suresi'nden önce"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi nüzul bilgisine göre sûre, Medine'de Haşr Suresi'nden sonra, Hac Suresi'nden önce nâzil olmuştur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_004","uid":"bf41ab21a7","surah":24,"cuz":18,"scope":"surah_info","refs":[{"sure":24,"from":1,"to":64}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Zina cezası, iftira haddi (kazf) ve karı koca arasındaki mülâane hükümleri","İffet ve namusun korunması, evlere giriş-çıkış âdâbı, başörtüsü ve mahremiyet ilkeleri","Hz. Âişe'ye atılan ifk (iftira) hadisesi ve toplumun bu durum karşısındaki imtihanı","Mekke müşrikleriyle yapılan Hudeybiye Barış Antlaşması'nın detaylı maddeleri"],"stem":"Nûr Suresi'nin muhtevası ve ana konuları dikkate alındığında, yukarıdakilerden hangileri surenin ele aldığı temel mevzular arasında yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"Nûr Suresi fert, aile ve toplum ahlakına dair zina haddi, iftira haddi, mülâane, ifk hadisesi, evlere giriş âdâbı ve tesettürü işler. Hudeybiye Barış Antlaşması ise Fetih Suresi'nin konusudur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_005","uid":"c3509c9326","surah":24,"cuz":18,"scope":"surah_info","refs":[{"sure":24,"from":1,"to":64}],"mealBasis":"tdv","type":"mcq","difficulty":3,"premises":[],"stem":"Nûr Suresi'nin nüzul süreci incelendiğinde, sure ayetlerinin iniş zamanları hakkında aşağıdakilerden hangisi söylenebilir?","options":["Hicretten önce Mekke döneminde başlayıp hicret esnasında tamamlanmıştır.","Tebük Seferi dönüşünde tek bir gecede toptan indirilmiştir.","İlk ayetleri hicretin 1-2. yıllarında gelmiş, diğer ayetleri ise hicretin 9. yılına (Tebük Seferi sonrasına) kadar uzanan geniş bir zaman diliminde peyderpey nâzil olmuştur.","Yalnızca Hendek Savaşı esnasında münafıkların fitnelerini haber vermek üzere nâzil olmuştur."],"answerIndex":2,"lockOrder":false,"explanation":"Nüzul bilgisine göre sûrenin ilk ayetleri hicretin 1. yılının sonu ile 2. yılının başlarında inmiş, 6. ayet gibi bazı kısımları ise hicretin 9. yılına kadar uzanmıştır; sûre Medine dönemi boyunca peyderpey vahyedilmiştir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_006","uid":"779c420a80","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":1,"to":1}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"(Bu) Bizim inzâl ettiğimiz ve (hükümlerini üzerinize) ........ kıldığımız bir sûredir. Belki düşünüp öğüt alırsınız diye onda açık seçik ........ indirdik.\"\n\nNûr Suresi 1. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["farz / âyetler","emanet / hükümler","gerekli / deliller","vacip / misaller"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 1. ayetin TDV Meali: '(Bu) Bizim inzâl ettiğimiz ve (hükümlerini üzerinize) farz kıldığımız bir sûredir. Belki düşünüp öğüt alırsınız diye onda açık seçik âyetler indirdik.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_007","uid":"765cd123a8","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":2,"to":2}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 2. ayetinde, zina eden kadın ve erkeğe uygulanacak ceza miktarı ve cezanın icrası sırasındaki şartlar hakkında aşağıdakilerden hangisi bildirilmiştir?","options":["Her birine ellişer sopa vurulur ve gizlilik içinde infaz edilir.","Yalnızca erkek cezalandırılır; kadın ise tövbe etmeye davet edilir.","Her birine seksener sopa vurulur ve şahitlikleri süresiz reddedilir.","Her birine yüzer sopa vurulur; hüküm uygulanırken acıma tutulmamalı ve müminlerden bir grup cezaya şahit olmalıdır."],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 2. ayette: 'Zina eden kadın ve zina eden erkekten her birine yüz sopa vurun; Allah'a ve ahiret gününe inanıyorsanız, Allah'ın dininde (hükümlerini uygularken) onlara acıyacağınız tutmasın. Müminlerden bir gurup da onlara uygulanan cezaya şahit olsun.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_008","uid":"35610e3ad1","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":2,"to":2}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Zina eden kadın ve erkeğin her birine yüz sopa vurulması","Allah'ın dininin hükmünü uygularken yersiz bir acıma duygusuna kapılmamak","Uygulanan cezaya müminlerden bir grubun şahit olması","Cezanın suçluların kendi evlerinde kapalı kapılar ardında infaz edilmesi"],"stem":"Nûr Suresi 2. ayetine göre, zina haddinin uygulanmasıyla ilgili esaslar arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"2. ayette yüz sopa vurulması, acıma duyulmaması ve müminlerden bir grubun şahit olması emredilir. Cezanın gizlice evlerde uygulanması değil, müminlerin şahitliğinde aleniyeti söz konusudur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_009","uid":"85384af914","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":3,"to":3}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 3. ayetinde evlilik hukuku ve ahlakî denklik bağlamında zina eden kimselerle ilgili hangi ilke beyan edilmiştir?","options":["Zina eden kimselerin ancak mehir bedelini iki kat ödeyerek evlenebilecekleri","Zina eden erkeklerin yalnızca köle ve cariyelerle evlenebilecekleri","Zina eden erkeğin ancak zina eden veya müşrik bir kadınla evleneceği; zina eden kadınla da ancak zina eden veya müşrik erkeğin evleneceği ve bunun müminlere haram kılındığı","Zina eden kimselerin ömür boyu hiçbir şekilde evlenemeyecekleri"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 3. ayette: 'Zina eden erkek, zina eden veya müşrik olan bir kadından başkası ile evlenmez; zina eden kadınla da ancak zina eden veya müşrik olan erkek evlenir. Bu, müminlere haram kılınmıştır.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_010","uid":"a5bb605124","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":4,"to":4}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 4. ayetine göre, namuslu kadınlara zina iftirasında bulunup (kazf) bunu ispat için dört şahit getiremeyen kimselere uygulanacak cezai ve hukuki yaptırımlar aşağıdakilerden hangisinde doğru belirtilmiştir?","options":["Seksener sopa vurulur ve artık şahitlikleri hiçbir zaman kabul edilmez.","Hapsedilirler ve toplumdan tamamen tecrit edilirler.","Yüz sopa vurulur ve bir yıl sürgün edilirler.","Kırkar sopa vurulur ve mallarına el konulur."],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 4. ayette: 'Namuslu kadınlara zina isnadında bulunup, sonra (bunu isbat için) dört şahit getiremeyenlere seksener sopa vurun ve artık onların şahitliğini hiçbir zaman kabul etmeyin. Onlar tamamen günahkârdırlar.' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_011","uid":"493ea379dc","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":4,"to":4}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Namuslu kadınlara zina isnadında bulunup, sonra (bunu isbat için) ........ şahit getiremeyenlere ........ sopa vurun ve artık onların şahitliğini hiçbir zaman kabul etmeyin. Onlar tamamen günahkârdırlar.\"\n\nNûr Suresi 4. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["dört / seksener","dört / yüzer","iki / yüzer","üç / ellişer"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 4. ayette boşluklara sırasıyla 'dört' ve 'seksener' kelimeleri gelmelidir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_012","uid":"80acb1bf7e","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":4,"to":5}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 4 ve 5. ayetleri birlikte değerlendirildiğinde, zina iftirasında bulunan kimselerden hangi şartı yerine getirenler ilâhî bağışlanma ve istisna kapsamında zikredilmiştir?","options":["Başka bir beldeye hicret edenler","İftira attıkları kimseden zorla feragat belgesi alanlar","Yalnızca diyet ödeyenler","Bundan sonra tevbe edip ıslah olanlar"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 5. ayette: 'Ancak bundan sonra tevbe edip ıslah olanlar müstesnadır. Allah çok bağışlayıcı ve merhametlidir.' buyrularak tevbe ve ıslah olanlar istisna edilmiştir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_013","uid":"2eb5959fc4","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":6,"to":7}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 6 ve 7. ayetlerine göre, eşine zina isnadında bulunup kendisinden başka şahidi olmayan bir kocanın yapması gereken yemin ve şahitlik usulü aşağıdakilerden hangisidir?","options":["Eşinin ailesine iftira tazminatı ödeyerek yemin etmesi","Köyün veya kabilenin ileri gelenleri önünde bir kez yemin etmesi","Kendisinin doğru söyleyenlerden olduğuna dair dört defa Allah adına yemin etmesi, beşinci defa da yalan söylüyorsa Allah'ın lânetinin kendi üzerine olmasını dilemesi","Dört defa Kâbe'ye dönerek doğru söylediğine yemin etmesi"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 6-7. ayetlerde kocanın dört defa Allah adına doğru söylediğine şahitlik etmesi, beşincisinde ise yalan söylüyorsa Allah'ın lânetini dilemesi emredilmiştir.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_014","uid":"37c83835ca","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":8,"to":9}],"mealBasis":"tdv","type":"fill","difficulty":2,"premises":[],"stem":"\"Kadının, kocasının yalan söyleyenlerden olduğuna dair ........ defa Allah adına yemin ve şahitlik etmesi, ........ defa da, eğer (kocası) doğru söyleyenlerden ise Allah'ın ........ kendi üzerine olmasını dilemesi kendisinden cezayı kaldırır.\"\n\nNûr Suresi 8 ve 9. ayet meallerine göre boşluklara sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["dört / beşinci / cezasının","iki / üçüncü / öfkesinin","üç / dördüncü / lânetinin","dört / beşinci / gazabının"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 8-9. ayet meali: 'Kadının, kocasının yalan söyleyenlerden olduğuna dair dört defa Allah adına yemin ve şahitlik etmesi, beşinci defa da, eğer (kocası) doğru söyleyenlerden ise Allah'ın gazabının kendi üzerine olmasını dilemesi kendisinden cezayı kaldırır.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_015","uid":"d2a4ce87b9","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":6,"to":9}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["İslam aile hukukunda bu karşılıklı yeminleşme usulünün 'liân/mülâane' olarak adlandırılması","Kocanın dört defa doğru söylediğine yemin edip beşincide yalan söylüyorsa Allah'ın lânetini dilemesi","Kadının dört defa kocasının yalan söylediğine yemin edip beşincide kocası doğruysa Allah'ın gazabını dilemesiyle cezadan kurtulması","Mülâane gerçekleştikten sonra taraflara yüz sopa vurulup evliliklerinin aynen devam ettirilmesi"],"stem":"Nûr Suresi 6–9. ayetlerinde düzenlenen mülâane (liân) müessesesi hakkında yukarıdakilerden hangileri doğrudur?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"6-9. ayetlerde mülâane usulü düzenlenir; her iki taraf bu beyanda bulununca erkek kazf cezasından, kadın zina cezasından kurtulur ve evlilik bağı sona erer. Sopa vurulması veya evliliğin devamı söz konusu değildir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_016","uid":"859737b1df","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":11,"to":11}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 11. ayetinde, Peygamber'in eşine yönelik ağır iftirayı (ifk) uyduranlar ve bu fitneye maruz kalan müminler hakkında hangi ilâhî değerlendirme yapılmıştır?","options":["Bütün Medine halkının bu iftiradan dolayı cezalandırılacağı ilan edilmiştir.","Bu iftirayı yabancı kavimlerin uydurduğu ve derhal savaş açılması gerektiği bildirilmiştir.","İftirayı uyduranların müminlerin içinden bir grup olduğu; müminlerin bunu bir şer sanmamaları, aksine bunun kendileri için bir hayır olduğu belirtilmiştir.","Müminlerin hicret ederek Medine'yi terk etmeleri gerektiği bildirilmiştir."],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 11. ayette: '(Peygamber'in eşine) bu ağır iftirayı uyduranlar şüphesiz sizin içinizden bir guruptur. Bunu kendiniz için bir kötülük sanmayın, aksine o, sizin için bir hayırdır...' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_017","uid":"62281a10d7","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":11,"to":11}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 11. ayetinin tefsirinde açıklanan 'İfk Hadisesi' bağlamında, askerî sefer dönüşü düşürdüğü gerdanlığı ararken geride kalan ve münafıkların iftirasına maruz bırakılan Peygamber eşi aşağıdakilerden hangisidir?","options":["Hz. Âişe","Hz. Hatice","Hz. Zeyneb bnt. Cahş","Hz. Hafsa"],"answerIndex":0,"lockOrder":false,"explanation":"11. ayetin nüzul sebebi tefsirinde İfk hadisesinin Hz. Âişe validemize yönelik uydurulduğu ve ayetlerle onun masumiyetinin tescil edildiği belirtilmektedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_018","uid":"3af8ea0d11","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":12,"to":12}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 12. ayetinde, mümin erkek ve kadınların bu ağır iftirayı işittiklerinde takınmaları gereken asıl ahlakî tutum nasıl ifade edilmiştir?","options":["Sessiz kalıp sonucunu beklemeden hüküm vermeleri gerektiği","Olayı derhal diğer kabilelere duyurmaları gerektiği","Kendi vicdanları ile hüsnüzanda bulunup 'Bu, apaçık bir iftiradır' demeleri gerektiği","Haberi doğrulamak için iftiracıların peşinden gitmeleri gerektiği"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 12. ayette: 'Bu iftirayı işittiğinizde erkek ve kadın müminlerin, kendi vicdanları ile hüsnüzanda bulunup da: «Bu, apaçık bir iftiradır» demeleri gerekmez miydi?' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_019","uid":"6481b0002c","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":13,"to":13}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["İftirayı ortaya atanların iddialarını ispat için dört şahit getirmelerinin zorunlu olması","Gerekli şahitleri getiremedikleri müddetçe Allah nezdinde yalancıların ta kendisi sayılmaları","Hukuki delilden yoksun iddiaların kamuoyunda yayılmasının meşru kabul edilmesi","İffetli insanlara yönelik suçlamalarda zannın yeterli bir delil sayılmayışı"],"stem":"Nûr Suresi 13. ayeti doğrultusunda iftira ve isnat hukuku ile ilgili yukarıdakilerden hangileri doğrudur?","options":["I ve III","I, II ve IV","II ve III","I, II, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"13. ayette dört şahit getirilmesi gerektiği, getiremeyenlerin yalancı olduğu bildirilmiştir. Delilsiz iddiaların yayılması asla meşru değildir; dolayısıyla III yanlıştır, I, II ve IV doğrudur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_020","uid":"007d49931c","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":14,"to":14}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Eğer dünyada ve ahirette Allah'ın ........ ve ........ üstünüzde olmasaydı, içine daldığınız bu iftiradan dolayı size mutlaka büyük bir azap isabet ederdi.\"\n\nNûr Suresi 14. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["sabrı / mağfireti","kudreti / adaleti","ihsanı / ikramı","lütuf / merhameti"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 14. ayetin TDV Meali: 'Eğer dünyada ve ahirette Allah'ın lütuf ve merhameti üstünüzde olmasaydı, içine daldığınız bu iftiradan dolayı size mutlaka büyük bir azap isabet ederdi.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_021","uid":"a06f3ebf65","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":15,"to":15}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 15. ayetinde insanların iftirayı dilden dile aktarıp hakkında bilgi sahibi olmadıkları şeyleri konuşmaları karşısında yapılan çarpıcı ikaz aşağıdakilerden hangisidir?","options":["Bunu önemsiz sanıyorsunuz, halbuki bu Allah katında çok büyüktür.","Bu yaptığınız sadece dünyada kınanacak küçük bir hatadır.","Bunu konuşmakla günahlarınızın affolunacağını zannediyorsunuz.","Bu sözleriniz yalnızca iftiraya uğrayan kişiyi ilgilendirir."],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 15. ayette: '...Bunun önemsiz olduğunu sanıyorsunuz. Halbuki bu, Allah katında çok büyük (bir suç) tur.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_022","uid":"bd682f8133","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":16,"to":16}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Onu duyduğunuzda: «Bunu konuşup ........ bize yakışmaz. Hâşâ! Bu, çok büyük bir ........» demeli değil miydiniz?\"\n\nNûr Suresi 16. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["yaymamız / iftiradır","araştırmamız / yalandır","dinlememiz / günahtır","söylememiz / bühtandır"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 16. ayette: 'Onu duyduğunuzda: «Bunu konuşup yaymamız bize yakışmaz. Hâşâ! Bu, çok büyük bir iftiradır» demeli değil miydiniz?' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_023","uid":"295dfe94f4","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":19,"to":19}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 19. ayetinde müminler arasında hayâsızlığın ve çirkin şeylerin yayılmasını arzulayan kimseler hakkında öngörülen akıbet aşağıdakilerden hangisidir?","options":["Yalnızca dünyada ayıplanacaklardır.","Onların tevbeleri hiçbir zaman kabul edilmeyecektir.","Malları ellerinden alınıp kamuya devredilecektir.","Dünyada da ahirette de onlar için çetin bir ceza vardır."],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 19. ayette: 'İnananlar arasında çirkin şeylerin yayılmasını arzulayan kimseler için dünyada da ahirette de çetin bir ceza vardır. Allah bilir, siz bilmezsiniz.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_024","uid":"b1363731d6","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":21,"to":21}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Şeytanın adımlarını takip etmekten kesinlikle sakınmak","Şeytana uyan kimseye onun edepsizliği (yüzkızartıcı suçları) ve kötülüğü emredeceği","Allah'ın lütuf ve merhameti olmasaydı hiçbir kimsenin asla temize çıkamayacağı","Kişinin sadece kendi ameline güvenerek günahlardan tamamen arınabileceği"],"stem":"Nûr Suresi 21. ayetinde iman edenlere yönelik yapılan manevi ve ahlakî uyarılar arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"21. ayette şeytanın adımlarını takip etmeme, şeytanın kötülüğü emretmesi ve Allah'ın lütfu olmasa kimsenin temize çıkamayacağı bildirilmiştir. Kendi ameline güvenerek arınma iddiası ise ayete aykırıdır; zira 'Allah dilediğini arındırır' buyrulmuştur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_025","uid":"5884c1bfbb","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":22,"to":22}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 22. ayetinde, ifk hadisesine karışan Mıstah'a yaptığı yardımı kesmeye yemin eden Hz. Ebubekir'in şahsında bütün varlıklı ve faziletli müminlere hangi ahlakî tavır emredilmiştir?","options":["Yardımları yalnızca hiçbir hatası olmayan masum kimselere yapmaları","İftiraya karışan herkesi akrabalıktan tamamen reddetmeleri","Akrabaya ve yoksullara yardımı kesmeye yemin etmemeleri, bağışlayıcı olup feragat göstermeleri","Yeminlerini bozmayıp ömür boyu infaktan uzak durmaları"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 22. ayette: 'İçinizden faziletli ve servet sahibi kimseler akrabaya, yoksullara, Allah yolunda göç edenlere (mallarından) vermeyeceklerine yemin etmesinler; bağışlasınlar; feragat göstersinler. Allah'ın sizi bağışlamasını arzulamaz mısınız? Allah çok bağışlayandır, çok merhametlidir.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_026","uid":"75ae35a9b1","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":23,"to":24}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 23 ve 24. ayetlerine göre, namuslu ve kötülüklerden habersiz mümin kadınlara zina iftirasında bulunanların ahiretteki halleri ve cezalandırılmalarıyla ilgili aşağıdakilerden hangisi bildirilmiştir?","options":["Ahirette melekler onların lehine şahitlik ederek azaplarını hafifletecektir.","Dünyada cezalandırılacak, ahirette ise hesaba çekilmeksizin bağışlanacaklardır.","Dünya ve ahirette lânetlenmişlerdir; dilleri, elleri ve ayakları aleyhlerinde şahitlik edecektir.","Yalnızca malları ellerinden alınacak ve kabilelerinden tecrit edileceklerdir."],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 23 ve 24. ayetlerde: 'Namuslu, kötülüklerden habersiz mümin kadınlara zina isnadında bulunanlar, dünya ve ahirette lânetlenmişlerdir. Yapmış olduklarına, dilleri, elleri ve ayaklarının, aleyhlerinde şahitlik edeceği gün onlar için çok büyük bir azap vardır.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_027","uid":"af7b4f946b","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":24,"to":24}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Yapmış olduklarına, ........ , ........ ve ........ aleyhlerinde şahitlik edeceği gün onlar için çok büyük bir azap vardır.\"\n\nNûr Suresi 24. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["dilleri / elleri / ayaklarının","akılları / nefisleri / uzuvlarının","derileri / kemikleri / saçlarının","gözleri / kulakları / kalplerinin"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 24. ayette: 'Yapmış olduklarına, dilleri, elleri ve ayaklarının, aleyhlerinde şahitlik edeceği gün onlar için çok büyük bir azap vardır.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_028","uid":"56d49ee54f","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":25,"to":25}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 25. ayetine göre, kıyamet gününde Allah Teâlâ inkârcı ve iftiracılara cezalarını tastamam verdiğinde onlar hangi hakikati kesin olarak anlayacaklardır?","options":["Dünya hayatının bir oyundan ibaret olduğunu","Ahiret azabının hafiflemeyeceğini","Peygamberlerin haklı olduğunu","Allah'ın apaçık gerçek olduğunu"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 25. ayette: 'O gün Allah onlara gerçek cezalarını tastamam verecek ve onlar Allah'ın apaçık gerçek olduğunu anlayacaklardır.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_029","uid":"adee813360","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":26,"to":26}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 26. ayetinde ahlaki denklik ve iffet prensibi açıklanırken temiz insanlar hakkında aşağıdaki müjdelerden hangisi verilmiştir?","options":["Onların dünyada hiçbir zorlukla karşılaşmayacakları","Bütün soy ve zürriyetlerinin cennete sorgusuz gireceği","İftiracıların söylediklerinden çok uzak oldukları, kendileri için bağışlanma ve güzel bir rızık bulunduğu","Yalnızca dünyevi makam ve zenginlikle ödüllendirilecekleri"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 26. ayette: '...temiz kadınlar temiz erkeklere, temiz erkekler de temiz kadınlara yaraşır. Bu sonuncular, (iftiracıların) söylediklerinden çok uzaktırlar. Kendileri için bağışlanma ve güzel bir rızık vardır.' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_030","uid":"39c81677f8","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":26,"to":26}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Kötü kadınlar kötü erkeklere, kötü erkekler ise kötü kadınlara; ........ kadınlar ........ erkeklere, temiz erkekler de temiz kadınlara yaraşır...\"\n\nNûr Suresi 26. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["iffetli / takva sahibi","mümin / salih","sadık / doğru","temiz / temiz"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 26. ayetinde 'temiz kadınlar temiz erkeklere, temiz erkekler de temiz kadınlara yaraşır' ifadesi yer almaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_031","uid":"94777f98d3","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":27,"to":27}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 27. ayetine göre, bir müminin başkasına ait bir eve girmeden önce yerine getirmesi gereken iki temel edep kuralı aşağıdakilerden hangisinde doğru verilmiştir?","options":["Geldiğini fark ettirmek (izin almak) ve ev halkına selâm vermek","Ev sahibinin rızasını önceden mektupla almak ve yanında bir şahitle gitmek","Yalnızca gündüz vakitlerinde gitmek ve eşikte beklemek","Kapıyı üç kez çalmak ve hane sahibine hediye takdim etmek"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 27. ayette: 'Ey iman edenler! Kendi evinizden başka evlere, geldiğinizi farkettirip (izin alıp) ev halkına selâm vermedikçe girmeyin. Bu sizin için daha iyidir; herhalde (bunu) düşünüp anlarsınız.' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_032","uid":"c03553e2d8","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":27,"to":28}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Başkalarının evine girerken izin istemek ve ev halkına selâm vermek","Evde kimse bulunmadığında izin verilinceye kadar içeri girmemek","Ev halkı 'Geri dönün!' dediğinde gücenmeden hemen geri dönmek","Ev sahibi içeri almasa bile kapıda ısrarla bekleyip içeri girmeye çalışmak"],"stem":"Nûr Suresi 27 ve 28. ayetlerinde düzenlenen mesken dokunulmazlığı ve ev ziyareti âdâbı arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"27 ve 28. ayetlerde izin alma, selam verme, kimse yoksa girmeme ve 'geri dönün' denildiğinde dönme emredilmiştir; kapıda ısrarla beklemek bu edebe aykırıdır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_033","uid":"6bbddf1904","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":28,"to":28}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 28. ayetinde, bir eve varıldığında içeriden «Geri dönün!» denilmesi halinde müminlere tavsiye edilen davranış ve bunun ahlakî gerekçesi aşağıdakilerden hangisidir?","options":["Kapıda beklenmelidir; çünkü misafiri kabul etmemek ayıptır.","Ev sahibinden açıklama istenmelidir; aksi halde hak mahrumiyeti doğar.","Hemen dönülmelidir; çünkü bu müminler için daha nezih bir davranıştır.","İçeriye zorla girilmelidir; zira selâm vermek giriş hakkı doğurur."],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 28. ayette: '...Eğer size, «Geri dönün!» denilirse, hemen dönün. Çünkü bu, sizin için daha nezih bir davranıştır. Allah, yaptığınızı bilir.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_034","uid":"e33faf853e","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":29,"to":29}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 29. ayetinde, genel izin kuralından istisna tutularak izinsiz girilmesinde sakınca bulunmadığı bildirilen mekânlar aşağıdakilerden hangisidir?","options":["Akrabalara ait yazlık evler","Komşuların boş bıraktığı bahçeler","Sadece ticaret kervanlarının konakladığı hanlar","İçinde kendinize ait eşyanın bulunduğu oturulmayan (meskûn olmayan) evler"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 29. ayette: 'İçinde kendinize ait eşyanın bulunduğu oturulmayan evlere girmenizde herhangi bir sakınca yoktur. Allah, sizin açığa vurduklarınızı da, gizlediklerinizi de bilir.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_035","uid":"11c0c61292","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":30,"to":30}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 30. ayetinde, mümin erkeklerin manevi arınması ve iffetlerini muhafaza etmeleri için öncelikle emredilen iki husus aşağıdakilerden hangisidir?","options":["Gözlerini harama dikmemeleri ve ırzlarını korumaları","Toplumdan uzaklaşıp uzlete çekilmeleri","Sürekli cemaatle namaza devam etmeleri ve oruç tutmaları","Giyimlerinde sade olmaları ve ticaret yapmamaları"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 30. ayette: '(Resûlüm!) Mümin erkeklere, gözlerini (harama) dikmemelerini, ırzlarını da korumalarını söyle. Çünkü bu, kendileri için daha temiz bir davranıştır...' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_036","uid":"de23642b32","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":30,"to":30}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"(Resûlüm!) Mümin erkeklere, ........ (harama) dikmemelerini, ........ da korumalarını söyle. Çünkü bu, kendileri için daha temiz bir davranıştır...\"\n\nNûr Suresi 30. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["bakışlarını / sözlerini","gözlerini / ırzlarını","akıllarını / mallarını","yüzlerini / kalplerini"],"answerIndex":1,"lockOrder":false,"explanation":"Nûr Suresi 30. ayette: 'Mümin erkeklere, gözlerini (harama) dikmemelerini, ırzlarını da korumalarını söyle...' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_037","uid":"24d3611a25","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":31,"to":31}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Gözlerini harama bakmaktan korumak ve namuslarını esirgemek","Görünen kısımları müstesna olmak üzere zinetlerini teşhir etmemek","Başörtülerini yakalarının üzerine kadar örtmek","Gizledikleri zinetler anlaşılsın ve dikkat çeksin diye ayaklarını yere vurarak yürümek"],"stem":"Nûr Suresi 31. ayetine göre, mümin kadınlara yönelik ilâhî emir ve sınırlamalar arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"31. ayette gözlerin korunması, zinetlerin teşhir edilmemesi ve başörtülerinin yakaların üzerine örtülmesi emredilmiştir. Ayakları yere vurarak yürümek ise ayette açıkça yasaklanan davranıştır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_038","uid":"9914e54dca","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":31,"to":31}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 31. ayetinde, mümin kadınların zinetlerini kendilerine gösterebilecekleri mahrem yakınlar ve istisnai kimseler arasında aşağıdakilerden hangisi **sayılmamıştır**?","options":["Teyze ve halalarının yetişkin erkek çocukları (kuzenler)","Şehvet duymayan hizmetçiler ve kadınlık hususiyetlerinin farkında olmayan çocuklar","Kocaları, babaları ve kocalarının babaları","Erkek kardeşleri ve kardeşlerinin oğulları"],"answerIndex":0,"lockOrder":false,"explanation":"31. ayette kocalar, babalar, kayınpederler, oğullar, kardeşler, yeğenler, köleler, şehvetsiz hizmetçiler ve çocuklar sayılmıştır; teyze ve hala çocukları (kuzenler) namahrem olup bu istisnalar arasında sayılmamıştır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_039","uid":"16e8a5d552","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":31,"to":31}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"...Gizlemekte oldukları zinetleri anlaşılsın diye ........ yere vurmasınlar. Ey müminler! Hep birden Allah'a ........ ediniz ki kurtuluşa eresiniz.\"\n\nNûr Suresi 31. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["ellerini / dua","adımlarını / şükür","ayaklarını / tevbe","takılarını / hamd"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 31. ayet mealinde: 'Gizlemekte oldukları zinetleri anlaşılsın diye ayaklarını yere vurmasınlar... Ey müminler! Hep birden Allah'a tevbe ediniz ki kurtuluşa eresiniz.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_040","uid":"f1f3400c1a","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":32,"to":32}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 32. ayetinde, toplumdaki bekârların ve elverişli köle ile cariyelerin evlendirilmesi emredilirken, yoksulluk endişesi taşıyanlara hangi ilâhî müjde verilmiştir?","options":["Devlet hazinesinden kendilerine düzenli maaş bağlanacağı","Fakir olanların mehir ödemekten tamamen muaf tutulacağı","Evlenenlerin dünyada hiçbir borç altına girmeyeceği","Eğer fakir iseler, Allah'ın kendi lütfu ile onları zenginleştireceği"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 32. ayette: 'Aranızdaki bekârları, kölelerinizden ve cariyelerinizden elverişli olanları evlendirin. Eğer bunlar fakir iseler, Allah kendi lütfu ile onları zenginleştirir...' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_041","uid":"ddcc84b396","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":33,"to":33}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Evlenme imkânı bulamayanların, Allah lütfuyla onları varlıklı kılıncaya kadar iffetlerini korumaları","Köle ve cariyelerden hürriyet sözleşmesi (mükâtebe) yapmak isteyen ehil kimselerle bu sözleşmenin yapılması","Allah'ın kendilerine verdiği maldan mükâtebe yapan kölelere yardımda bulunulması","Geçici dünya menfaati elde etmek maksadıyla cariyelerin fuhşa zorlanmasının meşru sayılması"],"stem":"Nûr Suresi 33. ayetinde yer alan toplumsal ve hukuki hükümler arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"33. ayette iffetin korunması, mükâtebe yapılması ve onlara mal verilmesi emredilirken, cariyelerin fuhşa zorlanması kesin bir dille yasaklanmıştır (dolayısıyla IV yanlıştır).","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_042","uid":"78d833078d","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":35,"to":35}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 35. ayetinde (Âyetü'n-Nûr), Allah'ın nûrunun temsili anlatılırken kandilin yakıldığı bereketli ağaç ve yağı nasıl tasvir edilmiştir?","options":["Cennetten indirilen Tûbâ ağacı ve kokulu reçinesi","Ne doğuya ne de batıya ait olan mübarek bir zeytin ağacı; neredeyse ateş dokunmasa bile ışık veren yağı","Geceleri ışık saçan Kafkas dağlarının çam ağacı","Yalnızca Sina Dağı'nda yetişen incir ağacı ve özsuyu"],"answerIndex":1,"lockOrder":false,"explanation":"Nûr Suresi 35. ayette: '...O kandil, doğuya da batıya da ait olmayan mübarek bir zeytin ağacının yağından yakılır. (Bu öyle bir ağaç ki) neredeyse ateş dokunmasa bile onun yağı ışık verir. (Bu hal) nûr üstüne nûrdur...' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_043","uid":"5904c225a9","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":35,"to":35}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Allah, göklerin ve yerin ........ O'nun nûrunun temsili, içinde bir çerağ bulunan bir ........ gibidir... (Bu hal) ........ üstüne nûrdur.\"\n\nNûr Suresi 35. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["sahibidir / fanus / ışık","yaratıcısıdır / lamba / aydınlık","hâkimidir / saray / rahmet","nûrudur / kandil yuvası / nûr"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 35. ayet mealinde: 'Allah, göklerin ve yerin nûrudur. O'nun nûrunun temsili, içinde bir çerağ bulunan bir kandil yuvası gibidir... (Bu hal) nûr üstüne nûrdur.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_044","uid":"72d4dd2592","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":36,"to":37}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 36 ve 37. ayetlerinde, Allah'ın yücelmesine izin verdiği evlerde (mescidlerde) sabah akşam O'nu tesbih eden müminlerin en belirgin vasfı aşağıdakilerden hangisidir?","options":["Ne ticaretin ne de alışverişin kendilerini Allah'ı anmaktan, namaz kılmaktan ve zekât vermekten alıkoyamaması","Dünya işlerini ve ticareti tamamen terk edip sadece mescidde yaşamaları","Sadece geceleri ibadet edip gündüzleri dinlenmeleri","Kendi aralarında ortak bir ticaret loncası kurmaları"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 37. ayette: 'Onlar, ne ticaret ne de alış-verişin kendilerini Allah'ı anmaktan, namaz kılmaktan ve zekât vermekten alıkoyamadığı insanlardır. Onlar, kalplerin ve gözlerin allak bullak olduğu bir günden korkarlar.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_045","uid":"cb62de4074","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":37,"to":38}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 37 ve 38. ayetlerine göre, ticaretin kendilerini Allah'ı zikirden alıkoyamadığı müminlerin korktukları gün ve bu ihlaslarına karşılık nail olacakları lütuf aşağıdakilerden hangisidir?","options":["Düşman ordularının hücumundan korkarlar; kendilerine sarsılmaz kaleler verilir.","Ölüm anının acısından korkarlar; ecelleri geciktirilir.","Kalplerin ve gözlerin allak bullak olduğu bir günden korkarlar; Allah onları yaptıklarının en güzeliyle mükâfatlandırıp lütfundan hesapsız rızıklandırır.","Dünyada kıtlık ve fakirlik gününden korkarlar; ticaretleri kat kat artırılır."],"answerIndex":2,"lockOrder":false,"explanation":"Ayette müminlerin 'kalplerin ve gözlerin allak bullak olduğu günden' korktukları ve Allah'ın 'onları yaptıklarının en güzeli ile mükâfatlandırıp hesapsız rızıklandıracağı' bildirilir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_046","uid":"b4c2b3de8d","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":39,"to":39}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 39. ayetinde inkârcıların hayır namına yaptıkları bütün amelleri aşağıdaki benzetmelerden hangisiyle tasvir edilmiştir?","options":["Karanlık gecede sönen bir muma","Akıp giden ve geride iz bırakmayan sele","Issız çöllerdeki seraba (susayan onu su zanneder, yanına vardığında ise Allah'ı bulur)","Rüzgârın savurduğu kül yığınına"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 39. ayette: 'İnkâr edenlere gelince, onların amelleri, ıssız çöllerdeki serap gibidir ki susayan onu su zanneder; nihayet ona vardığında orada herhangi bir şey bulamamış, üstelik yanıbaşında da (inanmadığı, kendisinden sakınmadığı) Allah'ı bulmuştur...' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_047","uid":"dd1f526b46","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":40,"to":40}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 40. ayetinde, kâfirlerin manevi buhranları ve inkâr psikolojisi hangi derin teşbihle gözler önüne serilmiştir?","options":["Dibi görünmeyen susuz ve karanlık bir kuyuya","Engin bir denizdeki dalga üstüne dalga ve üstünde bulut olan yoğun karanlıklara (insan elini uzatsa neredeyse göremez)","Yüksek dağların tepesindeki buzullara","Gökten düşüp kuşların parçaladığı cesede"],"answerIndex":1,"lockOrder":false,"explanation":"Nûr Suresi 40. ayette: 'Yahut (o kâfirlerin duygu, düşünce ve davranışları) engin bir denizdeki yoğun karanlıklar gibidir; (öyle bir deniz) ki, onu dalga üstüne dalga kaplıyor; üstünde de bulut... Birbiri üstüne karanlıklar... İnsan, elini çıkarıp uzatsa, neredeyse onu dahi göremez. Bir kimseye Allah nûr vermemişse, artık o kimsenin aydınlıktan nasibi yoktur.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_048","uid":"6e7a3df91e","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":41,"to":41}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 41. ayetine göre kâinattaki varlıkların Allah'a kulluğu hakkında aşağıdakilerden hangisi bildirilmiştir?","options":["Yalnızca insanların ve cinlerin ibadetle yükümlü olduğu","Kuşların tesbihinin insanlar tarafından harfiyen anlaşıldığı","Hayvanların yalnızca kıyamet gününde dile gelip tesbih edeceği","Göklerde ve yerde bulunanlarla dizi dizi kuşların Allah'ı tesbih ettiği, her birinin kendi duasını ve tesbihini bildiği"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 41. ayette: 'Göklerde ve yerde bulunanlarla dizi dizi kuşların Allah'ı tesbih ettiklerini görmez misin? Her biri kendi duasını ve tesbihini (öğrenmiş) bilmiştir. Allah, onların yapmakta olduklarını hakkıyle bilir.' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_049","uid":"0ea0e57ca8","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":43,"to":43}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Allah'ın bulutları sevk edip bir araya getirerek üst üste yığması ve arasından yağmur çıkarması","Gökteki dağlar büyüklüğündeki bulutlardan dolu indirmesi ve dilediğine isabet ettirip dilediğinden uzak tutması","Bulutlardaki şimşeğin parıltısının neredeyse gözleri alacak derecede kuvvetli olması","Yağmur ve dolunun tamamen tabiatın tesadüfi hareketleriyle yeryüzüne inmesi"],"stem":"Nûr Suresi 43. ayetinde zikredilen meteorolojik olaylar ve ilâhî kudret tecellileri arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"43. ayette bulutların sürülmesi, yağmurun çıkması, dağ gibi bulutlardan dolunun indirilmesi ve şimşeğin gözleri alması ilahi irade ve kudretle zikredilir. Tesadüf iddiası ayetin ruhuna aykırıdır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_050","uid":"9d1a38eb26","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":44,"to":44}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 44. ayetinde 'Allah, gece ile gündüzü birbirine çeviriyor' ilâhî beyanının ardından kimler için mutlak bir ibret bulunduğu ifade edilmiştir?","options":["Basiret sahipleri için","Sadece gökbilimciler için","Yolculuğa çıkanlar için","Ticaretle uğraşanlar için"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 44. ayette: 'Allah, gece ile gündüzü birbirine çeviriyor. Şüphesiz bunda basiret sahipleri için mutlak bir ibret vardır.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_051","uid":"cc72066d9c","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":45,"to":45}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 45. ayetinde, bütün canlıların yaratılış menşei ve hareket tarzları hakkında aşağıdakilerden hangisi bildirilmiştir?","options":["Canlıların ateşten yaratıldığı ve sadece iki ayak üzerinde yürüdükleri","Karnı üstünde sürünen hayvanların sudan değil kuru topraktan yaratıldığı","Allah'ın her canlıyı sudan yarattığı; kimi karnı üstünde sürünen, kimi iki ayağı, kimi dört ayağı üstünde yürüyen canlılar var ettiği","Canlıların rüzgârın ve toprağın tesadüfi birleşimiyle hayat bulduğu"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 45. ayette: 'Allah, her canlıyı sudan yarattı. İşte bunlardan kimi karnı üstünde sürünür, kimi iki ayağı üstünde yürür, kimi dört ayağı üstünde yürür... Allah dilediğini yaratır; şüphesiz Allah her şeye kadirdir.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_052","uid":"973c166a52","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":45,"to":45}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Allah, her canlıyı ........ yarattı. İşte bunlardan kimi karnı üstünde sürünür, kimi ........ ayağı üstünde yürür, kimi ........ ayağı üstünde yürür... Allah dilediğini yaratır...\"\n\nNûr Suresi 45. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["topraktan / iki / altı","balçıktan / üç / beş","nurdan / tek / çift","sudan / iki / dört"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 45. ayetinde: 'Allah, her canlıyı sudan yarattı. İşte bunlardan kimi karnı üstünde sürünür, kimi iki ayağı üstünde yürür, kimi dört ayağı üstünde yürür...' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_053","uid":"fed9375336","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":47,"to":48}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 47 ve 48. ayetlerinde, 'Allah'a ve Peygamber'e inandık ve itaat ettik' dedikleri halde aralarında hüküm vermesi için davet edildiklerinde münafıkların sergilediği ikiyüzlü tutum nasıl tasvir edilmiştir?","options":["Hükme gönülden razı olup derhal infazını isterler.","İçlerinden bir kısmı hemen yüz çevirip döner; bunlar aslında inanmış değillerdir.","Mescide gelip açıkça inkâr ettiklerini ilan ederler.","Peygamber'den kendileri için özel bir şeriat koymasını talep ederler."],"answerIndex":1,"lockOrder":false,"explanation":"Nûr Suresi 47 ve 48. ayetlerde, dille inandık dedikleri halde aralarında hüküm verilmek üzere Allah ve Resulü'ne çağrıldıklarında içlerinden bir kısmının yüz çevirip döndüğü ve hakiki mümin olmadıkları bildirilmiştir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_054","uid":"adf2e6f98e","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":49,"to":50}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Hak kendi lehlerine olduğu takdirde boyun eğip Peygamber'in hükmüne gelmek","Aralarında hüküm verilmesi için çağrıldıklarında yüz çevirip dönmek","Kalplerinde manevi hastalık ve nifak bulunması, şüphe içinde olmaları","Allah ve Resûlü'nün kendilerine haksızlık ve zulüm edeceğinden yersiz bir korkuya kapılmaları"],"stem":"Nûr Suresi 48–50. ayetlerinde, aralarında hüküm verilmek üzere çağrılan münafıkların sergilediği ikiyüzlü tavırlar ve iç dünyaları hakkında yukarıdakilerden hangileri doğrudur?","options":["I ve II","II ve III","I, II ve III","I, II, III ve IV"],"answerIndex":3,"lockOrder":true,"explanation":"48-50. ayetlerde münafıkların hak lehlerine olunca gelip aleyhlerine olunca yüz çevirmeleri, kalplerinde hastalık ve şüphe bulunması, zulüm korkusu taşımaları ve asıl zalimin kendileri olduğu bildirilmiştir.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_055","uid":"94705c6f7e","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":51,"to":51}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 51. ayetine göre, aralarında hüküm vermesi için Allah'a ve Resûlüne çağrıldıklarında samimi müminlerin takındığı teslimiyet tavrı ve sözü aşağıdakilerden hangisidir?","options":["'İşittik ve itaat ettik' derler.","'Bunu kendi aramızda müzakere ederiz' derler.","'Önce delilleri tetkik edelim' derler.","'Lehimize olursa kabul ederiz' derler."],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 51. ayette: 'Aralarında hüküm vermesi için Allah'a ve Resûlüne davet edildiklerinde, müminlerin sözü ancak «İşittik ve itaat ettik» demeleridir. İşte asıl bunlar kurtuluşa erenlerdir.' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_056","uid":"f8a54ae1d2","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":51,"to":51}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Aralarında hüküm vermesi için Allah'a ve Resûlüne davet edildiklerinde, müminlerin sözü ancak «........ ve ........» demeleridir. İşte asıl bunlar kurtuluşa erenlerdir.\"\n\nNûr Suresi 51. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["Gördük / inandık","Anladık / teslim olduk","İşittik / itaat ettik","Dinledik / düşündük"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 51. ayette müminlerin sözünün ancak 'İşittik ve itaat ettik' demek olduğu bildirilmektedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_057","uid":"ab6ee2fa88","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":52,"to":52}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Allah'a ve Resûlüne samimiyetle itaat etmek","Allah'a derin bir saygı (haşyet) duymak","O'nun emirlerine aykırı davranmaktan sakınmak (takvâ sahibi olmak)","Yalnızca dünyevi menfaat sağlayan hükümlere rıza göstermek"],"stem":"Nûr Suresi 52. ayetinde 'asıl mutluluğa erenler' olarak müjdelenen kimselerin vasıfları arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"52. ayette Allah'a ve Resulüne itaat eden, Allah'a saygı duyan ve O'ndan sakınanların mutluluğa ereceği bildirilir. Menfaate göre hükme rıza göstermek münafıkların vasfıdır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_058","uid":"90a2cfb6f9","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":53,"to":53}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 53. ayetinde, Hz. Peygamber emrettiği takdirde mutlaka savaşa çıkacaklarına dair en ağır yeminleri eden münafıklara karşı nasıl cevap verilmesi emredilmiştir?","options":["'De ki: Yemin etmeyin. İtaatiniz malûmdur! Bilin ki Allah, yaptıklarınızdan haberdardır.'","'Yemin etmeyenleri derhal Medine'den çıkarın.'","'Yeminlerinizi tazeleyin, sadakatinizi görelim.'","'Savaş için derhal hazırlık yapıp ordunun önüne geçin.'"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 53. ayette: '(Münafıklar), sen hakikaten kendilerine emrettiğin takdirde mutlaka (savaşa) çıkacaklarına dair, en ağır yeminleri ile Allah'a yemin ettiler. De ki: Yemin etmeyin. İtaatiniz malûmdur! Bilin ki Allah, yaptıklarınızdan haberdardır.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_059","uid":"00cc023dc0","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":54,"to":54}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 54. ayetinde peygamberin vazifesi ve insanların sorumluluğu arasındaki denge nasıl açıklanmıştır?","options":["İnsanlar yüz çevirirse peygamber onların yerine cezalandırılacaktır.","Peygamber'in sorumluluğu kendisine yüklenen tebliğ görevidir; insanların sorumluluğu kendilerine yüklenen itaattir. Peygamber'e düşen sadece açık-seçik duyurmaktır.","Peygamber yalnızca itaat edenlere tebliğde bulunmakla görevlidir.","Peygamber insanların kalplerindeki imanı zorla oluşturmakla yükümlüdür."],"answerIndex":1,"lockOrder":false,"explanation":"54. ayette: '...Peygamber'in sorumluluğu kendisine yüklenen (tebliğ görevini yapmak), sizin sorumluluğunuz da size yüklenen (görevleri yerine getirmeniz)dir... Peygamber'e düşen, sadece açık-seçik duyurmaktır.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_060","uid":"91f9e66912","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":55,"to":55}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Kendilerinden öncekileri hâkim kıldığı gibi onları da yeryüzüne sahip ve hâkim kılacağı","Onlar için beğenip seçtiği dini (İslâm'ı) yerleştirip koruyacağı","Geçirdikleri korku döneminden sonra onların yerine güven sağlayacağı","İnkârcılarla barış yapıldığı takdirde ibadette ortak koşmaya müsaade edileceği"],"stem":"Nûr Suresi 55. ayetinde (İstihlâf Ayeti), iman edip salih ameller işleyen müminlere verilen ilâhî vaatler arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"55. ayette yeryüzüne hakim kılınma, dinin yerleşmesi ve korkunun güvene dönüşmesi müjdelenmiştir; şirksiz ibadet şart koşulmuştur (dolayısıyla IV yanlıştır).","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_061","uid":"f5019c89bc","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":55,"to":55}],"mealBasis":"tdv","type":"fill","difficulty":2,"premises":[],"stem":"\"Allah, sizlerden iman edip iyi davranışlarda bulunanlara... (geçirdikleri) ........ döneminden sonra, bunun yerine onlara ........ sağlayacağını vâdetti. Çünkü onlar bana kulluk ederler; hiçbir şeyi bana eş tutmazlar...\"\n\nNûr Suresi 55. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["ayrılık / birlik","zayıflık / zafer","kıtlık / bolluk","korku / güven"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 55. ayette: '...(geçirdikleri) korku döneminden sonra, bunun yerine onlara güven sağlayacağını vâdetti...' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_062","uid":"0ad1b8026f","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":56,"to":56}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 56. ayetinde, ilâhî rahmet ve merhamete kavuşabilmek için müminlere emredilen üç temel görev aşağıdakilerden hangisinde birlikte verilmiştir?","options":["Namazı kılmak, zekâtı vermek ve Peygamber'e itaat etmek","İlim tahsil etmek, sefere çıkmak ve ganimet toplamak","Yalnızca Medine'de kalmak, ticaret yapmak ve sadaka vermek","Sürekli oruç tutmak, hacca gitmek ve kurban kesmek"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 56. ayette: 'Namazı kılın; zekâtı verin; Peygamber'e itaat edin ki merhamet göresiniz.' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_063","uid":"6cb0687e2b","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":57,"to":57}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 57. ayetine göre, yeryüzünde Allah'ı âciz bırakabileceklerini zanneden inkârcıların nihai varış yeri aşağıdakilerden hangisidir?","options":["Issız çöller","Cehennem (ne kötü varış yeri)","Araf tepeleri","Karanlık kuyular"],"answerIndex":1,"lockOrder":false,"explanation":"Nûr Suresi 57. ayette: 'İnkâr edenlerin, yeryüzünde (Allah'ı) âciz bırakacaklarını sanmayasın! Onların varacağı yer cehennemdir. Ne kötü varış yeri!' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_064","uid":"31f2e67f19","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":58,"to":58}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 58. ayetinde, ev halkının mahrem ve üstlerinin açık bulunabileceği belirtilerek, ergenlik çağına girmemiş çocukların ve hizmetçilerin izin istemeleri emredilen 'üç vakit' aşağıdakilerin hangisinde eksiksiz belirtilmiştir?","options":["Güneş doğarken, öğle namazından önce ve akşam namazından sonra","İkindi vaktinde, akşam ezanında ve gece yarısında","Kuşluk vaktinde, cuma namazı esnasında ve bayram günlerinde","Sabah namazından önce, öğleyin soyunulan vakit ve yatsı namazından sonra"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 58. ayette: '...sabah namazından önce, öğleyin soyunduğunuz vakit ve yatsı namazından sonra (yanınıza gireceklerinde) sizden üç defa izin istesinler. Bunlar, mahrem (kapanmamış) halde bulunabileceğiniz üç vakittir...' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_065","uid":"00a6dce6da","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":58,"to":58}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Ey müminler! Ellerinizin altında bulunanlar ve içinizden henüz ergenlik çağına girmemiş olanlar... sizden ........ defa izin istesinler. Bunlar, ........ halde bulunabileceğiniz üç vakittir...\"\n\nNûr Suresi 58. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["bir / çıplak","dört / gizli","üç / mahrem","iki / yalnız"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 58. ayette boşluklara sırasıyla 'üç' ve 'mahrem' kelimeleri gelmelidir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_066","uid":"6cb8c977c1","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":58,"to":58}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 58. ayetinin tefsirinde aktarılan nüzul sebebine göre, öğle vakti odasına izinsiz girilmesi üzerine canı sıkılıp böyle zamanlarda izin istenmesini temenni eden sahabi aşağıdakilerden hangisidir?","options":["Hz. Osman","Hz. Ömer","Hz. Ebubekir","Hz. Ali"],"answerIndex":1,"lockOrder":false,"explanation":"58. ayetin tefsir dipnotunda Hz. Peygamber'in gönderdiği Müdlic adlı sahabinin öğle vakti Hz. Ömer'in odasına izinsiz girmesi ve Hz. Ömer'in böyle mahrem vakitlerde izin isteme kuralı konulmasını temenni etmesi üzerine ayetin indiği nakledilir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_067","uid":"356fc08a6d","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":59,"to":59}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 59. ayetine göre, çocuklar ergenlik (büluğ) çağına ulaştıklarında ev içi izin isteme kuralları nasıl değişmektedir?","options":["İzin isteme yükümlülükleri tamamen ortadan kalkar.","Yalnızca anne ve babalarından izin isterler.","Sadece cuma günleri izin istemekle mükellef olurlar.","Kendilerinden önceki büyükleri gibi her vakitte izin istemeleri gerekir."],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 59. ayette: 'Çocuklarınız ergenlik çağına girdiklerinde, kendilerinden öncekiler (büyükleri) izin istedikleri gibi onlar da izin istesinler. İşte Allah, âyetlerini size böyle açıklar. Allah alîmdir, hakîmdir.' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_068","uid":"39fb4598c5","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":60,"to":60}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 60. ayetinde, evlenme ümidi kalmamış yaşlı kadınlara örtünme konusunda tanınan ruhsat ve sınır aşağıdakilerden hangisinde doğru belirtilmiştir?","options":["Zinetlerini yabancı erkeklere teşhir etmeksizin bazı dış elbiselerini çıkarmalarında vebal yoktur; fakat iffetli davranmaları kendileri için daha hayırlıdır.","Yalnızca kendi çocuklarının yanında örtünmekten tamamen muaftırlar.","İstedikleri takdirde her türlü zineti açıkça sergileme hakları vardır.","Bütün elbiselerini çıkarıp serbestçe dolaşabilirler."],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 60. ayette: 'Bir nikâh ümidi beslemeyen, çocuktan kesilmiş yaşlı kadınların, zinetleri (yabancı erkeklere) teşhir etmeksizin (bazı) elbiselerini çıkarmalarında kendilerine bir vebal yoktur. İffetli davranmaları kendileri için daha hayırlıdır. Allah işitendir, bilendir.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_069","uid":"af60972904","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":61,"to":61}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Âmâ, topal ve hasta kimselere yapamayacakları görevler yüklenmeyip bu konudaki güçlüğün kaldırılması","Anne-baba, kardeş, amca, hala, dayı, teyze veya anahtarı uhdede olan evlerden yemek yenilebilmesi","Yemeklerin toplu halde veya ayrı ayrı yenmesinde bir sakınca bulunmaması","Evlere girildiğinde Allah katından mübarek ve güzel bir sağlık ve yaşama dileği olarak selâm verilmesi"],"stem":"Nûr Suresi 61. ayetinde düzenlenen sosyal hayat ve muaşeret kuralları arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","II ve III","I, II ve IV","I, II, III ve IV"],"answerIndex":3,"lockOrder":true,"explanation":"Nûr Suresi 61. ayetinde âmâ, topal ve hastaya güçlük olmadığı, akraba ve dost evlerinden yemek yenebileceği, toplu veya ayrı yemenin caiz olduğu ve evlere girildiğinde selam verilmesi gerektiği hususlarının tümü açıkça yer almaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_070","uid":"e38063f39b","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":61,"to":61}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Evlere girdiğiniz zaman, Allah tarafından mübarek ve pek güzel bir yaşama dileği olarak ........ selâm verin. İşte Allah, düşünüp anlayasınız diye size âyetleri böyle açıklar.\"\n\nNûr Suresi 61. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi getirilmelidir?","options":["ev sahiplerine","büyüklere","kendinize (birbirinize)","meleklere"],"answerIndex":2,"lockOrder":false,"explanation":"Nûr Suresi 61. ayet mealinde: 'Evlere girdiğiniz zaman, Allah tarafından mübarek ve pek güzel bir yaşama dileği olarak kendinize (birbirinize) selâm verin.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_071","uid":"d471d1dc1a","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":62,"to":62}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 62. ayetinde, Peygamber ile birlikte toplumu ilgilendiren ortak bir iş üzerindeyken gerçek müminlerin sergilemesi gereken disiplin kuralı aşağıdakilerden hangisidir?","options":["Peygamber'den izin istemedikçe işi bırakıp gitmemek","Mazeret bildirmeksizin ayrılıp sonra tevil etmek","İş biter bitmez derhal oradan uzaklaşmak","Kendi kararlarını çoğunluk oyuyla bağımsızca almak"],"answerIndex":0,"lockOrder":false,"explanation":"Nûr Suresi 62. ayette: 'Müminler, ancak Allah'a ve Resûlüne gönülden inanmış kimselerdir. Onlar, o Peygamber ile ortak bir iş üzerindeyken ondan izin istemedikçe bırakıp gitmezler...' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_072","uid":"fb37e3949b","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":62,"to":62}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Nûr Suresi 62. ayetine göre, meşru mazeretleri sebebiyle Hz. Peygamber'den izin isteyen samimi müminler hakkında Resûlullah'a nasıl muamele etmesi tavsiye edilmiştir?","options":["İzin isteyenlerin her birine maddi ceza kesmesi emredilmiştir.","Hiçbirine izin vermemesi emredilmiştir.","Dilediğine izin vermesi ve onlar için Allah'tan bağış dilemesi emredilmiştir.","Onları derhal topluluktan azletmesi istenmiştir."],"answerIndex":2,"lockOrder":false,"explanation":"62. ayette: '...Öyle ise, bazı işleri için senden izin istediklerinde, sen de onlardan dilediğine izin ver; onlar için Allah'tan bağış dile; Allah mağfiret edicidir, merhametlidir.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_073","uid":"2f4e761e7b","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":63,"to":63}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi 63. ayetinde, Hz. Peygamber'e hitap ederken veya onu çağırırken müminlerin uyması gereken hürmet kuralı nasıl ifade edilmiştir?","options":["Peygamber'e sadece yazılı olarak müracaat etmeleri gerektiği","Peygamber'in huzurunda hiç konuşmayıp sadece işaretle anlaşmaları gerektiği","Peygamber'i ancak kabile reislerinin çağırabileceği","Peygamber'i kendi aralarında birbirlerini çağırır gibi (sıradan bir isimle) çağırmamaları gerektiği"],"answerIndex":3,"lockOrder":false,"explanation":"Nûr Suresi 63. ayette: '(Ey müminler!) Peygamber'i, kendi aranızda birbirinizi çağırır gibi çağırmayın...' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_024_074","uid":"409527ef10","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":63,"to":63}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Müminlerin aralarındaki toplu işlerden başkalarını siper ederek gizlice sıvışıp gitmekten kaçınması","Peygamber'in emrine kesinlikle aykırı davranılmaması","Peygamber'in emrine muhalefet edenlerin başlarına dünyada bir fitne ve belâ gelmesinden sakınması","Peygamber'in emrine aykırı davrananlara ahirette çok elemli bir azabın isabet etmesi tehlikesi"],"stem":"Nûr Suresi 63. ayetinde müminlere yöneltilen ikazlar ve Peygamber'in emrine aykırı hareket edenleri bekleyen tehlikeler arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","II ve III","I, II ve IV","I, II, III ve IV"],"answerIndex":3,"lockOrder":true,"explanation":"63. ayette başkalarını siper ederek sıvışıp gidenlerin bilindiği, emre aykırı davrananların bir belaya uğramaktan veya elemli azaba maruz kalmaktan sakınmaları gerektiği bildirilmiştir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_024_075","uid":"1ab7b2a74b","surah":24,"cuz":18,"scope":"ayah","refs":[{"sure":24,"from":64,"to":64}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Nûr Suresi'nin son ayeti olan 64. ayette, kâinattaki mülkiyet ve insanın nihai dönüşü hakkında hangi temel hakikat bildirilmiştir?","options":["Kıyamet gününde sadece inkârcılar hesaba çekilecek, diğerleri unutulacaktır.","Göklerde ve yerde ne varsa Allah'ındır; O insanların ne yolda olduğunu iyi bilir ve huzuruna döndükleri gün yaptıklarını hemen haber verir.","İnsanların amelleri yalnızca dünyada karşılık bulur, ahirete bir şey kalmaz.","Gökler meleklerin, yeryüzü ise insanların mülküdür."],"answerIndex":1,"lockOrder":false,"explanation":"Nûr Suresi 64. ayette: 'Bilmiş olun ki, göklerde ve yerde ne varsa Allah'ındır. O, sizin ne yolda olduğunuzu iyi bilir. İnsanlar O'nun huzuruna döndürüldükleri gün yapmış olduklarını onlara hemen bildirir. Allah, her şeyi hakkıyla bilendir.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"}]}
+{
+  "s": 24,
+  "questions": [
+    {
+      "id": "Q_024_001",
+      "uid": "873651ba98",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 35,
+          "to": 35
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi adını aşağıdakilerin hangisinde belirtilen gerekçeyle **almıştır?**",
+      "options": [
+        "Kıyamet günü müminlerin önlerinden koşacak ilahi nurun zikredilmesinden",
+        "İlk ayetinde Kur'an'ın karanlıkları aydınlatan nur olduğuna yemin edilmesinden",
+        "35. ayetinde bir temsille anlatılan 'Allah'ın göklerin ve yerin nûru' olmasından",
+        "Medine'de müminlerin yüzlerindeki manevi nuraniyetin tasvir edilmesinden"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi adını, 35. âyetinde bir temsille anlatılan ve Allah'ın göklerin ve yerin nûru olduğunu beyan eden ifadeden almıştır. Âyette kandil ve lamba misalleri üzerinden ilahi hidayet tasvir edilmiş olup sûreye bu ismi vermiştir. Kıyamet günündeki nûr veya müminlerin çehresindeki aydınlık gibi unsurlar sureye adını veren asıl gerekçe değildir.",
+      "sourceRef": "TDV Sure Tanıtımı",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_002",
+      "uid": "417d397186",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 1,
+          "to": 64
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi'nin nüzul yeri, ayet sayısı, Mushaf tertibi ve iniş sırası hakkında verilen aşağıdaki bilgilerden hangisi **doğrudur?**",
+      "options": [
+        "Medine döneminde inmiştir, 64 ayettir; Mushaf tertibinde 24, nüzul sırasına göre 102. suredir.",
+        "Mekke döneminin sonunda inmiştir, 34 ayettir; Mushaf tertibinde 24, nüzul sırasına göre 57. suredir.",
+        "Medine döneminde inmiştir, 18 ayettir; Mushaf tertibinde 49, nüzul sırasına göre 102. suredir.",
+        "Mekke döneminde inmiştir, 64 ayettir; Mushaf tertibinde 24, nüzul sırasına göre 105. suredir."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "TDV resmi sure künyesine göre Nûr Suresi Medine döneminde nâzil olmuş olup 64. âyettir; Mushaf tertibinde 24, iniş sırasına göre ise 102. sûredir. Sûrenin hükümleri Medine İslam toplumunun ailevi, hukuki ve ahlaki nizamını tanzim etmektedir. Surenin Mekke'de indiğini veya âyet sayısını farklı gösteren seçenekler resmi kaynak bilgileriyle çelişir.",
+      "sourceRef": "TDV Sure Tanıtımı",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_003",
+      "uid": "95eefac385",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 1,
+          "to": 64
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi nüzul kronolojisi bakımından Medine döneminde aşağıdaki surelerin hangisinden sonra, hangisinden önce **nâzil olmuştur?**",
+      "options": [
+        "Ahzâb Suresi'nden sonra, Lokmân Suresi'nden önce",
+        "Mü'minûn Suresi'nden sonra, Furkân Suresi'nden önce",
+        "Haşr Suresi'nden sonra, Hac Suresi'nden önce",
+        "Mücâdele Suresi'nden sonra, Tahrîm Suresi'nden önce"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi nüzul kronolojisinde Medine döneminde Haşr sûresinden sonra ve Hac sûresinden önce 102. sırada yer almaktadır. Sûre hicretin ilk yıllarından Tebük Seferi sonrasına kadar uzanan geniş bir zaman diliminde peyderpey inmiştir. Seçeneklerdeki diğer sure çiftleri resmi nüzul sıralamasını doğru yansıtmaz.",
+      "sourceRef": "TDV Nüzul Bilgisi",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_004",
+      "uid": "bf41ab21a7",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 1,
+          "to": 64
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Zina haddi, iftira haddi (kazf) ve eşler arasındaki mülâane hükümleri",
+        "İffet ve namusun korunması, evlere giriş-çıkış âdâbı, başörtüsü ve mahremiyet ilkeleri",
+        "Hz. Âişe'ye atılan ifk hadisesi ve toplumun bu fitne karşısındaki ahlaki imtihanı",
+        "Mekke müşrikleriyle yapılan Hudeybiye Barış Antlaşması'nın detaylı maddeleri"
+      ],
+      "stem": "Nûr Suresi'nin muhtevası ve ana konuları dikkate alındığında, yukarıdakilerden hangileri surenin ele aldığı temel mevzular arasında **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "TDV sure tanıtımında Nûr Suresi'nin temel konuları arasında had cezaları, mülâane, aile mahremiyeti, tesettür ve ifk hadisesi zikredilmiştir (I, II ve III). Sûre fert ve toplum ahlakını koruyan kapsamlı hukuki kurallar getirmektedir. Hudeybiye Barış Antlaşması'nın detaylı maddeleri (IV) ise Nûr Suresi'nin değil, Fetih Suresi'nin konusudur.",
+      "sourceRef": "TDV Sure Tanıtımı",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_005",
+      "uid": "c3509c9326",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 1,
+          "to": 64
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi'nin nüzul süreci incelendiğinde, sure ayetlerinin iniş zamanları hakkında aşağıdakilerden hangisi **söylenebilir?**",
+      "options": [
+        "Mekke döneminde başlayıp Medine'ye hicret esnasında yolda tamamlanmıştır.",
+        "Tebük Seferi dönüşünde tek bir gecede vahiy kâtibine toptan yazdırılmıştır.",
+        "Hicretin 1-2. yıllarında başlayıp 9. yılına kadar peyderpey inmiştir.",
+        "Yalnızca Hendek Savaşı esnasında münafıkların fitnelerini kınamak üzere inmiştir."
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "TDV nüzul bilgisine göre sûrenin ilk âyetleri hicretin birinci ve ikinci yıllarında, 6. âyet gibi bazı kısımları ise Tebük Seferi sonrasında nâzil olmuştur. Buna göre sûre Medine dönemi boyunca yaklaşık sekiz yıla yayılan geniş bir süreçte peyderpey vahyedilmiştir. Surenin tek bir seferde toptan indirildiğini veya Mekke'de başladığını öne süren şıklar gerçeği yansıtmaz.",
+      "sourceRef": "TDV Nüzul Bilgisi",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_006",
+      "uid": "779c420a80",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 1,
+          "to": 1
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"(Bu) Bizim inzâl ettiğimiz ve (hükümlerini üzerinize) ........ kıldığımız bir sûredir. Belki düşünüp öğüt alırsınız diye onda açık seçik ........ indirdik.\"\n\nNûr Suresi 1. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "farz / âyetler",
+        "emanet / hükümler",
+        "gerekli / deliller",
+        "vacip / misaller"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 1. âyetinin TDV mealinde '(Bu) Bizim inzâl ettiğimiz ve (hükümlerini üzerinize) farz kıldığımız bir sûredir; belki düşünüp öğüt alırsınız diye onda açık seçik âyetler indirdik' buyrulmaktadır. Âyet metnindeki boşluklara sırasıyla ilahi hükümlerin kesinliğini bildiren 'farz' ile hidayet delillerini ifade eden 'âyetler' kelimeleri getirilmelidir. Emanet, gerekli veya vacip gibi kavramlar TDV mealinin lafzi karşılığı değildir.",
+      "sourceRef": "TDV Meali 24:1",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_007",
+      "uid": "765cd123a8",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 2,
+          "to": 2
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 2. ayetinde, zina eden kadın ve erkeğe uygulanacak ceza miktarı ve cezanın icrası sırasındaki şartlar hakkında aşağıdakilerden hangisi **bildirilmiştir?**",
+      "options": [
+        "Her birine ellişer sopa vurulmalı ve ceza aile içinde gizlilikle uygulanmalıdır.",
+        "Yalnızca erkek cezalandırılmalı; kadın ise tövbe etmeye davet edilerek bırakılmalıdır.",
+        "Her birine seksener sopa vurulmalı ve şahitlikleri süresiz olarak reddedilmelidir.",
+        "Her birine yüz sopa vurulmalı; acıma duyulmamalı ve bir grup mümin cezaya şahit olmalıdır."
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 2. âyetinde zina eden kadın ve erkeğin her birine yüz sopa vurulması, dinin hükmü uygulanırken acıma duygusuna kapılınmaması ve müminlerden bir grubun cezaya şahit olması emredilmiştir. Âyet hem ceza miktarını kesin olarak belirlemiş hem de infazın gizli kapılar ardında değil müminlerin şahitliğinde yapılmasını şart koşmuştur. Elli veya seksen sopa cezası ile gizli infaz şartı bu âyetin hükmüyle bağdaşmaz.",
+      "sourceRef": "TDV Meali 24:2",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_008",
+      "uid": "35610e3ad1",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 2,
+          "to": 2
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Zina eden kadın ve erkeğin her birine yüzer sopa vurulması",
+        "Allah'ın dininin hükmünü tatbik ederken suçlulara acıma duygusuna kapılmamak",
+        "Uygulanan cezaya müminlerden bir topluluğun bizzat şahit olması",
+        "Cezanın suçluların kendi hanelerinde gizli kapılar ardında infaz edilmesi"
+      ],
+      "stem": "Nûr Suresi 2. ayetine göre, zina haddinin uygulanmasıyla ilgili ilahi esaslar arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "I, II ve III",
+        "II, III ve IV"
+      ],
+      "answerIndex": 2,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 2. âyeti gereğince zina eden her bir kişiye yüz sopa vurulması (I), ilahi hüküm uygulanırken yersiz acımaya kapılınmaması (II) ve bir grup müminin şahitliği (III) emredilmiştir. Bu esaslar suçun caydırıcılığını ve toplum vicdanında adaletin tecellisini temin eder. Cezanın evlerde gizlice uygulanması (IV) ise âyette açıkça emredilen toplumsal aleniyet kuralına aykırıdır.",
+      "sourceRef": "TDV Meali 24:2",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_009",
+      "uid": "85384af914",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 3,
+          "to": 3
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 3. ayetinde evlilik hukuku ve ahlakî denklik bağlamında zina eden kimselerle ilgili hangi ilke **beyan edilmiştir?**",
+      "options": [
+        "Zina eden kimselerin ancak mehir bedelini iki kat ödeyerek evlenebilecekleri",
+        "Zina eden erkek ve kadınların yalnızca köle ve cariyelerle evlenebilecekleri",
+        "Zina eden kimselerin ömür boyu hiçbir şekilde evlenmelerine izin verilmeyeceği",
+        "Zina edenin ancak zina eden veya müşrikle evleneceği ve bunun müminlere haram kılındığı"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 3. âyetinde zina eden erkeğin ancak zina eden veya müşrik bir kadınla, zina eden kadının da ancak zina eden veya müşrik bir erkekle evlenebileceği ve bunun müminlere haram kılındığı beyan edilmiştir. Âyet-i kerime, iffetli müminlerin zina suçunu alışkanlık haline getiren kimselerle evlenmelerini ahlaken kınamış ve bu tür bir birlikteliği müminlere yasaklamıştır. Mehir artırımı veya kölelerle evlenme gibi hükümler bu âyetin kapsamında yer almaz.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:3",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_010",
+      "uid": "a5bb605124",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 4,
+          "to": 4
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 4. ayetine göre, namuslu kadınlara zina isnadında bulunup dört şahit getiremeyenlere uygulanacak cezai ve hukuki yaptırımlar aşağıdakilerden hangisinde **doğru belirtilmiştir?**",
+      "options": [
+        "Seksener sopa vurulur ve artık şahitlikleri hiçbir zaman kabul edilmez.",
+        "Hapsedilirler ve toplumdan tamamen tecrit edilirler.",
+        "Yüz sopa vurulur ve bir yıl süreyle sürgün edilirler.",
+        "Kırkar sopa vurulur ve bütün mallarına el konulur."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 4. âyetinde namuslu kadınlara zina iftirasında bulunup dört şahit getiremeyenlere seksener sopa vurulması ve şahitliklerinin ebediyen kabul edilmemesi emredilmiştir. Âyet iftira suçuna hem seksen sopa bedeni ceza vermiş hem de iftiracıların toplumdaki hukuki güvenilirliklerini tamamen ortadan kaldırmıştır. Yüz sopa, hapis veya sürgün cezaları kazf suçu için tayin edilen cezalar arasında yer almaz.",
+      "sourceRef": "TDV Meali 24:4",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_011",
+      "uid": "493ea379dc",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 4,
+          "to": 4
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Namuslu kadınlara zina isnadında bulunup, sonra (bunu isbat için) ........ şahit getiremeyenlere ........ sopa vurun ve artık onların şahitliğini hiçbir zaman kabul etmeyin. Onlar tamamen günahkârdırlar.\"\n\nNûr Suresi 4. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "iki / yüzer",
+        "dört / seksener",
+        "dört / yüzer",
+        "üç / ellişer"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 4. âyetinin TDV mealinde namuslu kadınlara zina iftirasında bulunup dört şahit getiremeyenlere seksener sopa vurulması emredilmiştir. Âyet metninde birinci boşluğa iftiranın ispatı için aranan 'dört' şahit, ikinci boşluğa ise uygulanacak ceza miktarı olan 'seksener' sopa kelimesi getirilmelidir. İki şahit veya yüzer sopa gibi sayılar kazf haddinin metniyle uyuşmaz.",
+      "sourceRef": "TDV Meali 24:4",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_012",
+      "uid": "80acb1bf7e",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 4,
+          "to": 5
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 4 ve 5. ayetleri birlikte değerlendirildiğinde, zina iftirasında bulunan kimselerden hangi şartı yerine getirenler ilâhî bağışlanma ve istisna kapsamında **zikredilmiştir?**",
+      "options": [
+        "Başka bir İslam beldesine hicret edip yerleşenler",
+        "İftira attıkları kimseden bedel karşılığı feragat belgesi alanlar",
+        "Bundan sonra tevbe edip hallerini ıslah edenler",
+        "Yalnızca mağdura maddi tazminat ve diyet ödeyenler"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 5. âyetinde 'Ancak bundan sonra tevbe edip ıslah olanlar müstesnadır; Allah çok bağışlayıcı ve merhametlidir' buyrulmaktadır. İftira suçunu işleyenlerin ilahi bağışlanmaya nail olabilmeleri, samimi bir tövbe edip yaşantılarını düzeltmelerine (ıslah) bağlanmıştır. Hicret etmek veya maddi tazminat ödemek ayette zikredilen arınma şartı değildir.",
+      "sourceRef": "TDV Meali 24:4-5",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_013",
+      "uid": "2eb5959fc4",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 6,
+          "to": 7
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 6 ve 7. ayetlerine göre, eşine zina isnadında bulunup kendisinden başka şahidi olmayan bir kocanın yapması gereken yemin ve şahitlik usulü aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Eşinin ailesine iftira tazminatı ödeyerek mahkeme önünde tek bir yemin etmesi",
+        "Kabilenin ileri gelenleri huzurunda eşini boşadığını üç defa ilan etmesi",
+        "Dört defa doğru söylediğine Allah adına yemin edip beşincide yalan söylüyorsa Allah'ın lânetini dilemesi",
+        "Dört defa Kâbe'ye dönerek doğru söylediğine dair kurban adadığını beyan etmesi"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 6 ve 7. âyetlerinde eşine zina isnat edip şahidi olmayan kocanın dört defa doğru söylediğine Allah adına yemin etmesi, beşincisinde ise yalan söylüyorsa Allah'ın lânetini dilemesi emredilmiştir. Bu hüküm aile mahremiyetini koruyan ve eşler arasındaki bağı adaletle çözen mülâane uygulamasının ilk aşamasıdır. Kazaen boşamak, tazminat ödemek veya Kâbe'ye dönüp adakta bulunmak âyette emredilen usul değildir.",
+      "sourceRef": "TDV Meali 24:6-7",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_014",
+      "uid": "37c83835ca",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 8,
+          "to": 9
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Kadının, kocasının yalan söyleyenlerden olduğuna dair ........ defa Allah adına yemin ve şahitlik etmesi, ........ defa da, eğer (kocası) doğru söyleyenlerden ise Allah'ın ........ kendi üzerine olmasını dilemesi kendisinden cezayı kaldırır.\"\n\nNûr Suresi 8 ve 9. ayet meallerine göre boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "dört / beşinci / cezasının",
+        "iki / üçüncü / öfkesinin",
+        "üç / dördüncü / lânetinin",
+        "dört / beşinci / gazabının"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 8 ve 9. âyetlerinin TDV mealine göre kadının cezadan kurtulması için kocasının yalan söylediğine dört defa yemin etmesi ve beşincide kocasının doğru olması halinde Allah'ın gazabını dilemesi gerekmektedir. Âyette kadının yemininde dördüncü yeminin ardından beşinci basamakta 'gazab' ifadesi yer almaktadır. Dolayısıyla boşluklara sırasıyla 'dört / beşinci / gazabının' kelimeleri getirilmelidir.",
+      "sourceRef": "TDV Meali 24:8-9",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_015",
+      "uid": "d2a4ce87b9",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 6,
+          "to": 9
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "İslam aile hukukunda bu karşılıklı yeminleşme usulünün 'liân/mülâane' olarak adlandırılması",
+        "Kocanın dört defa doğru söylediğine yemin edip beşincide yalan söylüyorsa Allah'ın lânetini dilemesi",
+        "Kadının dört defa kocasının yalan söylediğine yemin edip beşincide kocası doğruysa Allah'ın gazabını dilemesi",
+        "Mülâane gerçekleştikten sonra taraflara yüz sopa vurulup evliliklerinin aynen devam ettirilmesi"
+      ],
+      "stem": "Nûr Suresi 6–9. ayetlerinde ve ilgili dipnotta düzenlenen mülâane (liân) müessesesi hakkında yukarıdakilerden hangileri **doğrudur?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "TDV Meali ve dipnotuna göre mülâane, eşine zina isnat eden ancak şahidi bulunmayan karı-kocanın karşılıklı yeminleşmesidir (I, II ve III). Yeminleşme tamamlandığında erkek kazf cezasından, kadın zina cezasından kurtulur ve evlilik bağı hâkim kararıyla sona erer. Eşlere sopa vurulup evliliğin zorla sürdürülmesi (IV) ise mülâane hukukuna tamamen aykırıdır.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:6-9",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_016",
+      "uid": "859737b1df",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 11,
+          "to": 11
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 11. ayetinde, Peygamber'in eşine yönelik ağır iftirayı (ifk) uyduranlar ve bu fitneye maruz kalan müminler hakkında hangi ilâhî değerlendirme **yapılmıştır?**",
+      "options": [
+        "Bütün Medine halkının bu iftira sebebiyle dünyada toplu azapla cezalandırılacağı",
+        "İftirayı yabancı kavimlerin tertiplediği ve onlara karşı derhal savaş açılması gerektiği",
+        "İftirayı uyduranların içlerinden bir grup olduğu; müminlerin bunu şer sanmayıp kendileri için hayır bilmeleri gerektiği",
+        "Müminlerin hicret ederek fitneye sahne olan Medine şehrini tamamen terk etmeleri gerektiği"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 11. âyetinde Hz. Âişe'ye yönelik ağır iftirayı uyduranların müminlerin içinden bir grup olduğu ve müminlerin bunu bir şer sanmayıp aksine kendileri için bir hayır bilmeleri gerektiği bildirilmiştir. Âyet, yaşanan bu büyük fitnenin müminler için bir ahlaki olgunlaşma ve arınma imtihanı olduğunu vurgulamıştır. Toplu cezalandırma, yabancı kavimlerle savaş veya Medine'yi terk etme gibi hususlar âyette yer almaz.",
+      "sourceRef": "TDV Meali 24:11",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_017",
+      "uid": "62281a10d7",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 11,
+          "to": 11
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 11. ayetinin tefsir dipnotunda açıklanan 'İfk Hadisesi' bağlamında, askerî sefer dönüşü düşürdüğü gerdanlığı ararken geride kalan ve münafıkların iftirasına maruz bırakılan Peygamber eşi aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Hz. Hatice",
+        "Hz. Âişe",
+        "Hz. Zeyneb bnt. Cahş",
+        "Hz. Hafsa"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 11. âyetinin TDV dipnotunda İfk hadisesi açıklanmış ve sefer dönüşü gerdanlığını ararken geride kalan Peygamber eşinin Hz. Âişe olduğu bildirilmiştir. Münafıkların uydurduğu bu çirkin dedikoduya karşı inen âyetler Hz. Âişe validemizin tertemiz ve masum olduğunu ilahi tescille ilan etmiştir. Hz. Hatice, Hz. Zeyneb veya Hz. Hafsa validelerimiz bu hadisenin muhatabı değildir.",
+      "sourceRef": "TDV Meali Dipnotu 24:11",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_018",
+      "uid": "3af8ea0d11",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 12,
+          "to": 12
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 12. ayetinde, mümin erkek ve kadınların bu ağır iftirayı işittiklerinde takınmaları gereken asıl ahlakî tutum nasıl **ifade edilmiştir?**",
+      "options": [
+        "Sessiz kalıp mahkeme sonucunu beklemeden zanla hüküm vermeleri gerektiği",
+        "Olayın aslını öğrenmek için iddiayı derhal diğer kabileler arasında yaymaları gerektiği",
+        "Kendi vicdanları ile hüsnüzanda bulunup «Bu, apaçık bir iftiradır» demeleri gerektiği",
+        "Haberi doğrulamak maksadıyla iftiracı münafıkların peşine takılmaları gerektiği"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 12. âyetinde müminlerin bu iftirayı işittiklerinde kendi vicdanları ile hüsnüzanda bulunup «Bu, apaçık bir iftiradır» demeleri gerektiği bildirilmiştir. Âyet, iffetli müminler hakkında bir dedikodu duyulduğunda derhal hüsnüzan beslemeyi ve iftirayı kesin bir dille reddetmeyi ahlaki bir vazife kılmıştır. Dedikoduyu yaymak veya iftiracıların peşinden gitmek ayetin kesinlikle reddettiği tutumlardır.",
+      "sourceRef": "TDV Meali 24:12",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_019",
+      "uid": "6481b0002c",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 13,
+          "to": 13
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "İftirayı ortaya atanların iddialarını ispat için dört şahit getirmelerinin zorunlu olması",
+        "Gerekli şahitleri getiremedikleri takdirde Allah nezdinde yalancıların ta kendisi sayılmaları",
+        "İffetli insanlara yönelik suçlamalarda zannın ve dedikodunun asla delil kabul edilmeyişi",
+        "Şahitsiz ve delilsiz isnatların kamuoyunda serbestçe konuşulup yayılmasının meşru sayılması"
+      ],
+      "stem": "Nûr Suresi 13. ayeti doğrultusunda iftira ve isnat hukuku ile ilgili yukarıdakilerden hangileri **doğrudur?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 13. âyetinde iftiracıların dört şahit getirmeleri gerektiği, getiremedikleri takdirde Allah nezdinde yalancıların ta kendisi oldukları bildirilmiştir (I, II ve III). İslam isnat hukukunda delilsiz iddialar geçersiz olup zanna dayalı suçlamalar hükümsüzdür. Delilsiz isnatların kamuoyunda konuşulup yayılmasının meşru görülmesi (IV) ise âyetin hükmüyle bağdaşmayan büyük bir cürümdür.",
+      "sourceRef": "TDV Meali 24:13",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_020",
+      "uid": "007d49931c",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 14,
+          "to": 14
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Eğer dünyada ve ahirette Allah'ın ........ ve ........ üstünüzde olmasaydı, içine daldığınız bu iftiradan dolayı size mutlaka büyük bir azap isabet ederdi.\"\n\nNûr Suresi 14. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "kudreti / adaleti",
+        "sabrı / mağfireti",
+        "ihsanı / ikramı",
+        "lütuf / merhameti"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 14. âyetinin TDV mealinde 'Eğer dünyada ve ahirette Allah'ın lütuf ve merhameti üstünüzde olmasaydı, içine daldığınız bu iftiradan dolayı size mutlaka büyük bir azap isabet ederdi' buyrulmaktadır. Âyet metnindeki boşluklara sırasıyla ilahi inayeti niteleyen 'lütuf' ile esirgemeyi ifade eden 'merhameti' kelimeleri getirilmelidir. Kudret/adalet veya ihsan/ikram gibi ikililer TDV meal lafzını tam olarak karşılamaz.",
+      "sourceRef": "TDV Meali 24:14",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_021",
+      "uid": "a06f3ebf65",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 15,
+          "to": 15
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 15. ayetinde insanların iftirayı dilden dile aktarıp hakkında bilgi sahibi olmadıkları şeyleri konuşmaları karşısında yapılan çarpıcı ikaz aşağıdakilerden **hangisidir?**",
+      "options": [
+        "«Bunun önemsiz olduğunu sanıyorsunuz; halbuki bu, Allah katında çok büyüktür.»",
+        "«Bu yaptığınız sadece dünyada kınanacak küçük ve ehemmiyetsiz bir kusurdur.»",
+        "«Bunu dilden dile aktarmakla sorumluluktan kurtulacağınızı mı sanıyorsunuz?»",
+        "«Bu asılsız iddialarınız yalnızca iftiraya uğrayan şahsı ilgilendirmektedir.»"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 15. âyetinde insanların asılsız bir dedikoduyu dilden dile aktararak ağızlarında gevelemeleri şiddetle kınanmış ve 'Bunun önemsiz olduğunu sanıyorsunuz; halbuki bu, Allah katında çok büyük bir suçtur' buyrulmuştur. Âyet-i kerime kul hakkına ve toplumsal haysiyete yönelik isnatların basite alınamayacak kadar ağır bir cürüm olduğunu beyan etmiştir. İftirayı küçük bir hata veya sadece ferdi ilgilendiren bir mesele sayan anlayışlar ilahi ikazla tamamen reddedilmiştir.",
+      "sourceRef": "TDV Meali 24:15",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_022",
+      "uid": "bd682f8133",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 16,
+          "to": 16
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Onu duyduğunuzda: «Bunu konuşup ........ bize yakışmaz. Hâşâ! Bu, çok büyük bir ........» demeli değil miydiniz?\"\n\nNûr Suresi 16. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "araştırmamız / yalandır",
+        "yaymamız / iftiradır",
+        "aktarmamız / vebaldir",
+        "dinlememiz / bühtandır"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 16. âyetinin TDV mealinde 'Onu duyduğunuzda: «Bunu konuşup yaymamız bize yakışmaz; Hâşâ! Bu, çok büyük bir iftiradır» demeli değil miydiniz?' buyrulmaktadır. Âyet metninde birinci boşluğa dedikoduyu çoğaltıp dağıtmayı meneden 'yaymamız', ikinci boşluğa ise isnadın vahametini bildiren 'iftiradır' kelimesi getirilmelidir. Araştırmamız veya dinlememiz kelimeleri cümlenin lafzi akışıyla örtüşmez.",
+      "sourceRef": "TDV Meali 24:16",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_023",
+      "uid": "295dfe94f4",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 19,
+          "to": 19
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 19. ayetinde müminler arasında hayâsızlığın ve çirkin şeylerin yayılmasını arzulayan kimseler hakkında öngörülen ilâhî akıbet aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Dünyada kınanıp ayıplanacak, ahirette ise hesaba çekilmeyeceklerdir.",
+        "Bütün malları ellerinden alınarak toplumdan derhal sürgün edileceklerdir.",
+        "Dünyada da ahirette de kendileri için çetin ve şiddetli bir ceza vardır.",
+        "Tövbe etseler dahi ilahi rahmet kapıları kendilerine tamamen kapatılmıştır."
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 19. âyetinde 'İnananlar arasında çirkin şeylerin yayılmasını arzulayan kimseler için dünyada da ahirette de çetin bir ceza vardır; Allah bilir, siz bilmezsiniz' buyrulmaktadır. Âyet, toplumda ahlaksızlığın ve çirkin fiillerin propagandasını yapanların hem bu dünyada hem de ebedi âlemde ağır bir cezaya çarptırılacaklarını hükme bağlamıştır. Sadece dünyada kınanma veya tövbenin geçersiz kılınması gibi kayıtlar âyetin metninde yer almaz.",
+      "sourceRef": "TDV Meali 24:19",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_024",
+      "uid": "b1363731d6",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 21,
+          "to": 21
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Şeytanın adımlarını takip etmekten kesinlikle sakınmak",
+        "Şeytana uyan kimseye onun edepsizliği ve kötülüğü emredeceği gerçeği",
+        "Allah'ın lütuf ve merhameti olmasaydı hiç kimsenin asla temize çıkamayacağı",
+        "İnsanın yalnızca kendi ameline güvenerek günahlardan tamamen arınabileceği iddiası"
+      ],
+      "stem": "Nûr Suresi 21. ayetinde iman edenlere yönelik yapılan manevi ve ahlakî uyarılar arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 21. âyetinde şeytanın adımlarına uyulmaması (I), şeytanın edepsizliği ve kötülüğü emrettiği (II) ve Allah'ın lütfu olmasa kimsenin temize çıkamayacağı (III) bildirilmiştir. Âyette 'Fakat Allah dilediğini arındırır' buyrularak manevi arınmanın ilahi lütfa bağlı olduğu vurgulanmıştır. Kişinin sırf kendi ameliyle müstağni biçimde arınabileceği iddiası (IV) ise âyetin beyan ettiği tevhid esasına aykırıdır.",
+      "sourceRef": "TDV Meali 24:21",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_025",
+      "uid": "5884c1bfbb",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 22,
+          "to": 22
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 22. ayetinde ve ilgili dipnotta, Mıstah'a yaptığı yardımı kesmeye yemin eden Hz. Ebubekir'in şahsında varlıklı müminlere hangi ahlakî tavır **emredilmiştir?**",
+      "options": [
+        "İftiraya karışan yakınları akrabalıktan ebediyen silip tecrit etmeleri",
+        "Akrabaya ve yoksullara yardımı kesmeyip bağışlayıcı olmaları ve feragat göstermeleri",
+        "Sadaka ve infakı yalnızca hiçbir günahı bulunmayan masum kişilere tahsis etmeleri",
+        "Edilen yeminden hiçbir surette dönmeyip infakı tamamen devlet hazinesine devretmeleri"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 22. âyetinde fazilet ve servet sahibi kimselerin akrabaya ve yoksullara yardım etmeyeceklerine yemin etmemeleri, bağışlayıcı olup feragat göstermeleri emredilmiştir. TDV dipnotunda belirtildiği üzere Hz. Ebubekir'in iftiraya karışan akrabası Mıstah'a infakı kesme yemini üzerine inen bu âyet, müminleri affediciliğe ve Allah'ın rızası için yardımı sürdürmeye davet etmiştir. Akrabayı tamamen tecrit etmek veya yardımı ebediyen kesmek âyetin ruhuna aykırıdır.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:22",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_026",
+      "uid": "75ae35a9b1",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 23,
+          "to": 24
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 23 ve 24. ayetlerine göre, namuslu ve kötülüklerden habersiz mümin kadınlara zina isnadında bulunanların ahiretteki cezası aşağıdakilerden hangisinde **doğru belirtilmiştir?**",
+      "options": [
+        "Dünya ve ahirette lânetlenmişlerdir; uzuvları aleyhlerinde şahitlik edip büyük azaba uğrarlar.",
+        "Dünyada cezalandırılacak, ahirette ise hesaba çekilmeksizin doğrudan affedileceklerdir.",
+        "Ahirette melekler onların lehine şahitlik ederek karşılaşacakları azabı hafifletecektir.",
+        "Toplum içinde yalnızca maddi tazminat ödemekle yükümlü tutulup tamamen serbest bırakılacaklardır."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 23 ve 24. âyetlerinde iffetli ve kötülükten habersiz mümin kadınlara iftira atanların dünyada ve ahirette lânetlendiği bildirilmiştir. Âyet-i kerime, kıyamet gününde dillerinin, ellerinin ve ayaklarının aleyhlerinde şahitlik edeceğini ve onlar için pek büyük bir azap hazırlandığını açıkça beyan etmiştir. Hesapsız af, meleklerin hafifletici şahitliği veya sadece maddi tazminat gibi hususlar âyetle bağdaşmaz.",
+      "sourceRef": "TDV Meali 24:23-24",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_027",
+      "uid": "af7b4f946b",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 24,
+          "to": 24
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Yapmış olduklarına, ........ , ........ ve ........ aleyhlerinde şahitlik edeceği gün onlar için çok büyük bir azap vardır.\"\n\nNûr Suresi 24. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "gözleri / kulakları / kalplerinin",
+        "akılları / nefisleri / canlarının",
+        "dilleri / elleri / ayaklarının",
+        "derileri / kemikleri / saçlarının"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 24. âyetinin TDV mealinde 'Yapmış olduklarına, dilleri, elleri ve ayaklarının, aleyhlerinde şahitlik edeceği gün onlar için çok büyük bir azap vardır' buyrulmaktadır. Âyet metninde sırasıyla konuşma ve fiil organları olan 'dilleri', 'elleri' ve 'ayaklarının' kelimeleri yer almaktadır. Göz, kulak veya deri gibi diğer organlar Kur'an'ın başka âyetlerinde geçse de bu âyetin lafzında zikredilmemiştir.",
+      "sourceRef": "TDV Meali 24:24",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_028",
+      "uid": "56d49ee54f",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 25,
+          "to": 25
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 25. ayetine göre, kıyamet gününde Allah Teâlâ inkârcı ve iftiracılara cezalarını tastamam verdiğinde onlar hangi hakikati kesin olarak **anlayacaklardır?**",
+      "options": [
+        "Dünya hayatının fani ve aldatıcı bir meşguliyetten ibaret olduğunu",
+        "Peygamberlerin tebliğ ettiği dinin üstün bir nizam teşkil ettiğini",
+        "Ahirette inkârcılara yönelik ilahi azabın asla hafifletilmeyeceğini",
+        "Allah Teâlâ'nın apaçık gerçek (Hakk-ı mübîn) olduğunu ve adaletini"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 25. âyetinde 'O gün Allah onlara gerçek cezalarını tastamam verecek ve onlar Allah'ın apaçık gerçek olduğunu anlayacaklardır' buyrulmaktadır. Âyet-i kerime, dünyada hakikati inkâr eden veya iftiralarla gerçeği örtbas etmeye çalışanların mahşerde Allah'ın apaçık Hak olduğunu bizzat idrak edeceklerini vurgulamıştır. Dünyanın faniliği veya nizamın üstünlüğü gibi çıkarımlar bu âyetin doğrudan vurguladığı kilit hüküm değildir.",
+      "sourceRef": "TDV Meali 24:25",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_029",
+      "uid": "adee813360",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 26,
+          "to": 26
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 26. ayetinde ahlaki denklik ve iffet prensibi açıklanırken temiz kimseler hakkında aşağıdaki müjdelerden hangisi **verilmiştir?**",
+      "options": [
+        "Dünya hayatında hiçbir fitne ve zorlukla karşılaşmaksızın yaşayacakları",
+        "İftiradan uzak oldukları, kendileri için bağışlanma ve güzel rızık olduğu",
+        "Bütün soy ve akrabalarının ahirette sorgusuz sualsiz cennete gireceği",
+        "Dünyevi hayatta yalnızca yüksek mevki ve zenginlikle mükafatlandırılacakları"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 26. âyetinde temiz kadınların temiz erkeklere, temiz erkeklerin de temiz kadınlara yaraştığı bildirildikten sonra 'Bu sonuncular, söylenenlerden çok uzaktırlar; kendileri için bağışlanma ve güzel bir rızık vardır' buyrulmuştur. Âyet, iffetli müminlerin iftiracıların çirkin ithamlarından berî olduğunu ve ebedi mağfiret ile cennet rızkına kavuşacaklarını müjdelemiştir. Dünyada zorluk çekmeme veya soyların toptan affı gibi vaatler bu âyette yer almaz.",
+      "sourceRef": "TDV Meali 24:26",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_030",
+      "uid": "39c81677f8",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 26,
+          "to": 26
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Kötü kadınlar kötü erkeklere, kötü erkekler ise kötü kadınlara; ........ kadınlar ........ erkeklere (...) yaraşır.\"\n\nNûr Suresi 26. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "mümin / mümin",
+        "iffetli / iffetli",
+        "temiz / temiz",
+        "sadık / sadık"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 26. âyetinin TDV mealinde 'Kötü kadınlar kötü erkeklere, kötü erkekler ise kötü kadınlara; temiz kadınlar temiz erkeklere, temiz erkekler de temiz kadınlara yaraşır...' buyrulmaktadır. Âyetteki ahlaki denkliği ifade etmek üzere boşlukların her ikisine de 'temiz' kelimesi getirilmelidir. Mümin, iffetli veya sadık kelimeleri anlamca yakın görünse de TDV mealinin lafzını tam karşılamaz.",
+      "sourceRef": "TDV Meali 24:26",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_031",
+      "uid": "94777f98d3",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 27,
+          "to": 27
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 27. ayetine göre, bir müminin başkasına ait bir eve girmeden önce yerine getirmesi emredilen iki temel edep kuralı aşağıdakilerden hangisinde **doğru verilmiştir?**",
+      "options": [
+        "Geldiğini fark ettirmek (izin almak) ve ev halkına selâm vermek",
+        "Kapıyı üç kez çalmak ve hane halkına hediyeler takdim etmek",
+        "Yalnızca gündüz vakitlerinde gitmek ve eşikte ayakta beklemek",
+        "Ev sahibinden önceden yazılı izin almak ve iki şahitle gitmek"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 27. âyetinde 'Kendi evinizden başka evlere, geldiğinizi farkettirip (izin alıp) ev halkına selâm vermedikçe girmeyin; bu sizin için daha iyidir' buyrulmaktadır. Âyet, mesken dokunulmazlığını korumak adına eve girmeden önce istinas/izin alma ve selam verme kurallarını vazetmiştir. Kapıya hediye bırakmak, yazılı izin almak veya eşikte beklemek âyette emredilen temel şartlar değildir.",
+      "sourceRef": "TDV Meali 24:27",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_032",
+      "uid": "c03553e2d8",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 27,
+          "to": 28
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Başkalarının evine girerken izin istemek ve ev halkına selâm vermek",
+        "Evde kimse bulunmadığında izin verilinceye kadar içeri girmemek",
+        "Ev halkı «Geri dönün!» dediğinde gücenmeden derhal geri dönmek",
+        "Ev sahibi içeri almasa dahi kapıda ısrarla bekleyip içeri girmeye çalışmak"
+      ],
+      "stem": "Nûr Suresi 27 ve 28. ayetlerinde düzenlenen mesken dokunulmazlığı ve ev ziyareti âdâbı arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 27 ve 28. âyetlerinde izin isteyip selam vermek (I), evde kimse yoksa izin verilmedikçe girmemek (II) ve 'Geri dönün!' denildiğinde dönmek (III) açıkça emredilmiştir. Bu kurallar aile mahremiyetini ve bireylerin huzurunu güvenceye alır. Ev sahibi içeri almadığında kapıda ısrarla beklemek (IV) ise âyetin 'hemen dönün, bu sizin için daha nezih bir davranıştır' emrine aykırıdır.",
+      "sourceRef": "TDV Meali 24:27-28",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_033",
+      "uid": "6bbddf1904",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 28,
+          "to": 28
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 28. ayetinde, bir eve varıldığında içeriden «Geri dönün!» denilmesi halinde müminlere tavsiye edilen davranış ve bunun ahlakî gerekçesi aşağıdakilerden hangisinde **doğru verilmiştir?**",
+      "options": [
+        "Kapıda beklenmelidir; çünkü içeri alınmamak misafir için bir hakaret sayılır.",
+        "Ev sahibinden gerekçe istenmelidir; zira selâm vermek mutlak giriş hakkı doğurur.",
+        "Hemen geri dönülmelidir; çünkü bu tutum müminler için daha nezih bir davranıştır.",
+        "Durum çevreye şikâyet edilmelidir; zira kapıyı açmamak komşuluk hakkını çiğner."
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 28. âyetinde 'Eğer size «Geri dönün!» denilirse, hemen dönün; çünkü bu, sizin için daha nezih bir davranıştır; Allah, yaptığınızı bilir' buyrulmaktadır. Âyet, ev sahibinin müsait olmadığı durumlarda ziyaretçinin anlayış gösterip ayrılmasını nezaket ve iffet kuralı olarak benimsetmiştir. Kapıda beklemek, hesap sormak veya komşulara şikâyet etmek âyetin emrettiği edeple bağdaşmaz.",
+      "sourceRef": "TDV Meali 24:28",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_034",
+      "uid": "e33faf853e",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 29,
+          "to": 29
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 29. ayetinde, genel izin kuralından istisna tutularak girilmesinde sakınca bulunmadığı bildirilen mekânlar aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Komşuların geçici olarak boş bıraktığı kilitli meyve bahçeleri",
+        "Yalnızca ticaret kervanlarının dinlenmesi için kurulan açık hanlar",
+        "Akrabalara ait olan ve sadece yaz aylarında kullanılan bağ evleri",
+        "İçinde kendinize ait eşyanın bulunduğu oturulmayan (meskûn olmayan) evler"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 29. âyetinde 'İçinde kendinize ait eşyanın bulunduğu oturulmayan evlere girmenizde herhangi bir sakınca yoktur' hükmü bildirilmiştir. Âyet, içerisinde kimsenin ikamet etmediği ve kişinin kendi eşyasının yer aldığı depo, ambar veya ticari mekânlara izin aramaksızın girilebileceğini açıklamıştır. Meskûn konutlar veya başkalarına ait özel bahçeler bu istisnanın kapsamı dışındadır.",
+      "sourceRef": "TDV Meali 24:29",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_035",
+      "uid": "11c0c61292",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 30,
+          "to": 30
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 30. ayetinde, mümin erkeklerin manevi arınması ve ahlakî temizliği için öncelikle emredilen iki husus aşağıdakilerden hangisinde **doğru verilmiştir?**",
+      "options": [
+        "Gözlerini harama dikmemeleri ve ırzlarını korumaları",
+        "Toplumdan tamamen uzaklaşıp uzlete çekilmeleri",
+        "Ticareti terk edip vaktin tamamını camide geçirmeleri",
+        "Dünyevi mülk edinmeyip sade giyinmeye özen göstermeleri"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 30. âyetinde Peygamberimize hitaben 'Mümin erkeklere, gözlerini (harama) dikmemelerini, ırzlarını da korumalarını söyle; çünkü bu, kendileri için daha temiz bir davranıştır' buyrulmaktadır. Âyet, ferdî iffetin ve ahlaki necabetin ilk adımının gözü haramdan sakınmak ve namusu korumak olduğunu hükme bağlamıştır. İnzivaya çekilmek, ticareti bırakmak veya mülkiyeti terk etmek âyette emredilen hususlar değildir.",
+      "sourceRef": "TDV Meali 24:30",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_036",
+      "uid": "de23642b32",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 30,
+          "to": 30
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"(Resûlüm!) Mümin erkeklere, ........ (harama) dikmemelerini, ........ da korumalarını söyle. Çünkü bu, kendileri için daha temiz bir davranıştır...\"\n\nNûr Suresi 30. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "bakışlarını / sözlerini",
+        "gözlerini / ırzlarını",
+        "akıllarını / mallarını",
+        "yüzlerini / kalplerini"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 30. âyetinin TDV mealinde '(Resûlüm!) Mümin erkeklere, gözlerini (harama) dikmemelerini, ırzlarını da korumalarını söyle...' buyrulmaktadır. Âyetteki boşluklara harama yönelmesi yasaklanan 'gözlerini' ile muhafazası emredilen iffeti anlatan 'ırzlarını' kelimeleri getirilmelidir. Bakışlarını/sözlerini veya akıllarını/mallarını gibi ikililer TDV mealinin lafzi ifadesini tam karşılamaz.",
+      "sourceRef": "TDV Meali 24:30",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_037",
+      "uid": "24d3611a25",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 31,
+          "to": 31
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Gözlerini harama bakmaktan korumak ve namus ve iffetlerini esirgemek",
+        "Görünen kısımları müstesna olmak üzere zinetlerini yabancılara teşhir etmemek",
+        "Başörtülerini yakalarının üzerine kadar örtmek",
+        "Gizledikleri zinetler anlaşılsın ve dikkat çeksin diye ayaklarını yere vurarak yürümek"
+      ],
+      "stem": "Nûr Suresi 31. ayetine göre, mümin kadınlara yönelik ilâhî emir ve sınırlamalar arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 31. âyetinde mümin kadınlara gözlerini haramdan korumak (I), zinetlerini teşhir etmemek (II) ve başörtülerini yakalarının üzerine örtmek (III) kesin bir dille emredilmiştir. Âyetin devamında ise kadınların zinetleri fark edilsin diye ayaklarını yere vurarak yürümeleri açıkça yasaklanmıştır. Dolayısıyla IV. öncüldeki dikkat çekici yürüyüş tarzı emredilen bir davranış olmayıp haram kılınan bir tutumdur.",
+      "sourceRef": "TDV Meali 24:31",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_038",
+      "uid": "9914e54dca",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 31,
+          "to": 31
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 31. ayetinde, mümin kadınların zinetlerini kendilerine gösterebilecekleri mahrem kimseler arasında aşağıdakilerden hangisi **sayılmamıştır?**",
+      "options": [
+        "Teyze ve halaların ergenlik çağına ermiş erkek çocukları (kuzenler)",
+        "Şehvet duymayan erkek hizmetçiler ve kadınlık farkında olmayan çocuklar",
+        "Kocaları, öz babaları ve kocalarının babaları (kayınpederler)",
+        "Öz erkek kardeşleri ve erkek kardeşlerinin oğulları (yeğenler)"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 31. âyetinde kadınların zinetlerini gösterebilecekleri kimseler arasında eşler, babalar, kayınpederler, kardeşler, yeğenler, hizmetçiler ve çocuklar sayılmıştır. Teyze ve hala çocukları (kuzenler) fıkhen mahrem olmayıp nikâh düşen kimseler olduğundan âyetteki istisnalar arasında yer almaz. Dolayısıyla kuzenlerin yanında mahremiyet sınırlarının korunması dinî bir vecibedir.",
+      "sourceRef": "TDV Meali 24:31",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_039",
+      "uid": "16e8a5d552",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 31,
+          "to": 31
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"...Gizlemekte oldukları zinetleri anlaşılsın diye ........ yere vurmasınlar. Ey müminler! Hep birden Allah'a ........ ediniz ki kurtuluşa eresiniz.\"\n\nNûr Suresi 31. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "ellerini / dua",
+        "adımlarını / şükür",
+        "ayaklarını / tevbe",
+        "takılarını / hamd"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 31. âyetinin TDV mealinde 'Gizlemekte oldukları zinetleri anlaşılsın diye ayaklarını yere vurmasınlar; ey müminler, hep birden Allah'a tevbe ediniz ki kurtuluşa eresiniz' buyrulmaktadır. Metinde ilk boşluğa dikkat çekici adımı niteleyen 'ayaklarını', ikinci boşluğa ise felaha ulaşma vesilesi olan 'tevbe' kelimesi getirilmelidir. Dua, şükür veya hamd kavramları bu âyetin lafzında yer almaz.",
+      "sourceRef": "TDV Meali 24:31",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_040",
+      "uid": "f1f3400c1a",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 32,
+          "to": 32
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 32. ayetinde, toplumdaki bekârların ve elverişli köle ile cariyelerin evlendirilmesi emredilirken, yoksulluk endişesi taşıyanlar hakkında hangi ilâhî vaat **bildirilmiştir?**",
+      "options": [
+        "Devlet hazinesinden kendilerine ömür boyu düzenli maaş bağlanacağı",
+        "Fakir olanların evlilik mehir bedelinden tamamen muaf tutulacağı",
+        "Evlenen kimselerin dünyada hiçbir borç ve sıkıntı altına girmeyeceği",
+        "Eğer fakir iseler, Allah'ın kendi lütfu ile onları zenginleştireceği"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 32. âyetinde 'Aranızdaki bekârları, kölelerinizden ve cariyelerinizden elverişli olanları evlendirin; eğer bunlar fakir iseler, Allah kendi lütfu ile onları zenginleştirir' buyrulmaktadır. Âyet, evlilikte maddi yetersizlikten çekinen müminleri cesaretlendirerek rızkın ve zenginliğin ilahi bir lütuf olarak bahşedileceğini müjdelemiştir. Devlet maaşı veya mehir muafiyeti gibi düzenlemeler bu âyetin metninde yer almaz.",
+      "sourceRef": "TDV Meali 24:32",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_041",
+      "uid": "ddcc84b396",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 33,
+          "to": 33
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Evlenme imkânı bulamayanların, Allah lütfuyla onları varlıklı kılıncaya kadar iffetlerini korumaları",
+        "Köle ve cariyelerden hürriyet sözleşmesi (mükâtebe) yapmak isteyen ehil kimselerle bu akdin yapılması",
+        "Allah'ın kendilerine lütfettiği maldan mükâtebe yapan kölelere verilerek yardım edilmesi",
+        "Geçici dünya menfaati elde etmek maksadıyla namuslu cariyelerin fuhşa zorlanmasının meşru sayılması"
+      ],
+      "stem": "Nûr Suresi 33. ayetinde yer alan toplumsal ve hukuki hükümler arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 33. âyetinde evlenemeyenlerin iffetlerini korumaları (I), güvenilir kölelerle mükâtebe yapılması (II) ve onlara Allah'ın malından verilmesi (III) emredilmiştir. Buna mukabil âyette cariyelerin geçici dünya menfaati için fuhşa zorlanması şiddetle yasaklanmıştır. Dolayısıyla fuhşa zorlamayı meşru sayan IV. öncül ilahi hükme tamamen aykırıdır.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:33",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_042",
+      "uid": "78d833078d",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 35,
+          "to": 35
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 35. ayetinde (Âyetü'n-Nûr), Allah'ın nûrunun temsili anlatılırken lambanın tutuşturulduğu mübarek ağaç ve yağı nasıl **tasvir edilmiştir?**",
+      "options": [
+        "Cennetten indirilen Tûbâ ağacından tutuşturulur; kokulu reçinesi etrafa kesintisizce misk kokusu yayar.",
+        "Doğuya da batıya da nisbet edilemeyen zeytinden tutuşturulur; yağı neredeyse ateş değmese bile ışık verir.",
+        "Geceleri nur saçan Tûr dağının sedir ağacından tutuşturulur; duman çıkarmadan etrafı kandil gibi aydınlatır.",
+        "Yalnızca mukaddes vadide yetişen incir ağacından tutuşturulur; saf özsuyu zifiri karanlığı bütünüyle dağıtır."
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 35. âyetinde ilahi nurun kandildeki lambaya benzetildiği temsilde, lambanın doğuya da batıya da nisbet edilemeyen mübarek bir zeytin ağacının yağından tutuşturulduğu ve neredeyse ateş değmese bile ışık verecek kadar saf olduğu bildirilmiştir. Âyet-i kerime bu misalle ilahi hidayetin nûr üstüne nûr olduğunu veciz bir üslupla beyan etmiştir. Tûbâ, sedir veya incir ağacı gibi tasvirler bu âyetin lafzında yer almaz.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:35",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_043",
+      "uid": "5904c225a9",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 35,
+          "to": 35
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Allah, göklerin ve yerin nûrudur. O'nun nûrunun temsili, içinde ........ bulunan bir ........ gibidir... (Bu,) nûr üstüne nûrdur.\"\n\nNûr Suresi 35. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "ateş / fanus",
+        "ışık / saray",
+        "meşale / mahzen",
+        "lamba / kandillik"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 35. âyetinin TDV mealinde 'Allah, göklerin ve yerin nûrudur; O'nun nûrunun temsili, içinde lamba bulunan bir kandillik gibidir... (Bu,) nûr üstüne nûrdur' buyrulmaktadır. Âyet metninde birinci boşluğa ışık kaynağını ifade eden 'lamba', ikinci boşluğa ise lambanın bulunduğu yuvayı belirten 'kandillik' kelimesi getirilmelidir. Ateş/fanus, ışık/saray veya meşale/mahzen ikilileri âyetin TDV meal lafzında yer almaz.",
+      "sourceRef": "TDV Meali 24:35",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_044",
+      "uid": "72d4dd2592",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 36,
+          "to": 37
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 36 ve 37. ayetlerinde, Allah'ın yücelmesine izin verdiği evlerde sabah akşam O'nu tesbih eden müminlerin en belirgin vasfı aşağıdakilerden hangisinde **doğru belirtilmiştir?**",
+      "options": [
+        "Ne ticaret ne de alış-verişin kendilerini Allah'ı anmaktan, namazdan ve zekâttan alıkoyamaması",
+        "Dünya işlerini ve ticareti tamamen terk ederek hayatları boyunca sadece mescidde yaşamaları",
+        "Yalnızca geceleri ibadet edip gündüz saatlerinde dünyevi kazanç peşinde koşmaları",
+        "Kendi aralarında ortak bir ticaret loncası kurarak kazançlarını sadece cemaate dağıtmaları"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 36 ve 37. âyetlerinde mescidlerde sabah akşam Allah'ı tesbih eden erlerin, ne ticaret ne de alışverişin kendilerini Allah'ı anmaktan, namaz kılmaktan ve zekât vermekten alıkoyamadığı kimseler olduğu bildirilmiştir. Âyet, müminin meşru dünyevi meşguliyetler içinde dahi kalbini daima Allah'a bağlı tutmasını ve kulluk vazifelerini aksatmamasını övmüştür. Ticareti tamamen terk edip mescide kapanmak İslam'ın teşvik ettiği bir hayat tarzı değildir.",
+      "sourceRef": "TDV Meali 24:36-37",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_045",
+      "uid": "cb62de4074",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 37,
+          "to": 38
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 37 ve 38. ayetlerine göre, ticaretin kendilerini Allah'ı zikirden alıkoyamadığı müminlerin korktukları gün ve nail olacakları ilâhî mükâfat aşağıdakilerden hangisinde **doğru açıklanmıştır?**",
+      "options": [
+        "Düşman ordularının hücum gününden korkarlar; kendilerine sarsılmaz kaleler ve zafer verilir.",
+        "Ölüm anının şiddetli acısından korkarlar; dünyadaki ecelleri uzun yıllar geciktirilir.",
+        "Kalplerin ve gözlerin allak bullak olduğu günden korkarlar; yaptıklarının en güzeliyle mükâfatlandırılırlar.",
+        "Dünyadaki kıtlık ve iflas gününden korkarlar; ticaret malları kat kat bereketlendirilir."
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 37 ve 38. âyetlerinde müminlerin 'kalplerin ve gözlerin allak bullak olduğu bir günden korktukları' ve bu ihlasları sebebiyle Allah'ın 'onları yaptıklarının en güzeli ile mükâfatlandırıp lütfundan hesapsız rızıklandıracağı' bildirilmiştir. Âyet-i kerime ahiret kaygısıyla yaşayan samimi kullara ilahi lütfun fazlasıyla verileceğini teyit etmiştir. Düşman hücumu, ölüm acısı veya ticari iflas gibi dünyevi korkular bu âyette zikredilen mahşer dehşetini karşılamaz.",
+      "sourceRef": "TDV Meali 24:37-38",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_046",
+      "uid": "b4c2b3de8d",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 39,
+          "to": 39
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 39. ayetinde inkârcıların hayır zannıyla yaptıkları amelleri aşağıdaki benzetmelerden hangisiyle **tasvir edilmiştir?**",
+      "options": [
+        "Fırtınalı bir gecede karanlıkta kalan ve aniden sönüp giden titrek bir muma",
+        "Dağlardan coşkuyla akıp giden ve geride hiçbir iz bırakmayan taşkın bir sele",
+        "Issız çöllerdeki seraba; susayan onu su sanır, yanına varınca yanıbaşında Allah'ı bulur",
+        "Şiddetli bir rüzgârın önünde savrulan ve hiçbir ağırlığı kalmayan kül yığınına"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 39. âyetinde inkâr edenlerin amelleri ıssız çöllerdeki seraba benzetilmiş; susayan kimsenin onu su sandığı, fakat yanına vardığında hiçbir şey bulamayıp yanıbaşında hesabını görecek olan Allah'ı bulduğu beyan edilmiştir. TDV dipnotunda açıklandığı üzere imandan yoksun ameller hakikatten mahrum ve esassız birer seraptan ibarettir. Mum, sel veya kül teşbihleri Kur'an'ın farklı yerlerinde geçse de bu âyetin doğrudan benzetmesi seraptır.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:39",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_047",
+      "uid": "dd1f526b46",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 40,
+          "to": 40
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 40. ayetinde, kâfirlerin manevi buhranları ve inkâr psikolojisi hangi derin teşbihle **anlatılmıştır?**",
+      "options": [
+        "Dibi görünmeyen susuz ve karanlık bir kuyunun en derin dehlizlerine",
+        "Engin denizdeki dalga üstüne dalga ve üstünde bulut olan yoğun karanlıklara",
+        "Yüksek ve sarp dağların zirvesinde tutunamayıp uçuruma yuvarlanan kimseye",
+        "Kuşların gökyüzünden kapıp parçaladığı veya rüzgârın savurduğu cesede"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 40. âyetinde kâfirlerin hâli, engin bir denizde dalga üstüne dalga ve üstünde bulut bulunan yoğun karanlıklara benzetilmiş; insanın elini uzatsa neredeyse göremeyeceği bu zifiri karanlıkta Allah nûr vermedikçe kimsenin aydınlığa eremeyeceği bildirilmiştir. TDV dipnotunda bu tasvirin okyanus diplerindeki karanlık tabakaları mucizevi şekilde haber verdiği vurgulanmıştır. Kuyu, uçurum veya parçalanan ceset benzetmeleri bu âyetin lafzında yer almaz.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:40",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_048",
+      "uid": "6e7a3df91e",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 41,
+          "to": 41
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 41. ayetine göre kâinattaki varlıkların Allah'a kulluğu ve tesbihi hakkında aşağıdakilerden hangisi **bildirilmiştir?**",
+      "options": [
+        "Yalnızca insanların ve cinlerin ibadetle yükümlü tutulduğu ve hesaba çekileceği",
+        "Kuşların tesbih ve dualarının insanlar tarafından harfiyen ve bütünüyle anlaşıldığı",
+        "Hayvanların ve cansız varlıkların yalnızca kıyamet koptuğunda dile gelip tesbih edeceği",
+        "Göklerde ve yerdekilerle dizi dizi kuşların tesbih ettiği, her birinin duasını bildiği"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 41. âyetinde göklerde ve yerde bulunanlarla dizi dizi kuşların Allah'ı tesbih ettiği ve her birinin kendi duasını ve tesbihini bildiği haber verilmiştir. Âyet, evrendeki canlı cansız tüm mahlûkatın kendilerine has bir şuur ve lisanla yaratıcılarını tesbih ve dua ettiklerini ortaya koymuştur. İbadetin sadece insana hasredilmesi veya tesbihin kıyamete ertelenmesi âyetin açık beyanına aykırıdır.",
+      "sourceRef": "TDV Meali 24:41",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_049",
+      "uid": "0ea0e57ca8",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 43,
+          "to": 43
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Allah'ın bulutları sürüp bir araya getirmesi, üst üste yığması ve arasından yağmur çıkarması",
+        "Gökteki dağlar büyüklüğündeki bulutlardan dolu indirip dilediğine isabet ettirmesi",
+        "Bulutlardaki şimşeğin göz kamaştırıcı parıltısının neredeyse görme duyusunu alacak olması",
+        "Bütün bu atmosferik hadiselerin tabiatın kör tesadüfleriyle kendiliğinden meydana gelmesi"
+      ],
+      "stem": "Nûr Suresi 43. ayetinde zikredilen meteorolojik olaylar ve ilâhî kudret tecellileri arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 43. âyetinde bulutların sevki ve yağmurun çıkışı (I), gökteki dağlar misali bulutlardan dolunun indirilip dilediğine isabet ettirilmesi (II) ve şimşeğin gözleri alacak parıltısı (III) açıkça bildirilmiştir. Bütün bu kozmik hadiselerin ilahi irade ve kudretle meydana geldiği vurgulanmıştır. Doğa olaylarının kör tesadüflerle kendiliğinden oluştuğu iddiası (IV) ise âyetin ana tebliğ gayesine taban tabana zıttır.",
+      "sourceRef": "TDV Meali 24:43",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_050",
+      "uid": "9d1a38eb26",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 44,
+          "to": 44
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 44. ayetinde \"Allah, gece ile gündüzü birbirine çeviriyor\" ilâhî beyanının ardından kimler için ibret bulunduğu **belirtilmiştir?**",
+      "options": [
+        "Basiret sahipleri için",
+        "Yalnızca astronomi âlimleri için",
+        "Sadece geçmiş kavimler için",
+        "Yalnızca tüccarlar ve seyyahlar için"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 44. âyetinde 'Allah, gece ile gündüzü birbirine çeviriyor; şüphesiz bunda basiret sahipleri için mutlak bir ibret vardır' buyrulmaktadır. Âyet-i kerime, zamanın akışını ve gece ile gündüzün ardışık düzenini kalbî kavrayışa ve derin bakışa sahip olan 'basiret sahipleri' için kesin bir ibret kılmıştır. İbretin yalnızca belli bir meslek zümresine veya geçmiş toplumlara has kılınması âyetin umumi muhatap kitlesiyle uyuşmaz.",
+      "sourceRef": "TDV Meali 24:44",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_051",
+      "uid": "cc72066d9c",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 45,
+          "to": 45
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 45. ayetinde, bütün canlıların yaratılış menşei ve hareket tarzları hakkında aşağıdakilerden hangisi **bildirilmiştir?**",
+      "options": [
+        "Canlıların ateşten yaratıldığı; hepsinin kanatlarıyla uçarak yeryüzünde rızık aradığı",
+        "Canlıların rüzgârdan var edildiği; çoğunun sadece su altında yüzerek hareket ettiği",
+        "Her canlının sudan yaratıldığı; kimi karnı üstünde sürünen, kimi iki veya dört ayakla yürüyen varlıklar olduğu",
+        "Canlıların saf topraktan biçimlendirildiği; tamamının dörder ayak üstünde yürüdüğü"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 45. âyetinde 'Allah, her canlıyı sudan yarattı; işte bunlardan kimi karnı üstünde sürünür, kimi iki ayağı üstünde yürür, kimi dört ayağı üstünde yürür... Allah dilediğini yaratır' buyrulmaktadır. Âyet, biyolojik hayatın temel yapı taşının su olduğunu ve yaratılıştaki muazzam çeşitliliği açıkça ilan etmiştir. Bütün canlıların ateşten yaratıldığı veya hepsinin dörder ayaklı olduğu gibi iddialar âyetin beyanına aykırıdır.",
+      "sourceRef": "TDV Meali 24:45",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_052",
+      "uid": "973c166a52",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 45,
+          "to": 45
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Allah, her canlıyı ........ yarattı. İşte bunlardan kimi karnı üstünde sürünür, kimi ........ ayağı üstünde yürür, kimi ........ ayağı üstünde yürür... Allah dilediğini yaratır...\"\n\nNûr Suresi 45. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "topraktan / iki / altı",
+        "balçıktan / üç / beş",
+        "nurdan / tek / çift",
+        "sudan / iki / dört"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 45. âyetinin TDV mealinde 'Allah, her canlıyı sudan yarattı; işte bunlardan kimi karnı üstünde sürünür, kimi iki ayağı üstünde yürür, kimi dört ayağı üstünde yürür...' ifadesi yer almaktadır. Âyetteki boşluklara sırasıyla hayatın menşei olan 'sudan', iki ayaklı yürüyüşü belirten 'iki' ve dört ayaklı yürüyüşü gösteren 'dört' kelimeleri getirilmelidir. Topraktan, balçıktan veya nurdan gibi kelimeler bu âyetin metninde yer almaz.",
+      "sourceRef": "TDV Meali 24:45",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_053",
+      "uid": "fed9375336",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 47,
+          "to": 48
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 47 ve 48. ayetlerinde, \"Allah'a ve Peygamber'e inandık ve itaat ettik\" dedikleri halde aralarında hüküm verilmesi istendiğinde münafıkların sergilediği ikiyüzlü tutum nasıl **tasvir edilmiştir?**",
+      "options": [
+        "Verilen hükme gönülden razı olup derhal gereğini yerine getirdikleri",
+        "İçlerinden bir kısmının hemen yüz çevirip döndüğü ve aslında inanmış olmadıkları",
+        "Peygamber'den kendileri için hususi bir şeriat ve ayrıcalık koymasını talep ettikleri",
+        "Mescide gelerek dinden döndüklerini ve açıkça inkâr ettiklerini haykırdıkları"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 47 ve 48. âyetlerinde dilleriyle inandık ve itaat ettik diyen kimselerin, aralarında hüküm vermesi için Allah'a ve Peygamber'e çağırıldıklarında içlerinden bir grubun hemen yüz çevirip döndüğü ve bunların hakiki mümin olmadıkları bildirilmiştir. Âyet-i kerime, nifak ehlinin samimiyetsizliğini ve iş hükme gelince ilahi adaletten kaçtıklarını gözler önüne sermiştir. Gönülden rıza göstermek veya açıkça inkâr ilan etmek münafıkların bu âyetlerdeki tutumu değildir.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:47-48",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_054",
+      "uid": "adf2e6f98e",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 48,
+          "to": 50
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Aralarında hüküm verilmek üzere çağrıldıklarında yüz çevirip dönmeleri",
+        "Hükmedilen hak kendi lehlerine olduğu takdirde boyun eğip Peygamber'e koşarak gelmeleri",
+        "Kalplerinde nifak hastalığı bulunması veya din hususunda derin bir şüphe içinde olmaları",
+        "Allah ve Resûlü'nün kendilerine haksızlık ve zulüm edeceğinden yersiz bir korkuya kapılmaları"
+      ],
+      "stem": "Nûr Suresi 48–50. ayetlerinde, aralarında hüküm verilmek üzere çağrılan münafıkların sergilediği ikiyüzlü tavırlar ve kalbî halleri hakkında yukarıdakilerden hangileri **doğrudur?**",
+      "options": [
+        "I, II ve III",
+        "I, II ve IV",
+        "II, III ve IV",
+        "I, II, III ve IV"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 48–50. âyetlerinde münafıkların yüz çevirmeleri (I), menfaat olunca gelmeleri (II), şüphe içinde olmaları (III) ile haksızlığa uğrama korkusu taşımaları (IV) bildirilmiş ve asıl zalimlerin kendileri olduğu ilan edilmiştir. Bu çarpıcı beyanlar nifak ehlinin samimiyetsiz iç dünyasını ve adaletten kaçan tavırlarını bütünüyle ortaya koymaktadır. Bu sebeple öncüllerde zikredilen maddelerin tamamı âyetlerin içeriğiyle tam olarak örtüşmektedir.",
+      "sourceRef": "TDV Meali 24:48-50",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_055",
+      "uid": "94705c6f7e",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 51,
+          "to": 51
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 51. ayetine göre, aralarında hüküm vermesi için Allah'a ve Resûlüne davet edildiklerinde samimi müminlerin takındığı teslimiyet tavrı ve sözü aşağıdakilerden **hangisidir?**",
+      "options": [
+        "«İşittik ve itaat ettik» derler; işte asıl bunlar kurtuluşa erenlerdir.",
+        "«Bunu kendi aramızda müzakere ederiz» derler; ihtiyatla yaklaşırlar.",
+        "«Önce hukuki delilleri tetkik edelim» derler; şüpheyle karşılarlar.",
+        "«Eğer lehimize hüküm verilirse kabul ederiz» derler; menfaat ararlar."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 51. âyetinde 'Aralarında hüküm vermesi için Allah'a ve Resûlüne davet edildiklerinde, müminlerin sözü ancak «İşittik ve itaat ettik» demeleridir; işte asıl bunlar kurtuluşa erenlerdir' buyrulmaktadır. Hakiki iman, ilahi hüküm karşısında tereddütsüz teslimiyeti ve tam bir itaati gerektirir. Müzakere teklif etmek, delil öne sürerek çekinmek veya menfaate göre tavır takınmak münafıkların vasfıdır.",
+      "sourceRef": "TDV Meali 24:51",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_056",
+      "uid": "f8a54ae1d2",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 51,
+          "to": 51
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Aralarında hüküm vermesi için Allah'a ve Resûlüne davet edildiklerinde, müminlerin sözü ancak «........ ve ........» demeleridir. İşte asıl bunlar kurtuluşa erenlerdir.\"\n\nNûr Suresi 51. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "Gördük / inandık",
+        "Anladık / teslim olduk",
+        "İşittik / itaat ettik",
+        "Dinledik / düşündük"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 51. âyetinin TDV mealinde '...müminlerin sözü ancak «İşittik ve itaat ettik» demeleridir; işte asıl bunlar kurtuluşa erenlerdir' buyrulmaktadır. Âyet metninde birinci boşluğa ilahi çağrıyı algılamayı belirten 'İşittik', ikinci boşluğa ise mutlak teslimiyeti ifade eden 'itaat ettik' kelimesi getirilmelidir. Gördük/inandık veya anladık/teslim olduk gibi alternatifler âyetin lafzıyla örtüşmez.",
+      "sourceRef": "TDV Meali 24:51",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_057",
+      "uid": "ab6ee2fa88",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 52,
+          "to": 52
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Allah'a ve Resûlüne gönülden ve samimiyetle itaat etmek",
+        "Allah'a derin bir saygı duymak (haşyet beslemek)",
+        "Allah'ın emirlerine aykırı davranmaktan sakınmak (takvâ sahibi olmak)",
+        "Yalnızca dünyevi menfaat ve kazanç sağlayan ilahi emirlere rıza göstermek"
+      ],
+      "stem": "Nûr Suresi 52. ayetinde \"asıl mutluluğa erenler\" olarak müjdelenen kimselerin vasıfları arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 52. âyetinde 'Her kim Allah'a ve Resûlüne itaat eder, Allah'a saygı duyar ve O'ndan sakınırsa, işte asıl bunlar mutluluğa erenlerdir' buyrulmuştur (I, II ve III). Bu âyet ebedi felah ve kurtuluşun itaat, saygı ve takva temeline dayandığını hükme bağlamıştır. Yalnızca menfaat sağlayan hükümlere rıza göstermek (IV) ise münafıklara ait yerilmiş bir tutumdur.",
+      "sourceRef": "TDV Meali 24:52",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_058",
+      "uid": "90a2cfb6f9",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 53,
+          "to": 53
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 53. ayetinde, Hz. Peygamber emrettiği takdirde mutlaka savaşa çıkacaklarına dair en ağır yeminleri eden münafıklara karşı nasıl cevap verilmesi **emredilmiştir?**",
+      "options": [
+        "«Yemin etmeyenleri derhal Medine sınırları dışına çıkarıp sürgün edin!»",
+        "«De ki: Yemin etmeyin. İtaatiniz malûmdur! Bilin ki Allah yaptıklarınızdan haberdardır.»",
+        "«Yeminlerinizi tazeleyin ki ordunun ön saflarında sadakatinizi görelim.»",
+        "«Savaş hazırlıklarınızı derhal tamamlayıp ganimet taksimine katılın.»"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 53. âyetinde en ağır yeminlerle bağlılık iddia eden münafıklara karşı «De ki: Yemin etmeyin; itaatiniz malûmdur, bilin ki Allah yaptıklarınızdan haberdardır» denilmesi emredilmiştir. Âyet, münafıkların yeminlerinin samimiyetsizliğini ve bilinen sahte itaat iddialarının Allah katında hiçbir değer taşımadığını yüzlerine vurmuştur. Sürgün emri veya yemin tazeleme gibi talepler bu âyette yer almaz.",
+      "sourceRef": "TDV Meali 24:53",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_059",
+      "uid": "00cc023dc0",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 54,
+          "to": 54
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 54. ayetinde Peygamber'in vazifesi ile insanların sorumluluğu arasındaki denge nasıl **açıklanmıştır?**",
+      "options": [
+        "İnsanlar yüz çevirdiği takdirde peygamber onların günahlarından dolayı cezalandırılır.",
+        "Peygamber yalnızca itaat edenlere tebliğle mükelleftir; asilere karşı hiçbir görevi yoktur.",
+        "Peygamber'in sorumluluğu tebliğdir, insanlarınki itaattir; Peygamber'e düşen sadece açık-seçik duyurmaktır.",
+        "Peygamber insanların kalplerindeki imanı zorla oluşturmak ve denetlemekle mükellef kılınmıştır."
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 54. âyetinde 'Peygamber'in sorumluluğu kendisine yüklenen (tebliğ görevini yapmak), sizin sorumluluğunuz da size yüklenen (görevleri yerine getirmeniz)dir... Peygamber'e düşen, sadece açık-seçik duyurmaktır' buyrulmaktadır. Âyet, peygamberin vazifesinin tebliğden ibaret olduğunu ve hidayet veya inkârın vebalinin doğrudan muhatapların kendilerine ait olduğunu vurgulamıştır. Zorla iman ettirmek veya ümmetin günahından sorumlu tutulmak peygamberlik vazifesiyle bağdaşmaz.",
+      "sourceRef": "TDV Meali 24:54",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_060",
+      "uid": "91f9e66912",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 55,
+          "to": 55
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Kendilerinden öncekileri sahip ve hâkim kıldığı gibi onları da yeryüzüne sahip ve hâkim kılacağı",
+        "Onlar için beğenip seçtiği dini (İslâm'ı) onların iyiliğine yerleştirip koruyacağı",
+        "Geçirdikleri korku döneminden sonra bunun yerine onlara mutlak bir güven sağlayacağı",
+        "İnkârcılarla barış yapıldığı takdirde ibadette ortak koşulmasına geçici ruhsat verileceği"
+      ],
+      "stem": "Nûr Suresi 55. ayetinde (İstihlâf Ayeti), iman edip salih amel işleyen müminlere verilen ilâhî vaatler arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 55. âyetinde iman edip salih amel işleyenlere yeryüzünde hâkimiyet (I), seçilen İslam dininin kökleşip korunması (II) ve korkunun güvene dönüşmesi (III) kesin ilahi vaatler olarak müjdelenmiştir. Âyetin devamında bu vaatlerin 'Bana kulluk ederler; hiçbir şeyi bana eş tutmazlar' şartına bağlı olduğu belirtilmiştir. Dolayısıyla şirke müsaade edileceğini öne süren IV. öncül âyetin tevhid şartıyla tamamen çelişmektedir.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:55",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_061",
+      "uid": "f5019c89bc",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 55,
+          "to": 55
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Allah, sizlerden iman edip iyi davranışlarda bulunanlara... (geçirdikleri) ........ döneminden sonra, bunun yerine onlara ........ sağlayacağını vâdetti. Çünkü onlar bana kulluk ederler; hiçbir şeyi bana eş tutmazlar...\"\n\nNûr Suresi 55. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "ayrılık / birlik",
+        "zayıflık / zafer",
+        "kıtlık / bolluk",
+        "korku / güven"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 55. âyetinin TDV mealinde '...ve (geçirdikleri) korku döneminden sonra, bunun yerine onlara güven sağlayacağını vâdetti...' buyrulmaktadır. Âyet metninde birinci boşluğa müminlerin yaşadığı endişeli dönemi niteleyen 'korku', ikinci boşluğa ise ilahi vaatle kavuşacakları emniyeti ifade eden 'güven' kelimesi getirilmelidir. Ayrılık/birlik veya zayıflık/zafer gibi ikililer anlamca yakın görünse de meal lafzında yer almaz.",
+      "sourceRef": "TDV Meali 24:55",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_062",
+      "uid": "0ad1b8026f",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 56,
+          "to": 56
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 56. ayetinde, ilâhî rahmet ve merhamete kavuşabilmek için müminlere emredilen üç temel kulluk görevi aşağıdakilerden hangisinde **birlikte verilmiştir?**",
+      "options": [
+        "Namazı dosdoğru kılmak, zekâtı vermek ve Peygamber'e itaat etmek",
+        "İlim tahsil etmek, cihat için sefere çıkmak ve ganimet toplamak",
+        "Yalnızca Medine'de ikamet etmek, ticaret yapmak ve sadaka vermek",
+        "Sürekli nafile oruç tutmak, hacca gitmek ve kurbanlar kesmek"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 56. âyetinde 'Namazı kılın; zekâtı verin; Peygamber'e itaat edin ki merhamet göresiniz' buyrulmaktadır. Âyet-i kerime, ilahi rahmete nail olmanın temel şartlarını namaz, zekât ve Peygamber'e itaat olarak belirlemiştir. İlim tahsili, nafile oruç veya ticari sadaka dinin genel tavsiyelerinden olsa da bu âyette zikredilen üç temel şart namaz, zekât ve itaattir.",
+      "sourceRef": "TDV Meali 24:56",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_063",
+      "uid": "6cb0687e2b",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 57,
+          "to": 57
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 57. ayetine göre, yeryüzünde Allah'ı âciz bırakabileceklerini zanneden inkârcıların nihai varış yeri aşağıdakilerden hangisinde **doğru belirtilmiştir?**",
+      "options": [
+        "Issız çöllerin kavurucu sıcaklığı ve kum fırtınaları",
+        "Varılacak ne kötü bir yer olan cehennem azabı",
+        "Cennet ile cehennem arasında kalan Araf tepeleri",
+        "Karanlık kuyuların ve geçitlerin zifiri derinlikleri"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 57. âyetinde inkârcıların yeryüzünde Allah'ı asla âciz bırakamayacakları ve varacakları nihai yerin cehennem olduğu kesin bir dille bildirilmiştir. Âyet-i kerime, ilahi adaletten kaçamayacak olan kâfirlerin varacağı cehennemi son derece kötü bir durak olarak nitelemiştir. Issız çöller, Araf tepeleri veya kuyu azabı bu âyetin metninde yer almaz.",
+      "sourceRef": "TDV Meali 24:57",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_064",
+      "uid": "31f2e67f19",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 58,
+          "to": 58
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 58. ayetinde, ev halkının mahrem bulunabileceği belirtilerek çocukların ve hizmetçilerin izin istemeleri emredilen üç vakit aşağıdakilerin hangisinde **eksiksiz belirtilmiştir?**",
+      "options": [
+        "Güneş doğarken, öğle namazından önce ve akşam namazından hemen sonraki dinlenme vaktinde",
+        "İkindi namazı vaktinde, akşam ezanı okunduğunda ve gece yarısı ibadetine kalkıldığı esnada",
+        "Kuşluk vaktinde, cuma namazı esnasında ve bayram günlerinde akraba ziyaretlerinin yapıldığı anda",
+        "Sabah namazından önce, öğleyin soyunulan vakitte ve yatsı namazından sonraki istirahat anında"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 58. âyetinde aile mahremiyetini korumak üzere izin istenmesi emredilen üç vakit; sabah namazından önce, öğleyin dinlenmek için soyunulan vakitte ve yatsı namazından sonra olarak tayin edilmiştir. Âyet-i kerime bu üç vakti insanların örtünmemiş halde bulunabileceği mahrem saatler olarak nitelemiştir. Kuşluk, ikindi veya akşam vakti gibi dilimler âyette izin şartı koşulan bu üç vakit arasında sayılmamıştır.",
+      "sourceRef": "TDV Meali 24:58",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_065",
+      "uid": "00a6dce6da",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 58,
+          "to": 58
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Ey müminler! Ellerinizin altında bulunanlar ve içinizden henüz ........ çağına girmemiş olanlar... sizden üç defa izin istesinler. Bunlar, ........ halde bulunabileceğiniz üç vakittir...\"\n\nNûr Suresi 58. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "gençlik / tenha",
+        "yetişkinlik / gizli",
+        "ergenlik / mahrem",
+        "olgunluk / yalnız"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 58. âyetinin TDV mealinde '...içinizden henüz ergenlik çağına girmemiş olanlar... sizden üç defa izin istesinler; bunlar, mahrem (kapanmamış) halde bulunabileceğiniz üç vakittir...' buyrulmaktadır. Âyetteki boşluklara sırasıyla çocukluk dönemini sınırlandıran 'ergenlik' ile örtüsüz bulunma durumunu ifade eden 'mahrem' kelimeleri getirilmelidir. Gençlik/tenha veya yetişkinlik/gizli gibi ikililer âyetin TDV meal metniyle örtüşmez.",
+      "sourceRef": "TDV Meali 24:58",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_066",
+      "uid": "6cb8c977c1",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 58,
+          "to": 58
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 58. ayetinin tefsir dipnotuna göre, öğle vakti odasına izinsiz girilmesi üzerine canı sıkılıp böyle zamanlarda izin istenmesini temenni eden sahabi aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Hz. Osman",
+        "Hz. Ömer",
+        "Hz. Ebubekir",
+        "Hz. Ali"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 58. âyetinin TDV tefsir dipnotunda nakledildiğine göre, Müdlic adlı sahabi bir öğle vakti Hazreti Ömer'in odasına izinsiz girmiş ve üzeri açılmış olan Hazreti Ömer bu duruma üzülerek mahrem vakitlerde izin kuralı konulmasını temenni etmiştir. Hazreti Ömer Peygamberimizin huzuruna vardığında bu âyetin indiğini öğrenmiş ve Allah'a hamdetmiştir. Rivayette adı geçen ve bu temennide bulunan sahabi Hazreti Ömer'dir.",
+      "sourceRef": "TDV Meali Dipnotu 24:58",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_067",
+      "uid": "356fc08a6d",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 59,
+          "to": 59
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 59. ayetine göre, çocuklar ergenlik çağına ulaştıklarında ev içi izin isteme kuralları nasıl **değişmektedir?**",
+      "options": [
+        "Aile bireylerine karşı izin isteme yükümlülükleri tamamen ortadan kalkar.",
+        "Yalnızca anne ve babalarının yatak odasına girerken izin istemekle yetinirler.",
+        "Sadece cuma ve bayram günlerinde büyüklere hürmeten izin istemeleri gerekir.",
+        "Kendilerinden önceki büyükleri gibi her vakitte izin istemeleri farz olur."
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 59. âyetinde 'Çocuklarınız ergenlik çağına girdiklerinde, kendilerinden öncekiler (büyükleri) izin istedikleri gibi onlar da izin istesinler' buyrulmaktadır. Çocuklar büluğ çağına erdikten sonra artık sadece üç mahrem vakitte değil, yetişkinlerin tâbi olduğu genel hüküm uyarınca her vakitte izin istemekle mükellef olurlar. İznin tamamen kalkması veya sadece anne babaya hasredilmesi âyetin hükmüyle çelişir.",
+      "sourceRef": "TDV Meali 24:59",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_068",
+      "uid": "39fb4598c5",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 60,
+          "to": 60
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 60. ayetinde ve ilgili dipnotta, evlenme ümidi kalmamış yaşlı kadınlara örtünme konusunda tanınan ruhsat ve sınır aşağıdakilerden hangisinde **doğru belirtilmiştir?**",
+      "options": [
+        "Zinetlerini teşhir etmeksizin dış elbiselerini çıkarmalarında sakınca yoktur; fakat sakınmaları daha hayırlıdır.",
+        "Evlilik bağı kuramayacakları gerekçesiyle yabancı erkeklerin yanında örtünmekten tamamen muaftırlar.",
+        "İstedikleri takdirde takı ve süs eşyalarını yabancı erkeklere serbestçe sergileme hakları bulunmaktadır.",
+        "Sosyal hayatın içinde hiçbir mahremiyet kuralına uymaksızın diledikleri gibi giyinip gezebilirler."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 60. âyetinde nikâh ümidi kalmamış yaşlı kadınların zinetlerini yabancılara teşhir etmemek kaydıyla bazı dış elbiselerini çıkarmalarında vebal olmadığı, ancak iffetli davranıp örtünmeyi korumalarının kendileri için daha hayırlı olduğu bildirilmiştir. TDV dipnotunda bu ruhsatın fitne ihtimalinin azalmasından kaynaklandığı, fakat mutlak bir açılmaya asla izin verilmediği açıklanmıştır. Zinetleri sergilemek veya tesettürden tamamen muaf olmak âyette açıkça yasaklanmıştır.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:60",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_069",
+      "uid": "af60972904",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 61,
+          "to": 61
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Âmâ, topal ve hasta kimselere yapamayacakları görevlerin yüklenmeyip güçlüğün kaldırılması",
+        "Anne-baba, kardeş, amca, hala, dayı, teyze veya anahtarı uhdede olan evlerden yemek yenilebilmesi",
+        "Yemeklerin toplu halde veya ayrı ayrı yenmesinde dinen bir sakınca bulunmaması",
+        "Evlere girildiğinde Allah katından mübarek ve pek güzel bir yaşama dileği olarak selâm verilmesi"
+      ],
+      "stem": "Nûr Suresi 61. ayetinde düzenlenen sosyal hayat ve muaşeret kuralları arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve III",
+        "I, II ve IV",
+        "II, III ve IV",
+        "I, II, III ve IV"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 61. âyetinde engellilere ve hastalara güçlük olmadığı (I), yakın akrabaların ve dostların evinde yemek yenebileceği (II), toplu veya ayrı yemenin caiz olduğu (III) ve evlere girerken selam verilmesi (IV) açıkça hükme bağlanmıştır. Bu hükümler İslam toplumunda dayanışmayı, külfetsiz kaynaşmayı ve sevgi bağlarını tesis etmeyi amaçlar. Dolayısıyla öncüllerde zikredilen maddelerin tamamı âyetin metninde eksiksiz yer almaktadır.",
+      "sourceRef": "TDV Meali 24:61",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_070",
+      "uid": "e38063f39b",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 61,
+          "to": 61
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Evlere girdiğiniz zaman, Allah tarafından mübarek ve pek güzel bir yaşama dileği olarak ........ selâm verin. İşte Allah, düşünüp anlayasınız diye size âyetleri böyle açıklar.\"\n\nNûr Suresi 61. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "ev sahiplerine",
+        "hane büyüklerine",
+        "kendinize (birbirinize)",
+        "koruyucu meleklere"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 61. âyetinin TDV mealinde 'Evlere girdiğiniz zaman, Allah tarafından mübarek ve pek güzel bir yaşama dileği olarak kendinize (birbirinize) selâm verin' buyrulmaktadır. Âyet metninde boş bırakılan kısma müminlerin birbiriyle bütünleşmesini ve esenlik dileğini anlatan 'kendinize (birbirinize)' ifadesi getirilmelidir. Ev sahiplerine, hane büyüklerine veya meleklere gibi lafızlar meal metninde doğrudan yer almaz.",
+      "sourceRef": "TDV Meali 24:61",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_071",
+      "uid": "d471d1dc1a",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 62,
+          "to": 62
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi 62. ayetinde, Peygamber ile birlikte toplumu ilgilendiren ortak bir iş üzerindeyken gerçek müminlerin sergilemesi gereken disiplin kuralı aşağıdakilerden hangisinde **doğru belirtilmiştir?**",
+      "options": [
+        "Peygamber'den izin istemedikçe işi kesinlikle bırakıp gitmemek",
+        "Mazeret bildirmeksizin ayrılıp gerekçeyi daha sonra şifahi açıklamak",
+        "Toplu iş biter bitmez istişareyi beklemeden derhal oradan uzaklaşmak",
+        "Kendi kararlarını çoğunluk oylamasıyla liderden bağımsızca uygulamak"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 62. âyetinde 'Müminler, ancak Allah'a ve Resûlüne gönülden inanmış kimselerdir; onlar, o Peygamber ile ortak bir iş üzerindeyken ondan izin istemedikçe bırakıp gitmezler' buyrulmaktadır. Âyet-i kerime, toplumsal nizam ve istişare disiplini gereğince meşru bir mazeret olsa dahi liderden izin almadan ayrılmamayı hakiki imanın bir gereği saymıştır. Habersiz ayrılmak veya bağımsız hareket etmek mümince bir tavır olarak kabul edilmemiştir.",
+      "sourceRef": "TDV Meali 24:62",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_072",
+      "uid": "fb37e3949b",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 62,
+          "to": 62
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 62. ayetine göre, meşru mazeretleri sebebiyle Hz. Peygamber'den izin isteyen samimi müminler hakkında Resûlullah'a nasıl muamele etmesi **tavsiye edilmiştir?**",
+      "options": [
+        "İzin isteyen kimselerin her birine caydırıcı olması için maddi para cezası kesmesi",
+        "Toplumsal düzenin sarsılmaması adına mazeretlilere hiçbir surette izin vermemesi",
+        "Dilediğine izin vermesi ve onlar için Allah'tan bağışlanma ve mağfiret dilemesi",
+        "İzin talep edenleri derhal toplumsal meclislerden ve askerî görevlerden azletmesi"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 62. âyetinde Peygamberimize hitaben '...Öyle ise, bazı işleri için senden izin istediklerinde, sen de onlardan dilediğine izin ver; onlar için Allah'tan bağış dile; Allah mağfiret edicidir, merhametlidir' buyrulmaktadır. Âyet, yöneticinin mazeretleri takdir ederek uygun gördüklerine izin vermesini ve müminlerin affı için dua etmesini emretmiştir. Ceza kesmek, izin vermeyi tamamen yasaklamak veya görevden azletmek âyetin getirdiği nebevi yönetim anlayışıyla bağdaşmaz.",
+      "sourceRef": "TDV Meali 24:62",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_073",
+      "uid": "2f4e761e7b",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 63,
+          "to": 63
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Nûr Suresi 63. ayetinde ve ilgili dipnotta, Hz. Peygamber'e hitap ederken veya onu çağırırken müminlerin uyması gereken edep ve hürmet kuralı nasıl **ifade edilmiştir?**",
+      "options": [
+        "Peygamber'e sadece yazılı mektuplarla müracaat edip şifahi konuşmaktan tamamen kaçınmaları gerektiği",
+        "Peygamber'in meclisinde hiç söz almayıp yalnızca işaret diliyle meramlarını anlatmaları gerektiği",
+        "Peygamber'e doğrudan yaklaşmayıp taleplerini sadece kabile reisleri aracılığıyla iletmeleri gerektiği",
+        "Peygamber'i kendi aralarında birbirlerini çağırır gibi sıradan bir hitapla çağırmamaları gerektiği"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 63. âyetinde 'Peygamber'i, kendi aranızda birbirinizi çağırır gibi çağırmayın' buyrulmaktadır. TDV dipnotunda açıklandığı üzere Peygamber Efendimize yalnızca yalın ismiyle hitap etmek ümmetlik terbiyesine aykırı olup ona Resûlullah veya Peygamberimiz gibi hürmet bildiren unvanlarla hitap edilmesi emredilmiştir. Yazılı başvurma zorunluluğu veya araya sadece kabile reislerini koyma şartı bu âyette yer almaz.",
+      "sourceRef": "TDV Meali ve Dipnotu 24:63",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_074",
+      "uid": "409527ef10",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 63,
+          "to": 63
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Müminlerin toplu işlerden başkalarını siper edinerek gizlice sıvışıp gitmekten sakınmaları",
+        "Peygamber'in ilahi emir ve direktiflerine kesinlikle aykırı davranılmaması gerektiği",
+        "Peygamber'in emrine muhalefet edenlerin dünyada başlarına bir fitne ve belâ gelmesinden sakınması",
+        "Peygamber'in emrine karşı gelenlere ahirette pek elemli bir azabın isabet edeceği uyarısı"
+      ],
+      "stem": "Nûr Suresi 63. ayetinde müminlere yöneltilen ikazlar ve Peygamber'in emrine muhalefet edenleri bekleyen akıbetler arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve III",
+        "I, II ve IV",
+        "II, III ve IV",
+        "I, II, III ve IV"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Nûr Suresi 63. âyetinde başkalarını siper ederek gizlice sıvışanların bilindiği (I), nebevi emirlere aykırı davranılmaması gerektiği (II) ve bu emirlere muhalefet edenlerin dünyada bir fitneye veya ahirette pek elemli bir azaba uğrayacakları (III ve IV) bildirilmiştir. Âyet, peygambere itaatin ve disiplinin hem dünyevi huzur hem de ebedi kurtuluş için şart olduğunu ortaya koymuştur. Bu sebeple öncüllerdeki ikaz ve akıbetlerin tamamı âyette yer almaktadır.",
+      "sourceRef": "TDV Meali 24:63",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_024_075",
+      "uid": "1ab7b2a74b",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 24,
+          "from": 64,
+          "to": 64
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Nûr Suresi'nin son ayeti olan 64. ayette, kâinattaki mutlak mülkiyet ve insanın nihai dönüşü hakkında hangi temel hakikat **bildirilmiştir?**",
+      "options": [
+        "Kıyamet gününde yalnızca inkârcılar hesaba çekilecek; diğer insanların amelleri sorgulanmayacaktır.",
+        "Göklerde ve yerde ne varsa Allah'ındır; O kulların halini bilir ve döndükleri gün yaptıklarını haber verir.",
+        "İnsanların amelleri yalnızca dünyada karşılık bulur; ölümden sonraki hayata herhangi bir vebal kalmaz.",
+        "Göklerin mülkiyeti meleklerin idaresine, yeryüzü ise bütünüyle insanların tasarrufuna bırakılmıştır."
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Nûr Suresi 64. âyetinde 'Bilmiş olun ki, göklerde ve yerde ne varsa Allah'ındır; O, sizin ne yolda olduğunuzu iyi bilir; insanlar O'nun huzuruna döndürüldükleri gün yapmış olduklarını onlara hemen bildirir; Allah her şeyi hakkıyla bilendir' buyrulmaktadır. Âyet, tüm varlığın yegâne sahibinin Allah olduğunu ve insanların bütün fiillerinin ilahi ilimle kuşatılarak hesap gününde kendilerine bildirileceğini vurgulamıştır. Sadece inkârcıların hesaba çekilmesi veya vebalin dünyayla sınırlı kalması âyetin açık beyanıyla çelişir.",
+      "sourceRef": "TDV Meali 24:64",
+      "verificationStatus": "verified"
+    }
+  ]
+}

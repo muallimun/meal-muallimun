@@ -1,1 +1,1560 @@
-{"s":49,"questions":[{"id":"Q_049_001","uid":"fca0bc128a","surah":49,"cuz":26,"scope":"surah_info","refs":[{"sure":49,"from":1,"to":18}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi adını 4. ayetinde geçen ve \"odalar\" anlamına gelen \"el-Hucurât\" kelimesinden almıştır. Bu kelime tarihsel bağlamda aşağıdakilerden hangisine **işaret etmektedir**?","options":["Kâbe'nin etrafındaki ibadet ve itikâf hücrelerine","Medine'de muhacirlerin iskân edildiği barınaklara","Ashâb-ı Suffe'nin ilim tahsil ettiği özel mekanlara","Mescid-i Nebevî'nin etrafında Hz. Peygamber'in ev olarak kullandığı odalara"],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi genel bilgilerine göre sûre ismini 4. ayette geçen ve 'odalar' mânasına gelen 'el-Hucurât' kelimesinden alır; bu kelime Resûlullah'ın (s.a.s.) Mescid-i Nebevî'nin etrafında ev olarak kullandığı odalara işaret eder.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_049_002","uid":"8976c61deb","surah":49,"cuz":26,"scope":"surah_info","refs":[{"sure":49,"from":1,"to":18}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi'nin nüzul dönemi, ayet sayısı ve iniş sırası hakkında verilen aşağıdaki bilgilerden hangisi **doğrudur**?","options":["Hicretin 2. yılında Medine'de inmiştir, 28 ayettir ve iniş sırasına göre 85. suredir.","Mekke döneminin sonlarında inmiştir, 18 ayettir ve iniş sırasına göre 102. suredir.","Hicretin 9. yılında Medine'de inmiştir, 18 ayettir ve iniş sırasına göre 105. suredir.","Mekke döneminde inmiştir, 18 ayettir ve iniş sırasına göre 49. suredir."],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi, Medine döneminde hicretin 9. yılında nâzil olmuştur; 18 âyettir, resmî tertipte 49, nüzûl sırasına göre ise 105. sûredir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_003","uid":"7dc57f893d","surah":49,"cuz":26,"scope":"surah_info","refs":[{"sure":49,"from":1,"to":18}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Müminlerin Allah'a ve Resûlü'ne karşı olan vazifeleri ve edep kuralları","Müminlerin kendi aralarındaki beşerî münasebetleri, kardeşlik hukuku ve ahlak ilkeleri","Müminlerin diğer insanlarla münasebetleri ve tebliğ esasları","Miras taksimi ve aile hukukuyla ilgili ayrıntılı fıkhî oranlar"],"stem":"Hucurât Suresi'nde işlenen ana konular dikkate alındığında, yukarıdakilerden hangileri surenin odaklandığı üç mühim mevzu arasında **yer alır**?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"Surenin konusu kısmında üç mühim mevzunun işlendiği belirtilir: Müminlerin Allah ve Resûlü'ne karşı vazifeleri, kendi aralarındaki beşerî münasebetler ve diğer insanlarla münasebetleri. Miras taksimi detayları bu surenin ana konuları arasında yer almaz.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_004","uid":"5c258a270a","surah":49,"cuz":26,"scope":"surah_info","refs":[{"sure":49,"from":1,"to":1}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi'nin nüzul bilgileri incelendiğinde, surenin ilk ayetinin iniş sebebi olarak aşağıdakilerden hangisi **nakledilmiştir**?","options":["Kıble değişikliği karşısında tereddüt yaşayan müminleri teskin etmek için","Tebük Seferi'ne mazeretsiz katılmayanların durumunu açıklamak için","Mekke'nin fethinden sonra müşriklerin Mescid-i Haram'a giriş şartlarını belirlemek için","Sözde veya davranışta Hz. Peygamber'in önüne geçerek yahut onun sözünü keserek edebe aykırı davrananları uyarmak için"],"answerIndex":3,"lockOrder":false,"explanation":"Sure bilgileri kaynağında belirtildiğine göre ilk ayet, sözde veya davranışta Hz. Peygamber'in önüne geçerek veya onun sözünü keserek edebe aykırı davrananları uyarmak için gelmiştir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_005","uid":"4fc04f9587","surah":49,"cuz":26,"scope":"surah_info","refs":[{"sure":49,"from":1,"to":18}],"mealBasis":"tdv","type":"mcq","difficulty":3,"premises":[],"stem":"Hucurât Suresi nüzul kronolojisi bakımından aşağıdaki surelerden hangisinden sonra, hangisinden önce **nâzil olmuştur**?","options":["Nûr Suresi'nden sonra, Ahzâb Suresi'nden önce","Fetih Suresi'nden sonra, Kâf Suresi'nden önce","Ahkâf Suresi'nden sonra, Muhammed Suresi'nden önce","Mücâdele Suresi'nden sonra, Tahrîm Suresi'nden önce"],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi nüzul bilgisine göre sûre, Medine'de Mücâdele Suresi'nden sonra ve Tahrîm Suresi'nden önce nâzil olmuştur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_006","uid":"a61f405870","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":1,"to":1}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Ey iman edenler! Allah'ın ve Resûlünün ........ geçmeyin. Allah'tan korkun. Şüphesiz Allah işitendir, bilendir.\"\n\nHucurât Suresi 1. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi **getirilmelidir**?","options":["buyruğunun","sözünün","önüne","huzuruna"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 1. ayetin TDV Meali: 'Ey iman edenler! Allah'ın ve Resûlünün önüne geçmeyin. Allah'tan korkun. Şüphesiz Allah işitendir, bilendir.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_007","uid":"b3b6ab06de","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":1,"to":1}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 1. ayetinde yer alan \"Allah'ın ve Resûlünün önüne geçmeyin\" ilâhî emri bağlamında müminlerden beklenen temel tutum aşağıdakilerden hangisinde **doğru açıklanmıştır**?","options":["Söz, fiil ve hükümlerde Hz. Peygamber'e aykırı davranmamak, edebi korumak ve vahyin rehberliğine tabi olmak","Cemaatle namaz kılarken fiziksel olarak imamın ön safında yer almamak","Dini tebliğ ederken peygamberlerin isimlerini kronolojik sıraya göre anmak","Savaş esnasında komutanın izni olmaksızın düşman saflarına hücum etmemek"],"answerIndex":0,"lockOrder":false,"explanation":"Ayetteki 'önüne geçmeme' ilkesi; söylenen söz, yapılan iş ve çıkarılan hükümlerde Hz. Peygamber'e aykırı davranmama, edebi koruma ve O'na uyma şeklinde açıklanmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_008","uid":"57e9020e74","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":2,"to":2}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi 2. ayetine göre, Hz. Peygamber'in huzurunda seslerini onun sesinin üstüne yükselten ve ona birbirlerine bağırdıkları gibi bağıran kimseleri bekleyen manevi tehlike aşağıdakilerden hangisi olarak **bildirilmiştir**?","options":["Toplum içinde itibarlarının kaybolması","Tövbelerinin hiçbir şekilde kabul edilmemesi","Dünyada rızıklarının daraltılması","Farkına varmadan amellerinin boşa gidivermesi"],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 2. ayette '...yoksa siz farkına varmadan amelleriniz boşa gidiverir.' buyurularak bu davranışın amelleri heba edeceği uyarısı yapılmıştır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_049_009","uid":"058dce6474","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":2,"to":2}],"mealBasis":"tdv","type":"fill","difficulty":2,"premises":[],"stem":"\"Ey iman edenler! Seslerinizi Peygamber'in sesinin üstüne ........ Birbirinize bağırdığınız gibi, Peygamber'e yüksek sesle bağırmayın; yoksa siz farkına varmadan amelleriniz ........\"\n\nHucurât Suresi 2. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["duyurmayın / zayi oluverir","ulaştırmayın / siliniverir","yükseltmeyin / boşa gidiverir","çıkarmayın / eksiliverir"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 2. ayet meali: 'Ey iman edenler! Seslerinizi Peygamber'in sesinin üstüne yükseltmeyin... yoksa siz farkına varmadan amelleriniz boşa gidiverir.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_010","uid":"a00ceeb818","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":2,"to":3}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Peygamber'in sesinin üstünde bir ses tonuyla konuşmaktan sakınmak","Birbirine seslenir gibi yüksek sesle bağırarak hitap etmemek","Allah'ın elçisinin huzurunda sesini saygıyla kısmak","Peygamber'e soru sormayı tamamen terk etmek"],"stem":"Hucurât Suresi 2 ve 3. ayetler doğrultusunda, Hz. Peygamber ile iletişimde gözetilmesi emredilen edep kuralları arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"2 ve 3. ayetlerde sesin Peygamber'in sesinin üstüne yükseltilmemesi, sıradan insanlara bağırıldığı gibi bağırılmaması ve huzurunda sesin kısılması emredilmiştir. Soru sormanın tamamen terk edilmesi emredilmemiştir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_011","uid":"180feea789","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":3,"to":3}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 3. ayetine göre, Allah'ın elçisinin huzurunda seslerini kısan kimseler nasıl tanımlanmış ve kendilerine ne **vaat edilmiştir**?","options":["Allah'ın kalplerini takvâ ile imtihan ettiği kimselerdir; onlara mağfiret ve büyük bir mükâfat vardır.","Hicret eden kimselerdir; onların bütün geçmiş günahları bağışlanacaktır.","İlimde derinleşmiş kimselerdir; onlara dünyada mülk ve iktidar verilecektir.","Sabır timsali kimselerdir; onlara hesapsız cennet nimetleri bahşedilecektir."],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 3. ayette: 'Allah'ın elçisinin huzurunda seslerini kısanlar, şüphesiz Allah'ın kalplerini takvâ ile imtihan ettiği kimselerdir. Onlara mağfiret ve büyük bir mükâfat vardır.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_012","uid":"08e5861768","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":3,"to":3}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Allah'ın elçisinin huzurunda seslerini kısanlar, şüphesiz Allah'ın kalplerini ........ ile imtihan ettiği kimselerdir. Onlara ........ ve büyük bir mükâfat vardır.\"\n\nHucurât Suresi 3. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["ihlas / esenlik","iman / selamet","takvâ / mağfiret","sabır / hidayet"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 3. ayet metnine göre boşluklara sırasıyla 'takvâ' ve 'mağfiret' kelimeleri gelmelidir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_013","uid":"2f459f2e25","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":4,"to":4}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi 4. ayetinde, Hz. Peygamber'e odaların arka tarafından kaba bir üslupla bağıranlar hakkında aşağıdaki nitelemelerden hangisi **kullanılmıştır**?","options":["Kibre kapılmış zalimler","Bozguncu kimseler","Kalplerinde nifak bulunanlar","Çoğu aklı ermez kimseler"],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 4. ayette '(Resûlüm!) Sana odaların arka tarafından bağıranların çoğu aklı ermez kimselerdir.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_014","uid":"df62472cdb","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":4,"to":4}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"(Resûlüm!) Sana ........ arka tarafından bağıranların çoğu ........ kimselerdir.\"\n\nHucurât Suresi 4. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["odaların / aklı ermez","mescidin / düşüncesiz","duvarların / cahil","evlerin / bilgisiz"],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 4. ayetin TDV Meali: '(Resûlüm!) Sana odaların arka tarafından bağıranların çoğu aklı ermez kimselerdir.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_015","uid":"77dad7c777","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":5,"to":5}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 5. ayetine göre, odaların arkasından bağıran kimselerin nasıl davranması kendileri için daha hayırlı bir edep tavrı olarak **gösterilmiştir**?","options":["Geliş maksatlarını yazılı bir mektupla iletmeleri","Mescide girip nafile namaz kılarak beklemeleri","Hz. Peygamber yanlarına çıkıncaya kadar sabretmeleri","Huzura girmek için sahabelerden aracılık istemeleri"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 5. ayette: 'Eğer onlar, sen yanlarına çıkıncaya kadar sabretselerdi, elbette kendileri için daha iyi olurdu. Allah çok bağışlayan, çok esirgeyendir.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_016","uid":"75c1da5b4d","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":6,"to":6}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi 6. ayetinde, fâsık bir kimse bir haber getirdiğinde müminlere emredilen temel yükümlülük ve bunun gerekçesi aşağıdakilerden hangisinde **doğru belirtilmiştir**?","options":["Haberi getiren kişiyi derhal cezalandırmak; topluma ibret olsun diye","Haberi hiçbir şekilde kabul etmemek; yalana ortak olmamak için","Haberi derhal tüm müminlere yaymak; herkes tedbir alsın diye","Haberin doğruluğunu araştırmak; bilmeden bir topluluğa kötülük edip sonra pişman olmamak için"],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 6. ayette: 'Ey iman edenler! Eğer bir fâsık size bir haber getirirse onun doğruluğunu araştırın. Yoksa bilmeden bir topluluğa kötülük edersiniz de sonra yaptığınıza pişman olursunuz.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_049_017","uid":"0165816be0","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":6,"to":6}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Ey iman edenler! Eğer bir ........ size bir haber getirirse onun doğruluğunu araştırın. Yoksa bilmeden bir topluluğa kötülük edersiniz de sonra yaptığınıza ........ olursunuz.\"\n\nHucurât Suresi 6. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["fâsık / pişman","müşrik / kederli","münafık / mahcup","yalancı / pişman"],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 6. ayet metninde boşluklara 'fâsık' ve 'pişman' kelimeleri gelmelidir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_018","uid":"3383510c38","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":6,"to":6}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Güvenilirliği şüpheli veya yoldan çıkmış kimselerin getirdiği bilgileri tahkik etmeden hüküm vermemek","Doğrulanmamış iddialarla hareket ederek masum insanlara zarar vermekten sakınmak","Fâsıkların getirdiği her haberi doğru kabul edip derhal uygulamaya koymak","Hatasını ve haksızlığını anladığında pişmanlık duyup adil çözüme yönelmek"],"stem":"Hucurât Suresi 6. ayetinden çıkarılması gereken ahlaki ve hukuki ilkeler arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve III","I, II ve IV","II ve III","I, II, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"Hucurât Suresi 6. ayet haberlerin tahkik edilmesini ve masumlara zarar verilmemesini emreder; fâsıkların getirdiği haberi araştırmadan kabul edip uygulamak ayetin yasakladığı davranıştır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_019","uid":"d3a03857de","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":7,"to":7}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 7. ayetine göre, aralarında Allah'ın elçisi bulunan müminlerin her arzusuna ve fikrine şayet Hz. Peygamber uysaydı, karşılaşacakları durum aşağıdakilerden hangisi olarak **ifade edilmiştir**?","options":["Düşmanlarına karşı zafer kazanırlardı.","Dünya işlerinde daha kazançlı çıkarlardı.","İçlerindeki ihtilaflar tamamen çözülürdü.","Sıkıntıya düşerlerdi."],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 7. ayette 'Hem bilin ki, içinizde Allah'ın elçisi vardır. Şayet o, birçok işlerde size uysaydı, sıkıntıya düşerdiniz...' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_020","uid":"b4da6b6a47","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":7,"to":7}],"mealBasis":"tdv","type":"fill","difficulty":2,"premises":[],"stem":"\"Fakat Allah size imanı sevdirmiş ve onu gönüllerinize sindirmiştir. ........ , ........ ve isyanı da size çirkin göstermiştir. İşte doğru yolda olanlar bunlardır.\"\n\nHucurât Suresi 7. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["Şirki / zulmü","Kibri / hasedi","Küfrü / fıskı","Nifakı / yalanı"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 7. ayetin TDV Meali: '...Küfrü, fıskı ve isyanı da size çirkin göstermiştir. İşte doğru yolda olanlar bunlardır.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_021","uid":"8d0f178dd4","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":7,"to":8}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Allah'ın kendilerine imanı sevdirmesi ve onu gönüllerine sindirmesi","Küfür, fısk ve isyanın kendilerine çirkin gösterilmiş olması","Bu manevi durumun Allah'tan bir lütuf ve nimet olarak tecelli etmesi","Dünyevi zenginlik ve kabile asabiyetiyle üstünlük taslamaları"],"stem":"Hucurât Suresi 7 ve 8. ayetlere göre, \"doğru yolda olanlar\" şeklinde nitelendirilen müminlerin özellikleri arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"7 ve 8. ayetlere göre doğru yolda olanlar; Allah'ın imanı sevdirdiği, küfür, fısk ve isyanı çirkin gösterdiği ve bu lütfa mazhar olan müminlerdir. Dünyevi zenginlik veya asabiyetle övünmek ayetlerde doğru yol özelliği olarak sayılmaz.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_022","uid":"a6561f5d84","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":9,"to":9}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi 9. ayetine göre, müminlerden iki grup birbirleriyle savaşa/vuruşmaya tutuşursa, diğer müminlere ilk olarak emredilen görev aşağıdakilerden hangisidir?","options":["Aralarını düzeltmek ve sulhu sağlamak","Her iki grubu da İslam toplumundan dışlamak","Çatışmaya hiçbir şekilde müdahale etmeyip tarafsız kalmak","Güçlü olan taraftan yana tavır almak"],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 9. ayet: 'Eğer müminlerden iki gurup birbirleriyle vuruşurlarsa aralarını düzeltin...' hükmüyle başlar.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_023","uid":"fa415aa988","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":9,"to":9}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 9. ayetinde, aralarını bulma girişimine rağmen vuruşan iki mümin gruptan biri diğerine haksızca saldırmaya (bağy etmeye) devam ederse izlenecek yöntem nasıl **emredilmiştir**?","options":["Her iki grup da silah bırakana kadar boykot edilir.","Mesele kabile reislerinin hakemliğine havale edilir.","Allah'ın buyruğuna dönünceye kadar saldıran tarafla savaşılır.","Haksızlığa uğrayan grubun savaştan çekilmesi istenir."],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 9. ayette '...Şayet biri ötekine saldırırsa, Allah'ın buyruğuna dönünceye kadar saldıran tarafla savaşın.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_024","uid":"4dbc725edb","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":9,"to":9}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Eğer dönerse artık aralarını ........ düzeltin ve (her işte) adaletli davranın. Şüphesiz ki Allah, ........ davrananları sever.\"\n\nHucurât Suresi 9. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["hikmetle / dürüst","ihsanla / cömert","merhametle / sabırlı","adaletle / âdil"],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 9. ayetin devamı: 'Eğer dönerse artık aralarını adaletle düzeltin ve (her işte) adaletli davranın. Şüphesiz ki Allah, âdil davrananları sever.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_025","uid":"fecb3d0572","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":9,"to":9}],"mealBasis":"tdv","type":"premise","difficulty":3,"premises":["Vuruşan taraflar arasında öncelikle sulh ve uzlaşma zemini aramak","Barışa yanaşmayıp tecavüzü sürdüren tarafa karşı ilahi emre dönene kadar mücadele etmek","Saldıran taraf haksızlıktan vazgeçtiğinde aralarını adalet ölçüleriyle düzeltmek","Saldırgan tarafı cezalandırmak amacıyla adalet sınırlarının dışına çıkıp misillemede aşırıya gitmek"],"stem":"Hucurât Suresi 9. ayetinde müminler arası anlaşmazlık ve çatışmaların çözümünde takip edilmesi emredilen aşamalar arasında yukarıdakilerden hangileri **yer almaz**?","options":["Yalnız IV","I ve II","II ve III","III ve IV"],"answerIndex":0,"lockOrder":true,"explanation":"Ayette adaletle davranılması ve adaletten ayrılınmaması emredilmiştir. İntikam saikiyle adalet sınırlarının dışına çıkmak veya misillemede aşırıya gitmek ayetin ruhuna aykırıdır ve yer almaz.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_026","uid":"79bf9f1b67","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":10,"to":10}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi 10. ayetinde müminler arasındaki bağ nasıl tanımlanmış ve aralarında bir ihtilaf doğduğunda diğer müminlere hangi görev **yüklenmiştir**?","options":["Müminler ancak kardeştirler; kardeşlerinin arasını düzeltmeleri emredilmiştir.","Müminler dindaştırlar; haksızlığa uğrayan tarafın hakkını silahla almaları emredilmiştir.","Müminler ortak bir kavimdir; aralarındaki anlaşmazlıkları kabile meclislerine havale etmeleri emredilmiştir.","Müminler müttefiktirler; çatışan taraflara eşit mesafede tarafsız kalmaları emredilmiştir."],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 10. ayette 'Müminler ancak kardeştirler. Öyleyse kardeşlerinizin arasını düzeltin ve Allah'tan korkun ki esirgenesiniz.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_027","uid":"ccdf76497e","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":10,"to":10}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Müminler ancak ........ Öyleyse kardeşlerinizin arasını düzeltin ve Allah'tan korkun ki ........\"\n\nHucurât Suresi 10. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["ortaktırlar / kurtulasınız","yardımcıdırlar / üstün gelesiniz","dostturlar / bağışlanasınız","kardeştirler / esirgenesiniz"],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 10. ayetin TDV Meali: 'Müminler ancak kardeştirler. Öyleyse kardeşlerinizin arasını düzeltin ve Allah'tan korkun ki esirgenesiniz.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_028","uid":"0c2368484a","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":10,"to":10}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Müminler arasındaki ilişkinin temel esasını din kardeşliği olarak kabul etmek","Kardeşler arasında husumet veya ihtilaf çıktığında aralarını ıslah etmek","İlâhî rahmet ve merhamete (esirgenmeye) kavuşabilmek için takvâ bilinciyle hareket etmek","Aralarında ihtilaf çıkan müminleri kendi hallerine bırakıp hiçbir uzlaştırma çabasına girmemek"],"stem":"Hucurât Suresi 10. ayetinde mümin fert ve toplumlara yüklenen vazifeler arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"Ayette müminlerin kardeş olduğu, aralarının düzeltilmesi ve Allah'tan korkulması gerektiği bildirilmiştir. Çatışan tarafları uzlaştırmaktan kaçınmak ayetin emrine aykırıdır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_029","uid":"8d63b5f917","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":11,"to":11}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi 11. ayetine göre, birbirleriyle alay eden, birbirini ayıplayan ve kötü lakaplar takan kimselerden tövbe etmeyenler aşağıdakilerden hangisiyle **nitelendirilmiştir**?","options":["Münafıklar","Müşrikler","Zalimler","Fâsıklar"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 11. ayette '...Kim de tevbe etmezse işte onlar zalimlerdir.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_049_030","uid":"e644661503","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":11,"to":11}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 11. ayetinde, bir topluluğun başka bir topluluğu alaya almaması emredilirken belirtilen ahlakî gerekçe aşağıdakilerden hangisidir?","options":["Alay edilenlerin Allah katında ve hakikatte kendilerinden daha hayırlı/iyi olabilecekleri","Alay edilenlerin dünyada daha zengin ve güçlü olabilecekleri","Alay edilen kimselerin daha sonra intikam almaya kalkışabilecekleri","Alay etmenin kabileler arası kan davasına yol açabileceği"],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 11. ayette: 'Bir topluluk diğer bir topluluğu alaya almasın. Belki de onlar, kendilerinden daha iyidirler. Kadınlar da kadınları alaya almasınlar. Belki onlar kendilerinden daha iyidirler.' gerekçesi vurgulanmıştır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_031","uid":"bd27533bc6","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":11,"to":11}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Kendi kendinizi ayıplamayın, birbirinizi kötü lakaplarla çağırmayın. İmandan sonra ........ ne kötü bir isimdir! Kim de tevbe etmezse işte onlar zalimlerdir.\"\n\nHucurât Suresi 11. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi **getirilmelidir**?","options":["nankörlük","münafıklık","fâsıklık","cahillik"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 11. ayette 'İmandan sonra fâsıklık ne kötü bir isimdir!' ifadesi yer almaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_032","uid":"73044b3982","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":11,"to":11}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Bir topluluğun veya kadınların diğerlerini alaya alması","İnsanların birbirlerinin kusurlarını arayıp kendi kendilerini ayıplamaları","Kişileri incitici ve küçük düşürücü kötü lakaplarla çağırmak","Kardeşler arasında çıkan anlaşmazlıkları adaletle çözüme kavuşturmak"],"stem":"Hucurât Suresi 11. ayetinde yasaklanan ve işlenmesi fâsıklık sayılan tutumlar arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve III","I, II ve III","II ve IV","I, II, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"11. ayette alay etmek, ayıplamak ve kötü lakap takmak yasaklanmıştır. Anlaşmazlıkları adaletle çözmek ise 9 ve 10. ayetlerde emredilen salih bir davranıştır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_033","uid":"fe45ea142c","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":12,"to":12}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi 12. ayetinde, bir kimsenin din kardeşini arkasından çekiştirmesi (gıybet etmesi) aşağıdaki benzetmelerden hangisiyle **tasvir edilmiştir**?","options":["Kendi canına kıymaya","Yetimin malını haksızca tüketmeye","Cehenneme sırtında odun taşımaya","Ölmüş kardeşinin etini yemeye"],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 12. ayette '...Biriniz diğerinizi arkasından çekiştirmesin. Biriniz, ölmüş kardeşinin etini yemekten hoşlanır mı? İşte bundan tiksindiniz...' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_049_034","uid":"3b88df4029","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":12,"to":12}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Ey iman edenler! Zannın çoğundan kaçının. Çünkü zannın bir kısmı ........ Birbirinizin kusurunu ........ Biriniz diğerinizi arkasından çekiştirmesin.\"\n\nHucurât Suresi 12. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["günahtır / araştırmayın","haksızlıktır / kınamayın","hatadır / gizlemeyin","vebaldir / yaymayın"],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 12. ayetin TDV Meali: 'Ey iman edenler! Zannın çoğundan kaçının. Çünkü zannın bir kısmı günahtır. Birbirinizin kusurunu araştırmayın...' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_035","uid":"8218eb4fc8","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":12,"to":12}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Kesin delile dayanmayan sui-zandan ve zannın çoğundan kaçınmak","Müminlerin gizli hallerini ve kusurlarını araştırmamak (tecessüs yapmamak)","Kişilerin arkasından gıybet ederek haysiyetlerini zedelememek","İnsanların gizli kusurlarını tespit edip topluluk içinde ilan etmek"],"stem":"Hucurât Suresi 12. ayetinde müminlerin toplumsal huzuru ve kişisel mahremiyeti korumak için kaçınması emredilen hususlar arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"12. ayette zannın çoğundan kaçınmak, kusur araştırmamak (tecessüs) ve gıybet etmemek kesin bir dille emredilmiştir. İnsanların gizli kusurlarını ilan etmek ayetin ruhuna tamamen zıttır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_036","uid":"344513ceae","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":12,"to":12}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 12. ayetinin sonunda yer alan ilâhî sıfatlar ve yapılan ikaz aşağıdakilerden hangisinde **doğru verilmiştir**?","options":["Sabırlı olunması emredilmiş; O'nun intikam alan ve cezalandıran olduğu bildirilmiştir.","Allah yolunda infak emredilmiş; O'nun rızkı bol veren olduğu bildirilmiştir.","Şükredilmesi emredilmiş; O'nun lütuf ve ihsan sahibi olduğu bildirilmiştir.","Allah'tan sakınılması emredilmiş; O'nun tevbeleri çok kabul eden ve çok esirgeyen olduğu bildirilmiştir."],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 12. ayetin sonunda: 'O halde Allah'tan korkun. Şüphesiz Allah, tevbeyi çok kabul edendir, çok esirgeyicidir.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_037","uid":"80d956cc34","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":13,"to":13}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi 13. ayetine göre, Allah katında insanların en değerlisi ve üstünü aşağıdakilerden hangisidir?","options":["Toplum içinde en yüksek makam ve güce sahip olanı","Maddi imkânı ve serveti en fazla olanı","Allah'tan en çok korkanı (takvâca en ileride olanı)","Soy ve nesep bakımından en köklü olanı"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 13. ayette: 'Muhakkak ki Allah yanında en değerli olanınız, O'ndan en çok korkanınızdır.' buyrulmuştur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_049_038","uid":"7198da9d72","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":13,"to":13}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 13. ayetinde, insanların bir erkek ve bir dişiden yaratılarak kavimlere ve kabilelere ayrılmasının asıl hikmeti aşağıdakilerden hangisiyle **açıklanmıştır**?","options":["Güçlü olan kabilelerin zayıflara hükmetmesi için","Birbirleriyle tanışıp kaynaşmaları için","Kendi aralarında ekonomik rekabet oluşturmaları için","Birbirlerine soy ve nesep üstünlüğü taslamaları için"],"answerIndex":1,"lockOrder":false,"explanation":"Hucurât Suresi 13. ayette 'Ve birbirinizle tanışmanız için sizi kavimlere ve kabilelere ayırdık.' buyrularak bu farklılaşmanın hikmetinin tanışma ve kaynaşma olduğu açıklanmıştır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_049_039","uid":"fbf041e5da","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":13,"to":13}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Ey insanlar! Doğrusu biz sizi bir ........ ve bir ........ yarattık. Ve birbirinizle tanışmanız için sizi kavimlere ve kabilelere ayırdık. Muhakkak ki Allah yanında en değerli olanınız, O'ndan en çok korkanınızdır.\"\n\nHucurât Suresi 13. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["erkekle / dişiden","milletten / kabileden","topraktan / sudan","soydan / aileden"],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 13. ayetin başı: 'Ey insanlar! Doğrusu biz sizi bir erkekle bir dişiden yarattık...' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_040","uid":"d2cb096180","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":13,"to":13}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Bütün insanlığın biyolojik ve kökensel olarak tek bir erkek ve dişiden türediği gerçeği","Kavim ve kabile farklılıklarının üstünlük taslamak için değil tanışıp kaynaşmak için var edildiği","Allah katındaki hakiki üstünlük ve değer ölçüsünün takvâ olduğu","Soy, ırk ve renk imtiyazlarının ahirette insana özel bir ayrıcalık kazandıracağı"],"stem":"Hucurât Suresi 13. ayetinden çıkarılacak evrensel ilkeler arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve III","I, II ve III","II ve IV","I, II, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"13. ayet bütün insanların eşit kökenden geldiğini, kavimlerin tanışma vesilesi olduğunu ve tek üstünlük ölçütünün takva olduğunu ortaya koyar. Soyun üstünlük kazandıracağı anlayışı ise reddedilir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_041","uid":"8b56d8b7b6","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":14,"to":14}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi 14. ayetinde \"İnandık\" diyen bedevîlere yönelik olarak Hz. Peygamber'e nasıl cevap vermesi **emredilmiştir**?","options":["\"İnandığınızı söylemeniz İslam dairesine girmeniz için kâfidir.\"","\"İmanınızı ispat etmek için derhal hicret etmelisiniz.\"","\"Siz asla iman edemezsiniz, ancak münafıklar zümresindensiniz.\"","\"Siz iman etmediniz, ama 'Boyun eğdik' deyin. Henüz iman kalplerinize yerleşmedi.\""],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 14. ayette: 'Bedevîler «İnandık» dediler. De ki: Siz iman etmediniz, ama «Boyun eğdik» deyin. Henüz iman kalplerinize yerleşmedi...' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_049_042","uid":"03ef187391","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":14,"to":14}],"mealBasis":"tdv","type":"fill","difficulty":2,"premises":[],"stem":"\"Bedevîler «İnandık» dediler. De ki: Siz iman etmediniz, ama «Boyun eğdik» deyin. Henüz iman ........ yerleşmedi. Eğer Allah'a ve elçisine itaat ederseniz, Allah ........ hiçbir şeyi eksiltmez.\"\n\nHucurât Suresi 14. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["gönüllerinize / rızkınızdan","kalplerinize / işlerinizden","akıllarınıza / mükâfatınızdan","ruhunuza / sevabınızdan"],"answerIndex":1,"lockOrder":false,"explanation":"Hucurât Suresi 14. ayette: 'Henüz iman kalplerinize yerleşmedi. Eğer Allah'a ve elçisine itaat ederseniz, Allah işlerinizden hiçbir şeyi eksiltmez.' ifadeleri yer alır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_043","uid":"f849bfce70","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":14,"to":14}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Dildeki ikrar ve dış görünüşteki teslimiyetin (İslam/boyun eğme) tek başına kalbe yerleşmiş tahkiki iman anlamına gelmeyebileceği","İmanın kalpte kökleşip yerleşmesi gereken manevi bir tasdik olduğu","Allah'a ve Resûlü'ne samimiyetle itaat edildiğinde amellerin karşılığının eksiksiz verileceği","Bedevîlerin kabile asabiyetlerinin onların kalplerine imanın girmesine mani olmadığı iddiası"],"stem":"Hucurât Suresi 14. ayetinde ortaya konulan iman-amel ilişkisi çerçevesinde yukarıdakilerden hangileri **doğrudur**?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"14. ayet dil ile boyun eğmenin kalpteki tahkiki iman seviyesine ulaşmadığını, itaatle amellerin zayi olmayacağını açıklar.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_044","uid":"e457a066e4","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":15,"to":15}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 15. ayetinde \"doğrular ancak onlardır\" denilerek gerçek müminlerin temel vasıfları nasıl **sıralanmıştır**?","options":["Geceleri sürekli ibadet eden, gündüzleri kesintisiz oruç tutan kimseler","Kendi kabilelerinin güvenliğini ve menfaatini her şeyin üstünde tutanlar","Allah'a ve Resûlüne iman eden, sonra asla şüpheye düşmeyen, Allah yolunda mallarıyla ve canlarıyla savaşanlar","Sadece Medine'de kalıp ilim tahsil eden ve toplumsal olaylardan uzak duran kimseler"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 15. ayette: 'Müminler ancak Allah'a ve Resûlüne iman eden, ondan sonra asla şüpheye düşmeyen, Allah yolunda mallarıyla ve canlarıyla savaşanlardır. İşte doğrular ancak onlardır.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_045","uid":"fab129a98f","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":15,"to":15}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Müminler ancak Allah'a ve Resûlüne iman eden, ondan sonra asla ........ düşmeyen, Allah yolunda ........ ve ........ savaşanlardır. İşte doğrular ancak onlardır.\"\n\nHucurât Suresi 15. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["şüpheye / mallarıyla / canlarıyla","ayrılığa / sözleriyle / fiilleriyle","gevşekliğe / güçleriyle / sabırlarıyla","hataya / dualarıyla / amelleriyle"],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 15. ayette boşluklara sırasıyla 'şüpheye', 'mallarıyla' ve 'canlarıyla' kelimeleri gelmelidir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_046","uid":"9e09a7a8bb","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":15,"to":15}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Allah'a ve Resûlü'ne kalpten ve kesin bir inançla bağlanmak","İman ettikten sonra zihinde ve kalpte hiçbir şek ve şüpheye kapılmamak","Gerektiğinde Allah yolunda sahip olduğu mallarla ve canıyla fedakârlıkta bulunmak","İnandığını yalnızca dille ikrar edip hiçbir fiilî sorumluluk üstlenmemek"],"stem":"Hucurât Suresi 15. ayetine göre \"sadık/doğru mümin\" olmanın şartları arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve III","I, II ve III","II ve IV","I, II, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"15. ayette şüphesiz iman ve mal-canla cihad etmek sadık müminlerin vasfı olarak bildirilmiştir. Yalnızca dille ikrar edip sorumluluktan kaçmak ise 14. ayette eleştirilen bedevî tavrıdır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_047","uid":"43f984a71c","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":16,"to":16}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 16. ayetinde \"De ki: Siz dininizi Allah'a mı öğretiyorsunuz?\" sorusuyla eleştirilen temel yanlış yaklaşım aşağıdakilerden hangisidir?","options":["Geçmiş peygamberlerin şeriatlarını tamamen inkâr etmeleri","Kıble hususunda kendi akıllarınca hüküm vermeye çalışmaları","Kalplerinde kökleşmemiş imanı ve dindarlık iddialarını gösterişle Allah'a ve Peygamber'e beğendirmeye kalkışmaları","İbadetlerin vaktini kendi isteklerine göre belirlemeye çalışmaları"],"answerIndex":2,"lockOrder":false,"explanation":"Hucurât Suresi 16. ayette 'De ki: Siz dininizi Allah'a mı öğretiyorsunuz? Oysa Allah göklerde olanları da bilir, yerde olanları da. Allah her şeyi hakkıyla bilendir.' buyrularak insanların samimiyetten uzak dindarlık iddialarıyla kendilerini temize çıkarma çabaları kınanmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_048","uid":"d7b1dc9f80","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":17,"to":17}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Hucurât Suresi 17. ayetine göre, Müslüman olmalarını Hz. Peygamber'in başına kakan kimselere verilmesi emredilen ilâhî cevap aşağıdakilerden hangisidir?","options":["\"Eğer hicret etmezseniz Müslümanlığınız geçerli sayılmayacaktır.\"","\"Müslümanlığınızı benim başıma kakmayın. Eğer doğru kimselerseniz bilesiniz ki, sizi imana erdirdiği için asıl Allah size lütufta bulunmuştur.\"","\"Yaptığınız ibadetlerin karşılığını yalnızca dünyada talep edebilirsiniz.\"","\"Sizin Müslümanlığınız İslam ordularına güç katmıştır, buna devam edin.\""],"answerIndex":1,"lockOrder":false,"explanation":"Hucurât Suresi 17. ayette: 'Onlar İslâm'a girdikleri için seni minnet altına sokuyorlar. De ki: Müslümanlığınızı benim başıma kakmayın. Eğer doğru kimselerseniz bilesiniz ki, sizi imana erdirdiği için asıl Allah size lütufta bulunmuştur.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_049","uid":"c470f87f42","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":17,"to":17}],"mealBasis":"tdv","type":"fill","difficulty":2,"premises":[],"stem":"\"Onlar İslâm'a girdikleri için seni minnet altına sokuyorlar. De ki: Müslümanlığınızı benim başıma kakmayın. Eğer doğru kimselerseniz bilesiniz ki, sizi ........ erdirdiği için asıl Allah size ........ bulunmuştur.\"\n\nHucurât Suresi 17. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["hakikate / ikramda","hidayete / rahmette","kurtuluşa / ihsanda","imana / lütufta"],"answerIndex":3,"lockOrder":false,"explanation":"Hucurât Suresi 17. ayet mealinde boşluklara 'imana' ve 'lütufta' kelimeleri gelmelidir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_049_050","uid":"7e8b5c4234","surah":49,"cuz":26,"scope":"ayah","refs":[{"sure":49,"from":18,"to":18}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Hucurât Suresi'nin son ayeti olan 18. ayette Allah'ın ilmi ve kulların amelleri hakkındaki hangi hakikat **vurgulanmıştır**?","options":["Allah'ın göklerin ve yerin gizliliklerini bildiği ve insanların yaptıklarını hakkıyla gördüğü","İnsanların amellerinin yalnızca melekler tarafından kayda geçirildiği","Göklerin ve yerin altı günde yaratılıp sonra arşa istiva edildiği","Kıyametin gün ve saatinin peygamberlere de gizli kılındığı"],"answerIndex":0,"lockOrder":false,"explanation":"Hucurât Suresi 18. ayette: 'Şüphesiz Allah, göklerin ve yerin gizliliklerini bilir. Allah yaptıklarınızı görendir.' buyrularak sûre nihayete ermektedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"}]}
+{
+  "s": 49,
+  "questions": [
+    {
+      "id": "Q_049_001",
+      "uid": "fca0bc128a",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 4,
+          "to": 4
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi adını 4. ayetinde geçen ve \"odalar\" anlamına gelen \"el-Hucurât\" kelimesinden almıştır. Bu kelime tarihsel bağlamda aşağıdakilerden hangisine **işaret etmektedir?**",
+      "options": [
+        "Kâbe çevresinde itikâf ve ibadet amacıyla inşa edilen özel hücrelere",
+        "Medine'de muhacirlerin barınması için tahsis edilen toplu meskenlere",
+        "Ashâb-ı Suffe'nin ilim tahsili ve barınma için kullandığı müstakil mekanlara",
+        "Mescid-i Nebevî'nin çevresinde Hz. Peygamber'in ev olarak kullandığı odalara"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "TDV sure tanıtımında belirtildiği üzere sûre, ismini 4. âyette geçen ve 'odalar' mânasına gelen 'el-Hucurât' kelimesinden almıştır. Bu kelime, Hz. Peygamber'in (s.a.s.) Mescid-i Nebevî'nin çevresinde ev olarak kullandığı odaları ifade etmektedir. Kâbe hücreleri, muhacir barınakları veya Suffe mekanları dönemin diğer yapıları olsa da bu kelimenin doğrudan işaret ettiği yer değildir.",
+      "sourceRef": "TDV Sure Tanıtımı",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_002",
+      "uid": "8976c61deb",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 1,
+          "to": 18
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi'nin nüzul dönemi, ayet sayısı ve Mushaf'taki resmi sırası hakkında verilen aşağıdaki bilgilerden hangisi **doğrudur?**",
+      "options": [
+        "Mekke döneminin sonlarına doğru inmiştir, 18 ayettir ve resmi tertipte 49. suredir.",
+        "Medine döneminde hicretin 2. yılında inmiştir, 28 ayettir ve resmi tertipte 45. suredir.",
+        "Medine döneminde hicretin 9. yılında inmiştir, 18 ayettir ve resmi tertipte 49. suredir.",
+        "Mekke döneminde hicretten hemen önce inmiştir, 20 ayettir ve resmi tertipte 50. suredir."
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "TDV resmi sure künyesi ve tanıtımına göre Hucurât Suresi, Medine döneminde hicretin 9. yılında nâzil olmuştur; 18. âyettir ve Mushaf'taki resmî sırası 49'dur. Sûrenin Mekke'de indiğini ileri süren veya ayet sayısını 20 ya da 28 olarak gösteren seçenekler kaynak metindeki kesin bilgilerle bağdaşmaz.",
+      "sourceRef": "TDV Sure Tanıtımı",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_003",
+      "uid": "7dc57f893d",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 1,
+          "to": 18
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Müminlerin Allah'a ve Resûlü'ne karşı olan vazifeleri ve edep kuralları",
+        "Müminlerin kendi aralarındaki beşerî münasebetleri, kardeşlik hukuku ve ahlak ilkeleri",
+        "Müminlerin diğer insanlarla münasebetleri ve tebliğ esasları",
+        "Miras taksimi ve aile hukukuyla ilgili ayrıntılı fıkhî hükümler"
+      ],
+      "stem": "Hucurât Suresi'nde işlenen ana konular dikkate alındığında, yukarıdakilerden hangileri surenin odaklandığı üç mühim mevzu arasında **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "TDV sure tanıtımında belirtildiği üzere Hucurât Suresi'nde üç mühim konu işlenmektedir: Müminlerin Allah'a ve Resûlü'ne karşı vazifeleri, kendi aralarındaki beşerî münasebetleri ve diğer insanlarla ilişkileri (I, II ve III). Miras taksimi ve aile hukukuyla ilgili fıkhî hükümler (IV) ise Nisâ gibi farklı surelerin konusu olup Hucurât Suresi'nin ana konuları arasında yer almaz.",
+      "sourceRef": "TDV Sure Tanıtımı",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_004",
+      "uid": "5c258a270a",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 1,
+          "to": 1
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi'nin nüzul bilgileri incelendiğinde, surenin ilk ayetinin iniş sebebi olarak aşağıdakilerden hangisi **nakledilmiştir?**",
+      "options": [
+        "Kıble değişikliği sonrası tereddüt yaşayan müminleri manevi açıdan teskin ve irşat etmek amacıyla",
+        "Tebük Seferi'ne mazeretsiz katılmayan kimselerin toplumsal ve dini hükmünü açıklamak amacıyla",
+        "Mekke'nin fethinden sonra müşriklerin Mescid-i Haram çevresindeki durumunu düzenlemek amacıyla",
+        "Söz veya eylemde Hz. Peygamber'in önüne geçip edebe aykırı davranan kimseleri uyarmak amacıyla"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "TDV sure tanıtımında Ebû Bekir İbnü'l-Arabî'den nakledildiğine göre bu sûrenin ilk âyeti; sözde veya davranışta Hz. Peygamber'in önüne geçerek ya da onun sözünü keserek edebe aykırı davrananları uyarmak için inmiştir. Kıble değişikliği Bakara'da, Tebük Seferi Tevbe'de, Mescid-i Haram ile ilgili düzenlemeler ise Tevbe ve Hac surelerinde yer alır.",
+      "sourceRef": "TDV Nüzul Bilgisi",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_005",
+      "uid": "4fc04f9587",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 1,
+          "to": 18
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 3,
+      "premises": [],
+      "stem": "Hucurât Suresi nüzul kronolojisi bakımından aşağıdaki surelerden hangisinden sonra, hangisinden önce **nâzil olmuştur?**",
+      "options": [
+        "Mücâdele Suresi'nden sonra, Tahrîm Suresi'nden önce",
+        "Fetih Suresi'nden sonra, Kâf Suresi'nden önce",
+        "Nûr Suresi'nden sonra, Ahzâb Suresi'nden önce",
+        "Ahkâf Suresi'nden sonra, Muhammed Suresi'nden önce"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "TDV kaynak metninde yer alan nüzul bilgisine göre Hucurât Suresi, Medine'de Mücâdele Suresi'nden sonra ve Tahrîm Suresi'nden önce hicretin 9. yılında nâzil olmuştur. Bu kronolojik sıralama Medine döneminin sonlarında ahlak ve hukuk nizamını tamamlayan bir nüzul sürecini yansıtır. Diğer seçeneklerdeki sure çiftleri nüzul sırasına göre Hucurât'ın öncesi ve sonrasını doğru göstermez.",
+      "sourceRef": "TDV Nüzul Bilgisi",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_006",
+      "uid": "a61f405870",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 1,
+          "to": 1
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Ey iman edenler! Allah'ın ve Resûlünün ........ geçmeyin. Allah'tan korkun. Şüphesiz Allah işitendir, bilendir.\"\n\nHucurât Suresi 1. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "arkasına",
+        "karşısına",
+        "önüne",
+        "huzuruna"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 1. âyetinin TDV mealinde 'Ey iman edenler! Allah'ın ve Resûlünün önüne geçmeyin. Allah'tan korkun. Şüphesiz Allah işitendir, bilendir.' buyrulmaktadır. Ayetteki 'lâ tükaddimû' nehyi lafzen ve manen 'önüne geçmeyin' şeklinde tercüme edilerek ilahi vahyin ve Peygamber'in rehberliğine tam teslimiyet emredilmiştir. 'Arkasına', 'karşısına' veya 'huzuruna' ifadeleri bu ayetin mealinde yer almaz.",
+      "sourceRef": "TDV Meali 49:1",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_007",
+      "uid": "b3b6ab06de",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 1,
+          "to": 1
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 1. ayetinde yer alan \"Allah'ın ve Resûlünün önüne geçmeyin\" ilâhî emri bağlamında müminlerden beklenen temel tutum aşağıdakilerden hangisinde **doğru açıklanmıştır?**",
+      "options": [
+        "Söz, fiil ve hükümlerde Hz. Peygamber'e aykırı davranmayıp edebi gözetmek ve O'na uymak",
+        "Cemaatle namaz kılarken fiziksel saffı bozmayıp daima imamın arkasında saf tutmak",
+        "Dini tebliğ ederken peygamberlerin adlarını sadece Kur'an'daki sıralamayla zikretmek",
+        "Savaş anında ordu komutanının izni olmaksızın düşman saflarına doğru hücum etmemek"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 1. âyetinin TDV dipnotunda açıklandığı üzere 'önüne geçmeme' emri; söylenen söz, yapılan iş ve çıkarılan hükümlerde Hz. Peygamber'e aykırı davranmama, edebi koruma ve O'na uyma şeklinde yorumlanmıştır. Bu ilahi emir müminlerin tüm dini ve ahlaki tasarruflarını kapsar. Cemaatle namazdaki fiziksel saf düzeni, peygamber sıralaması veya askeri disiplin ayetteki temel ahlaki gayeyi karşılamaz.",
+      "sourceRef": "TDV Meali ve Dipnotu 49:1",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_008",
+      "uid": "57e9020e74",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 2,
+          "to": 2
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi 2. ayetine göre, Hz. Peygamber'in huzurunda seslerini onun sesinin üstüne yükselten ve ona birbirlerine bağırdıkları gibi bağıran kimseleri bekleyen manevi tehlike aşağıdakilerden hangisi olarak **bildirilmiştir?**",
+      "options": [
+        "Toplum içerisindeki itibar ve güvenilirliklerinin tamamen yok olması",
+        "Yaptıkları tövbelerin ahirete kadar hiçbir surette kabul edilmemesi",
+        "Dünya hayatındaki rızık ve bereket kapılarının üzerlerine kapanması",
+        "Farkına bile varmadan bütün amellerinin tamamen boşa gidivermesi"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 2. âyetinde '...yoksa siz farkına varmadan amelleriniz boşa gidiverir.' buyurularak Hz. Peygamber'e karşı sergilenen edep dışı tutumların amelleri hükümsüz kılacağı haber verilmiştir. Âyetteki tehdit dünyevi itibar kaybı, rızık darlığı veya tövbelerin mutlak reddi değil, kişinin hiç farkında olmadan salih amellerini heba etmesi tehlikesidir.",
+      "sourceRef": "TDV Meali 49:2",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_009",
+      "uid": "058dce6474",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 2,
+          "to": 2
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "\"Ey iman edenler! Seslerinizi Peygamber'in sesinin üstüne ........ Birbirinize bağırdığınız gibi, Peygamber'e yüksek sesle bağırmayın; yoksa siz farkına varmadan amelleriniz ........\"\n\nHucurât Suresi 2. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "duyurmayın / zayi oluverir",
+        "ulaştırmayın / siliniverir",
+        "yükseltmeyin / boşa gidiverir",
+        "çıkarmayın / eksiliverir"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 2. âyetinin TDV mealinde 'Ey iman edenler! Seslerinizi Peygamber'in sesinin üstüne yükseltmeyin... yoksa siz farkına varmadan amelleriniz boşa gidiverir.' ifadeleri geçmektedir. Bu doğrultuda birinci boşluğa 'yükseltmeyin', ikinci boşluğa ise 'boşa gidiverir' kelimeleri getirilmelidir. 'Zayi oluverir', 'siliniverir' veya 'eksiliverir' kelimeleri TDV meal metnine ait değildir.",
+      "sourceRef": "TDV Meali 49:2",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_010",
+      "uid": "a00ceeb818",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 2,
+          "to": 3
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Peygamber'in sesinin üstünde bir ses tonuyla konuşmaktan sakınmak",
+        "Birbirine seslenir gibi yüksek sesle bağırarak hitap etmemek",
+        "Allah'ın elçisinin huzurunda sesini saygıyla kısmak",
+        "Peygamber'e soru sormayı tamamen terk etmek"
+      ],
+      "stem": "Hucurât Suresi 2 ve 3. ayetler doğrultusunda, Hz. Peygamber ile iletişimde gözetilmesi emredilen edep kuralları arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 2 ve 3. âyetlerinde; sesin Peygamber'in sesinin üstüne yükseltilmemesi, birbirine bağırıldığı gibi yüksek sesle bağırılmaması ve huzurunda seslerin kısılması açıkça emredilmiştir (I, II ve III). İslam tebliğinde Hz. Peygamber'e edeple soru sormak daima teşvik edilmiş, soru sormayı tamamen terk etmek (IV) hiçbir şekilde istenmemiştir. Dolayısıyla IV. öncülün yer aldığı seçenekler yanlıştır.",
+      "sourceRef": "TDV Meali 49:2-3",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_011",
+      "uid": "180feea789",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 3,
+          "to": 3
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 3. ayetine göre, Allah'ın elçisinin huzurunda seslerini kısan kimseler nasıl tanımlanmış ve kendilerine ne **vaat edilmiştir?**",
+      "options": [
+        "Kalpleri takvâ ile imtihan edilen kimselerdir; onlara mağfiret ve büyük bir mükâfat vardır.",
+        "Cihatta sebat gösteren sadık kimselerdir; onlara dünyada zafer ve ebedi bir itibar vardır.",
+        "İlimde derinleşen ihlaslı kimselerdir; onlara kesintisiz bir rızık ve geniş bir mülk vardır.",
+        "Zorluklara göğüs geren sabırlı kimselerdir; onlara hesapsız nimet ve tükenmez lütuf vardır."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 3. âyetinde 'Allah'ın elçisinin huzurunda seslerini kısanlar, şüphesiz Allah'ın kalplerini takvâ ile imtihan ettiği kimselerdir. Onlara mağfiret ve büyük bir mükâfat vardır.' buyrulmaktadır. Âyette peygamber huzurunda gösterilen hürmet takvâ sınavının bir neticesi olarak görülmüş ve karşılığında bağışlanma ile büyük mükâfat vaat edilmiştir. Dünyevi zafer, kesintisiz mülk veya hesapsız nimet gibi nitelemeler bu ayetin metninde yer almaz.",
+      "sourceRef": "TDV Meali 49:3",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_012",
+      "uid": "08e5861768",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 3,
+          "to": 3
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Allah'ın elçisinin huzurunda seslerini kısanlar, şüphesiz Allah'ın kalplerini ........ ile imtihan ettiği kimselerdir. Onlara ........ ve büyük bir mükâfat vardır.\"\n\nHucurât Suresi 3. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "ihlas / esenlik",
+        "iman / selamet",
+        "takvâ / mağfiret",
+        "sabır / hidayet"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 3. âyetinin TDV mealinde '...Allah'ın kalplerini takvâ ile imtihan ettiği kimselerdir. Onlara mağfiret ve büyük bir mükâfat vardır.' buyrulmaktadır. Dolayısıyla ilk boşluğa kalbin sınandığı ahlaki bilinci ifade eden 'takvâ', ikinci boşluğa ise ilahi bağışlanmayı gösteren 'mağfiret' kelimeleri gelmelidir. İhlas, selamet veya hidayet kelimeleri ayet mealinde bu boşlukları karşılamaz.",
+      "sourceRef": "TDV Meali 49:3",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_013",
+      "uid": "2f459f2e25",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 4,
+          "to": 4
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi 4. ayetinde, Hz. Peygamber'e odaların arka tarafından kaba bir üslupla bağıranlar hakkında aşağıdaki nitelemelerden hangisi **kullanılmıştır?**",
+      "options": [
+        "Haddi aşan zalim kimseler",
+        "Fesat çıkaran bozguncu kimseler",
+        "Kalplerinde nifak olan kimseler",
+        "Çoğu aklı ermez kimseler"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 4. âyetinde '(Resûlüm!) Sana odaların arka tarafından bağıranların çoğu aklı ermez kimselerdir.' buyrulmaktadır. Ayet-i kerime, nebevî mahremiyeti gözetmeksizin saygısızca bağıran bedevîlerin bu tutumunu akıl ve idrak noksanlığı ('aklı ermez kimseler') olarak nitelemiştir. Ayette bu kişiler için zalim, bozguncu veya münafık nitelemeleri doğrudan zikredilmemiştir.",
+      "sourceRef": "TDV Meali 49:4",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_014",
+      "uid": "df62472cdb",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 4,
+          "to": 4
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"(Resûlüm!) Sana ........ arka tarafından bağıranların çoğu ........ kimselerdir.\"\n\nHucurât Suresi 4. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "odaların / aklı ermez",
+        "mescidin / düşüncesiz",
+        "duvarların / cahil",
+        "evlerin / bilgisiz"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 4. âyetinin TDV mealinde '(Resûlüm!) Sana odaların arka tarafından bağıranların çoğu aklı ermez kimselerdir.' buyrulmaktadır. Âyette geçen 'el-hucurât' kelimesi 'odaların', kınanan kavmin vasfı olan 'lâ ya'kılûn' ise 'aklı ermez' şeklinde aktarılmıştır. Mescit, duvar, düşüncesiz veya cahil gibi ifadeler bu ayetin TDV mealinde yer almaz.",
+      "sourceRef": "TDV Meali 49:4",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_015",
+      "uid": "77dad7c777",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 5,
+          "to": 5
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 5. ayetine göre, odaların arkasından bağıran kimselerin nasıl davranması kendileri için daha hayırlı bir edep tavrı olarak **gösterilmiştir?**",
+      "options": [
+        "Geliş maksatlarını yazılı bir haberle iletmeleri",
+        "Mescide girip nafile namaz kılarak beklemeleri",
+        "Hz. Peygamber yanlarına çıkıncaya kadar sabretmeleri",
+        "Huzura kabul edilmek için sahabeleri aracı kılmaları"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 5. âyetinde 'Eğer onlar, sen yanlarına çıkıncaya kadar sabretselerdi, elbette kendileri için daha iyi olurdu. Allah çok bağışlayan, çok esirgeyendir.' buyrulmaktadır. Âyet, kaba bir sabırsızlıkla Hz. Peygamber'i çağırmak yerine O kendiliğinden dışarı çıkıncaya kadar sabırla beklemenin daha hayırlı olduğunu bildirmiştir. Yazılı haber iletmek, nafile namaz kılmak veya aracı kullanmak ayette tavsiye edilen tavır değildir.",
+      "sourceRef": "TDV Meali 49:5",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_016",
+      "uid": "75c1da5b4d",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 6,
+          "to": 6
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi 6. ayetinde, fâsık bir kimse bir haber getirdiğinde müminlere emredilen temel yükümlülük ve bunun gerekçesi aşağıdakilerden hangisinde **doğru belirtilmiştir?**",
+      "options": [
+        "Haberi getiren kişiyi derhal cezalandırmak; topluma ibret olsun diye",
+        "Haberi peşinen reddedip yok saymak; haksız ithama ortak olmamak için",
+        "Haberin doğruluğunu araştırmak; bilmeden kötülük edip pişman olmamak için",
+        "Haberi kamuoyuna duyurarak herkesi uyarmak; toplumsal tedbir alınsın diye"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 6. âyetinde 'Ey iman edenler! Eğer bir fâsık size bir haber getirirse onun doğruluğunu araştırın. Yoksa bilmeden bir topluluğa kötülük edersiniz de sonra yaptığınıza pişman olursunuz.' buyrulmaktadır. Âyet, fâsıkın getirdiği bilginin tahkik edilmesini emrederken gerekçe olarak da masum insanlara bilmeden haksızlık yapıp sonradan derin bir pişmanlığa düşülmesini engellemeyi göstermiştir. Haberi araştırmadan doğrudan reddetmek veya derhal topluma yaymak ayetin emrettiği yöntem değildir.",
+      "sourceRef": "TDV Meali 49:6",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_017",
+      "uid": "0165816be0",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 6,
+          "to": 6
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Ey iman edenler! Eğer bir ........ size bir haber getirirse onun doğruluğunu araştırın. Yoksa bilmeden bir topluluğa kötülük edersiniz de sonra yaptığınıza ........ olursunuz.\"\n\nHucurât Suresi 6. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "münafık / mahcup",
+        "fâsık / pişman",
+        "müşrik / kederli",
+        "yalancı / çaresiz"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 6. âyetinin TDV mealinde 'Ey iman edenler! Eğer bir fâsık size bir haber getirirse onun doğruluğunu araştırın. Yoksa bilmeden bir topluluğa kötülük edersiniz de sonra yaptığınıza pişman olursunuz.' buyrulmaktadır. Dolayısıyla ilk boşluğa yoldan çıkmış, güvenilmez kimseyi niteleyen 'fâsık', ikinci boşluğa ise haksız eylemin ardından duyulacak nedameti ifade eden 'pişman' kelimesi getirilmelidir. Münafık veya müşrik kelimeleri ayet mealinin bu kısmında yer almaz.",
+      "sourceRef": "TDV Meali 49:6",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_018",
+      "uid": "3383510c38",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 6,
+          "to": 6
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Güvenilirliği şüpheli veya yoldan çıkmış kimselerin getirdiği bilgilerin doğruluğunu araştırmak",
+        "Asılsız ve tahkik edilmemiş iddialarla masum topluluklara zarar vermekten kaçınmak",
+        "Hata veya haksızlık vuku bulduğunda pişmanlık duyup adil telafisine yönelmek",
+        "Fâsık kimselerden gelen her haberi peşinen doğru sayıp derhal işleme koymak"
+      ],
+      "stem": "Hucurât Suresi 6. ayetinden çıkarılması gereken ahlaki ve hukuki ilkeler arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 6. âyeti; haberlerin doğruluğunun titizlikle araştırılmasını (I), teyit edilmemiş bilgilerle masumlara haksızlık yapılmamasını (II) ve yapılan bir yanlıştan sonra pişmanlık duyulmasını (III) emretmektedir. Fâsıkların getirdiği haberi araştırmadan doğru kabul edip uygulamak (IV) ise âyetin bizzat sakındırdığı ve yasakladığı temel yanlıştır. Dolayısıyla IV. öncülün bulunduğu seçenekler elenir.",
+      "sourceRef": "TDV Meali 49:6",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_019",
+      "uid": "d3a03857de",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 7. ayetine göre, aralarında Allah'ın elçisi bulunan müminlerin her arzusuna ve fikrine şayet Hz. Peygamber uysaydı, karşılaşacakları durum aşağıdakilerden hangisi olarak **ifade edilmiştir?**",
+      "options": [
+        "Büyük bir güçlüğe ve sıkıntıya düşerlerdi.",
+        "Dünya işlerinde daha kazançlı çıkarlardı.",
+        "Düşmanlarına karşı mutlak zafer bulurlardı.",
+        "İçlerindeki bütün ihtilafları çözerlerdi."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 7. âyetinde 'Hem bilin ki, içinizde Allah'ın elçisi vardır. Şayet o, birçok işlerde size uysaydı, sıkıntıya düşerdiniz...' buyrulmaktadır. Âyet-i kerime, nebevî rehberliğin ve vahyin üstünlüğünü vurgulayarak insanların sınırlı anlayışlarına uyulması durumunda toplumun felakete ve sıkıntıya sürükleneceğini bildirmiştir. Dünya kazancı, zafer veya ihtilafların çözülmesi gibi durumlar ayette zikredilen sonucun tam zıddıdır.",
+      "sourceRef": "TDV Meali 49:7",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_020",
+      "uid": "b4da6b6a47",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "\"Fakat Allah size imanı sevdirmiş ve onu gönüllerinize sindirmiştir. ........ , ........ ve isyanı da size çirkin göstermiştir. İşte doğru yolda olanlar bunlardır.\"\n\nHucurât Suresi 7. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "Şirki / zulmü",
+        "Kibri / hasedi",
+        "Küfrü / fıskı",
+        "Nifakı / yalanı"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 7. âyetinin TDV mealinde '...Küfrü, fıskı ve isyanı da size çirkin göstermiştir. İşte doğru yolda olanlar bunlardır.' ifadesi yer almaktadır. Âyette imanın sevilmesine mukabil olarak kalplerden uzaklaştırılan olumsuzluklar sırasıyla küfür, fısk ve isyan olarak sayılmıştır. Şirk, zulüm veya haset gibi kavramlar genel Kur'an terminolojisinde yer alsa da bu âyetin metninde boş bırakılan kısımlara karşılık gelmez.",
+      "sourceRef": "TDV Meali 49:7",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_021",
+      "uid": "8d0f178dd4",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 7,
+          "to": 8
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Allah'ın kendilerine imanı sevdirmesi ve onu gönüllerine sindirmesi",
+        "Küfür, fısk ve isyanın kendilerine çirkin gösterilmiş olması",
+        "Bu manevi durumun Allah'tan bir lütuf ve nimet olarak tecelli etmesi",
+        "Dünyevi zenginlik ve kabile asabiyetiyle üstünlük taslamaları"
+      ],
+      "stem": "Hucurât Suresi 7 ve 8. ayetlere göre, \"doğru yolda olanlar\" şeklinde nitelendirilen müminlerin özellikleri arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "I, II ve III",
+        "II, III ve IV"
+      ],
+      "answerIndex": 2,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 7 ve 8. âyetlerinde doğru yolda olanlar; imanı gönüllerine sindiren, küfür, fısk ve isyandan nefret eden ve bu hidayeti Allah'ın bir lütuf ve nimeti bilen müminler olarak tarif edilmiştir (I, II ve III). Kabile asabiyeti ve soy üstünlüğüyle övünmek (IV) ise 13. âyette açıkça reddedilen cahiliye adetidir. Bu sebeple IV. öncülün bulunduğu şıklar doğru kabul edilemez.",
+      "sourceRef": "TDV Meali 49:7-8",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_022",
+      "uid": "a6561f5d84",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 9,
+          "to": 9
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi 9. ayetine göre, müminlerden iki grup birbirleriyle vuruşursa diğer müminlere ilk olarak emredilen görev aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Çatışan iki tarafın arasını düzeltmek",
+        "Her iki grubu da toplumdan dışlamak",
+        "Çatışmaya karışmayıp tarafsız kalmak",
+        "Güçlü olan gruptan yana tavır almak"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 9. âyeti 'Eğer müminlerden iki gurup birbirleriyle vuruşurlarsa aralarını düzeltin...' ilahi emriyle başlar. İslam toplumuna yüklenen öncelikli vazife, mümin kardeşler arasındaki kavgayı seyretmek değil, hemen araya girerek sulhu ve barışı tesis etmektir. Tarafları dışlamak, tarafsız kalarak çatışmaya seyirci olmak veya doğrudan güçlüden yana çıkmak âyetin getirdiği uzlaştırıcı ilkeyle bağdaşmaz.",
+      "sourceRef": "TDV Meali 49:9",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_023",
+      "uid": "fa415aa988",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 9,
+          "to": 9
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 9. ayetinde, aralarını bulma girişimine rağmen vuruşan iki mümin gruptan biri diğerine haksızca saldırmaya devam ederse izlenecek yöntem nasıl **emredilmiştir?**",
+      "options": [
+        "Her iki gruba da silah bırakana kadar ekonomik boykot uygulanır.",
+        "Mesele tarafsız kabile reislerinin hakemliğine havale edilir.",
+        "Allah'ın buyruğuna dönünceye kadar saldıran tarafla savaşılır.",
+        "Haksızlığa uğrayan tarafın savaştan tamamen çekilmesi istenir."
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 9. âyetinde '...Şayet biri ötekine saldırırsa, Allah'ın buyruğuna dönünceye kadar saldıran tarafla savaşın.' hükmü beyan edilmiştir. Sulha yanaşmayıp tecavüzünü sürdüren (bağy eden) tarafa karşı toplumun ortaklaşa mücadele etmesi, zulmü durdurmak ve ilahi nizamı korumak için farz kılınmıştır. Boykot uygulamak, kabile meclislerine bırakmak veya mazlumun çekilmesini istemek ayette emredilen meşru müdahale yöntemi değildir.",
+      "sourceRef": "TDV Meali 49:9",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_024",
+      "uid": "4dbc725edb",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 9,
+          "to": 9
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Şayet biri ötekine saldırırsa, Allah'ın ........ dönünceye kadar saldıran tarafla ........ Eğer dönerse artık aralarını adaletle düzeltin ve (her işte) adaletli davranın.\"\n\nHucurât Suresi 9. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "hükmüne / görüşün",
+        "yoluna / uzlaşın",
+        "emrine / tartışın",
+        "buyruğuna / savaşın"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 9. âyetinin TDV mealinde 'Şayet biri ötekine saldırırsa, Allah'ın buyruğuna dönünceye kadar saldıran tarafla savaşın. Eğer dönerse artık aralarını adaletle düzeltin...' buyrulmaktadır. Metnin ilk boşluğuna ilâhî emri ifade eden 'buyruğuna', ikinci boşluğuna ise zulmü durdurma yükümlülüğünü bildiren 'savaşın' kelimesi getirilmelidir. Görüşmek, uzlaşmak veya tartışmak ifadeleri bu ayetin ilgili hükmünü karşılamaz.",
+      "sourceRef": "TDV Meali 49:9",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_025",
+      "uid": "fecb3d0572",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 9,
+          "to": 9
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 3,
+      "premises": [
+        "Vuruşan taraflar arasında öncelikle sulh ve uzlaşma zemini aramak",
+        "Barışa yanaşmayıp tecavüzü sürdüren tarafa karşı ilahi emre dönene kadar mücadele etmek",
+        "Saldıran taraf haksızlıktan vazgeçtiğinde aralarını adalet ölçüleriyle düzeltmek",
+        "Saldırgan tarafı cezalandırmak amacıyla adalet sınırlarını aşıp misillemede aşırıya gitmek"
+      ],
+      "stem": "Hucurât Suresi 9. ayetinde müminler arası anlaşmazlıkların çözümünde takip edilmesi emredilen aşamalar arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 9. âyeti; ilk adımda barışın tesis edilmesini (I), haksız saldırgan boyun eğene dek onunla savaşılmasını (II) ve saldırgan vazgeçtiğinde işin adaletle sulha bağlanmasını (III) emreder. İntikam saikiyle adalet sınırlarının dışına çıkıp misillemede aşırıya gitmek (IV) ise 'adaletli davranın; Allah âdil davrananları sever' ilkesine kesinlikle aykırıdır. Bu sebeple IV. öncül çözüm aşamaları arasında yer almaz.",
+      "sourceRef": "TDV Meali 49:9",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_026",
+      "uid": "79bf9f1b67",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 10,
+          "to": 10
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi 10. ayetinde müminler arasındaki bağ nasıl tanımlanmış ve aralarında bir ihtilaf doğduğunda diğer müminlere hangi görev **yüklenmiştir?**",
+      "options": [
+        "Müminler ancak kardeştirler; kardeşlerin arasını düzeltmek",
+        "Müminler dindaştırlar; mazlum tarafın hakkını silahla almak",
+        "Müminler ortak bir kavimdir; meseleyi kabile meclislerine bırakmak",
+        "Müminler müttefiktirler; çatışan taraflara eşit mesafede kalmak"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 10. âyetinde 'Müminler ancak kardeştirler. Öyleyse kardeşlerinizin arasını düzeltin ve Allah'tan korkun ki esirgenesiniz.' buyrulmaktadır. Âyet, inananlar arasındaki toplumsal ve manevi bağı kardeşlik olarak tesis etmiş ve aralarındaki husumetleri adaletle ıslah etmeyi müminlere temel vazife kılmıştır. İnananları yalnızca siyasi bir müttefik veya kabile topluluğu sayarak tarafsız kalmayı öğütleyen yaklaşımlar ayetin amacıyla uyuşmaz.",
+      "sourceRef": "TDV Meali 49:10",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_027",
+      "uid": "ccdf76497e",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 10,
+          "to": 10
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Müminler ancak kardeştirler. Öyleyse kardeşlerinizin arasını ........ ve Allah'tan korkun ki ........\"\n\nHucurât Suresi 10. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "bulun / kurtulasınız",
+        "düzeltin / esirgenesiniz",
+        "onarın / bağışlanasınız",
+        "gözetin / muzaffer olasınız"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 10. âyetinin TDV mealinde 'Müminler ancak kardeştirler. Öyleyse kardeşlerinizin arasını düzeltin ve Allah'tan korkun ki esirgenesiniz.' buyrulmaktadır. Metinde yer alan 'kardeşlerinizin arasını' ifadesinden sonra gelen yükümlülük 'düzeltin', takvânın neticesinde vadedilen ilahi mükâfat ise 'esirgenesiniz' kelimesidir. Diğer seçeneklerdeki kelimeler genel dinî temalar içerse de bu ayetin mealinde yer almaz.",
+      "sourceRef": "TDV Meali 49:10",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_028",
+      "uid": "0c2368484a",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 10,
+          "to": 10
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Müminler arasındaki ilişkinin temel esasını din kardeşliği olarak kabul etmek",
+        "Kardeşler arasında husumet veya ihtilaf çıktığında aralarını ıslah etmek",
+        "İlâhî rahmet ve merhamete (esirgenmeye) kavuşabilmek için takvâ bilinciyle hareket etmek",
+        "Aralarında ihtilaf çıkan müminleri kendi hallerine bırakıp hiçbir uzlaştırma çabasına girmemek"
+      ],
+      "stem": "Hucurât Suresi 10. ayetinde mümin fert ve toplumlara yüklenen vazifeler arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 10. âyetinde müminlerin birbirine ancak kardeş olduğu (I), kardeşlerin arasının mutlaka düzeltilmesi gerektiği (II) ve esirgenmek için Allah'tan sakınmanın lüzumu (III) açıkça bildirilmiştir. Kardeşler arasında çıkan ihtilaflara duyarsız kalıp hiçbir barıştırma çabasına girmemek (IV) ise âyetin açıkça emrettiği sulh ve ıslah vazifesini terk etmek anlamına gelir.",
+      "sourceRef": "TDV Meali 49:10",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_029",
+      "uid": "8d63b5f917",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 11,
+          "to": 11
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi 11. ayetine göre, birbirleriyle alay eden, birbirini ayıplayan ve kötü lakaplar takan kimselerden tövbe etmeyenler aşağıdakilerden hangisi olarak **nitelendirilmiştir?**",
+      "options": [
+        "Münafıklar",
+        "Zalimler",
+        "Fâsıklar",
+        "Müşrikler"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 11. âyetinin sonunda '...Kim de tevbe etmezse işte onlar zalimlerdir.' buyrulmaktadır. Âyet, mümin kardeşini alaya alma, ayıplama ve kötü lakapla çağırma gibi ahlaksızlıklarda ısrar edip tövbe etmeyenleri zulüm sıfatıyla ('zalimler') nitelemiştir. Aynı âyette bu fiiller imandan sonra fâsıklık olarak anılsa da tövbe etmeyenlerin doğrudan karşılığı zalimler olarak tayin edilmiştir.",
+      "sourceRef": "TDV Meali 49:11",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_030",
+      "uid": "e644661503",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 11,
+          "to": 11
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 11. ayetinde, bir topluluğun başka bir topluluğu alaya almaması emredilirken belirtilen ahlakî gerekçe aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Alay edilenlerin hakikatte kendilerinden daha iyi olabileceği",
+        "Alay edilenlerin dünyada daha zengin ve güçlü olabileceği",
+        "Alay edilen kimselerin ileride intikam almaya kalkışabileceği",
+        "Alayın kabileler arasında telafisiz kan davaları doğurabileceği"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 11. âyetinde '...Bir topluluk diğer bir topluluğu alaya almasın. Belki de onlar, kendilerinden daha iyidirler. Kadınlar da kadınları alaya almasınlar. Belki onlar kendilerinden daha iyidirler...' buyrularak alay yasağının gerekçesi beyan edilmiştir. İnsanların dış görünüşüne veya dünyevi durumuna bakarak üstünlük taslanamayacağı, alay edilen kimselerin Allah katında ve hakikatte çok daha üstün ve faziletli olabileceği hatırlatılmıştır. Zenginlik, güç veya dünyevi intikam ihtimali âyetteki temel ahlaki dayanak değildir.",
+      "sourceRef": "TDV Meali 49:11",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_031",
+      "uid": "bd27533bc6",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 11,
+          "to": 11
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Kendi kendinizi ayıplamayın, birbirinizi kötü lakaplarla çağırmayın. İmandan sonra ........ ne kötü bir isimdir! Kim de tevbe etmezse işte onlar zalimlerdir.\"\n\nHucurât Suresi 11. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "münafıklık",
+        "nankörlük",
+        "fâsıklık",
+        "azgınlık"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 11. âyetinde alay, ayıplama ve kötü lakap takma yasaklarının ardından 'İmandan sonra fâsıklık ne kötü bir isimdir' buyrulmaktadır. TDV dipnotunda da açıklandığı üzere müminlerin kardeşlerini incitici lakaplarla çağırması ve ayıplaması yoldan çıkma anlamına gelen bir fâsıklık sayılmıştır. Münafıklık veya nankörlük genel günahlar olsa da âyetin lafzında boş bırakılan yere doğrudan 'fâsıklık' kelimesi getirilmelidir.",
+      "sourceRef": "TDV Meali ve Dipnotu 49:11",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_032",
+      "uid": "73044b3982",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 11,
+          "to": 11
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Bir topluluğun veya kadınların diğerlerini alaya alması",
+        "İnsanların birbirlerinin kusurlarını arayıp kendi kendilerini ayıplamaları",
+        "Kişileri incitici ve küçük düşürücü kötü lakaplarla çağırmak",
+        "Kardeşler arasında çıkan anlaşmazlıkları adaletle çözüme kavuşturmak"
+      ],
+      "stem": "Hucurât Suresi 11. ayetinde yasaklanan ve işlenmesi fâsıklık sayılan tutumlar arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 11. âyetinde açıkça alay etmek, ayıplamak ve kötü lakap takmak yasaklanmış ve bu fiiller imandan sonra fâsıklık olarak nitelendirilmiştir. Bu çerçevede öncüllerde sayılan ilk üç tutum (I, II ve III) âyette doğrudan nehyedilen ahlaki kusurları kapsar. Anlaşmazlıkları adaletle çözmek (IV) ise yasaklanan bir davranış olmayıp surenin 9 ve 10. âyetlerinde bütün müminlere emredilen farz bir vazifedir.",
+      "sourceRef": "TDV Meali 49:11",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_033",
+      "uid": "fe45ea142c",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 12,
+          "to": 12
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi 12. ayetinde, bir kimsenin din kardeşini arkasından çekiştirmesi (gıybet etmesi) aşağıdaki benzetmelerden hangisiyle **tasvir edilmiştir?**",
+      "options": [
+        "Kendi canına haksızca kıymaya",
+        "Yetimin malını haksız yere yemeye",
+        "Cehennemde sırtında odun taşımaya",
+        "Ölmüş kardeşinin etini yemeye"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 12. âyetinde din kardeşini arkasından çekiştirmek, kişinin ölmüş kardeşinin etini yemesine benzetilerek son derece sarsıcı bir temsille tasvir edilmiştir. Âyet-i kerime, insanın fıtraten en çok tiksineceği bir haram olan ölü kardeş eti yeme benzetmesiyle müminleri gıybetten kesin bir dille sakındırmıştır. Yetim malı yemek veya cehennemde odun taşımak gibi tasvirler Kur'an'ın başka âyetlerinde yer alsa da bu âyetteki benzetmeyi ifade etmez.",
+      "sourceRef": "TDV Meali 49:12",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_034",
+      "uid": "3b88df4029",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 12,
+          "to": 12
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Ey iman edenler! Zannın çoğundan kaçının. Çünkü zannın bir kısmı ........ Birbirinizin kusurunu ........ Biriniz diğerinizi arkasından çekiştirmesin.\"\n\nHucurât Suresi 12. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "günahtır / araştırmayın",
+        "vebaldir / yaymayın",
+        "zulümdür / kınamayın",
+        "hatadır / deşmeyin"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 12. âyetinde zannın çoğundan kaçınılması, zannın bir kısmının günah olduğu ve insanların kusurlarının araştırılmaması emredilmektedir. Âyet metninde birinci boşluğa zannın dini hükmünü bildiren 'günahtır', ikinci boşluğa ise tecessüs yasağını ifade eden 'araştırmayın' kelimesi getirilmelidir. Vebaldir veya hatadır gibi ifadeler anlamca yakın görünse de TDV mealinin lafzıyla uyuşmaz.",
+      "sourceRef": "TDV Meali 49:12",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_035",
+      "uid": "8218eb4fc8",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 12,
+          "to": 12
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Kesin delile dayanmayan suizandan ve zannın çoğundan kaçınmak",
+        "Müminlerin gizli hallerini ve kusurlarını araştırmamak (tecessüs yapmamak)",
+        "Kişilerin arkasından gıybet ederek haysiyetlerini zedelememek",
+        "İnsanların gizli kusurlarını tespit edip toplum içinde ilan etmeyi görev saymak"
+      ],
+      "stem": "Hucurât Suresi 12. ayetinde müminlerin toplumsal huzuru ve kişisel mahremiyeti korumak için gözetmesi emredilen ahlaki ilkeler arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "I, II ve III",
+        "II, III ve IV"
+      ],
+      "answerIndex": 2,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 12. âyetinde müminlere zannın çoğundan kaçınmak (I), kusur araştırmamak (II) ve din kardeşini arkasından çekiştirmemek (III) kesin biçimde emredilmiştir. İnsanların gizli kusurlarını araştırıp ilan etmek (IV) ise âyetin bizzat yasakladığı tecessüs ve ifşa cürmü olduğundan gözetilmesi gereken ahlaki ilkeler arasında yer almaz.",
+      "sourceRef": "TDV Meali 49:12",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_036",
+      "uid": "344513ceae",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 12,
+          "to": 12
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 12. ayetinin sonunda yer alan ilâhî emir ve ardından bildirilen ilâhî sıfatlar aşağıdakilerden hangisinde **doğru verilmiştir?**",
+      "options": [
+        "Sabır gösterilmesi emredilmiş; O'nun suçluları şiddetle cezalandıran olduğu bildirilmiştir.",
+        "Allah'tan korkulması emredilmiş; O'nun tövbeyi çok kabul eden ve çok esirgeyen olduğu bildirilmiştir.",
+        "Şükür içinde olunması emredilmiş; O'nun lütuf ve ihsanı bol olan olduğu bildirilmiştir.",
+        "Adaletle davranılması emredilmiş; O'nun hakkaniyeti gözeten ve koruyan olduğu bildirilmiştir."
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 12. âyetinin nihayetinde 'O halde Allah'tan korkun; şüphesiz Allah, tevbeyi çok kabul edendir, çok esirgeyicidir' buyrulmaktadır. Zan, tecessüs ve gıybet yasaklarının ardından Allah'tan sakınma emredilmiş, bu günahlara bulaşanların samimiyetle dönebilmesi için Allah'ın Tevvâb ve Rahîm sıfatları zikredilmiştir. Cezalandırma, nimet şükrü veya mutlak adalet vurguları bu âyetin kapanış metninde yer almaz.",
+      "sourceRef": "TDV Meali 49:12",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_037",
+      "uid": "80d956cc34",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 13,
+          "to": 13
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi 13. ayetine göre, Allah katında insanların en değerlisi ve üstünü aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Toplum içinde en yüksek mevki ve idari güce sahip olanı",
+        "Maddi imkânı, ticareti ve serveti en fazla olanı",
+        "Soy ve nesep bakımından en köklü kabileye mensup olanı",
+        "Allah'tan en çok korkanı ve takvâda en önde bulunanı"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 13. âyetinde 'Muhakkak ki Allah yanında en değerli olanınız, O'ndan en çok korkanınızdır' buyrulmaktadır. Kur'an bu evrensel ilkeyle soy-sop, servet ve iktidar gibi dünyevi imtiyazları geçersiz kılmış ve yegâne üstünlük ölçütünün takvâ olduğunu beyan etmiştir. Diğer seçeneklerde yer alan soy, servet veya makam üstünlüğü cahiliye dönemine ait batıl anlayışlardır.",
+      "sourceRef": "TDV Meali 49:13",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_038",
+      "uid": "7198da9d72",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 13,
+          "to": 13
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 13. ayetinde, insanların bir erkek ve bir dişiden yaratılarak kavimlere ve kabilelere ayrılmasının asıl hikmeti aşağıdakilerden hangisiyle **açıklanmıştır?**",
+      "options": [
+        "Birbirleriyle tanışıp anlaşmaları ve kaynaşmaları için",
+        "Güçlü kabilelerin zayıf kavimlere hükmetmesi için",
+        "Kendi aralarında ekonomik rekabet oluşturmaları için",
+        "Birbirlerine soy ve nesep üstünlüğü taslamaları için"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 13. âyetinde insanların birbirleriyle tanışıp anlaşması için kavimlere ve kabilelere ayrıldığı açıkça bildirilmiştir. TDV dipnotunda da vurgulandığı üzere farklı ırk, dil ve kabilelerin var edilmesindeki ilahi maksat soy üstünlüğü taslamak değil, toplumların birbirini tanıyıp kaynaşması ve bütünleşmesidir. Hükmetme, sömürme veya soy üstünlüğü taslama anlayışları âyetin gayesiyle taban tabana zıttır.",
+      "sourceRef": "TDV Meali ve Dipnotu 49:13",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_039",
+      "uid": "fbf041e5da",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 13,
+          "to": 13
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Ey insanlar! Doğrusu biz sizi bir ........ bir ........ yarattık. Ve birbirinizle tanışmanız için sizi kavimlere ve kabilelere ayırdık. Muhakkak ki Allah yanında en değerli olanınız, O'ndan en çok korkanınızdır.\"\n\nHucurât Suresi 13. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "milletle / kabileden",
+        "toprakla / sudan",
+        "erkekle / dişiden",
+        "soyla / aileden"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 13. âyetinin TDV mealinde 'Ey insanlar! Doğrusu biz sizi bir erkekle bir dişiden yarattık...' denilmektedir. Âyet metninde bütün insanların kökensel eşitliğine işaret eden kelimeler sırasıyla 'erkekle' ve 'dişiden' ifadeleridir. Millet, kabile veya toprak kelimeleri genel yaratılış bağlamında kullanılsa da bu âyetin başlangıç lafzında yer almaz.",
+      "sourceRef": "TDV Meali 49:13",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_040",
+      "uid": "d2cb096180",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 13,
+          "to": 13
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Bütün insanlığın biyolojik ve kökensel olarak tek bir erkek ve dişiden türediği gerçeği",
+        "Kavim ve kabile farklılıklarının üstünlük taslamak için değil tanışıp kaynaşmak için var edildiği",
+        "Allah katındaki hakiki üstünlük ve değer ölçüsünün takvâ olduğu",
+        "Soy, ırk ve kabile mensubiyetinin ahirette insana ilahi bir ayrıcalık kazandıracağı"
+      ],
+      "stem": "Hucurât Suresi 13. ayetinden çıkarılacak evrensel ilkeler arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 13. âyeti bütün insanların tek bir kökten yaratıldığını (I), kabilelerin tanışma vesilesi kılındığını (II) ve üstünlüğün yalnızca takvâda olduğunu (III) kesin biçimde vazetmiştir. Soy ve ırk ayrıcalığının imtiyaz sağlayacağı iddiası (IV) ise âyetin bütünüyle reddettiği cahiliye asabiyetidir. Dolayısıyla IV. öncülün yer aldığı seçenekler doğru kabul edilemez.",
+      "sourceRef": "TDV Meali ve Dipnotu 49:13",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_041",
+      "uid": "8b56d8b7b6",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 14,
+          "to": 14
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi 14. ayetinde \"İnandık\" diyen bedevîlere yönelik olarak Hz. Peygamber'e nasıl cevap vermesi **emredilmiştir?**",
+      "options": [
+        "\"Sözünüz dilden ibarettir; kalbiniz mühürlü olduğu için tövbeniz asla kabul edilmeyecektir.\"",
+        "\"Siz asla iman edemezsiniz; ancak mallarınızı infak ederseniz gerçek mümin sayılırsınız.\"",
+        "\"İnandık demeniz kafidir; fakat hicret etmedikçe cennet mükâfatına asla erişemezsiniz.\"",
+        "\"Siz iman etmediniz, ama 'Boyun eğdik' deyin. Henüz iman kalplerinize yerleşmedi.\""
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 14. âyetinde bedevîlerin iddialı iman sözüne karşılık 'Siz iman etmediniz, ama boyun eğdik deyin; henüz iman kalplerinize yerleşmedi' denilmesi emredilmiştir. TDV dipnotunda açıklandığı üzere Esed oğullarından gelen bedevîlerin kalpten inanmayıp sadece teslim oldukları bildirilmiş, bu sebeple dille teslimiyeti anlatan ifadenin kullanılması istenmiştir. Diğer şıklarda yer alan tövbenin kabul edilmeyeceği veya mutlak hicret şartı gibi ifadeler âyetin içeriğiyle örtüşmez.",
+      "sourceRef": "TDV Meali ve Dipnotu 49:14",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_042",
+      "uid": "03ef187391",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 14,
+          "to": 14
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Bedevîler «İnandık» dediler. De ki: Siz iman etmediniz, ama «Boyun eğdik» deyin. Henüz iman ........ yerleşmedi. Eğer Allah'a ve elçisine itaat ederseniz, Allah ........ hiçbir şeyi eksiltmez.\"\n\nHucurât Suresi 14. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "kalplerinize / işlerinizden",
+        "gönüllerinize / rızkınızdan",
+        "zihinlerinize / ecirlerinizden",
+        "ruhlarınıza / amellerinizden"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 14. âyetinin TDV mealinde 'Henüz iman kalplerinize yerleşmedi; eğer Allah'a ve elçisine itaat ederseniz, Allah işlerinizden hiçbir şeyi eksiltmez' buyrulmaktadır. Âyetteki ilk boşluğa imanın kökleşmesi gereken mahalli belirten 'kalplerinize', ikinci boşluğa ise amellerin zayi edilmeyeceğini gösteren 'işlerinizden' kelimesi getirilmelidir. Gönüllerinize veya zihinlerinize kelimeleri TDV mealinin lafzi karşılığı değildir.",
+      "sourceRef": "TDV Meali 49:14",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_043",
+      "uid": "f849bfce70",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 14,
+          "to": 14
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Dildeki ikrar ve dış görünüşteki teslimiyetin tek başına kalbe yerleşmiş tahkiki iman anlamına gelmeyebileceği",
+        "İmanın kalpte kökleşip içtenlikle benimsenmesi gereken manevi bir tasdik olduğu",
+        "Allah'a ve Resûlü'ne samimiyetle itaat edildiğinde amellerin karşılığının eksiksiz verileceği",
+        "Kalpte iman kökleşmese dahi dille boyun eğmenin kişiyi en kâmil mümin mertebesine ulaştıracağı"
+      ],
+      "stem": "Hucurât Suresi 14. ayetinde ortaya konulan iman-amel ilişkisi çerçevesinde yukarıdakilerden hangileri **doğrudur?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 14. âyeti dille teslim olmanın kalpteki gerçek imanla bir olmadığını (I), hakiki imanın kalbe yerleşen tasdikle gerçekleştiğini (II) ve itaatin amelleri zayi etmeyeceğini (III) ortaya koyar. Kalbe iman yerleşmeksizin sadece dille boyun eğmenin kâmil müminlik derecesi kazandıracağı iddiası (IV) ise âyetin tahlil ettiği gerçeğe tamamen aykırıdır. Bu sebeple IV. öncül doğru kabul edilemez.",
+      "sourceRef": "TDV Meali 49:14",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_044",
+      "uid": "e457a066e4",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 15,
+          "to": 15
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 15. ayetinde \"İşte doğrular ancak onlardır\" denilerek gerçek müminlerin temel vasıfları nasıl **sıralanmıştır?**",
+      "options": [
+        "İbadetlerini geceleri ifa eden, dünyevi bağlarını koparan ve münzevi yaşayanlar",
+        "Allah'a ve Resûlüne iman eden, asla şüpheye düşmeyen, malları ve canlarıyla savaşanlar",
+        "Kendi kabilesinin emniyetini gözeten, yoksulları doyuran ve cömertlikle öne çıkanlar",
+        "Sadece dini ilimleri tahsil eden, toplumdan soyutlanan ve münakaşadan kaçınanlar"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 15. âyetinde Allah'a ve Resûlüne iman eden, asla şüpheye düşmeyen, malları ve canlarıyla savaşan kimseler için 'İşte doğrular ancak onlardır' buyrulmaktadır. Âyet sadık müminlerin vasıflarını; şüpheden arınmış sağlam bir iman ve Allah yolunda mal ve canla cihad etmek olarak açıkça ortaya koymuştur. Münzevi bir ibadet hayatı, kabile asabiyeti veya cemiyetten soyutlanma ayette zikredilen vasıflar arasında yer almaz.",
+      "sourceRef": "TDV Meali 49:15",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_045",
+      "uid": "fab129a98f",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 15,
+          "to": 15
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Müminler ancak Allah'a ve Resûlüne iman eden, ondan sonra asla ........ düşmeyen, Allah yolunda ........ ve ........ savaşanlardır. İşte doğrular ancak onlardır.\"\n\nHucurât Suresi 15. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "ayrılığa / güçleriyle / sabırlarıyla",
+        "gaflete / sözleriyle / fiilleriyle",
+        "şüpheye / mallarıyla / canlarıyla",
+        "gevşekliğe / ömürleriyle / nesilleriyle"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 15. âyetinin TDV mealinde 'Müminler ancak Allah'a ve Resûlüne iman eden, ondan sonra asla şüpheye düşmeyen, Allah yolunda mallarıyla ve canlarıyla savaşanlardır' buyrulmaktadır. Âyette boş bırakılan yerlere sırasıyla tereddütsüz inancı belirten 'şüpheye' ile fedakârlık vasıtalarını gösteren 'mallarıyla' ve 'canlarıyla' kelimeleri getirilmelidir. Diğer seçeneklerdeki kavramlar genel ahlaki ilkeler olsa da âyet metninin lafzıyla örtüşmez.",
+      "sourceRef": "TDV Meali 49:15",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_046",
+      "uid": "9e09a7a8bb",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 15,
+          "to": 15
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Allah'a ve Resûlü'ne kalpten ve kesin bir inançla bağlanmak",
+        "İman ettikten sonra zihinde ve kalpte hiçbir şüpheye yer vermemek",
+        "Gerektiğinde Allah yolunda sahip olduğu mallarla ve canıyla fedakârlıkta bulunmak",
+        "İnandığını sadece dille söyleyip hiçbir fiilî sorumluluk ve fedakârlık üstlenmemek"
+      ],
+      "stem": "Hucurât Suresi 15. ayetine göre \"doğrular\" (sadık müminler) arasında yer almanın şartları arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Hucurât Suresi 15. âyetinde sadık mümin olmanın şartları; Allah ve Resûlü'ne iman etmek (I), şüpheye düşmemek (II) ve mallarla-canlarla cihad etmek (III) olarak bildirilmiştir. Yalnızca dille ikrar edip hiçbir fiilî sorumluluk ve fedakârlık üstlenmemek (IV) ise 14. âyette imanın henüz kalbe yerleşmediği kimselere ait bir noksanlık olarak kınanmıştır. Bu sebeple IV. öncülün bulunduğu seçenekler doğru kabul edilemez.",
+      "sourceRef": "TDV Meali 49:15",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_047",
+      "uid": "43f984a71c",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 16,
+          "to": 16
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 16. ayetinde \"De ki: Siz dininizi Allah'a mı öğretiyorsunuz?\" sorusuyla eleştirilen temel yanılgı aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Önceki ümmetlerin şeriatlarını ve peygamberlerini bütünüyle inkâr etmeleri",
+        "Kıble tayini konusunda kendi heva ve heveslerine göre hüküm vermeye kalkışmaları",
+        "İbadetlerin vakit ve şartlarını kendi dünyevi çıkarlarına göre değiştirmeye çalışmaları",
+        "Kalplerinde kökleşmeyen dindarlık iddialarını gösterişle Allah'a beğendirmeye kalkışmaları"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 16. âyetinde Allah'ın göklerde ve yerdeki her şeyi bildiği hatırlatılarak insanların dindarlık taslamaları kınanmaktadır. Âyet-i kerime, kalplerinde samimi iman kökleşmediği halde müslümanlıklarını bir lütufmuş gibi sunarak kendilerini temize çıkarmaya çalışan bedevîlerin samimiyetsiz tutumunu eleştirir. Kıble tayini, ibadet vakitleri veya geçmiş peygamberlerin inkârı bu âyetin bağlamıyla örtüşmez.",
+      "sourceRef": "TDV Meali 49:16",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_048",
+      "uid": "d7b1dc9f80",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 17,
+          "to": 17
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Hucurât Suresi 17. ayetine göre, Müslüman olmalarını Hz. Peygamber'in başına kakan kimselere verilmesi emredilen ilâhî cevap aşağıdakilerden **hangisidir?**",
+      "options": [
+        "\"Müslümanlığınızı başıma kakmayın; sizi imana erdirdiği için asıl Allah size lütufta bulunmuştur.\"",
+        "\"Müslümanlığınız geçerli sayılmaz; ancak mallarınızı infak eder ve hicret ederseniz kabul görür.\"",
+        "\"Müslümanlığınızı açıklamanız yeterlidir; fakat cihat etmedikçe cennet mükâfatına asla erişemezsiniz.\"",
+        "\"Müslümanlığınız İslam ordularına güç katmıştır; lakin kabile asabiyetinden bütünüyle vazgeçmelisiniz.\""
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 17. âyetinde 'De ki: Müslümanlığınızı benim başıma kakmayın; eğer doğru kimselerseniz bilesiniz ki, sizi imana erdirdiği için asıl Allah size lütufta bulunmuştur' buyrulmaktadır. Âyet, İslam ile şereflenmenin kulun Peygamber'e yaptığı bir iyilik değil, Allah'ın insana bahşettiği en büyük lütuf olduğunu kesin biçimde vurgular. Diğer şıklarda yer alan hicret şartı veya orduya güç katma gibi gerekçeler bu âyetin içeriğiyle bağdaşmaz.",
+      "sourceRef": "TDV Meali 49:17",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_049",
+      "uid": "c470f87f42",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 17,
+          "to": 17
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Onlar İslâm'a girdikleri için seni minnet altına sokuyorlar. De ki: Müslümanlığınızı benim başıma kakmayın. Eğer doğru kimselerseniz bilesiniz ki, sizi ........ erdirdiği için asıl Allah size ........ bulunmuştur.\"\n\nHucurât Suresi 17. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "hidayete / yardımda",
+        "hakikate / ikramda",
+        "imana / lütufta",
+        "kurtuluşa / ihsanda"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 17. âyetinin TDV mealinde '...sizi imana erdirdiği için asıl Allah size lütufta bulunmuştur' ifadesi yer almaktadır. Metindeki ilk boşluğa hidayetin özünü gösteren 'imana', ikinci boşluğa ise ilâhî ihsanı niteleyen 'lütufta' kelimesi getirilmelidir. Hidayete, hakikate veya kurtuluşa kelimeleri manaca olumlu olsa da TDV meali lafzını tam olarak karşılamaz.",
+      "sourceRef": "TDV Meali 49:17",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_049_050",
+      "uid": "7e8b5c4234",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 49,
+          "from": 18,
+          "to": 18
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Hucurât Suresi'nin son ayeti olan 18. ayette Allah'ın ilmi ve kulların amelleri hakkındaki hangi hakikat **vurgulanmıştır?**",
+      "options": [
+        "Kıyametin kopuş vaktinin ve gayb sırlarının peygamberlere dahi bildirilmediği",
+        "Göklerin ve yerin gizliliklerini bildiği ve insanların yaptıklarını hakkıyla gördüğü",
+        "İnsanların bütün amellerinin ve niyetlerinin sadece melekler tarafından kayda geçirildiği",
+        "Göklerin ve yerin altı günde yaratılarak ilahi nizamın arş üzerinden idare edildiği"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Hucurât Suresi 18. âyetinde 'Şüphesiz Allah, göklerin ve yerin gizliliklerini bilir; Allah yaptıklarınızı görendir' buyrularak sure tamamlanmaktadır. Bu son âyet, Allah'ın gaybı ve evrendeki her türlü gizliliği kuşatan mutlak ilmini ve kulların bütün eylemlerini gördüğünü beyan eder. Meleklerin amelleri kaydetmesi veya göklerin altı günde yaratılışı Kur'an'ın başka âyetlerinde yer alsa da bu âyetin doğrudan konusu değildir.",
+      "sourceRef": "TDV Meali 49:18",
+      "verificationStatus": "verified"
+    }
+  ]
+}

@@ -1,1 +1,4686 @@
-{"version":"2026.11.20.1","availableSurahs":[17,24,31,49],"items":[{"id":"Q_017_001","surah":17,"cuz":15,"scope":"surah_info","refs":[[17,1,111]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_002","surah":17,"cuz":15,"scope":"surah_info","refs":[[17,1,111]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_003","surah":17,"cuz":15,"scope":"surah_info","refs":[[17,1,111]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_004","surah":17,"cuz":15,"scope":"surah_info","refs":[[17,1,111]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_005","surah":17,"cuz":15,"scope":"surah_info","refs":[[17,1,111]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_006","surah":17,"cuz":15,"scope":"ayah","refs":[[17,1,1]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_007","surah":17,"cuz":15,"scope":"ayah","refs":[[17,1,1]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_008","surah":17,"cuz":15,"scope":"ayah","refs":[[17,2,2]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_009","surah":17,"cuz":15,"scope":"ayah","refs":[[17,3,3]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_010","surah":17,"cuz":15,"scope":"ayah","refs":[[17,4,5]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_011","surah":17,"cuz":15,"scope":"ayah","refs":[[17,6,7]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_012","surah":17,"cuz":15,"scope":"ayah","refs":[[17,8,8]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_013","surah":17,"cuz":15,"scope":"ayah","refs":[[17,9,10]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_014","surah":17,"cuz":15,"scope":"ayah","refs":[[17,11,11]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_015","surah":17,"cuz":15,"scope":"ayah","refs":[[17,12,12]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_016","surah":17,"cuz":15,"scope":"ayah","refs":[[17,13,14]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_017","surah":17,"cuz":15,"scope":"ayah","refs":[[17,15,15]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_018","surah":17,"cuz":15,"scope":"ayah","refs":[[17,16,17]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_019","surah":17,"cuz":15,"scope":"ayah","refs":[[17,18,19]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_020","surah":17,"cuz":15,"scope":"ayah","refs":[[17,20,21]],"mealBasis":"tdv","type":"fill","difficulty":2,"status":"pending"},{"id":"Q_017_021","surah":17,"cuz":15,"scope":"ayah","refs":[[17,22,22]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_022","surah":17,"cuz":15,"scope":"ayah","refs":[[17,23,23]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_023","surah":17,"cuz":15,"scope":"ayah","refs":[[17,24,24]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_024","surah":17,"cuz":15,"scope":"ayah","refs":[[17,26,27]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_025","surah":17,"cuz":15,"scope":"ayah","refs":[[17,28,28]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_026","surah":17,"cuz":15,"scope":"ayah","refs":[[17,29,29]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_027","surah":17,"cuz":15,"scope":"ayah","refs":[[17,29,29]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_028","surah":17,"cuz":15,"scope":"ayah","refs":[[17,30,30]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_029","surah":17,"cuz":15,"scope":"ayah","refs":[[17,31,31]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_030","surah":17,"cuz":15,"scope":"ayah","refs":[[17,31,31]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_031","surah":17,"cuz":15,"scope":"ayah","refs":[[17,32,32]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_032","surah":17,"cuz":15,"scope":"ayah","refs":[[17,32,32]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_033","surah":17,"cuz":15,"scope":"ayah","refs":[[17,33,33]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_034","surah":17,"cuz":15,"scope":"ayah","refs":[[17,33,33]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_035","surah":17,"cuz":15,"scope":"ayah","refs":[[17,34,34]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_036","surah":17,"cuz":15,"scope":"ayah","refs":[[17,34,34]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_037","surah":17,"cuz":15,"scope":"ayah","refs":[[17,35,35]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_038","surah":17,"cuz":15,"scope":"ayah","refs":[[17,36,36]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_039","surah":17,"cuz":15,"scope":"ayah","refs":[[17,36,36]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_040","surah":17,"cuz":15,"scope":"ayah","refs":[[17,37,37]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_041","surah":17,"cuz":15,"scope":"ayah","refs":[[17,37,39]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_042","surah":17,"cuz":15,"scope":"ayah","refs":[[17,39,39]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_043","surah":17,"cuz":15,"scope":"ayah","refs":[[17,40,40]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_044","surah":17,"cuz":15,"scope":"ayah","refs":[[17,41,41]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_045","surah":17,"cuz":15,"scope":"ayah","refs":[[17,42,43]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_046","surah":17,"cuz":15,"scope":"ayah","refs":[[17,44,44]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_047","surah":17,"cuz":15,"scope":"ayah","refs":[[17,44,44]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_048","surah":17,"cuz":15,"scope":"ayah","refs":[[17,45,46]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_049","surah":17,"cuz":15,"scope":"ayah","refs":[[17,49,51]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_050","surah":17,"cuz":15,"scope":"ayah","refs":[[17,53,54]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_051","surah":17,"cuz":15,"scope":"ayah","refs":[[17,57,57]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_052","surah":17,"cuz":15,"scope":"ayah","refs":[[17,58,58]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_053","surah":17,"cuz":15,"scope":"ayah","refs":[[17,59,59]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_054","surah":17,"cuz":15,"scope":"ayah","refs":[[17,59,59]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_055","surah":17,"cuz":15,"scope":"ayah","refs":[[17,60,60]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_056","surah":17,"cuz":15,"scope":"ayah","refs":[[17,61,61]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_057","surah":17,"cuz":15,"scope":"ayah","refs":[[17,62,62]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_058","surah":17,"cuz":15,"scope":"ayah","refs":[[17,63,64]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_059","surah":17,"cuz":15,"scope":"ayah","refs":[[17,65,65]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_060","surah":17,"cuz":15,"scope":"ayah","refs":[[17,66,66]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_061","surah":17,"cuz":15,"scope":"ayah","refs":[[17,67,67]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_062","surah":17,"cuz":15,"scope":"ayah","refs":[[17,67,67]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_063","surah":17,"cuz":15,"scope":"ayah","refs":[[17,68,69]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_064","surah":17,"cuz":15,"scope":"ayah","refs":[[17,70,70]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_065","surah":17,"cuz":15,"scope":"ayah","refs":[[17,71,71]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_066","surah":17,"cuz":15,"scope":"ayah","refs":[[17,72,72]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_067","surah":17,"cuz":15,"scope":"ayah","refs":[[17,73,75]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_068","surah":17,"cuz":15,"scope":"ayah","refs":[[17,76,77]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_069","surah":17,"cuz":15,"scope":"ayah","refs":[[17,78,78]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_070","surah":17,"cuz":15,"scope":"ayah","refs":[[17,79,79]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_071","surah":17,"cuz":15,"scope":"ayah","refs":[[17,80,80]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_072","surah":17,"cuz":15,"scope":"ayah","refs":[[17,81,81]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_073","surah":17,"cuz":15,"scope":"ayah","refs":[[17,82,82]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_074","surah":17,"cuz":15,"scope":"ayah","refs":[[17,83,83]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_075","surah":17,"cuz":15,"scope":"ayah","refs":[[17,84,84]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_076","surah":17,"cuz":15,"scope":"ayah","refs":[[17,85,85]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_077","surah":17,"cuz":15,"scope":"ayah","refs":[[17,85,85]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_078","surah":17,"cuz":15,"scope":"ayah","refs":[[17,86,87]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_079","surah":17,"cuz":15,"scope":"ayah","refs":[[17,88,88]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_080","surah":17,"cuz":15,"scope":"ayah","refs":[[17,88,88]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_081","surah":17,"cuz":15,"scope":"ayah","refs":[[17,89,89]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_082","surah":17,"cuz":15,"scope":"ayah","refs":[[17,90,93]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_083","surah":17,"cuz":15,"scope":"ayah","refs":[[17,93,93]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_084","surah":17,"cuz":15,"scope":"ayah","refs":[[17,94,94]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_085","surah":17,"cuz":15,"scope":"ayah","refs":[[17,95,95]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_086","surah":17,"cuz":15,"scope":"ayah","refs":[[17,96,96]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_087","surah":17,"cuz":15,"scope":"ayah","refs":[[17,97,97]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_088","surah":17,"cuz":15,"scope":"ayah","refs":[[17,97,97]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_089","surah":17,"cuz":15,"scope":"ayah","refs":[[17,98,99]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_090","surah":17,"cuz":15,"scope":"ayah","refs":[[17,100,100]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_091","surah":17,"cuz":15,"scope":"ayah","refs":[[17,100,100]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_092","surah":17,"cuz":15,"scope":"ayah","refs":[[17,101,101]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_093","surah":17,"cuz":15,"scope":"ayah","refs":[[17,102,102]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_094","surah":17,"cuz":15,"scope":"ayah","refs":[[17,103,104]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_095","surah":17,"cuz":15,"scope":"ayah","refs":[[17,105,105]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_096","surah":17,"cuz":15,"scope":"ayah","refs":[[17,106,106]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_017_097","surah":17,"cuz":15,"scope":"ayah","refs":[[17,107,109]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_017_098","surah":17,"cuz":15,"scope":"ayah","refs":[[17,107,107]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_017_099","surah":17,"cuz":15,"scope":"ayah","refs":[[17,110,110]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_017_100","surah":17,"cuz":15,"scope":"ayah","refs":[[17,111,111]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_001","surah":24,"cuz":18,"scope":"surah_info","refs":[[24,1,64]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_002","surah":24,"cuz":18,"scope":"surah_info","refs":[[24,1,64]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_003","surah":24,"cuz":18,"scope":"surah_info","refs":[[24,1,64]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_004","surah":24,"cuz":18,"scope":"surah_info","refs":[[24,1,64]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_005","surah":24,"cuz":18,"scope":"surah_info","refs":[[24,1,64]],"mealBasis":"tdv","type":"mcq","difficulty":3,"status":"pending"},{"id":"Q_024_006","surah":24,"cuz":18,"scope":"ayah","refs":[[24,1,1]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_007","surah":24,"cuz":18,"scope":"ayah","refs":[[24,2,2]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_008","surah":24,"cuz":18,"scope":"ayah","refs":[[24,2,2]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_009","surah":24,"cuz":18,"scope":"ayah","refs":[[24,3,3]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_010","surah":24,"cuz":18,"scope":"ayah","refs":[[24,4,4]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_011","surah":24,"cuz":18,"scope":"ayah","refs":[[24,4,4]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_012","surah":24,"cuz":18,"scope":"ayah","refs":[[24,4,5]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_013","surah":24,"cuz":18,"scope":"ayah","refs":[[24,6,7]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_014","surah":24,"cuz":18,"scope":"ayah","refs":[[24,8,9]],"mealBasis":"tdv","type":"fill","difficulty":2,"status":"pending"},{"id":"Q_024_015","surah":24,"cuz":18,"scope":"ayah","refs":[[24,6,9]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_016","surah":24,"cuz":18,"scope":"ayah","refs":[[24,11,11]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_017","surah":24,"cuz":18,"scope":"ayah","refs":[[24,11,11]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_018","surah":24,"cuz":18,"scope":"ayah","refs":[[24,12,12]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_019","surah":24,"cuz":18,"scope":"ayah","refs":[[24,13,13]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_020","surah":24,"cuz":18,"scope":"ayah","refs":[[24,14,14]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_021","surah":24,"cuz":18,"scope":"ayah","refs":[[24,15,15]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_022","surah":24,"cuz":18,"scope":"ayah","refs":[[24,16,16]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_023","surah":24,"cuz":18,"scope":"ayah","refs":[[24,19,19]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_024","surah":24,"cuz":18,"scope":"ayah","refs":[[24,21,21]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_025","surah":24,"cuz":18,"scope":"ayah","refs":[[24,22,22]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_026","surah":24,"cuz":18,"scope":"ayah","refs":[[24,23,24]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_027","surah":24,"cuz":18,"scope":"ayah","refs":[[24,24,24]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_028","surah":24,"cuz":18,"scope":"ayah","refs":[[24,25,25]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_029","surah":24,"cuz":18,"scope":"ayah","refs":[[24,26,26]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_030","surah":24,"cuz":18,"scope":"ayah","refs":[[24,26,26]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_031","surah":24,"cuz":18,"scope":"ayah","refs":[[24,27,27]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_032","surah":24,"cuz":18,"scope":"ayah","refs":[[24,27,28]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_033","surah":24,"cuz":18,"scope":"ayah","refs":[[24,28,28]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_034","surah":24,"cuz":18,"scope":"ayah","refs":[[24,29,29]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_035","surah":24,"cuz":18,"scope":"ayah","refs":[[24,30,30]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_036","surah":24,"cuz":18,"scope":"ayah","refs":[[24,30,30]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_037","surah":24,"cuz":18,"scope":"ayah","refs":[[24,31,31]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_038","surah":24,"cuz":18,"scope":"ayah","refs":[[24,31,31]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_039","surah":24,"cuz":18,"scope":"ayah","refs":[[24,31,31]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_040","surah":24,"cuz":18,"scope":"ayah","refs":[[24,32,32]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_041","surah":24,"cuz":18,"scope":"ayah","refs":[[24,33,33]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_042","surah":24,"cuz":18,"scope":"ayah","refs":[[24,35,35]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_043","surah":24,"cuz":18,"scope":"ayah","refs":[[24,35,35]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_044","surah":24,"cuz":18,"scope":"ayah","refs":[[24,36,37]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_045","surah":24,"cuz":18,"scope":"ayah","refs":[[24,37,38]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_046","surah":24,"cuz":18,"scope":"ayah","refs":[[24,39,39]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_047","surah":24,"cuz":18,"scope":"ayah","refs":[[24,40,40]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_048","surah":24,"cuz":18,"scope":"ayah","refs":[[24,41,41]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_049","surah":24,"cuz":18,"scope":"ayah","refs":[[24,43,43]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_050","surah":24,"cuz":18,"scope":"ayah","refs":[[24,44,44]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_051","surah":24,"cuz":18,"scope":"ayah","refs":[[24,45,45]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_052","surah":24,"cuz":18,"scope":"ayah","refs":[[24,45,45]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_053","surah":24,"cuz":18,"scope":"ayah","refs":[[24,47,48]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_054","surah":24,"cuz":18,"scope":"ayah","refs":[[24,49,50]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_055","surah":24,"cuz":18,"scope":"ayah","refs":[[24,51,51]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_056","surah":24,"cuz":18,"scope":"ayah","refs":[[24,51,51]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_057","surah":24,"cuz":18,"scope":"ayah","refs":[[24,52,52]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_058","surah":24,"cuz":18,"scope":"ayah","refs":[[24,53,53]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_059","surah":24,"cuz":18,"scope":"ayah","refs":[[24,54,54]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_060","surah":24,"cuz":18,"scope":"ayah","refs":[[24,55,55]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_061","surah":24,"cuz":18,"scope":"ayah","refs":[[24,55,55]],"mealBasis":"tdv","type":"fill","difficulty":2,"status":"pending"},{"id":"Q_024_062","surah":24,"cuz":18,"scope":"ayah","refs":[[24,56,56]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_063","surah":24,"cuz":18,"scope":"ayah","refs":[[24,57,57]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_064","surah":24,"cuz":18,"scope":"ayah","refs":[[24,58,58]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_065","surah":24,"cuz":18,"scope":"ayah","refs":[[24,58,58]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_066","surah":24,"cuz":18,"scope":"ayah","refs":[[24,58,58]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_067","surah":24,"cuz":18,"scope":"ayah","refs":[[24,59,59]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_068","surah":24,"cuz":18,"scope":"ayah","refs":[[24,60,60]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_069","surah":24,"cuz":18,"scope":"ayah","refs":[[24,61,61]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_070","surah":24,"cuz":18,"scope":"ayah","refs":[[24,61,61]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_024_071","surah":24,"cuz":18,"scope":"ayah","refs":[[24,62,62]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_072","surah":24,"cuz":18,"scope":"ayah","refs":[[24,62,62]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_024_073","surah":24,"cuz":18,"scope":"ayah","refs":[[24,63,63]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_024_074","surah":24,"cuz":18,"scope":"ayah","refs":[[24,63,63]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_024_075","surah":24,"cuz":18,"scope":"ayah","refs":[[24,64,64]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_001","surah":31,"cuz":21,"scope":"surah_info","refs":[[31,1,34]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_002","surah":31,"cuz":21,"scope":"surah_info","refs":[[31,1,34]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_003","surah":31,"cuz":21,"scope":"surah_info","refs":[[31,1,34]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_004","surah":31,"cuz":21,"scope":"surah_info","refs":[[31,1,34]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_031_005","surah":31,"cuz":21,"scope":"surah_info","refs":[[31,12,12]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_006","surah":31,"cuz":21,"scope":"ayah","refs":[[31,1,3]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_007","surah":31,"cuz":21,"scope":"ayah","refs":[[31,4,4]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_008","surah":31,"cuz":21,"scope":"ayah","refs":[[31,4,5]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_009","surah":31,"cuz":21,"scope":"ayah","refs":[[31,6,6]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_010","surah":31,"cuz":21,"scope":"ayah","refs":[[31,6,6]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_011","surah":31,"cuz":21,"scope":"ayah","refs":[[31,6,6]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_012","surah":31,"cuz":21,"scope":"ayah","refs":[[31,7,7]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_013","surah":31,"cuz":21,"scope":"ayah","refs":[[31,7,7]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_014","surah":31,"cuz":21,"scope":"ayah","refs":[[31,8,9]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_015","surah":31,"cuz":21,"scope":"ayah","refs":[[31,10,10]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_031_016","surah":31,"cuz":21,"scope":"ayah","refs":[[31,10,10]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_017","surah":31,"cuz":21,"scope":"ayah","refs":[[31,11,11]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_018","surah":31,"cuz":21,"scope":"ayah","refs":[[31,12,12]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_019","surah":31,"cuz":21,"scope":"ayah","refs":[[31,12,12]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_020","surah":31,"cuz":21,"scope":"ayah","refs":[[31,13,13]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_021","surah":31,"cuz":21,"scope":"ayah","refs":[[31,14,14]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_022","surah":31,"cuz":21,"scope":"ayah","refs":[[31,14,14]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_023","surah":31,"cuz":21,"scope":"ayah","refs":[[31,15,15]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_031_024","surah":31,"cuz":21,"scope":"ayah","refs":[[31,16,16]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_025","surah":31,"cuz":21,"scope":"ayah","refs":[[31,17,17]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_031_026","surah":31,"cuz":21,"scope":"ayah","refs":[[31,18,18]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_027","surah":31,"cuz":21,"scope":"ayah","refs":[[31,18,18]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_028","surah":31,"cuz":21,"scope":"ayah","refs":[[31,19,19]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_029","surah":31,"cuz":21,"scope":"ayah","refs":[[31,18,19]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_031_030","surah":31,"cuz":21,"scope":"ayah","refs":[[31,20,20]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_031","surah":31,"cuz":21,"scope":"ayah","refs":[[31,20,20]],"mealBasis":"tdv","type":"fill","difficulty":2,"status":"pending"},{"id":"Q_031_032","surah":31,"cuz":21,"scope":"ayah","refs":[[31,21,21]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_033","surah":31,"cuz":21,"scope":"ayah","refs":[[31,22,22]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_034","surah":31,"cuz":21,"scope":"ayah","refs":[[31,22,22]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_035","surah":31,"cuz":21,"scope":"ayah","refs":[[31,23,24]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_031_036","surah":31,"cuz":21,"scope":"ayah","refs":[[31,25,25]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_037","surah":31,"cuz":21,"scope":"ayah","refs":[[31,26,26]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_038","surah":31,"cuz":21,"scope":"ayah","refs":[[31,27,27]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_039","surah":31,"cuz":21,"scope":"ayah","refs":[[31,27,27]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_040","surah":31,"cuz":21,"scope":"ayah","refs":[[31,28,28]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_041","surah":31,"cuz":21,"scope":"ayah","refs":[[31,29,29]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_031_042","surah":31,"cuz":21,"scope":"ayah","refs":[[31,30,30]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_043","surah":31,"cuz":21,"scope":"ayah","refs":[[31,31,31]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_044","surah":31,"cuz":21,"scope":"ayah","refs":[[31,31,31]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_031_045","surah":31,"cuz":21,"scope":"ayah","refs":[[31,32,32]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_046","surah":31,"cuz":21,"scope":"ayah","refs":[[31,32,32]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_047","surah":31,"cuz":21,"scope":"ayah","refs":[[31,33,33]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_031_048","surah":31,"cuz":21,"scope":"ayah","refs":[[31,33,33]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_031_049","surah":31,"cuz":21,"scope":"ayah","refs":[[31,34,34]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_031_050","surah":31,"cuz":21,"scope":"ayah","refs":[[31,34,34]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_001","surah":49,"cuz":26,"scope":"surah_info","refs":[[49,1,18]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_002","surah":49,"cuz":26,"scope":"surah_info","refs":[[49,1,18]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_003","surah":49,"cuz":26,"scope":"surah_info","refs":[[49,1,18]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_004","surah":49,"cuz":26,"scope":"surah_info","refs":[[49,1,1]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_005","surah":49,"cuz":26,"scope":"surah_info","refs":[[49,1,18]],"mealBasis":"tdv","type":"mcq","difficulty":3,"status":"pending"},{"id":"Q_049_006","surah":49,"cuz":26,"scope":"ayah","refs":[[49,1,1]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_007","surah":49,"cuz":26,"scope":"ayah","refs":[[49,1,1]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_008","surah":49,"cuz":26,"scope":"ayah","refs":[[49,2,2]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_009","surah":49,"cuz":26,"scope":"ayah","refs":[[49,2,2]],"mealBasis":"tdv","type":"fill","difficulty":2,"status":"pending"},{"id":"Q_049_010","surah":49,"cuz":26,"scope":"ayah","refs":[[49,2,3]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_011","surah":49,"cuz":26,"scope":"ayah","refs":[[49,3,3]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_012","surah":49,"cuz":26,"scope":"ayah","refs":[[49,3,3]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_013","surah":49,"cuz":26,"scope":"ayah","refs":[[49,4,4]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_014","surah":49,"cuz":26,"scope":"ayah","refs":[[49,4,4]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_015","surah":49,"cuz":26,"scope":"ayah","refs":[[49,5,5]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_016","surah":49,"cuz":26,"scope":"ayah","refs":[[49,6,6]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_017","surah":49,"cuz":26,"scope":"ayah","refs":[[49,6,6]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_018","surah":49,"cuz":26,"scope":"ayah","refs":[[49,6,6]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_019","surah":49,"cuz":26,"scope":"ayah","refs":[[49,7,7]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_020","surah":49,"cuz":26,"scope":"ayah","refs":[[49,7,7]],"mealBasis":"tdv","type":"fill","difficulty":2,"status":"pending"},{"id":"Q_049_021","surah":49,"cuz":26,"scope":"ayah","refs":[[49,7,8]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_022","surah":49,"cuz":26,"scope":"ayah","refs":[[49,9,9]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_023","surah":49,"cuz":26,"scope":"ayah","refs":[[49,9,9]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_024","surah":49,"cuz":26,"scope":"ayah","refs":[[49,9,9]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_025","surah":49,"cuz":26,"scope":"ayah","refs":[[49,9,9]],"mealBasis":"tdv","type":"premise","difficulty":3,"status":"pending"},{"id":"Q_049_026","surah":49,"cuz":26,"scope":"ayah","refs":[[49,10,10]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_027","surah":49,"cuz":26,"scope":"ayah","refs":[[49,10,10]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_028","surah":49,"cuz":26,"scope":"ayah","refs":[[49,10,10]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_029","surah":49,"cuz":26,"scope":"ayah","refs":[[49,11,11]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_030","surah":49,"cuz":26,"scope":"ayah","refs":[[49,11,11]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_031","surah":49,"cuz":26,"scope":"ayah","refs":[[49,11,11]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_032","surah":49,"cuz":26,"scope":"ayah","refs":[[49,11,11]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_033","surah":49,"cuz":26,"scope":"ayah","refs":[[49,12,12]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_034","surah":49,"cuz":26,"scope":"ayah","refs":[[49,12,12]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_035","surah":49,"cuz":26,"scope":"ayah","refs":[[49,12,12]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_036","surah":49,"cuz":26,"scope":"ayah","refs":[[49,12,12]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_037","surah":49,"cuz":26,"scope":"ayah","refs":[[49,13,13]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_038","surah":49,"cuz":26,"scope":"ayah","refs":[[49,13,13]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_039","surah":49,"cuz":26,"scope":"ayah","refs":[[49,13,13]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_040","surah":49,"cuz":26,"scope":"ayah","refs":[[49,13,13]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_041","surah":49,"cuz":26,"scope":"ayah","refs":[[49,14,14]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"},{"id":"Q_049_042","surah":49,"cuz":26,"scope":"ayah","refs":[[49,14,14]],"mealBasis":"tdv","type":"fill","difficulty":2,"status":"pending"},{"id":"Q_049_043","surah":49,"cuz":26,"scope":"ayah","refs":[[49,14,14]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_044","surah":49,"cuz":26,"scope":"ayah","refs":[[49,15,15]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_045","surah":49,"cuz":26,"scope":"ayah","refs":[[49,15,15]],"mealBasis":"tdv","type":"fill","difficulty":1,"status":"pending"},{"id":"Q_049_046","surah":49,"cuz":26,"scope":"ayah","refs":[[49,15,15]],"mealBasis":"tdv","type":"premise","difficulty":2,"status":"pending"},{"id":"Q_049_047","surah":49,"cuz":26,"scope":"ayah","refs":[[49,16,16]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_048","surah":49,"cuz":26,"scope":"ayah","refs":[[49,17,17]],"mealBasis":"tdv","type":"mcq","difficulty":2,"status":"pending"},{"id":"Q_049_049","surah":49,"cuz":26,"scope":"ayah","refs":[[49,17,17]],"mealBasis":"tdv","type":"fill","difficulty":2,"status":"pending"},{"id":"Q_049_050","surah":49,"cuz":26,"scope":"ayah","refs":[[49,18,18]],"mealBasis":"tdv","type":"mcq","difficulty":1,"status":"pending"}]}
+{
+  "version": "v1.1-tdv-verified",
+  "availableSurahs": [
+    17,
+    24,
+    31,
+    49
+  ],
+  "items": [
+    {
+      "id": "Q_017_001",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "surah_info",
+      "refs": [
+        [
+          17,
+          1,
+          111
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_002",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "surah_info",
+      "refs": [
+        [
+          17,
+          1,
+          111
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_003",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "surah_info",
+      "refs": [
+        [
+          17,
+          1,
+          111
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_004",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "surah_info",
+      "refs": [
+        [
+          17,
+          1,
+          111
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_005",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "surah_info",
+      "refs": [
+        [
+          17,
+          1,
+          111
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_006",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          1,
+          1
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_007",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          1,
+          1
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_008",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          2,
+          2
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_009",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          3,
+          3
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_010",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          4,
+          5
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_011",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          6,
+          7
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_012",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          8,
+          8
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_013",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          9,
+          10
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_014",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          11,
+          11
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_015",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          12,
+          12
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_016",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          13,
+          14
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_017",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          15,
+          15
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_018",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          16,
+          17
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_019",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          18,
+          19
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_020",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          20,
+          21
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_021",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          22,
+          22
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_022",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          23,
+          23
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_023",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          24,
+          24
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_024",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          26,
+          27
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_025",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          28,
+          28
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_026",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          29,
+          29
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_027",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          29,
+          29
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_028",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          30,
+          30
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_029",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          31,
+          31
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_030",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          31,
+          31
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_031",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          32,
+          32
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_032",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          32,
+          32
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_033",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          33,
+          33
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_034",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          33,
+          33
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_035",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          34,
+          34
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_036",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          34,
+          34
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_037",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          35,
+          35
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_038",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          36,
+          36
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_039",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          36,
+          36
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_040",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          37,
+          37
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_041",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          37,
+          39
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_042",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          39,
+          39
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_043",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          40,
+          40
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_044",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          41,
+          41
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_045",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          42,
+          43
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_046",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          44,
+          44
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_047",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          44,
+          44
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_048",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          45,
+          46
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_049",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          49,
+          51
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_050",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          53,
+          54
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_051",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          57,
+          57
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_052",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          58,
+          58
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_053",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          59,
+          59
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_054",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          59,
+          59
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_055",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          60,
+          60
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_056",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          61,
+          61
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_057",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          62,
+          62
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_058",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          63,
+          64
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_059",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          65,
+          65
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_060",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          66,
+          66
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_061",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          67,
+          67
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_062",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          67,
+          67
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_063",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          68,
+          69
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_064",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          70,
+          70
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_065",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          71,
+          71
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_066",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          72,
+          72
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_067",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          73,
+          75
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_068",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          76,
+          77
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_069",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          78,
+          78
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_070",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          79,
+          79
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_071",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          80,
+          80
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_072",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          81,
+          81
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_073",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          82,
+          82
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_074",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          83,
+          83
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_075",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          84,
+          84
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_076",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          85,
+          85
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_077",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          85,
+          85
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_078",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          86,
+          87
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_079",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          88,
+          88
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_080",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          88,
+          88
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_081",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          89,
+          89
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_082",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          90,
+          93
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_083",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          93,
+          93
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_084",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          94,
+          94
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_085",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          95,
+          95
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_086",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          96,
+          96
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_087",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          97,
+          97
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_088",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          97,
+          97
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_089",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          98,
+          99
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_090",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          100,
+          100
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_091",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          100,
+          100
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_092",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          101,
+          101
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_093",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          102,
+          102
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_094",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          103,
+          104
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_095",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          105,
+          105
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_096",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          106,
+          106
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_097",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          107,
+          109
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_098",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          107,
+          107
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_099",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          110,
+          110
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_017_100",
+      "surah": 17,
+      "cuz": 15,
+      "scope": "ayah",
+      "refs": [
+        [
+          17,
+          111,
+          111
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_001",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        [
+          24,
+          35,
+          35
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_002",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        [
+          24,
+          1,
+          64
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_003",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        [
+          24,
+          1,
+          64
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_004",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        [
+          24,
+          1,
+          64
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_005",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "surah_info",
+      "refs": [
+        [
+          24,
+          1,
+          64
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_006",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          1,
+          1
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_007",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          2,
+          2
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_008",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          2,
+          2
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_009",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          3,
+          3
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_010",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          4,
+          4
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_011",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          4,
+          4
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_012",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          4,
+          5
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_013",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          6,
+          7
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_014",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          8,
+          9
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_015",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          6,
+          9
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_016",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          11,
+          11
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_017",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          11,
+          11
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_018",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          12,
+          12
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_019",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          13,
+          13
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_020",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          14,
+          14
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_021",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          15,
+          15
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_022",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          16,
+          16
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_023",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          19,
+          19
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_024",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          21,
+          21
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_025",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          22,
+          22
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_026",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          23,
+          24
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_027",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          24,
+          24
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_028",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          25,
+          25
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_029",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          26,
+          26
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_030",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          26,
+          26
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_031",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          27,
+          27
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_032",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          27,
+          28
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_033",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          28,
+          28
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_034",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          29,
+          29
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_035",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          30,
+          30
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_036",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          30,
+          30
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_037",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          31,
+          31
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_038",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          31,
+          31
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_039",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          31,
+          31
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_040",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          32,
+          32
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_041",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          33,
+          33
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_042",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          35,
+          35
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_043",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          35,
+          35
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_044",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          36,
+          37
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_045",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          37,
+          38
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_046",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          39,
+          39
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_047",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          40,
+          40
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_048",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          41,
+          41
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_049",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          43,
+          43
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_050",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          44,
+          44
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_051",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          45,
+          45
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_052",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          45,
+          45
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_053",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          47,
+          48
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_054",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          48,
+          50
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_055",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          51,
+          51
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_056",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          51,
+          51
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_057",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          52,
+          52
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_058",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          53,
+          53
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_059",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          54,
+          54
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_060",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          55,
+          55
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_061",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          55,
+          55
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_062",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          56,
+          56
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_063",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          57,
+          57
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_064",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          58,
+          58
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_065",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          58,
+          58
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_066",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          58,
+          58
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_067",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          59,
+          59
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_068",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          60,
+          60
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_069",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          61,
+          61
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_070",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          61,
+          61
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_071",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          62,
+          62
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_072",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          62,
+          62
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_073",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          63,
+          63
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_074",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          63,
+          63
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_024_075",
+      "surah": 24,
+      "cuz": 18,
+      "scope": "ayah",
+      "refs": [
+        [
+          24,
+          64,
+          64
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_001",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "surah_info",
+      "refs": [
+        [
+          31,
+          12,
+          19
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_002",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "surah_info",
+      "refs": [
+        [
+          31,
+          1,
+          34
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_003",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "surah_info",
+      "refs": [
+        [
+          31,
+          1,
+          34
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_004",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "surah_info",
+      "refs": [
+        [
+          31,
+          1,
+          34
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_005",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          12,
+          12
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_006",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          2,
+          3
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_007",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          4,
+          4
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_008",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          4,
+          5
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_009",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          6,
+          6
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_010",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          6,
+          6
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_011",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          6,
+          6
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_012",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          7,
+          7
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_013",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          7,
+          7
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_014",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          8,
+          9
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_015",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          10,
+          10
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_016",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          10,
+          10
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_017",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          11,
+          11
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_018",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          12,
+          12
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_019",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          12,
+          12
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_020",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          13,
+          13
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_021",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          14,
+          14
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_022",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          14,
+          14
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_023",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          15,
+          15
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_024",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          16,
+          16
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_025",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          17,
+          17
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_026",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          18,
+          18
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_027",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          18,
+          18
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_028",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          19,
+          19
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_029",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          18,
+          19
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_030",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          20,
+          20
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_031",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          20,
+          20
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_032",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          21,
+          21
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_033",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          22,
+          22
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_034",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          22,
+          22
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_035",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          23,
+          24
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_036",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          25,
+          25
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_037",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          26,
+          26
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_038",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          27,
+          27
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_039",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          27,
+          27
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_040",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          28,
+          28
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_041",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          29,
+          29
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_042",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          30,
+          30
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_043",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          31,
+          31
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_044",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          31,
+          31
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_045",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          32,
+          32
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_046",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          32,
+          32
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_047",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          33,
+          33
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_048",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          33,
+          33
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_049",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          34,
+          34
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_031_050",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        [
+          31,
+          34,
+          34
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_001",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        [
+          49,
+          4,
+          4
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_002",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        [
+          49,
+          1,
+          18
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_003",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        [
+          49,
+          1,
+          18
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_004",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        [
+          49,
+          1,
+          1
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_005",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "surah_info",
+      "refs": [
+        [
+          49,
+          1,
+          18
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 3,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_006",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          1,
+          1
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_007",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          1,
+          1
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_008",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          2,
+          2
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_009",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          2,
+          2
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_010",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          2,
+          3
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_011",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          3,
+          3
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_012",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          3,
+          3
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_013",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          4,
+          4
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_014",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          4,
+          4
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_015",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          5,
+          5
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_016",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          6,
+          6
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_017",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          6,
+          6
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_018",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          6,
+          6
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_019",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          7,
+          7
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_020",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          7,
+          7
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_021",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          7,
+          8
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_022",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          9,
+          9
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_023",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          9,
+          9
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_024",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          9,
+          9
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_025",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          9,
+          9
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 3,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_026",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          10,
+          10
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_027",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          10,
+          10
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_028",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          10,
+          10
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_029",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          11,
+          11
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_030",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          11,
+          11
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_031",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          11,
+          11
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_032",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          11,
+          11
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_033",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          12,
+          12
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_034",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          12,
+          12
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_035",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          12,
+          12
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_036",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          12,
+          12
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_037",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          13,
+          13
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_038",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          13,
+          13
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_039",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          13,
+          13
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_040",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          13,
+          13
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_041",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          14,
+          14
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_042",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          14,
+          14
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_043",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          14,
+          14
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_044",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          15,
+          15
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_045",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          15,
+          15
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_046",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          15,
+          15
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_047",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          16,
+          16
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_048",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          17,
+          17
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_049",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          17,
+          17
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "status": "verified"
+    },
+    {
+      "id": "Q_049_050",
+      "surah": 49,
+      "cuz": 26,
+      "scope": "ayah",
+      "refs": [
+        [
+          49,
+          18,
+          18
+        ]
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "status": "verified"
+    }
+  ]
+}

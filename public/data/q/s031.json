@@ -1,1 +1,1545 @@
-{"s":31,"questions":[{"id":"Q_031_001","uid":"c253a32727","surah":31,"cuz":21,"scope":"surah_info","refs":[{"sure":31,"from":1,"to":34}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi adını aşağıdakilerin hangisinde belirtilen gerekçeyle almıştır?","options":["Mekke döneminde Hz. Peygamber'e biat eden Lokman adlı sahabîden","Geçmiş kavimlerden Ad ve Semûd'a gönderilen Lokman adlı peygamberden","12–19. ayetler arasında oğluna yaptığı hikmetli nasihatleri sebebiyle Hz. Lokmân'dan","Surenin ilk ayetinde geçen ve tıp ilmine işaret eden 'Lokman' tabirinden"],"answerIndex":2,"lockOrder":false,"explanation":"Lokman Suresi genel bilgilerine göre sûre ismini, 12-19. âyetler arasında oğluna yaptığı hikmetli nasihatleri sebebiyle Lokmân (a.s.)'dan alır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_002","uid":"9c48d1be97","surah":31,"cuz":21,"scope":"surah_info","refs":[{"sure":31,"from":1,"to":34}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi'nin nüzul dönemi, ayet sayısı ve tertip sırası hakkında verilen aşağıdaki bilgilerden hangisi **doğrudur**?","options":["Mekke döneminde inmiştir, 34 ayettir, resmi sıralamada 31, iniş sırasına göre 57. suredir.","Hicretten hemen sonra Medine'de inmiştir, 34 ayettir ve resmi sıralamada 31. suredir.","Mekke döneminin başında inmiştir, 45 ayettir ve resmi sıralamada 25. suredir.","Medine döneminde inmiştir, 18 ayettir ve nüzul sırasına göre 105. suredir."],"answerIndex":0,"lockOrder":false,"explanation":"Sure bilgileri tablosuna göre Lokman Suresi Mekke'de nâzil olmuştur, 34 âyettir; Mushaf tertîbine göre 31, nüzûl sırasına göre 57. sûredir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_003","uid":"2226d06d8d","surah":31,"cuz":21,"scope":"surah_info","refs":[{"sure":31,"from":1,"to":34}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi nüzul kronolojisi bakımından Mekke döneminin ortalarında aşağıdaki surelerin hangisinden sonra, hangisinden önce **nâzil olmuştur**?","options":["Rûm Suresi'nden sonra, Secde Suresi'nden önce","Nûr Suresi'nden sonra, Hucurât Suresi'nden önce","Sâffât Suresi'nden sonra, Sebe' Suresi'nden önce","İsrâ Suresi'nden sonra, Kehf Suresi'nden önce"],"answerIndex":2,"lockOrder":false,"explanation":"Sure bilgileri kaynağında Nüzul başlığı altında: 'Mushaftaki sıralamada otuz birinci, iniş sırasına göre elli yedinci sûredir. Sâffât sûresinden sonra, Sebe’ sûresinden önce Mekke döneminin ortalarında inmiştir.' bilgisi yer almaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_004","uid":"c959a79d61","surah":31,"cuz":21,"scope":"surah_info","refs":[{"sure":31,"from":1,"to":34}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Kur'an'a inananların ve inanmayanların dünya ve ahiretteki hallerine temas edilmesi","Allah Teâlâ'nın varlık, kudret ve vahdaniyet delillerinden örnekler sunulması","Hz. Lokmân'ın oğluna öğütleri üzerinden tevhid, şükür, ana-babaya iyilik ve ahlakî kemâlin işlenmesi","Savaş esirlerinin paylaşımı ve ganimetlerin fıkhî taksimatının yapılması"],"stem":"Lokman Suresi'nin muhtevası ve ana konuları dikkate alındığında, yukarıdakilerden hangileri surenin ele aldığı temel temalar arasında **yer alır**?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"Lokman Suresi'nin konusu; Kur'an muhataplarının durumu, vahdaniyet delilleri, Lokman'ın öğütleri, takva ve kıyamet günüdür. Ganimet taksimi gibi hususlar bu Mekkî surenin konuları arasında yer almaz.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_005","uid":"9381f1d8da","surah":31,"cuz":21,"scope":"surah_info","refs":[{"sure":31,"from":12,"to":12}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi tefsir açıklamalarında Hz. Lokmân ve kendisine bahşedilen \"hikmet\" kavramı hakkında İslam âlimlerinin ekseriyetinin benimsediği yaklaşım aşağıdakilerden hangisidir?","options":["Peygamber değil; hikmet sahibi, nazarî ilimlerle ruhî olgunluğa ve isabetli davranış melekesine ermiş salih bir zattır.","İsrailoğulları'nın hükümdarlık yapmış bir melikidir.","Sadece cahiliye şiirlerinde adı geçen efsanevi bir bilge şahsiyettir.","Kendisine bağımsız bir şeriat ve kitap verilmiş bir resuldür."],"answerIndex":0,"lockOrder":false,"explanation":"12. ayetin tefsirinde: 'İslâm âlimlerinin ekseriyeti, onun peygamber değil, hikmet sahibi bir zat olduğu kanaatindedirler. Hikmetin bir anlamı da nazarî ilimleri elde ettikten sonra kazanılan ruhî olgunluk, söz ve davranışlarda isabet melekesidir.' denilmektedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_006","uid":"649b61adab","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":1,"to":3}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 2 ve 3. ayetlerinde Kur'an-ı Kerim ayetleri nasıl nitelendirilmiş ve kimler için bir hidayet rehberi ve rahmet olarak **nâzil olduğu bildirilmiştir**?","options":["Kıyamet sahnelerinin tasviridir; yalnızca günahkârları uyarmak için gelmiştir.","Gizli sırların beyanıdır; sadece ibadetle meşgul olanlar için indirilmiştir.","Hikmet dolu Kitab'ın ayetleridir; güzel davrananlar (muhsinler) için bir hidayet rehberi ve rahmettir.","Geçmiş kavimlerin destanlarıdır; yalnızca ilim adamları için bir rehberdir."],"answerIndex":2,"lockOrder":false,"explanation":"Lokman Suresi 2-3. ayetlerde: 'İşte bu âyetler, hikmet dolu Kitab'ın âyetleridir. Güzel davrananlar için bir hidayet rehberi ve rahmet olmak üzere (indirilmiştir).' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_007","uid":"d498f3568e","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":4,"to":4}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"O kimseler, namazı kılarlar, zekâtı verirler; onlar ........ de kesin olarak iman ederler.\"\n\nLokman Suresi 4. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi **getirilmelidir**?","options":["ahirete","kitaplara","kadere","meleklere"],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 4. ayet meali: 'O kimseler, namazı kılarlar, zekâtı verirler; onlar ahirete de kesin olarak iman ederler.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_008","uid":"4c03a89692","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":4,"to":5}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 4 ve 5. ayetlerinde doğru yol üzere olup kurtuluşa erecekleri müjdelenen kimselerin özellikleri arasında aşağıdakilerden hangisi **sayılmamıştır**?","options":["Ahirete kesin olarak iman etmek","Namazı dosdoğru kılmak","Allah yolunda savaşta bulunmak","Zekâtı vermek"],"answerIndex":2,"lockOrder":false,"explanation":"4 ve 5. ayetlerde namaz kılmak, zekat vermek ve ahirete kesin olarak iman etmek sayılmıştır; savaşta bulunmak bu ayetlerde sayılan vasıflar arasında yer almaz.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_009","uid":"afc273644e","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":6,"to":6}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 6. ayetinde, hiçbir ilmî delile dayanmaksızın insanları Allah yolundan saptırmak ve dinle alay etmek için \"boş lafı satın alanlar\" hakkında öngörülen akıbet aşağıdakilerden hangisidir?","options":["Rüsvay edici (alçaltıcı) bir azap","Dünyada mülklerinin ellerinden alınması","Ömürlerinin kısaltılması","Toplumdan sürgün edilmeleri"],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 6. ayette: 'İnsanlardan öylesi var ki, herhangi bir ilmî delile dayanmadan Allah yolundan saptırmak ve sonra da onunla alay etmek için boş lafı satın alır. İşte onlara rüsvay edici bir azap vardır.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_010","uid":"24b3c4d6a7","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":6,"to":6}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"İnsanlardan öylesi var ki, herhangi bir ........ delile dayanmadan Allah yolundan saptırmak ve sonra da onunla alay etmek için ........ lafı satın alır. İşte onlara rüsvay edici bir azap vardır.\"\n\nLokman Suresi 6. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["kesin / asılsız","dini / bâtıl","akli / yalan","ilmî / boş"],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 6. ayetin TDV Meali: 'İnsanlardan öylesi var ki, herhangi bir ilmî delile dayanmadan Allah yolundan saptırmak ve sonra da onunla alay etmek için boş lafı satın alır...' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_011","uid":"4c6f2dee47","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":6,"to":6}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 6. ayetinin tefsirinde, insanların Kur'an dinlemesine engel olmak amacıyla Acem masalları ihtiva eden kitaplar satın alıp getirdiği ve bu ayetin inişine sebep olduğu rivayet edilen şahıs aşağıdakilerden hangisidir?","options":["Ümeyye b. Halef","Ebû Cehil","Nadr b. Hâris","Velîd b. Mugîre"],"answerIndex":2,"lockOrder":false,"explanation":"6. ayetin tefsir dipnotunda: 'Bu âyetin, Nadr b. Hâris’in davranışı üzerine nâzil olduğu nakledilir. Rivayete göre, bu şahıs, Acem masalları ihtiva eden kitaplar satın alıp getirir... müşrikleri eğlendirir ve insanları Kur’an dinlemekten alıkoymaya çalışırdı.' bilgisi yer alır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_012","uid":"2ad7251ec1","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":7,"to":7}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 7. ayetinde, kendisine Allah'ın ayetleri okunduğunda inkârcı kimsenin sergilediği kibirli tutum hangi benzetmeyle **anlatılmıştır**?","options":["Dili tutulmuş ve nutku kesilmiş gibi","Gözlerine kalın perdeler çekilmiş ve kör olmuş gibi","Kalbi taştan daha katı hale gelmiş gibi","Sanki ayetleri hiç işitmemiş, sanki kulaklarında bir ağırlık varmış gibi"],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 7. ayette: 'Ona âyetlerimiz okunduğu zaman, sanki bunları işitmemiş, sanki kulaklarında ağırlık varmış gibi büyüklük taslayarak yüz çevirir. Sen de ona acıklı bir azabın müjdesini ver!' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_013","uid":"27d06cbadd","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":7,"to":7}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Ona âyetlerimiz okunduğu zaman, sanki bunları işitmemiş, sanki kulaklarında ........ varmış gibi büyüklük taslayarak ........ çevirir. Sen de ona acıklı bir azabın müjdesini ver!\"\n\nLokman Suresi 7. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["ağırlık / yüz","mühür / yönünü","perde / başını","tıkaç / arkasını"],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 7. ayette 'sanki kulaklarında ağırlık varmış gibi büyüklük taslayarak yüz çevirir' ifadesi yer almaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_014","uid":"5dec67ad02","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":8,"to":9}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 8 ve 9. ayetlerine göre, iman edip güzel davranışlarda bulunanlar için hazırlanan mükâfat ve bunun ilâhî teminatı aşağıdakilerden hangisinde **doğru ifade edilmiştir**?","options":["Dünyada kesintisiz saltanat; bu peygamberlerin ortak vaadidir.","Cennette diledikleri her şeyi yaratma yetkisi; bu salih kulların hakkıdır.","İçinde devamlı kalacakları ve nimetleri bol cennetler; bu Allah'ın verdiği gerçek sözdür.","Ahirette bütün günahların sorgusuz affı; bu meleklerin şefaatidir."],"answerIndex":2,"lockOrder":false,"explanation":"Lokman Suresi 8-9. ayetlerde: 'Şüphesiz, iman edip de güzel davranışlarda bulunanlar için, içinde devamlı kalacakları ve nimetleri bol cennetler vardır. Bu, Allah'ın verdiği gerçek sözdür. O, mutlak güç ve hikmet sahibidir.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_015","uid":"9ace77895a","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":10,"to":10}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Göklerin insanların görebileceği hiçbir direk olmaksızın yaratılması","İnsanları sarsmasın diye yeryüzüne ulu ve sabit dağların yerleştirilmesi","Yeryüzünde her çeşit canlının yaratılıp yayılması","Gökyüzünden su indirilerek her faydalı bitkiden çift çift bitirilmesi"],"stem":"Lokman Suresi 10. ayetinde Allah Teâlâ'nın evrendeki kudret ve yaratma delilleri arasında yukarıdakilerden hangileri **zikredilmiştir**?","options":["I ve II","II ve III","I, II ve IV","I, II, III ve IV"],"answerIndex":3,"lockOrder":true,"explanation":"Lokman Suresi 10. ayetinde direksiz gökler, yeri sarsmasın diye konan dağlar, yayılan canlılar ve gökten su indirilip faydalı bitkilerin çift çift bitirilmesi hususlarının tümü açıkça zikredilmiştir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_016","uid":"cca468495a","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":10,"to":10}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"O, gökleri görebildiğiniz bir ........ olmaksızın yarattı, sizi sarsmasın diye yere de ulu ........ koydu ve orada her çeşit canlıyı yaydı...\"\n\nLokman Suresi 10. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["kubbe / kayalar","engel / nehirler","sütun / ağaçlar","direk / dağlar"],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 10. ayet meali: 'O, gökleri görebildiğiniz bir direk olmaksızın yarattı, sizi sarsmasın diye yere de ulu dağlar koydu...' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_017","uid":"c47f18a949","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":11,"to":11}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 11. ayetinde \"İşte bunlar Allah'ın yarattıklarıdır. Şimdi O'ndan başkasının ne yarattığını bana gösterin!\" ilâhî meydan okumasının ardından müşrik zalimler hakkında hangi hüküm **verilmiştir**?","options":["Onlar açık bir sapıklık içindedirler.","Onların kalpleri tamamen mühürlenmiştir.","Onlar akıllarını hiç kullanmayan cahillerdir.","Onlar yeryüzünde az bir süre sefa süreceklerdir."],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 11. ayette: 'İşte bunlar Allah'ın yarattıklarıdır. Şimdi (ey kâfirler!) O'ndan başkasının ne yarattığını bana gösterin! Hayır (gösteremezler)! Zalimler açık bir sapıklık içindedirler.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_018","uid":"3d68950e13","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":12,"to":12}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 12. ayetine göre, Allah'a şükreden ve nankörlük eden kimselerin durumuyla ilgili temel ilke aşağıdakilerden hangisinde **doğru açıklanmıştır**?","options":["Şükredenlerin mükâfatı dünyada peşin verilir; nankörlük edenler ise derhal helak edilir.","Nankörlük edenlerin cezası melekler tarafından hemen o anda infaz edilir.","Şükreden ancak kendisi için şükretmiş olur; nankörlük eden bilsin ki Allah hiçbir şeye muhtaç değildir, her türlü övgüye lâyıktır.","Allah'ın şükre ihtiyacı vardır; kullar şükretmedikçe kâinatın düzeni bozulur."],"answerIndex":2,"lockOrder":false,"explanation":"12. ayette: 'Şükreden ancak kendisi için şükretmiş olur. Nankörlük eden de bilsin ki, Allah hiçbir şeye muhtaç değildir, her türlü övgüye lâyıktır.' hükmü beyan edilmektedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_019","uid":"cd0ac81d4f","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":12,"to":12}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Andolsun biz Lokman'a: Allah'a ........! diyerek ........ verdik. Şükreden ancak kendisi için şükretmiş olur. Nankörlük eden de bilsin ki, Allah hiçbir şeye muhtaç değildir, her türlü övgüye lâyıktır.\"\n\nLokman Suresi 12. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir**?","options":["yönel / ilim","kulluk et / peygamberlik","itaat et / mülk","şükret / hikmet"],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 12. ayet meali: 'Andolsun biz Lokman'a: Allah'a şükret! diyerek hikmet verdik...' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_020","uid":"d6f5034dd4","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":13,"to":13}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 13. ayetine göre Hz. Lokmân'ın oğluna nasihat ederken yönelttiği ilk ve en mühim ikaz ile bu ikazın gerekçesi aşağıdakilerden hangisidir?","options":["Allah'a ortak koşma; doğrusu şirk büyük bir zulümdür.","İnsanlara yalan söyleme; zira yalan toplumun düzenini yıkar.","Akrabayı ihmal etme; akrabalık bağını koparan rahmetten mahrum kalır.","Namazı terk etme; çünkü namaz dinin direğidir."],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 13. ayette: 'Lokman, oğluna öğüt vererek: Yavrucuğum! Allah'a ortak koşma! Doğrusu şirk, büyük bir zulümdür, demişti.' buyrulur.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_021","uid":"acada3eeb1","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":14,"to":14}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 14. ayetinde insana ana-babasına iyi davranması tavsiye edilirken, annenin fedakârlığı ve çocuğun sütten ayrılmasıyla ilgili hangi süre **zikredilmiştir**?","options":["Otuz ay","Bir buçuk yıl","İki yıl","Bir yıl"],"answerIndex":2,"lockOrder":false,"explanation":"Lokman Suresi 14. ayette: '...Çünkü anası onu nice sıkıntılara katlanarak taşımıştır. Sütten ayrılması da iki yıl içinde olur...' denilmektedir.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_022","uid":"48f1b940e1","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":14,"to":14}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"...Sütten ayrılması da iki yıl içinde olur. (İşte bunun için) önce bana, sonra da ........ şükret diye tavsiyede bulunmuşuzdur. Dönüş ancak banadır.\"\n\nLokman Suresi 14. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi **getirilmelidir**?","options":["peygamberine","ana-babana","akrabalarına","büyüklerine"],"answerIndex":1,"lockOrder":false,"explanation":"14. ayet meali: '...önce bana, sonra da ana-babana şükret diye tavsiyede bulunmuşuzdur. Dönüş ancak banadır.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_023","uid":"937ad55087","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":15,"to":15}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Anne ve baba evladını Allah'a şirk koşması için zorlarsa bu konuda onlara kesinlikle itaat etmemek","Şirke zorlasalar dahi dünyada onlarla meşru ölçülerde iyi geçinmeye devam etmek","İnanç ve amel hususunda Allah'a gönülden yönelenlerin yoluna uymak","Şirk koşan ebeveyni tamamen reddedip dünyada onlarla her türlü insani münasebeti kesmek"],"stem":"Lokman Suresi 15. ayetinde, ebeveynin evladını şirke zorlaması durumunda takınılması emredilen Kur'anî tutumlar arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"Lokman Suresi 15. ayette şirke zorlamaları halinde onlara itaat edilmemesi, ancak dünyada onlarla iyi geçinilmesi ve Allah'a yönelenlerin yoluna uyulması emredilmiştir. İnsani ilişkileri tamamen kesmek ayetin emrine aykırıdır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_024","uid":"44262ac3fc","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":16,"to":16}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 16. ayetinde Hz. Lokmân, Allah'ın her şeyi kuşatan ilmini ve hiçbir amelin karşılıksız kalmayacağını oğluna açıklarken aşağıdaki teşbihlerden hangisini **kullanmıştır**?","options":["Bir kayanın içinde, göklerde veya yerin derinliklerinde bir hardal tanesi ağırlığında yapılan işi","Fırtınalı bir günde savrulan kül tanesini","Karanlık gecede siyah taşın üstündeki karıncanın ayak sesini","Denizin dibindeki inci tanesinin ışığını"],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 16. ayette: 'Yavrucuğum! Yaptığın iş (iyilik veya kötülük), bir hardal tanesi ağırlığında bile olsa ve bu, bir kayanın içinde veya göklerde yahut yerin derinliklerinde bulunsa, yine de Allah onu (senin karşına) getirir. Doğrusu Allah, en ince işleri görüp bilmektedir ve her şeyden haberdardır.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_025","uid":"c63bd6fabe","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":17,"to":17}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Namazı dosdoğru kılmak","İyiliği emredip kötülükten vazgeçirmeye çalışmak","Başa gelen musibet ve zorluklara karşı sabretmek","Toplumsal ilişkilerde büyüklük taslayarak insanları küçümsemek"],"stem":"Lokman Suresi 17. ayetinde Hz. Lokmân'ın oğluna \"Doğrusu bunlar, azmedilmeye değer işlerdir\" diyerek tavsiye ettiği amel ve erdemler arasında yukarıdakilerden hangileri **yer alır**?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"17. ayette: 'Yavrucuğum! Namazı kıl, iyiliği emret, kötülükten vazgeçirmeye çalış, başına gelenlere sabret. Doğrusu bunlar, azmedilmeye değer işlerdir.' buyrulmaktadır. İnsanları küçümsemek ise 18. ayette yasaklanan kötü bir huydur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_026","uid":"93e58d408a","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":18,"to":18}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 18. ayetinde Hz. Lokmân'ın oğluna verdiği öğüt bağlamında, Allah'ın kesinlikle sevmediği bildirilen kimseler aşağıdakilerden hangisinde doğru belirtilmiştir?","options":["Akrabalık bağlarını koparan ve sıla-i rahmi terk edenler","Ticaretinde hile yapıp ölçü ve tartıda haksızlık edenler","Yalan yere yemin ederek haksız kazanç sağlayanlar","Kendini beğenmiş, övünüp duran ve insanları küçümseyen kimseler"],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 18. ayette: 'Küçümseyerek insanlardan yüz çevirme ve yeryüzünde böbürlenerek yürüme. Zira Allah, kendini beğenmiş övünüp duran kimseleri asla sevmez.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_027","uid":"f0df9e0c5a","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":18,"to":18}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Küçümseyerek insanlardan yüz çevirme ve yeryüzünde ........ yürüme. Zira Allah, kendini beğenmiş ........ duran kimseleri asla sevmez.\"\n\nLokman Suresi 18. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["kibirle / anlatıp","hızlıca / konuşup","böbürlenerek / övünüp","gururla / söyleyip"],"answerIndex":2,"lockOrder":false,"explanation":"Lokman Suresi 18. ayet meali: 'Küçümseyerek insanlardan yüz çevirme ve yeryüzünde böbürlenerek yürüme. Zira Allah, kendini beğenmiş övünüp duran kimseleri asla sevmez.' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_028","uid":"23bb3c3167","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":19,"to":19}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 19. ayetinde ses tonu ve hitap adabı konusunda uyarılarda bulunulurken, 'seslerin en çirkini' olarak nitelendirilen ses aşağıdakilerden hangisidir?","options":["Kargaların sesi","Kurdun uluması","Yırtıcı hayvanların kükremesi","Merkeplerin (eşeklerin) sesi"],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 19. ayette: 'Yürüyüşünde tabiî ol, sesini alçalt. Unutma ki, seslerin en çirkini merkeplerin sesidir.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_029","uid":"8120ac69af","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":18,"to":19}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["İnsanları küçümseyerek onlardan yüz çevirmemek","Yeryüzünde böbürlenerek, kibirli ve çalımlı yürümemek","Yürüyüşte tabii/ölçülü olmak ve konuşurken sesi lüzumsuzca yükseltmeyip alçaltmak","Kendini diğer insanlardan üstün görüp övünmeyi bir hak olarak kabul etmek"],"stem":"Lokman Suresi 18 ve 19. ayetlerinde Hz. Lokmân'ın şahsında müminlere emredilen beşerî münasebet ve edep ilkeleri arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"18 ve 19. ayetlerde yüz çevirmemek, böbürlenmemek, yürüyüşte tabii olmak ve sesi alçaltmak emredilmiştir. Kendini üstün görüp övünmek ise kesinlikle yasaklanmıştır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_030","uid":"b9a7b0bde2","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":20,"to":20}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 20. ayetinde, hiçbir bilgiye, rehbere ve aydınlatıcı kitaba dayanmaksızın Allah hakkında tartışmaya girişenlerin sergilediği nankörlük hangi ilâhî nimetler hatırlatılarak kınanmıştır?","options":["Sadece geçmiş peygamberlere mucizeler bahşedilmesi","Göklerde ve yerdeki imkânların insanların emrine verilmesi ve açık-gizli nimetlerin bolca ihsan edilmesi","Dünya hayatında zenginlere daha çok mal ve mülk dağıtılması","Gökten taş yağdırılmayıp insanlara mühlet tanınması"],"answerIndex":1,"lockOrder":false,"explanation":"Lokman Suresi 20. ayette Allah'ın göklerde ve yerdeki varlıkları insanların emrine verdiği, nimetlerini açık ve gizli olarak bolca ihsan ettiği belirtilerek bilgisizce tartışanlar kınanmıştır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_031","uid":"94ccbc041a","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":20,"to":20}],"mealBasis":"tdv","type":"fill","difficulty":2,"premises":[],"stem":"\"...Yine de, insanlar içinde, -........ , ........ ve aydınlatıcı bir kitabı yokken- Allah hakkında tartışan kimseler vardır.\"\n\nLokman Suresi 20. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["bilgisi / rehberi","delili / şahidi","hücceti / beyanı","aklı / fikri"],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 20. ayette: '...insanlar içinde, -bilgisi, rehberi ve aydınlatıcı bir kitabı yokken- Allah hakkında tartışan kimseler vardır.' ifadesi yer almaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_032","uid":"e85916444e","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":21,"to":21}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 21. ayetine göre, müşriklere 'Allah'ın indirdiğine uyun' denildiğinde verdikleri tepki ve sığındıkları mazeret aşağıdakilerden hangisidir?","options":["'Biz indirileni anlamaktan aciziz' derler.","'Bizim kitabımız bize yeter' derler.","'Hayır, biz babalarımızı üzerinde bulduğumuz yola uyarız' derler.","'Bize melekler apaçık görünmedikçe inanmayız' derler."],"answerIndex":2,"lockOrder":false,"explanation":"Lokman Suresi 21. ayette: 'Onlara «Allah'ın indirdiğine uyun» dendiğinde: Hayır, biz babalarımızı üzerinde bulduğumuz yola uyarız, derler. Ya şeytan, onları alevli ateşin azabına çağırıyor idiyse!' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_033","uid":"3778cded0f","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":22,"to":22}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 22. ayetinde 'en sağlam kulpa yapışmış' olarak nitelendirilen kimselerin vasfı aşağıdakilerden hangisinde doğru ifade edilmiştir?","options":["İyi davranışlar içinde kendini bütünüyle Allah'a veren kimse","Yalnızca atalarının geleneklerine bağlı kalan kimse","Toplumda herkes tarafından takdir edilen zengin kimse","İlim meclislerinde sürekli münazaralara katılan kimse"],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 22. ayette: 'İyi davranışlar içinde kendini bütünüyle Allah'a veren kimse, gerçekten en sağlam kulpa yapışmıştır. Zaten bütün işlerin sonu Allah'a varır.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_034","uid":"a22d0a9a32","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":22,"to":22}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"İyi davranışlar içinde kendini bütünüyle Allah'a veren kimse, gerçekten ........ kulpa yapışmıştır. Zaten bütün işlerin sonu ........ varır.\"\n\nLokman Suresi 22. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["yüce / hesaba","kopmaz / cennete","büyük / ahirete","en sağlam / Allah'a"],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 22. ayetinde 'gerçekten en sağlam kulpa yapışmıştır. Zaten bütün işlerin sonu Allah'a varır.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_035","uid":"2046d2e44b","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":23,"to":24}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["İnkârcıların tutum ve inkârlarının Hz. Peygamber'i üzmemesi gerektiği","Bütün insanların nihai dönüşünün Allah'a olacağı ve yaptıklarının kendilerine bildirileceği","Allah'ın kalplerde saklanan niyet ve düşünceleri çok iyi bildiği","İnkârcıların dünyada biraz faydalandırıldıktan sonra ağır bir azaba sürükleneceği"],"stem":"Lokman Suresi 23 ve 24. ayetlerinde peygambere teselli verilirken ve inkârcıların durumu açıklanırken yukarıdaki ilkelerden hangileri bildirilmiştir?","options":["I ve II","II ve III","I, III ve IV","I, II, III ve IV"],"answerIndex":3,"lockOrder":true,"explanation":"Lokman Suresi 23 ve 24. ayetlerinde peygamberin üzülmemesi, dönüşün Allah'a olduğu, kalplerin bilindiği ve inkârcıların az bir menfaatten sonra ağır azaba sürükleneceği maddelerinin tümü geçmektedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_036","uid":"b2807e9d16","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":25,"to":25}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 25. ayetinde, müşriklere 'Gökleri ve yeri kim yarattı?' diye sorulduğunda verdikleri ikrarcı cevap aşağıdakilerden hangisidir?","options":["'Tabiat kendiliğinden yarattı' derler.","'Allah...' derler.","'Gökleri melekler yarattı' derler.","'Putlarımız' derler."],"answerIndex":1,"lockOrder":false,"explanation":"Lokman Suresi 25. ayette: 'Andolsun ki onlara, «Gökleri ve yeri kim yarattı?» diye sorsan, mutlaka «Allah...» derler. De ki: (Öyleyse) övgü de yalnız Allah'a mahsustur, ama onların çoğu bilmezler.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_037","uid":"b84ab8dc2f","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":26,"to":26}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 26. ayetinde göklerde ve yerde ne varsa hepsinin Allah'a ait olduğu bildirildikten sonra Allah Teâlâ hangi sıfatlarıyla tanıtılmıştır?","options":["Rızkı yalnızca dilediğine veren ve kısan","Azap eden ve intikam alan","Asıl ganî (hiçbir şeye muhtaç olmayan) ve övülmeye lâyık (hamîd) olan","Gökleri ve yeri altı günde tamamlayan"],"answerIndex":2,"lockOrder":false,"explanation":"Lokman Suresi 26. ayette: 'Göklerde ve yerde ne varsa, hepsi Allah'ındır. Bilinmeli ki, asıl ganî ve övülmeye lâyık olan Allah'tır.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_038","uid":"c9a9feb927","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":27,"to":27}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 27. ayetinde Allah'ın ilminin ve sözlerinin sonsuzluğu hangi edebi tasvirle ifade edilmiştir?","options":["Yeryüzündeki ağaçlar kalem, deniz de arkasından yedi deniz katılarak mürekkep olsa bile Allah'ın sözlerinin tükenmeyeceğiyle","Bütün insanların bir araya gelip tek bir kitap yazamayışıyla","Dağların yün gibi atılıp denizlerin kaynatılmasıyla","Göklerin dürülmesi ve yıldızların dökülmesiyle"],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 27. ayette: 'Şayet yeryüzündeki ağaçlar kalem, deniz de arkasından yedi deniz katılarak (mürekkep olsa) yine Allah'ın sözleri (yazmakla) tükenmez. Şüphe yok ki Allah mutlak galip ve hikmet sahibidir.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_039","uid":"83cbcbccf1","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":27,"to":27}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Şayet yeryüzündeki ağaçlar ........ , deniz de arkasından yedi deniz katılarak (mürekkep olsa) yine Allah'ın ........ (yazmakla) tükenmez...\"\n\nLokman Suresi 27. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["dal / emirleri","yaprak / ilmi","odun / nimetleri","kalem / sözleri"],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 27. ayetin TDV Meali: 'Şayet yeryüzündeki ağaçlar kalem, deniz de arkasından yedi deniz katılarak (mürekkep olsa) yine Allah'ın sözleri (yazmakla) tükenmez...' şeklindedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_040","uid":"1c25045923","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":28,"to":28}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 28. ayetinde, kıyamet günü bütün insanların yaratılması ve yeniden diriltilmesinin Allah'ın kudreti karşısındaki kolaylığı neye benzetilmiştir?","options":["Kupkuru bir toprağın yağmurla canlanmasına","Tek bir kişinin yaratılması ve diriltilmesine","Bir tohumun yarılıp filizlenmesine","Gecenin karanlığının ardından güneşin doğmasına"],"answerIndex":1,"lockOrder":false,"explanation":"Lokman Suresi 28. ayette: '(İnsanlar!) Sizin yaratılmanız ve diriltilmeniz, ancak tek bir kişinin yaratılması ve diriltilmesi gibidir. Unutulmasın ki, Allah her şeyi bilen ve görendir.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_041","uid":"51a1c4d8b8","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":29,"to":29}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Allah'ın geceyi gündüze, gündüzü de geceye katması","Güneşi ve ayı insanların hizmetine ve kendi ilâhî buyruğu altına alması","Güneş ve ayın her birinin belli bir vâdeye (süreye) kadar hareketini sürdürmesi","Gök cisimlerinin ebediyen hiçbir değişime uğramaksızın sonsuza kadar döneceği"],"stem":"Lokman Suresi 29. ayetinde evrendeki kozmik düzenle ilgili zikredilen hakikatler arasında yukarıdakilerden hangileri yer alır?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"29. ayette gecenin gündüze katılması, güneş ve ayın boyun eğdirilmesi ve belli bir vadeye kadar hareket etmeleri bildirilir. Ebediyen değişmeyecekleri iddiası ayete aykırıdır; zira 'belli bir vadeye kadar' kaydı vardır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_042","uid":"abdb2a7758","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":30,"to":30}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 30. ayetinde, kâinattaki bütün bu nizamın gerekçesi açıklanırken Allah ve O'ndan başka tapılan varlıklar hakkında hangi temel ilke vurgulanmıştır?","options":["Putlar da şefaat yetkisine sahiptir fakat Allah daha üstündür.","Tapılan varlıklar dünyada fayda sağlasa da ahirette bâtıldır.","Allah hakkın ta kendisidir; O'ndan başka taptıkları ise hiç şüphesiz bâtıldır.","Allah insanların ibadetlerine muhtaçtır, putlar ise muhtaç değildir."],"answerIndex":2,"lockOrder":false,"explanation":"Lokman Suresi 30. ayette: 'Çünkü Allah, hakkın ta kendisidir; O'ndan başka taptıkları ise hiç şüphesiz bâtıldır. Gerçekten Allah çok yüce, çok uludur.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_043","uid":"b0bdc99e61","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":31,"to":31}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 31. ayetine göre, Allah'ın lütfuyla gemilerin denizde yüzmesinde kimler için ibretler bulunduğu bildirilmiştir?","options":["Çok sabreden, çok şükreden herkes için","Geçmiş kavimlerin izini süren seyyahlar için","İlim tahsil etmek için sefere çıkan talebeler için","Yalnızca deniz ticareti yapan tüccarlar için"],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 31. ayette: 'Size varlığının delillerini göstermesi için, Allah'ın lütfuyla gemilerin denizde yüzdüğünü görmedin mi? Şüphesiz bunda, çok sabreden, çok şükreden herkes için ibretler vardır.' denilmektedir.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_044","uid":"629d59dfe3","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":31,"to":31}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Size varlığının delillerini göstermesi için, Allah'ın lütfuyla gemilerin denizde yüzdüğünü görmedin mi? Şüphesiz bunda, çok ........ , çok ........ herkes için ibretler vardır.\"\n\nLokman Suresi 31. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["korkan / ümit eden","sabreden / şükreden","akleden / düşünen","ibadet eden / dua eden"],"answerIndex":1,"lockOrder":false,"explanation":"Lokman Suresi 31. ayette: 'Şüphesiz bunda, çok sabreden, çok şükreden herkes için ibretler vardır.' buyrulur.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_045","uid":"d12c89fe9c","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":32,"to":32}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 32. ayetinde, dağlar gibi dalgalar kendilerini kuşattığında ihlasla Allah'a yalvaran insanların, karaya çıkarılıp kurtarıldıklarındaki tutumları nasıl tasvir edilmiştir?","options":["Bir daha asla deniz yolculuğuna çıkmamaya yemin ederler.","Kurtulur kurtulmaz mallarını tamamen fakirlere sadaka olarak dağıtırlar.","Hepsi birden anında eski şirk inançlarına geri döner.","İçlerinden bir kısmı orta yolu tutar; âyetleri ancak nankör hâinler bilerek inkâr eder."],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 32. ayette: 'Dağlar gibi dalgalar onları kuşattığı zaman, dini tamamen Allah'a has kılarak (ihlâsla) O'na yalvarırlar. Allah onları karaya çıkararak kurtardığı vakit içlerinden bir kısmı orta yolu tutar. Zaten bizim âyetlerimizi, ancak nankör hâinler bilerek inkâr eder.' denilmektedir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_046","uid":"4580d933d6","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":32,"to":32}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi 32. ayetinin tefsirinde, Mekke'nin fethinden sonra deniz yoluyla kaçarken fırtınaya tutulan, ihlasla dua edip kurtulduktan sonra Hz. Peygamber'e gelerek Müslüman olan ve cihad eden sahabi olarak kim rivayet edilmiştir?","options":["Hâlid b. Velîd","Amr b. Âs","İkrime b. Ebî Cehil","Ebû Süfyân b. Harb"],"answerIndex":2,"lockOrder":false,"explanation":"32. ayetin tefsir dipnotunda bu âyetin, Ebu Cehil'in oğlu İkrime hakkında nâzil olduğunun rivayet edildiği; denizdeki fırtınadan kurtulunca Resûlullah'a gelip Müslüman olduğu ve cihad ettiği anlatılmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_047","uid":"361c9f10d4","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":33,"to":33}],"mealBasis":"tdv","type":"mcq","difficulty":1,"premises":[],"stem":"Lokman Suresi 33. ayetinde müminler uyarılırken şeytanın insanları aldatma yöntemi hakkında hangi özel ikaz yapılmıştır?","options":["Şeytanın insanları büyü ve sihirle oyalaması","Şeytanın, Allah'ın affına güvendirerek insanları kandırması","Şeytanın insanları fakirlikle korkutup cimriliğe sürüklemesi","Şeytanın putları insanlara sevimli göstermesi"],"answerIndex":1,"lockOrder":false,"explanation":"Lokman Suresi 33. ayette: '...Sakın dünya hayatı sizi aldatmasın ve şeytan, Allah'ın affına güvendirerek sizi kandırmasın.' buyrulmaktadır.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_048","uid":"395fa18f96","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":33,"to":33}],"mealBasis":"tdv","type":"premise","difficulty":2,"premises":["Kıyamet gününde hiçbir babanın evladı namına bir şey ödeyemeyeceği","Hiçbir evladın da babası namına bir bedel ödeyemeyeceği ve herkesin kendi kaygısına düşeceği","Geçici dünya hayatının insanı aldatmaması gerektiği","Akrabalık bağlarının ahirette ilahi azaptan kurtulmak için yeterli bir güvence olduğu"],"stem":"Lokman Suresi 33. ayetinde kıyamet günü ve ahiret sorumluluğu bağlamında yukarıdakilerden hangileri doğrudur?","options":["I ve II","I, II ve III","II ve IV","I, III ve IV"],"answerIndex":1,"lockOrder":true,"explanation":"33. ayette babanın evladına, evladın babasına fayda vermeyeceği, dünya hayatının aldatmaması gerektiği bildirilir. Akrabalık bağının kurtuluş güvencesi olduğu iddiası ise ayette açıkça reddedilir.","sourceRef":"ozgun_uretim","verificationStatus":"pending"},{"id":"Q_031_049","uid":"3f490882e8","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":34,"to":34}],"mealBasis":"tdv","type":"mcq","difficulty":2,"premises":[],"stem":"Lokman Suresi'nin son ayeti olan 34. ayette, bilgisi yalnızca Allah katında olan 'mugayyebât-ı hamse' (beş gayb) kapsamında aşağıdakilerden hangisi **zikredilmemiştir**?","options":["Kıyametin ne zaman kopacağı ve yağmuru O'nun yağdırdığı","Rahimlerde olanı O'nun bildiği","Hiç kimsenin yarın ne kazanacağını ve nerede öleceğini bilemeyeceği","Kişinin cehennemde ne kadar süre kalacağı"],"answerIndex":3,"lockOrder":false,"explanation":"Lokman Suresi 34. ayette kıyamet vakti, yağmurun yağışı, rahimlerdekiler, yarın ne kazanılacağı ve nerede ölüneceği zikredilir; cehennemde kalış süresi bu ayette sayılan 5 husus arasında yer almaz.","sourceRef":"pdf_uyarlama","verificationStatus":"pending"},{"id":"Q_031_050","uid":"f96627d382","surah":31,"cuz":21,"scope":"ayah","refs":[{"sure":31,"from":34,"to":34}],"mealBasis":"tdv","type":"fill","difficulty":1,"premises":[],"stem":"\"Kıyamet vakti hakkındaki bilgi, ancak Allah'ın katındadır. Yağmuru O yağdırır, rahimlerde olanı O bilir. Hiç kimse yarın ne ........ bilemez. Yine hiç kimse nerede ........ bilemez. Şüphesiz Allah, her şeyi bilendir, her şeyden haberdardır.\"\n\nLokman Suresi 34. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi getirilmelidir?","options":["kazanacağını / öleceğini","harcayacağını / kalacağını","yiteceğini / uyuyacağını","yapacağını / dirileceğini"],"answerIndex":0,"lockOrder":false,"explanation":"Lokman Suresi 34. ayet mealinde: 'Hiç kimse yarın ne kazanacağını bilemez. Yine hiç kimse nerede öleceğini bilemez.' buyrulmaktadır.","sourceRef":"ozgun_uretim","verificationStatus":"pending"}]}
+{
+  "s": 31,
+  "questions": [
+    {
+      "id": "Q_031_001",
+      "uid": "c253a32727",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 12,
+          "to": 19
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi adını aşağıdakilerin hangisinde belirtilen gerekçeyle **almıştır?**",
+      "options": [
+        "Mekke döneminde Hz. Peygamber'e ilk biat eden Lokmân adlı sahabîden",
+        "Âd ve Semûd kavimlerine elçi olarak gönderilen Lokmân adlı peygamberden",
+        "12-19. ayetlerde oğluna hikmetli nasihatleri zikredilen Hz. Lokmân'dan",
+        "Surenin ilk ayetinde tıp ve şifaya işaret eden 'Lokmân' kelimesinden"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "TDV resmi sure tanıtımında belirtildiği üzere sûre, ismini 12-19. âyetler arasında oğluna yaptığı hikmetli nasihatleri sebebiyle Lokmân (a.s.)'dan almıştır. Lokmân (a.s.), İslâm âlimlerinin ekseriyetine göre peygamber değil, kendisine ilahi hikmet bahşedilmiş salih bir şahsiyettir. Bu sebeple sahabî, kavim peygamberi veya tıbbi bir terim olduğunu ileri süren şıklar tarihî ve metnî gerçekle bağdaşmaz.",
+      "sourceRef": "TDV Sure Tanıtımı",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_002",
+      "uid": "9c48d1be97",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 1,
+          "to": 34
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi'nin nüzul dönemi, ayet sayısı ve tertip sırası hakkında verilen aşağıdaki bilgilerden hangisi **doğrudur?**",
+      "options": [
+        "Mekke döneminde inmiştir, 34 ayettir; resmi tertipte 31, iniş sırasına göre 57. suredir.",
+        "Medine döneminde inmiştir, 34 ayettir; resmi tertipte 31, iniş sırasına göre 85. suredir.",
+        "Mekke döneminde inmiştir, 45 ayettir; resmi tertipte 25, iniş sırasına göre 57. suredir.",
+        "Medine döneminde inmiştir, 18 ayettir; resmi tertipte 49, iniş sırasına göre 105. suredir."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "TDV resmi sure künyesi ve tanıtımına göre Lokman Suresi, Mekke döneminde nâzil olmuş olup 34. âyettir; Mushaf tertîbine göre 31, nüzûl sırasına göre ise 57. sûredir. Sure hakkında 27-29. ayetlerin Medine'de indiği yönünde rivayetler bulunsa da bunlar tefsir otoritelerince güvenilir kabul edilmemiştir. Surenin Medine'de indiğini veya ayet sayısını 18 ya da 45 olarak gösteren seçenekler kaynakla çelişir.",
+      "sourceRef": "TDV Sure Tanıtımı",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_003",
+      "uid": "2226d06d8d",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 1,
+          "to": 34
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi nüzul kronolojisi bakımından Mekke döneminin ortalarında aşağıdaki surelerin hangisinden sonra, hangisinden önce **nâzil olmuştur?**",
+      "options": [
+        "Rûm Suresi'nden sonra, Secde Suresi'nden önce",
+        "Sâffât Suresi'nden sonra, Sebe' Suresi'nden önce",
+        "Nûr Suresi'nden sonra, Hucurât Suresi'nden önce",
+        "İsrâ Suresi'nden sonra, Kehf Suresi'nden önce"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "TDV nüzul bilgisine göre Lokman Suresi, Mekke döneminin ortalarında Sâffât sûresinden sonra ve Sebe’ sûresinden önce 57. sırada nâzil olmuştur. Bu kronolojik sıralama, Mekke müşriklerinin tevhid inancına karşı sergiledikleri dirence ve hikmet arayışına cevap niteliğindedir. Diğer seçeneklerdeki sureler Mekke veya Medine döneminin farklı evrelerine ait olup nüzul sırası bakımından Lokman'ın öncesi ve sonrasını doğru yansıtmaz.",
+      "sourceRef": "TDV Nüzul Bilgisi",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_004",
+      "uid": "c959a79d61",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "surah_info",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 1,
+          "to": 34
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Kur'an'a inananların ve inanmayanların dünya ve ahiretteki hallerine temas edilmesi",
+        "Allah Teâlâ'nın varlık, kudret ve vahdaniyet delillerinden örnekler sunulması",
+        "Hz. Lokmân'ın oğluna öğütleri üzerinden tevhid, şükür, ana-babaya iyilik ve ahlakî kemâlin işlenmesi",
+        "Savaş esirlerinin paylaşımı ve ganimetlerin fıkhî taksimatının yapılması"
+      ],
+      "stem": "Lokman Suresi'nin muhtevası ve ana konuları dikkate alındığında, yukarıdakilerden hangileri surenin ele aldığı temel temalar arasında **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "TDV sure tanıtımının Konusu bölümünde Lokman Suresi'nin; Kur'an muhataplarının akıbeti, ilahi kudret delilleri, Lokman'ın hikmetli nasihatleri ve kıyamet bilinci etrafında şekillendiği belirtilmiştir (I, II ve III). Mekke döneminde inen bu surede inanç ve ahlak esasları ön plandadır. Savaş esirleri ve ganimet taksimi gibi askeri-fıkhî düzenlemeler (IV) ise Medine döneminde nâzil olan Enfâl gibi surelerin konusudur.",
+      "sourceRef": "TDV Sure Tanıtımı",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_005",
+      "uid": "9381f1d8da",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 12,
+          "to": 12
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 12. ayetinin tefsir dipnotunda Hz. Lokmân ve kendisine bahşedilen \"hikmet\" hakkında İslam âlimlerinin ekseriyetinin benimsediği yaklaşım aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Peygamber olmayıp nazarî ilimlerle ruhî olgunluğa ve isabetli davranış melekesine ermiş hikmet ehli bir zattır.",
+        "Kendisine bağımsız bir şeriat ve ilâhî kitap verilmiş, kavmine tebliğle vazifelendirilmiş bir resuldür.",
+        "İsrailoğulları'na uzun yıllar hükümdarlık yapmış ve adil kanunlar vazetmiş mülk sahibi bir meliktir.",
+        "Tarihsel bir şahsiyeti bulunmayan, sadece kadim Arap edebiyatında darbımesellere konu olmuş bir bilgedir."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 12. âyetinin TDV dipnotunda İslâm âlimlerinin ekseriyetinin, Lokmân'ın peygamber değil, hikmet sahibi bir zat olduğu kanaatini taşıdıkları belirtilmiştir. Burada hikmet; nazarî ilimleri elde ettikten sonra kazanılan ruhî olgunluk ile söz ve davranışlarda isabet melekesi olarak tarif edilmiştir. Kendisine müstakil kitap verilen bir peygamber, bir hükümdar veya efsanevi bir figür olduğu iddiaları kaynak metindeki tespitle bağdaşmaz.",
+      "sourceRef": "TDV Meali ve Dipnotu 31:12",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_006",
+      "uid": "649b61adab",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 2,
+          "to": 3
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 2 ve 3. ayetlerinde Kur'an-ı Kerim ayetleri nasıl nitelendirilmiş ve kimler için bir hidayet rehberi ve rahmet olarak **nâzil olduğu bildirilmiştir?**",
+      "options": [
+        "Kıyamet sahnelerinin tasviridir; yalnızca haddi aşan günahkârları uyarmak ve korkutmak için gelmiştir.",
+        "Hikmet dolu Kitab'ın ayetleridir; güzel davrananlar (muhsinler) için bir hidayet rehberi ve rahmettir.",
+        "Gayb aleminin gizli sırlarıdır; sadece geceleri ibadetle meşgul olan takvâ ehli için indirilmiştir.",
+        "Geçmiş kavimlerin kıssalarıdır; sadece ibret almasını bilen ilim ve fikir adamları için bir rehberdir."
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 2 ve 3. âyetlerinde 'İşte bu âyetler, hikmet dolu Kitab'ın âyetleridir. Güzel davrananlar için bir hidayet rehberi ve rahmet olmak üzere (indirilmiştir)' buyrulmaktadır. Kur'an âyetleri ilahi hikmetle vasıflandırılmış ve iyilik, samimiyet ve ihsan üzere yaşayan 'güzel davrananlar' için rahmet ve hidayet kaynağı kılınmıştır. Yalnızca günahkârları korkutma veya sadece geçmiş kavimlerin destanlarını anlatma nitelemesi âyetin kapsamını karşılamaz.",
+      "sourceRef": "TDV Meali 31:2-3",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_007",
+      "uid": "d498f3568e",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 4,
+          "to": 4
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"O kimseler, namazı kılarlar, zekâtı verirler; onlar ........ de kesin olarak iman ederler.\"\n\nLokman Suresi 4. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "meleklere",
+        "kitaplara",
+        "ahirete",
+        "kadere"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 4. âyetinin TDV mealinde 'O kimseler, namazı kılarlar, zekâtı verirler; onlar ahirete de kesin olarak iman ederler' ifadesi yer almaktadır. Âyette güzel davranan muhsin müminlerin ameli vasıfları olan namaz ve zekâtın ardından, inanç dünyalarındaki sarsılmaz teslimiyet 'ahirete kesin iman' olarak zikredilmiştir. Meleklere, kitaplara veya kadere iman İslam'ın temel inanç esasları olmakla birlikte bu âyetin metninde doğrudan yer almaz.",
+      "sourceRef": "TDV Meali 31:4",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_008",
+      "uid": "4c03a89692",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 4,
+          "to": 5
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 4 ve 5. ayetlerinde doğru yol üzere olup kurtuluşa erecekleri bildirilen kimselerin özellikleri arasında aşağıdakilerden hangisi **sayılmamıştır?**",
+      "options": [
+        "Ahiret gününe şüphesiz ve kesin olarak iman etmek",
+        "Namazı vaktinde ve huşû ile dosdoğru kılmak",
+        "Dini emir gereği zekâtı hak sahiplerine vermek",
+        "Allah yolunda düşmanla bilfiil savaşta bulunmak"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 4 ve 5. âyetlerinde kurtuluşa erecek doğru yol ehli müminlerin vasıfları; namazı kılmak, zekâtı vermek ve ahirete kesin olarak iman etmek şeklinde sayılmıştır. Mekke döneminde nâzil olan bu âyetlerde henüz farz kılınmamış olan bilfiil savaşta bulunma (cihad) vasfı zikredilmemiştir. Dolayısıyla savaşta bulunmak bu âyetlerde sayılan kurtuluş şartları arasında yer almaz.",
+      "sourceRef": "TDV Meali 31:4-5",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_009",
+      "uid": "afc273644e",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 6,
+          "to": 6
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 6. ayetinde, hiçbir ilmî delile dayanmaksızın insanları Allah yolundan saptırmak ve dinle alay etmek için \"boş lafı satın alanlar\" hakkında öngörülen akıbet aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Dünya hayatında zilletle sürgün edilmeleri",
+        "İnsanı zelil kılan rüsvay edici bir azap",
+        "Maddi servetlerinin tamamen yok edilmesi",
+        "Toplum içinde mallarının müsadere olunması"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 6. âyetinde, herhangi bir ilmî delile dayanmaksızın Allah yolundan saptırmak ve dinle alay etmek için boş lafı satın alanlara rüsvay edici bir azap olduğu bildirilmektedir. Âyet-i kerime, Kur'an ile alay eden kimselere dünyevi geçici bir müeyyide değil, ahirette insanı zelil ve perişan kılan alçaltıcı bir ceza tayin etmiştir. Sürgün edilme veya mülkün müsadere olunması gibi dünyevi yaptırımlar bu âyette zikredilen ilahi karşılık değildir.",
+      "sourceRef": "TDV Meali 31:6",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_010",
+      "uid": "24b3c4d6a7",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 6,
+          "to": 6
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"İnsanlardan öylesi var ki, herhangi bir ........ delile dayanmadan Allah yolundan saptırmak ve sonra da onunla alay etmek için ........ lafı satın alır. İşte onlara rüsvay edici bir azap vardır.\"\n\nLokman Suresi 6. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "kesin / asılsız",
+        "dini / bâtıl",
+        "akli / yalan",
+        "ilmî / boş"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 6. âyetinin TDV mealinde 'İnsanlardan öylesi var ki, herhangi bir ilmî delile dayanmadan Allah yolundan saptırmak ve sonra da onunla alay etmek için boş lafı satın alır' buyrulmaktadır. Âyet metninde birinci boşluğa delilin niteliğini belirten 'ilmî', ikinci boşluğa ise aldatıcı sözleri niteleyen 'boş' kelimesi getirilmelidir. Kesin/asılsız veya akli/yalan gibi ikililer anlamca yakın görünse de TDV mealinin lafzi ifadesini tam karşılamaz.",
+      "sourceRef": "TDV Meali 31:6",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_011",
+      "uid": "4c6f2dee47",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 6,
+          "to": 6
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 6. ayetinin tefsir dipnotunda, insanların Kur'an dinlemesine engel olmak amacıyla Acem masalları ihtiva eden kitaplar satın alıp getirdiği ve bu ayetin inişine sebep olduğu nakledilen şahıs aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Ümeyye b. Halef",
+        "Ebû Cehil",
+        "Nadr b. Hâris",
+        "Velîd b. Mugîre"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 6. âyetinin TDV dipnotunda bu âyetin Nadr b. Hâris’in davranışı üzerine nâzil olduğunun nakledildiği bildirilmektedir. Nadr b. Hâris, Acem masalları getirtip Mekkelilere okuyarak onları eğlendirmiş ve böylece insanları Kur'an dinlemekten alıkoymaya çalışmıştır. Ebû Cehil veya Velîd b. Mugîre gibi diğer müşrik liderler de İslam'a düşmanlık etmiş olmakla birlikte bu nüzul sebebi rivayetinde bizzat adı geçen kişi Nadr b. Hâris'tir.",
+      "sourceRef": "TDV Meali Dipnotu 31:6",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_012",
+      "uid": "2ad7251ec1",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 7. ayetinde, kendisine Allah'ın ayetleri okunduğunda inkârcı kimsenin sergilediği kibirli tutum hangi benzetmeyle **anlatılmıştır?**",
+      "options": [
+        "Sanki dili tutulup nutku kesilmiş ve konuşamaz bir hale gelmiş gibi",
+        "Sanki ayetleri hiç işitmemiş ve kulaklarında bir ağırlık varmış gibi",
+        "Sanki gözlerine kalın perdeler inmiş ve hakikate bütünüyle körleşmiş gibi",
+        "Sanki kalbi kaskatı kesilmiş ve hiçbir duyguyu hissedemez olmuş gibi"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 7. âyetinde 'Ona âyetlerimiz okunduğu zaman, sanki bunları işitmemiş, sanki kulaklarında ağırlık varmış gibi büyüklük taslayarak yüz çevirir' buyrulmaktadır. Âyet, kibre kapılan inkârcının vahiy karşısındaki duyarsızlığını ve inatçı tavrını 'kulaklarında ağırlık varmışçasına işitmemezlikten gelmek' şeklinde tasvir etmiştir. Dilin tutulması, gözün körleşmesi veya kalbin katılaşması gibi temsiller Kur'an'ın başka yerlerinde geçse de bu âyetteki benzetmeyi karşılamaz.",
+      "sourceRef": "TDV Meali 31:7",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_013",
+      "uid": "27d06cbadd",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Ona âyetlerimiz okunduğu zaman, sanki bunları işitmemiş, sanki kulaklarında ........ varmış gibi büyüklük taslayarak ........ çevirir. Sen de ona acıklı bir azabın müjdesini ver!\"\n\nLokman Suresi 7. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "ağırlık / yüz",
+        "tıkaç / sırt",
+        "perde / baş",
+        "mühür / yön"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 7. âyetinin TDV mealinde '...sanki kulaklarında ağırlık varmış gibi büyüklük taslayarak yüz çevirir' buyrulmaktadır. Âyet metninde birinci boşluğa sağırlık ve duyarsızlığı niteleyen 'ağırlık', ikinci boşluğa ise kibirli kafa tutmayı anlatan 'yüz' kelimesi getirilmelidir. Tıkaç/sırt veya perde/baş gibi ikililer mana yönünden yakın görünse de meal metninde yer alan lafzı yansıtmaz.",
+      "sourceRef": "TDV Meali 31:7",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_014",
+      "uid": "5dec67ad02",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 8,
+          "to": 9
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 8 ve 9. ayetlerine göre, iman edip güzel davranışlarda bulunanlar için hazırlanan mükâfat ve bunun ilâhî teminatı aşağıdakilerden hangisinde **doğru ifade edilmiştir?**",
+      "options": [
+        "Dünya hayatında kesintisiz bir mülk ve iktidar; bu peygamberlerin ortak müjdesidir.",
+        "Ahirette bütün hesaplardan tamamen muaf tutulma; bu mukarreb meleklerin şefaatidir.",
+        "İçinde devamlı kalacakları nimetleri bol cennetler; bu Allah'ın verdiği gerçek sözdür.",
+        "Cennette diledikleri her şeyi yaratma salahiyeti; bu salih müminlerin mutlak hakkıdır."
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 8 ve 9. âyetlerinde, iman edip güzel davranışlarda bulunanlar için içinde devamlı kalacakları nimetleri bol cennetlerin hazırlandığı ve bunun Allah'ın gerçek bir vaadi olduğu bildirilmektedir. Âyet, salih müminlere vaat edilen ebedi cennet mükâfatının bizzat Allah'ın şaşmaz ilahi teminatı altında olduğunu açıkça vurgular. Dünyevi saltanat, meleklerin şefaati veya dilediğini yaratma salahiyeti gibi iddialar âyetin metninde yer almaz.",
+      "sourceRef": "TDV Meali 31:8-9",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_015",
+      "uid": "9ace77895a",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 10,
+          "to": 10
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Göklerin insanların görebileceği hiçbir direk olmaksızın yaratılması",
+        "İnsanları sarsmasın diye yeryüzüne ulu dağların yerleştirilmesi",
+        "Yeryüzünde her çeşit canlının yaratılıp yayılması",
+        "Gökyüzünden su indirilerek her faydalı bitkiden çift çift bitirilmesi"
+      ],
+      "stem": "Lokman Suresi 10. ayetinde Allah Teâlâ'nın evrendeki kudret ve yaratma delilleri arasında yukarıdakilerden hangileri **zikredilmiştir?**",
+      "options": [
+        "I, II ve III",
+        "I, II ve IV",
+        "II, III ve IV",
+        "I, II, III ve IV"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Lokman Suresi 10. âyetinde ilahi kudretin dört temel kozmik tecellisi sayılmıştır: Direksiz yaratılan gökler (I), sarsıntıyı önleyen ulu dağlar (II), yeryüzüne yayılan çeşitli canlılar (III) ve gökten indirilen suyla çift çift bitirilen faydalı bitkiler (IV). Âyetin metninde bu dört hususun tamamı açıkça zikredilerek tefekküre sunulmuştur. Bu sebeple öncüllerin tümünü içeren seçenek doğru cevaptır.",
+      "sourceRef": "TDV Meali 31:10",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_016",
+      "uid": "cca468495a",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 10,
+          "to": 10
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"O, gökleri görebildiğiniz bir ........ olmaksızın yarattı, sizi sarsmasın diye yere de ulu ........ koydu ve orada her çeşit canlıyı yaydı...\"\n\nLokman Suresi 10. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "kubbe / kayalar",
+        "engel / nehirler",
+        "sütun / ağaçlar",
+        "direk / dağlar"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 10. âyetinin TDV mealinde göklerin direksiz yaratıldığı ve yeri sarsmasın diye ulu dağların konulduğu bildirilmektedir. Bu doğrultuda metindeki ilk boşluğa göğün desteksiz duruşunu ifade eden 'direk', ikinci boşluğa ise yeryüzünün sarsıntısını önleyen 'dağlar' kelimesi getirilmelidir. Kubbe, engel veya sütun gibi kavramlar anlamca yakın görünse de TDV mealinin lafzi ifadesini karşılamaz.",
+      "sourceRef": "TDV Meali 31:10",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_017",
+      "uid": "c47f18a949",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 11,
+          "to": 11
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 11. ayetinde \"İşte bunlar Allah'ın yarattıklarıdır. Şimdi O'ndan başkasının ne yarattığını bana gösterin!\" ilâhî meydan okumasının ardından zalimler hakkında hangi hüküm **verilmiştir?**",
+      "options": [
+        "Zalimlerin açık bir sapıklık içinde oldukları",
+        "İnkârcıların kalplerinin tamamen mühürlendiği",
+        "Müşriklerin akıllarını hiç kullanmayan kimseler olduğu",
+        "Kâfirlerin dünyada az bir süre sefa sürecekleri"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 11. âyetinde ilahi meydan okumanın ardından 'Zalimler açık bir sapıklık içindedirler' hükmü beyan edilmiştir. Âyet-i kerime sahte ilahların hiçbir şey yaratamayacağını ortaya koyarak müşriklerin apaçık bir sapıklık içinde bocaladıklarını teyit eder. Kalplerin mühürlenmesi veya kâfirlere az bir mühlet verilmesi Kur'an'ın başka âyetlerinde geçse de bu âyetin nihai hükmü değildir.",
+      "sourceRef": "TDV Meali 31:11",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_018",
+      "uid": "3d68950e13",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 12,
+          "to": 12
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 12. ayetine göre, Allah'a şükreden ve nankörlük eden kimselerin durumuyla ilgili temel ilke aşağıdakilerden hangisinde **doğru açıklanmıştır?**",
+      "options": [
+        "Şükredenin mükâfatı dünyada verilir; nankörlük eden ise derhal helak edilir.",
+        "Şükreden sadece kendisi için şükreder; Allah nankörlerin hiçbir şeyine muhtaç değildir.",
+        "Şükreden kimse ilahi gazaptan korunur; nankörlük edenin cezası anında infaz edilir.",
+        "Şükür kainat düzenini ayakta tutar; nankörlük edenler yaratılış dengesini bozar."
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 12. âyetinde şükredenin ancak kendi lehine şükretmiş olacağı, Allah'ın ise hiçbir şeye muhtaç olmadığı açıkça bildirilmiştir. Buna göre şükür kulun kendi manevi kemaline hizmet ederken, nankörlük edenlerin inkârı Allah'ın Ganî ve Hamîd oluşuna asla halel getiremez. Nankörlerin derhal dünyada cezalandırılması veya evrenin düzeninin kulun şükrüne muhtaç olması İslam tevhid inancına aykırıdır.",
+      "sourceRef": "TDV Meali 31:12",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_019",
+      "uid": "cd0ac81d4f",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 12,
+          "to": 12
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Andolsun biz Lokman'a: Allah'a ........! diyerek ........ verdik. Şükreden ancak kendisi için şükretmiş olur. Nankörlük eden de bilsin ki, Allah hiçbir şeye muhtaç değildir, her türlü övgüye lâyıktır.\"\n\nLokman Suresi 12. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "yönel / ilim",
+        "kulluk et / mülk",
+        "itaat et / nübüvvet",
+        "şükret / hikmet"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 12. âyetinin TDV mealinde 'Andolsun biz Lokman'a: Allah'a şükret! diyerek hikmet verdik...' ifadesi yer almaktadır. Âyet lafzında birinci boşluğa şükür vazifesini belirten 'şükret', ikinci boşluğa ise kendisine bahşedilen derin kavrayış ve olgunluğu gösteren 'hikmet' kelimesi getirilmelidir. İlim, mülk veya peygamberlik gibi kavramlar bu âyetin metninde yer almaz.",
+      "sourceRef": "TDV Meali 31:12",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_020",
+      "uid": "d6f5034dd4",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 13,
+          "to": 13
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 13. ayetine göre Hz. Lokmân'ın oğluna nasihat ederken yönelttiği ilk ikaz ile bu ikazın gerekçesi aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Allah'a ortak koşma; doğrusu şirk büyük bir zulümdür.",
+        "İnsanlara yalan söyleme; zira yalan güveni temelden yıkar.",
+        "Akrabanı ihmal etme; zira kopuş rahmeti bütünüyle engeller.",
+        "Namazı asla terk etme; çünkü namaz dinin ana direğidir."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 13. âyetinde Lokman'ın oğluna 'Yavrucuğum! Allah'a ortak koşma; doğrusu şirk, büyük bir zulümdür' dediği nakledilmektedir. Lokman (a.s.) terbiyede tevhidi ilk sıraya koymuş, yaratıcının yegâne hakkı olan kulluğu başkasına nispet etmenin en büyük haksızlık ve zulüm olduğunu açıklamıştır. Yalan söylemek, akrabayı ihmal etmek veya namazı terk etmek büyük günahlardan olsa da bu âyetteki ilk ve öncelikli ikaz şirk yasağıdır.",
+      "sourceRef": "TDV Meali 31:13",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_021",
+      "uid": "acada3eeb1",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 14,
+          "to": 14
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 14. ayetinde insana ana-babasına iyi davranması tavsiye edilirken, çocuğun sütten ayrılmasıyla ilgili hangi süre **zikredilmiştir?**",
+      "options": [
+        "Altı ay içinde",
+        "Bir yıl içinde",
+        "İki yıl içinde",
+        "Üç yıl içinde"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 14. âyetinde annenin çektiği meşakkatler hatırlatılırken çocuğun sütten ayrılmasının iki yıl içinde gerçekleştiği bildirilmiştir. Âyet-i kerime anne hakkının büyüklüğünü vurgulamak üzere emzirme süresini 'iki yıl içinde' ifadesiyle açıkça tayin etmiştir. Altı ay, bir yıl veya üç yıl seçenekleri bu âyetin lafzıyla uyuşmaz.",
+      "sourceRef": "TDV Meali 31:14",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_022",
+      "uid": "48f1b940e1",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 14,
+          "to": 14
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"...Sütten ayrılması da iki yıl içinde olur. (İşte bunun için) önce bana, sonra da ........ şükret diye tavsiyede bulunmuşuzdur. Dönüş ancak banadır.\"\n\nLokman Suresi 14. ayet mealinde boş bırakılan yere aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "peygamberine",
+        "akrabalarına",
+        "ana-babana",
+        "kardeşlerine"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 14. âyetinin TDV mealinde '...önce bana, sonra da ana-babana şükret diye tavsiyede bulunmuşuzdur; dönüş ancak banadır' buyrulmaktadır. Âyette kulun Allah'a karşı şükür borcu ile üzerindeki büyük emekleri sebebiyle anne babasına olan teşekkür ve hürmet borcu peş peşe emredilmiştir. Peygambere, akrabalara veya kardeşlere vefa göstermek dinin gereklerinden olsa da bu âyette şükredilmesi istenen merci ana-babadır.",
+      "sourceRef": "TDV Meali 31:14",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_023",
+      "uid": "937ad55087",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 15,
+          "to": 15
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Anne ve baba evladını Allah'a şirk koşması için zorlarsa bu konuda onlara kesinlikle itaat etmemek",
+        "Şirke zorlasalar dahi dünyada onlarla meşru ölçülerde iyi geçinmeye devam etmek",
+        "İnanç ve amel hususunda Allah'a gönülden yönelenlerin yoluna uymak",
+        "Şirk koşan ebeveyni tamamen reddedip dünyada onlarla her türlü insani münasebeti kesmek"
+      ],
+      "stem": "Lokman Suresi 15. ayetinde, ebeveynin evladını şirke zorlaması durumunda takınılması emredilen Kur'anî tutumlar arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "I, II ve III",
+        "II, III ve IV"
+      ],
+      "answerIndex": 2,
+      "lockOrder": true,
+      "explanation": "Lokman Suresi 15. âyetinde ebeveyn evladını şirke zorlarsa onlara itaat edilmemesi, ancak dünyada onlarla meşru ölçülerde iyi geçinilmesi ve Allah'a yönelenlerin yoluna uyulması emredilmiştir. Bu hükümler çerçevesinde I, II ve III. öncüllerdeki tutumlar Kur'an'ın vazettiği temel adalet ve ahlak dengesini oluşturur. Müşrik anne babayla tüm insani münasebetleri kesip onları tamamen terk etmek (IV) ise âyetin açıkça emrettiği 'onlarla dünyada iyi geçin' ilkesine zıttır.",
+      "sourceRef": "TDV Meali 31:15",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_024",
+      "uid": "44262ac3fc",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 16,
+          "to": 16
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 16. ayetinde Hz. Lokmân, Allah'ın her şeyi kuşatan ilmini ve hiçbir amelin kaybolmayacağını oğluna açıklarken hangi teşbihi **kullanmıştır?**",
+      "options": [
+        "Kayanın içinde, gökte ya da yerde olan bir hardal tanesi ağırlığındaki ameli",
+        "Fırtınalı bir günde rüzgârın önünde savrulup giden kül tanesi ağırlığındaki ameli",
+        "Karanlık gecede siyah taşın üzerinde yürüyen karınca ağırlığındaki ameli",
+        "Engin denizin dibinde karanlıklar içinde parıldayan inci tanesi ağırlığındaki ameli"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 16. âyetinde yapılan en küçük amellerin dahi kaybolmayacağı bir hardal tanesi ve kayanın içi teşbihiyle anlatılmıştır. Lokman (a.s.) bu çarpıcı temsille ister kayanın içinde ister göklerde veya yerin derinliklerinde olsun, zerre kadar bir ameli dahi Allah'ın ortaya çıkaracağını oğluna öğütlemiştir. Rüzgârda savrulan kül veya karıncanın ayak sesi benzetmeleri başka dinî metinlerde geçse de bu âyetin lafzında yer almaz.",
+      "sourceRef": "TDV Meali 31:16",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_025",
+      "uid": "c63bd6fabe",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 17,
+          "to": 17
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Namazı dosdoğru kılmak",
+        "İyiliği emredip kötülükten vazgeçirmeye çalışmak",
+        "Başa gelen musibet ve zorluklara karşı sabretmek",
+        "Toplumsal ilişkilerde büyüklük taslayarak insanları küçümsemek"
+      ],
+      "stem": "Lokman Suresi 17. ayetinde Hz. Lokmân'ın oğluna \"Doğrusu bunlar, azmedilmeye değer işlerdir\" diyerek tavsiye ettiği amel ve erdemler arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, II ve III",
+        "I, III ve IV",
+        "II, III ve IV"
+      ],
+      "answerIndex": 1,
+      "lockOrder": true,
+      "explanation": "Lokman Suresi 17. âyetinde namazı kılmak, iyiliği emredip kötülükten sakındırmak ve başa gelen musibetlere sabretmek azmedilmeye değer işler olarak sayılmıştır. Bu ilahi tavsiyeler müminin hayatında kararlılıkla tatbik etmesi gereken temel kulluk ve ahlak prensiplerini kapsar (I, II ve III). İnsanları küçümsemek (IV) ise övülen bir erdem olmayıp bir sonraki âyette şiddetle yasaklanan bir kibir alametidir.",
+      "sourceRef": "TDV Meali 31:17",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_026",
+      "uid": "93e58d408a",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 18,
+          "to": 18
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 18. ayetinde Hz. Lokmân'ın oğluna verdiği öğüt bağlamında, Allah'ın kesinlikle sevmediği bildirilen kimseler aşağıdakilerden hangisinde **doğru belirtilmiştir?**",
+      "options": [
+        "Akrabalık bağlarını hiçe sayıp sıla-i rahmi terk edenler",
+        "Ticaretinde hile yapıp ölçü ve tartıda haksızlık edenler",
+        "Kendini beğenmiş, övünüp duran ve böbürlenen kimseler",
+        "Yalan yere yemin edip insanların mallarını gasbedenler"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 18. âyetinde 'Zira Allah, kendini beğenmiş övünüp duran kimseleri asla sevmez' buyrulmaktadır. Âyet, kibirli ve çalımlı tavırları yasaklarken ilahi sevgi ve rızadan mahrum kalacak kimselerin kendini beğenip böbürlenenler olduğunu açıkça ifade etmiştir. Akraba bağını koparmak, ticarette hile yapmak veya haksız kazanç sağlamak haram olmakla birlikte bu âyette nehyedilen temel vasıf kibirdir.",
+      "sourceRef": "TDV Meali 31:18",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_027",
+      "uid": "f0df9e0c5a",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 18,
+          "to": 18
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Küçümseyerek insanlardan yüz çevirme ve yeryüzünde ........ yürüme. Zira Allah, kendini beğenmiş ........ duran kimseleri asla sevmez.\"\n\nLokman Suresi 18. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "kasılarak / anlatıp",
+        "çalımlanarak / söyleyip",
+        "salınarak / konuşup",
+        "böbürlenerek / övünüp"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 18. âyetinin TDV mealinde 'Küçümseyerek insanlardan yüz çevirme ve yeryüzünde böbürlenerek yürüme; zira Allah, kendini beğenmiş övünüp duran kimseleri asla sevmez' buyrulmaktadır. Âyet metninde birinci boşluğa kibirli yürüyüşü niteleyen 'böbürlenerek', ikinci boşluğa ise sürekli kendini övmeyi ifade eden 'övünüp' kelimesi getirilmelidir. Kasılarak, çalımlanarak veya salınarak kelimeleri meal lafzını tam olarak karşılamaz.",
+      "sourceRef": "TDV Meali 31:18",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_028",
+      "uid": "23bb3c3167",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 19,
+          "to": 19
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 19. ayetinde ses tonu ve hitap adabı konusunda uyarılarda bulunulurken, \"seslerin en çirkini\" olarak nitelendirilen ses aşağıdakilerden **hangisidir?**",
+      "options": [
+        "Kargaların sesi",
+        "Merkeplerin sesi",
+        "Kurtların sesi",
+        "Baykuşların sesi"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 19. âyetinde yürüyüşte tabii olmak ve sesi alçaltmak emredilirken seslerin en çirkininin merkeplerin sesi olduğu bildirilmiştir. Âyet-i kerime bağırıp çağırarak konuşmayı ve kaba hitap tarzını eşek (merkep) sesine benzeterek insan onuruna yakışmayan bir davranış olarak nitelemiştir. Karga, kurt veya baykuş sesleri halk arasında olumsuz çağrışımlar taşısa da bu âyetteki teşbihe konu edilmemiştir.",
+      "sourceRef": "TDV Meali 31:19",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_029",
+      "uid": "8120ac69af",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 18,
+          "to": 19
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "İnsanları küçümseyerek onlardan yüz çevirmemek",
+        "Yeryüzünde böbürlenerek, kibirli ve çalımlı yürümemek",
+        "Yürüyüşte tabii/ölçülü olmak ve konuşurken sesi lüzumsuzca yükseltmeyip alçaltmak",
+        "Kendini diğer insanlardan üstün görüp övünmeyi bir hak olarak kabul etmek"
+      ],
+      "stem": "Lokman Suresi 18 ve 19. ayetlerinde Hz. Lokmân'ın şahsında müminlere emredilen beşerî münasebet ve edep ilkeleri arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Lokman Suresi 18 ve 19. âyetlerinde insanlardan yüz çevirmemek (I), yeryüzünde böbürlenerek yürümemek (II), yürüyüşte tabii olup konuşurken sesi alçaltmak (III) emredilmiştir. Bu ahlaki ilkeler müminin toplum içindeki vakarını ve alçakgönüllülüğünü muhafaza etmesini hedefler. Kendini başkalarından üstün görüp övünmek (IV) ise âyette açıkça yerilmiş ve Allah'ın bu kimseleri asla sevmeyeceği bildirilmiştir.",
+      "sourceRef": "TDV Meali 31:18-19",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_030",
+      "uid": "b9a7b0bde2",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 20,
+          "to": 20
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 20. ayetinde, hiçbir bilgiye, rehbere ve aydınlatıcı kitaba dayanmaksızın Allah hakkında tartışanların sergilediği nankörlük hangi nimetler hatırlatılarak **kınanmıştır?**",
+      "options": [
+        "Gök ve yerdeki imkânların emre verilmesi, açık ve gizli nimetlerin bolca ihsan edilmesi",
+        "Geçmiş kavimlerin helak edilip yerlerine yeni ve güçlü nesillerin getirilmiş olması",
+        "Gökten taş yağdırılmayıp tevbe etmeleri için günahkârlara uzun mühletler tanınması",
+        "Dünya hayatında insanlara bol servet verilerek aralarında üstünlük takdir edilmesi"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 20. âyetinde göklerde ve yerdeki tüm varlıkların insanın emrine verildiği, açık ve gizli sayısız nimetin ihsan edildiği hatırlatılmaktadır. Âyet, ilahi lütuflara rağmen hiçbir ilme, rehbere ve aydınlatıcı kitaba dayanmaksızın Allah hakkında tartışan kimselerin nankörlüğünü kınamıştır. Geçmiş kavimlerin helaki veya dünya servetiyle övünme bu âyetteki kınamanın doğrudan dayanağı değildir.",
+      "sourceRef": "TDV Meali 31:20",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_031",
+      "uid": "94ccbc041a",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 20,
+          "to": 20
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"...Yine de, insanlar içinde, -........ , ........ ve aydınlatıcı bir kitabı yokken- Allah hakkında tartışan kimseler vardır.\"\n\nLokman Suresi 20. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "bilgisi / rehberi",
+        "delili / şahidi",
+        "hücceti / beyanı",
+        "aklı / fikri"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 20. âyetinde hiçbir sağlam delile dayanmaksızın ilahi hakikatleri inkâr edenler kınanırken 'bilgisi, rehberi ve aydınlatıcı bir kitabı yokken' ifadesi kullanılmıştır. Âyetteki boşluklara sırasıyla ilmi kavrayışı gösteren 'bilgisi' ile doğruya ulaştıran kılavuzu niteleyen 'rehberi' kelimeleri getirilmelidir. Delil, şahit veya hüccet gibi kavramlar genel dini literatürde geçse de bu âyetin TDV meal lafzında yer almaz.",
+      "sourceRef": "TDV Meali 31:20",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_032",
+      "uid": "e85916444e",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 21,
+          "to": 21
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 21. ayetine göre, müşriklere \"Allah'ın indirdiğine uyun\" dendiğinde verdikleri tepki ve sığındıkları mazeret aşağıdakilerden **hangisidir?**",
+      "options": [
+        "«Hayır, biz indirileni anlamaktan aciziz ve aklımız ermez» derler.",
+        "«Hayır, biz babalarımızı üzerinde bulduğumuz yola uyarız» derler.",
+        "«Hayır, atalarımızdan bize intikal eden kadim kitap yeter» derler.",
+        "«Hayır, bize gökten melekler açıkça görünmedikçe uymayız» derler."
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 21. âyetinde müşriklere Allah'ın indirdiği vahye uymaları emredildiğinde onların 'Hayır, biz babalarımızı üzerinde bulduğumuz yola uyarız' dedikleri nakledilmektedir. Müşrikler vahyin aydınlığı yerine körü körüne atalar taklidini mazeret olarak öne sürmüş, âyetin devamında şeytanın onları alevli ateşin azabına çağırdığı bildirilmiştir. Anlama acziyeti, geçmiş kitap iddiası veya melek görme talebi bu âyette zikredilen mazeret değildir.",
+      "sourceRef": "TDV Meali 31:21",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_033",
+      "uid": "3778cded0f",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 22,
+          "to": 22
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 22. ayetinde \"en sağlam kulpa yapışmış\" olarak nitelendirilen kimselerin temel vasfı aşağıdakilerden hangisinde **doğru ifade edilmiştir?**",
+      "options": [
+        "Atalarının geleneklerini tavizsiz sürdüren ve koruyan kimse",
+        "Toplumda zenginliği ve cömertliğiyle daima övülen kimse",
+        "İyi davranışlar içinde kendini bütünüyle Allah'a veren kimse",
+        "Dini konularda sürekli tartışıp üstünlük sağlayan kimse"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 22. âyetinde 'İyi davranışlar içinde kendini bütünüyle Allah'a veren kimse, gerçekten en sağlam kulpa yapışmıştır' buyrulmaktadır. Âyet, ihlasla teslim olup salih amel işleyen muhsin müminin kopması imkânsız sağlam bir tevhid ve güven bağına tutunduğunu beyan eder. Atalar yolunu taklit etmek, zenginlikle itibar kazanmak veya münazarada üstün gelmek âyette övülen vasıflardan değildir.",
+      "sourceRef": "TDV Meali 31:22",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_034",
+      "uid": "a22d0a9a32",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 22,
+          "to": 22
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"İyi davranışlar içinde kendini bütünüyle Allah'a veren kimse, gerçekten ........ kulpa yapışmıştır. Zaten bütün işlerin sonu ........ varır.\"\n\nLokman Suresi 22. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "kopmaz / cennete",
+        "yüce / hesaba",
+        "sarsılmaz / ahirete",
+        "en sağlam / Allah'a"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 22. âyetinin TDV mealinde '...gerçekten en sağlam kulpa yapışmıştır; zaten bütün işlerin sonu Allah'a varır' ifadesi yer almaktadır. Âyet metninde birinci boşluğa tevhid ve teslimiyetin gücünü anlatan 'en sağlam', ikinci boşluğa ise mutlak varış merciini bildiren 'Allah'a' kelimesi getirilmelidir. Kopmaz/cennete veya sarsılmaz/ahirete gibi ifadeler anlamca yakın görünse de TDV mealinin lafzi karşılığı değildir.",
+      "sourceRef": "TDV Meali 31:22",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_035",
+      "uid": "2046d2e44b",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 23,
+          "to": 24
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "İnkârcıların tutum ve inkârlarının Hz. Peygamber'i üzmemesi gerektiği",
+        "Bütün insanların nihai dönüşünün Allah'a olacağı ve yaptıklarının kendilerine bildirileceği",
+        "Allah'ın kalplerde saklanan niyet ve düşünceleri hakkıyla bildiği",
+        "İnkârcıların dünyadaki rızık ve nimetlerden hemen o anda tamamen mahrum bırakılacağı"
+      ],
+      "stem": "Lokman Suresi 23 ve 24. ayetlerinde inkârcıların durumu ve Hz. Peygamber'e verilen teselli bağlamında yukarıdakilerden hangileri **bildirilmiştir?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Lokman Suresi 23 ve 24. âyetlerinde peygamberin inkârcılar sebebiyle üzülmemesi (I), dönüşün Allah'a olup amellerin haber verileceği (II) ve kalplerin gizlediklerinin bilindiği (III) bildirilmiştir. İnkârcıların dünyadaki nimetlerden derhal mahrum edileceği iddiası (IV) ise yanlıştır; zira 24. âyette 'Onları biraz faydalandırır, sonra kendilerini ağır bir azaba sürükleriz' buyrularak onlara dünyada mühlet tanındığı ifade edilmiştir.",
+      "sourceRef": "TDV Meali 31:23-24",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_036",
+      "uid": "b2807e9d16",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 25,
+          "to": 25
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 25. ayetinde, müşriklere \"Gökleri ve yeri kim yarattı?\" diye sorulduğunda verdikleri ikrarcı cevap aşağıdakilerden **hangisidir?**",
+      "options": [
+        "«Gökleri ve yeri mutlaka Allah...» derler.",
+        "«Gökleri ve yeri tabiat kendisi yarattı» derler.",
+        "«Gökleri ve yeri taptığımız putlar yarattı» derler.",
+        "«Gökleri ve yeri yüce melekler yarattı» derler."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 25. âyetinde müşriklere 'Gökleri ve yeri kim yarattı?' diye sorulduğunda onların tereddütsüz 'mutlaka Allah...' diyecekleri haber verilmektedir. Müşrikler kâinatın yaratıcısı olarak Allah'ı ikrar etmekle birlikte putları şefaatçi edinerek şirke düşmüş ve tevhidin gerektirdiği şükürden gafil kalmışlardır. Tabiat, putlar veya meleklerin yarattığı iddiası bu âyette nakledilen müşrik itirafıyla uyuşmaz.",
+      "sourceRef": "TDV Meali 31:25",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_037",
+      "uid": "b84ab8dc2f",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 26,
+          "to": 26
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 26. ayetinde göklerde ve yerde ne varsa hepsinin Allah'a ait olduğu bildirildikten sonra Allah Teâlâ hangi sıfatlarıyla **tanıtılmıştır?**",
+      "options": [
+        "Rızkı dilediğine bolca veren, dilediğinde daraltan ve kısan",
+        "İnkârcılara şiddetle azap eden ve suçlulardan intikam alan",
+        "Asıl ganî (muhtaç olmayan) ve övgüye lâyık (hamîd) olan",
+        "Gökleri ve yeri yedi kat üzere nizamla yaratıp tamamlayan"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 26. âyetinde mülkün mutlak sahibinin Allah olduğu beyan edildikten sonra 'Bilinmeli ki, asıl ganî ve övülmeye lâyık olan Allah'tır' buyrulmaktadır. Âyet, kâinatın sahibinin hiçbir mahlûkun ibadetine ve varlığına muhtaç olmadığını (Ganî) ve bütün hamdlerin yegâne muhatabı olduğunu (Hamîd) ortaya koymuştur. Rızkı daraltma, intikam alma veya yedi kat göğü yaratma sıfatları bu âyetin metninde yer almaz.",
+      "sourceRef": "TDV Meali 31:26",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_038",
+      "uid": "c9a9feb927",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 27,
+          "to": 27
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 27. ayetinde Allah'ın ilminin ve sözlerinin sonsuzluğu aşağıdaki edebi tasvirlerden hangisiyle **ifade edilmiştir?**",
+      "options": [
+        "İnsan ve cinler bir araya gelse dahi benzer tek bir ayet getiremeyeceğiyle",
+        "Ağaçlar kalem, yedi deniz de mürekkep olsa dahi Allah'ın sözlerinin tükenmeyeceğiyle",
+        "Kıyamet koptuğunda semanın dürüleceği ve denizlerin birbirine kaynatılacağıyla",
+        "Kainattaki bütün yıldızların dökülüp göklerin bir sahife gibi katlanacağıyla"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 27. âyetinde 'Şayet yeryüzündeki ağaçlar kalem, deniz de arkasından yedi deniz katılarak (mürekkep olsa) yine Allah'ın sözleri tükenmez' buyrulmaktadır. Kur'an-ı Kerim bu muazzam edebi temsille ilahi ilmin, hikmetin ve kelimelerin sonsuzluğunu insan zihnine somutlaştırarak anlatmıştır. Benzer ayet getirememe, göklerin dürülmesi veya yıldızların dökülmesi Kur'an'ın başka âyetlerinde yer alan farklı hakikatlerdir.",
+      "sourceRef": "TDV Meali 31:27",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_039",
+      "uid": "83cbcbccf1",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 27,
+          "to": 27
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Şayet yeryüzündeki ağaçlar ........ , deniz de arkasından yedi deniz katılarak (mürekkep olsa) yine Allah'ın ........ (yazmakla) tükenmez...\"\n\nLokman Suresi 27. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "dal / emirleri",
+        "yaprak / ilmi",
+        "odun / nimetleri",
+        "kalem / sözleri"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 27. âyetinin TDV mealinde 'Şayet yeryüzündeki ağaçlar kalem, deniz de arkasından yedi deniz katılarak (mürekkep olsa) yine Allah'ın sözleri (yazmakla) tükenmez' buyrulmaktadır. Âyet metninde birinci boşluğa yazma vasıtası kılınan 'kalem', ikinci boşluğa ise tükenmezliği bildirilen 'sözleri' kelimesi getirilmelidir. Dal/emirleri veya yaprak/ilmi gibi ikililer anlamca yakın görünse de TDV mealinin lafzi tercümesini karşılamaz.",
+      "sourceRef": "TDV Meali 31:27",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_040",
+      "uid": "1c25045923",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 28,
+          "to": 28
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 28. ayetinde, bütün insanların yaratılması ve yeniden diriltilmesinin Allah'ın kudretine göre kolaylığı aşağıdakilerden hangisine **benzetilmiştir?**",
+      "options": [
+        "Kupkuru ölü toprağın baharda suyla dirilmesine",
+        "Tek bir kişinin yaratılması ve diriltilmesine",
+        "Toprağa atılan tohumun yarılıp filizlenmesine",
+        "Karanlık gecenin ardından güneşin doğuvermesine"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 28. âyetinde 'Sizin yaratılmanız ve diriltilmeniz, ancak tek bir kişinin yaratılması ve diriltilmesi gibidir' buyrulmaktadır. Âyet, sayısız insanın yoktan var edilmesi ile tek bir ferdin yaratılıp diriltilmesinin ilahi kudret karşısında farksız ve son derece kolay olduğunu açıklamaktadır. Toprağın yağmurla canlanması veya tohumun filizlenmesi Kur'an'da dirilişe dair diğer deliller olsa da bu âyetteki benzetme tek bir kişinin diriltilmesidir.",
+      "sourceRef": "TDV Meali 31:28",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_041",
+      "uid": "51a1c4d8b8",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 29,
+          "to": 29
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Allah'ın geceyi gündüze, gündüzü de geceye katması",
+        "Güneşi ve ayı kendi ilâhî buyruğu ve kanunları altına alması",
+        "Güneş ve ayın her birinin tayin edilmiş belli bir vâdeye kadar hareketini sürdürmesi",
+        "Kozmik nizamın ve gök cisimlerinin ebediyen hiçbir değişime uğramaksızın sonsuza dek döneceği"
+      ],
+      "stem": "Lokman Suresi 29. ayetinde evrendeki kozmik nizamla ilgili zikredilen ilahi hakikatler arasında yukarıdakilerden hangileri **yer alır?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Lokman Suresi 29. âyetinde gecenin gündüze katıldığı (I), güneş ve ayın ilahi buyruk altına alındığı (II) ve her birinin belli bir vâdeye kadar hareket ettiği (III) açıkça zikredilmiştir. Gök cisimlerinin ebediyen değişmeden sonsuza dek döneceği iddiası (IV) ise âyetin lafzına aykırıdır; zira 'belli bir vâdeye kadar' kaydı kıyametle bu hareketin son bulacağını göstermektedir.",
+      "sourceRef": "TDV Meali 31:29",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_042",
+      "uid": "abdb2a7758",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 30,
+          "to": 30
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 30. ayetinde, kâinattaki bütün bu nizamın gerekçesi açıklanırken Allah Teâlâ ve O'ndan başka tapılan varlıklar hakkında hangi temel hakikat **vurgulanmıştır?**",
+      "options": [
+        "Allah hakkın ta kendisidir; O'ndan başka taptıkları ise hiç şüphesiz bâtıldır.",
+        "Tapılan varlıklar dünyada aracılık yapsa da ahiret günü faydasız ve bâtıldır.",
+        "Putlar kısıtlı şefaat gücüne sahiptir; fakat mutlak yaratma gücü Allah'ındır.",
+        "İlah sanılan varlıklar tabiatın parçasıdır; Allah ise onlara can ve güç verendir."
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 30. âyetinde 'Çünkü Allah, hakkın ta kendisidir; O'ndan başka taptıkları ise hiç şüphesiz bâtıldır. Gerçekten Allah çok yüce, çok uludur' buyrulmaktadır. Âyet, kâinattaki mükemmel düzenin yaratıcısı olan Allah'ın yegâne Hak olduğunu, O'nun dışındaki tüm sahte ilahların ise asılsız ve bâtıl olduğunu kesin bir hükümle ilan etmiştir. Putlara şefaat veya aracılık payı tanıyan görüşler âyetteki kesin tevhid ilkesiyle bağdaşmaz.",
+      "sourceRef": "TDV Meali 31:30",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_043",
+      "uid": "b0bdc99e61",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 31,
+          "to": 31
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 31. ayetine göre, Allah'ın lütfuyla gemilerin denizde yüzmesinde kimler için ibretler bulunduğu **bildirilmiştir?**",
+      "options": [
+        "Denizlerde ticaret yapıp kazanç sağlayan mümin tüccarlar için",
+        "İlahi ilimleri tahsil etmek amacıyla sefere çıkan talipler için",
+        "Zorluklara çok sabreden, nimetlere çok şükreden herkes için",
+        "Geçmiş kavimlerin helak olduğu beldeleri gezen seyyahlar için"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 31. âyetinde gemilerin denizde yüzüşünün Allah'ın varlık delillerinden olduğu belirtildikten sonra 'Şüphesiz bunda, çok sabreden, çok şükreden herkes için ibretler vardır' buyrulmaktadır. Âyet-i kerime deniz yolculuğundaki tehlikelere sabreden ve selamet nimetine şükreden basiret sahibi müminleri ibret ehli olarak nitelemiştir. Sadece deniz tüccarları, ilim talebeleri veya seyyahlar gibi zümrelere hasredilmemiştir.",
+      "sourceRef": "TDV Meali 31:31",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_044",
+      "uid": "629d59dfe3",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 31,
+          "to": 31
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Size varlığının delillerini göstermesi için, Allah'ın lütfuyla gemilerin denizde yüzdüğünü görmedin mi? Şüphesiz bunda, çok ........ , çok ........ herkes için ibretler vardır.\"\n\nLokman Suresi 31. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "korkan / ümit eden",
+        "sabreden / şükreden",
+        "akleden / düşünen",
+        "dua eden / yalvaran"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 31. âyetinin TDV mealinde '...Şüphesiz bunda, çok sabreden, çok şükreden herkes için ibretler vardır' buyrulmaktadır. Âyette boş bırakılan kısımlara sıkıntılar karşısındaki direnci niteleyen 'sabreden' ile lütuflar karşısındaki minnettarlığı ifade eden 'şükreden' kelimeleri getirilmelidir. Korkan/ümit eden veya akleden/düşünen gibi kavramlar âyet mealinin lafzında yer almaz.",
+      "sourceRef": "TDV Meali 31:31",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_045",
+      "uid": "d12c89fe9c",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 32,
+          "to": 32
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 32. ayetinde, dağlar gibi dalgalar kendilerini kuşattığında ihlasla Allah'a yalvaran kimselerin, karaya çıkarılıp kurtarıldıklarındaki tutumları nasıl **tasvir edilmiştir?**",
+      "options": [
+        "Kurtulur kurtulmaz eski batıl şirk inançlarına ve putlarına geri dönerler.",
+        "İçlerinden bir kısmı orta yolu tutar; nankör hainler ise bilerek inkâr eder.",
+        "Verdikleri sözü tutarak mallarının tamamını yoksullara sadaka olarak verirler.",
+        "Korku ve dehşetin etkisiyle bir daha asla deniz seferine çıkmamaya yemin ederler."
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 32. âyetinde fırtınada ihlasla yalvaran insanların kurtuluş sonrasındaki tavrı 'Allah onları karaya çıkararak kurtardığı vakit içlerinden bir kısmı orta yolu tutar; zaten bizim âyetlerimizi, ancak nankör hâinler bilerek inkâr eder' şeklinde tasvir edilmiştir. TDV dipnotunda açıklandığı üzere kurtulunca 'orta yolu tutmak', hak yolda ve imanda sebat etmek anlamına gelirken nankör hainler sözlerinden dönerek inkâra sapmışlardır. Malları sadaka verme veya sefere çıkmama yemini âyette yer almaz.",
+      "sourceRef": "TDV Meali ve Dipnotu 31:32",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_046",
+      "uid": "4580d933d6",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 32,
+          "to": 32
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 2,
+      "premises": [],
+      "stem": "Lokman Suresi 32. ayetinin tefsir dipnotunda, Mekke'nin fethinden sonra deniz yoluyla kaçarken fırtınaya tutulan, ihlasla dua edip kurtulduktan sonra Hz. Peygamber'e gelerek Müslüman olan ve cihad eden sahabi olarak kim **rivayet edilmiştir?**",
+      "options": [
+        "Hâlid bin Velîd",
+        "Amr bin Âs",
+        "İkrime bin Ebî Cehil",
+        "Ebû Süfyân bin Harb"
+      ],
+      "answerIndex": 2,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 32. âyetinin TDV tefsir dipnotunda, bu âyetin Ebu Cehil'in oğlu İkrime hakkında nâzil olduğunun rivayet edildiği nakledilmektedir. İkrime, Mekke fethinin ardından deniz yoluyla kaçarken şiddetli bir fırtınaya yakalanmış, kurtulduğu takdirde iman edeceğine söz vermiş ve karaya çıkınca Peygamberimizin huzurunda Müslüman olmuştur. Hâlid bin Velîd veya Amr bin Âs gibi diğer isimler fetih öncesinde İslam'la şereflenmiş olup bu deniz fırtınası rivayetinde zikredilen sahabi İkrime'dir.",
+      "sourceRef": "TDV Meali ve Dipnotu 31:32",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_047",
+      "uid": "361c9f10d4",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 33,
+          "to": 33
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi 33. ayetinde müminler uyarılırken şeytanın insanları aldatma yöntemi hakkında hangi özel ikaz **yapılmıştır?**",
+      "options": [
+        "Şeytanın, Allah'ın affına güvendirerek insanları kandırması",
+        "Şeytanın, insanları fakirlikle korkutup cimriliğe sürüklemesi",
+        "Şeytanın, putları ve batıl adetleri insanlara sevimli göstermesi",
+        "Şeytanın, insanları sihir ve vesveselerle haktan uzaklaştırması"
+      ],
+      "answerIndex": 0,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 33. âyetinde 'Sakın dünya hayatı sizi aldatmasın ve şeytan, Allah'ın affına güvendirerek sizi kandırmasın' buyrulmaktadır. Âyet, şeytanın en aldatıcı tuzağının insanı günahlara sevk edip nasılsa Allah bağışlar zannıyla gaflete düşürmesi olduğunu haber vermiştir. İnsanları fakirlikle korkutmak veya putları süslemek Kur'an'ın başka âyetlerinde geçse de bu âyetteki hususi ikaz Allah'ın affına güvendirerek aldatmaktır.",
+      "sourceRef": "TDV Meali 31:33",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_048",
+      "uid": "395fa18f96",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 33,
+          "to": 33
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "premise",
+      "difficulty": 2,
+      "premises": [
+        "Kıyamet gününde hiçbir babanın evladı namına bir şey ödeyemeyeceği",
+        "Hiçbir evladın da babası namına bir bedel ödeyemeyeceği ve herkesin kendi kaygısına düşeceği",
+        "Geçici dünya hayatının insanı aldatmaması gerektiği",
+        "Akrabalık bağlarının ve nesep yakınlığının ahirette kurtuluş için yeterli bir güvence olduğu"
+      ],
+      "stem": "Lokman Suresi 33. ayetinde kıyamet günü ve ahiret sorumluluğu bağlamında yukarıdakilerden hangileri **doğrudur?**",
+      "options": [
+        "I, II ve IV",
+        "I, III ve IV",
+        "II, III ve IV",
+        "I, II ve III"
+      ],
+      "answerIndex": 3,
+      "lockOrder": true,
+      "explanation": "Lokman Suresi 33. âyetinde babanın evladı, evladın da babası namına hiçbir şey ödeyemeyeceği (I ve II) ile fani dünya hayatının insanı aldatmaması gerektiği (III) açıkça bildirilmiştir. TDV dipnotunda da açıklandığı üzere kıyamette kâfir babaya mümin evladının dahi fayda veremeyeceği belirtilmiştir. Dolayısıyla akrabalık bağlarının ilahi azaba karşı kurtarıcı bir güvence olduğu iddiası (IV) âyetin hükmüyle bütünüyle çelişir.",
+      "sourceRef": "TDV Meali ve Dipnotu 31:33",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_049",
+      "uid": "3f490882e8",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 34,
+          "to": 34
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "mcq",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "Lokman Suresi'nin son ayeti olan 34. ayette, bilgisi yalnızca Allah katında bulunan gayb alanları arasında aşağıdakilerden hangisi **zikredilmemiştir?**",
+      "options": [
+        "Kıyametin ne zaman kopacağı ve yağmurun ne zaman yağdırılacağı",
+        "Anne rahimlerinde olanın mahiyeti ve yaratılış safhaları",
+        "Hiç kimsenin yarın ne kazanacağını ve nerede öleceğini bilemeyeceği",
+        "Günahkâr kimselerin cehennemde ne kadar süre azap göreceği"
+      ],
+      "answerIndex": 3,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 34. âyetinde bilgisi yalnızca Allah'a ait olan beş gayb konusu; kıyamet vakti, yağmurun yağışı, rahimlerde olan, kişinin yarın ne kazanacağı ve nerede öleceği şeklinde bildirilmiştir. Âyet-i kerime insanın idrak ve bilgi sınırlarını aşan bu beş temel kaderî alanı zikrederek ilahi ilmin mutlaklığını ortaya koymuştur. Günahkârların cehennemde kalış süresi gibi ahiret ahvali ise bu âyette sayılan beş gayb maddesi arasında yer almaz.",
+      "sourceRef": "TDV Meali ve Dipnotu 31:34",
+      "verificationStatus": "verified"
+    },
+    {
+      "id": "Q_031_050",
+      "uid": "f96627d382",
+      "surah": 31,
+      "cuz": 21,
+      "scope": "ayah",
+      "refs": [
+        {
+          "sure": 31,
+          "from": 34,
+          "to": 34
+        }
+      ],
+      "mealBasis": "tdv",
+      "type": "fill",
+      "difficulty": 1,
+      "premises": [],
+      "stem": "\"Kıyamet vakti hakkındaki bilgi, ancak Allah'ın katındadır. Yağmuru O yağdırır, rahimlerde olanı O bilir. Hiç kimse yarın ne ........ bilemez. Yine hiç kimse nerede ........ bilemez. Şüphesiz Allah, her şeyi bilendir, her şeyden haberdardır.\"\n\nLokman Suresi 34. ayet mealinde boş bırakılan yerlere sırasıyla aşağıdakilerden hangisi **getirilmelidir?**",
+      "options": [
+        "harcayacağını / kalacağını",
+        "kazanacağını / öleceğini",
+        "yapacağını / bulunacağını",
+        "bulacağını / yatacağını"
+      ],
+      "answerIndex": 1,
+      "lockOrder": false,
+      "explanation": "Lokman Suresi 34. âyetinin TDV mealinde 'Hiç kimse yarın ne kazanacağını bilemez; yine hiç kimse nerede öleceğini bilemez' buyrulmaktadır. Âyet metninde birinci boşluğa gelecekte elde edilecek rızık ve amelleri gösteren 'kazanacağını', ikinci boşluğa ise ölümün gerçekleşeceği mekânı bildiren 'öleceğini' kelimesi getirilmelidir. Harcayacağını/kalacağını veya yapacağını/bulunacağını gibi ikililer anlamca yakın görünse de TDV mealinin lafzi ifadesini tam karşılamaz.",
+      "sourceRef": "TDV Meali 31:34",
+      "verificationStatus": "verified"
+    }
+  ]
+}
