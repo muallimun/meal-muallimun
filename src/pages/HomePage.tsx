@@ -6,7 +6,6 @@ import {
   BookMarked,
   BookOpen,
   BookOpenCheck,
-  Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -15,9 +14,7 @@ import {
   Layers,
   ListMusic,
   Play,
-  Plus,
   RefreshCw,
-  Search,
   Settings,
   SlidersHorizontal,
   Star,
@@ -56,19 +53,17 @@ import type {
   MemorizationUnit,
 } from '../types/memorization';
 import { RETENTION_STAGE_META } from '../types/memorization';
-import type { AudioPlaylistItem, SurahMeta } from '../types/quran';
-import { formatSafeArabicTitle, formatSurahTitle } from '../utils/arabicUtils';
+import type { AudioPlaylistItem } from '../types/quran';
+import { formatSurahTitle } from '../utils/arabicUtils';
 import {
   computeClassicalStats,
   resolveCurrentTurnLesson,
   TOTAL_MUSHAF_PAGES,
 } from '../utils/classicalHifzUtils';
 import {
-  buildSurahQuestionCountMap,
   formatNumberTr,
   getSurahMap,
 } from '../utils/poolUtils';
-import { normalizeTurkish } from '../utils/textNormalize';
 
 interface AyahPreviewData {
   surahNo: number;
@@ -85,8 +80,6 @@ interface AyahPreviewData {
   secondaryMealLabel: string | null;
   secondaryMealText: string;
 }
-
-const MAX_HOME_QUIZ_CARDS = 4;
 
 const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'] as const;
 
@@ -124,14 +117,12 @@ export const HomePage: React.FC = () => {
     settings,
     updateSettings,
     studyPool,
-    setStudyPool,
     studyProgress,
     audioPrefs,
     audioPlaylists,
     gamification,
     manifest,
     meta,
-    questionIndex,
     isLoadingCore,
     coreError,
     retryCoreLoad,
@@ -172,6 +163,8 @@ export const HomePage: React.FC = () => {
   // Tefekkür çerçevesi (mobilde kompakt sekme + tüm ekranlarda isteğe bağlı daraltma)
   const [activeReflectionTab, setActiveReflectionTab] = useState<'kamer' | 'furkan'>('kamer');
   const [isReflectionCollapsed, setIsReflectionCollapsed] = useState(false);
+  // Mobilde (< lg) Odak Surelerim tek satırlık akordeon olarak açılır
+  const [isMobileFocusSurahsOpen, setIsMobileFocusSurahsOpen] = useState(false);
 
   // Ezber durumu (Çalışma Masam için canlı okuma)
   const [memUnits, setMemUnits] = useState<MemorizationUnit[]>(() =>
@@ -214,9 +207,6 @@ export const HomePage: React.FC = () => {
     };
   }, []);
 
-  // Soru bankası vitrini anlık sure filtresi (114 sureye ölçeklenebilir)
-  const [quizSurahQuery, setQuizSurahQuery] = useState('');
-
   // Rastgele ayet önizleme durumu
   const [previewAyah, setPreviewAyah] = useState<AyahPreviewData | null>(null);
   const [isLoadingAyah, setIsLoadingAyah] = useState(false);
@@ -224,42 +214,10 @@ export const HomePage: React.FC = () => {
   const lastAyahIdRef = useRef<number | null>(null);
 
   const surahMap = useMemo(() => getSurahMap(meta), [meta]);
-  const questionCountBySurah = useMemo(
-    () => buildSurahQuestionCountMap(questionIndex),
-    [questionIndex],
+  const classicalStats = useMemo(
+    () => (classicalPlan?.isActive ? computeClassicalStats(classicalPlan) : null),
+    [classicalPlan],
   );
-
-  const availableQuestionSurahs = useMemo<SurahMeta[]>(() => {
-    if (!meta || !questionIndex) return [];
-    return questionIndex.availableSurahs
-      .map((sNo) => surahMap.get(sNo))
-      .filter((s): s is SurahMeta => Boolean(s));
-  }, [meta, questionIndex, surahMap]);
-
-  // Akıllı önceliklendirme: Önce Aktif Çalışma Havuzu'ndakiler, sonra Mushaf sırası (en fazla 4 kart)
-  const { visibleQuizSurahs, totalMatchedQuizSurahs } = useMemo(() => {
-    const normQuery = normalizeTurkish(quizSurahQuery);
-    const poolSet = new Set(poolStats.effectiveSurahs);
-
-    const filtered = normQuery
-      ? availableQuestionSurahs.filter((s) => {
-          const hay = normalizeTurkish(`${s.no} ${s.nameTr} ${s.shortNameTr}`);
-          return hay.includes(normQuery);
-        })
-      : availableQuestionSurahs;
-
-    const prioritized = [...filtered].sort((a, b) => {
-      const aInPool = poolSet.has(a.no) ? 0 : 1;
-      const bInPool = poolSet.has(b.no) ? 0 : 1;
-      if (aInPool !== bInPool) return aInPool - bInPool;
-      return a.no - b.no;
-    });
-
-    return {
-      visibleQuizSurahs: prioritized.slice(0, MAX_HOME_QUIZ_CARDS),
-      totalMatchedQuizSurahs: prioritized.length,
-    };
-  }, [availableQuestionSurahs, poolStats.effectiveSurahs, quizSurahQuery]);
 
   // En güncel / aktif ezber kaydı özeti + SRS bugün tekrar sayısı
   const memorizationSummary = useMemo(() => {
@@ -518,22 +476,6 @@ export const HomePage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meta, isLoadingCore, poolSignature]);
 
-  const handleToggleSurahInPool = (surahNo: number) => {
-    sfxService.play('click');
-    const exists = studyPool.selectedSurahs.includes(surahNo);
-    const nextSurahs = exists
-      ? studyPool.selectedSurahs.filter((n) => n !== surahNo)
-      : [...studyPool.selectedSurahs, surahNo];
-
-    if (nextSurahs.length === 0 && studyPool.selectedJuzs.length === 0) {
-      return;
-    }
-    setStudyPool({
-      selectedSurahs: nextSurahs,
-      selectedJuzs: studyPool.selectedJuzs,
-    });
-  };
-
   const handleStartExam = () => {
     navigateToExam();
   };
@@ -745,16 +687,16 @@ export const HomePage: React.FC = () => {
           ensureMealVisible: true,
         });
       }}
-      className="w-full text-left rounded-xl border p-4 flex flex-col justify-between gap-3 transition-all hover:border-[var(--brand-primary)]/45 cursor-pointer group"
+      className="w-full text-left rounded-xl border p-3 sm:p-4 flex flex-col justify-between gap-2 sm:gap-3 transition-all hover:border-[var(--brand-primary)]/45 cursor-pointer group"
       style={{
         backgroundColor: 'color-mix(in srgb, var(--bg-canvas) 52%, var(--bg-surface))',
         borderColor: 'var(--border-subtle)',
       }}
     >
-      {/* Üst Satır: Dingin Konu Etiketi + Sağda Ayet Künyesi (Mükerrer ok yok) */}
+      {/* Üst Satır: Dingin Konu Etiketi + Sağda Ayet Künyesi */}
       <div className="flex items-center justify-between gap-2 text-[11px]">
         <span
-          className="font-bold tracking-tight"
+          className="font-bold tracking-tight truncate"
           style={{
             color:
               tone === 'primary' ? 'var(--brand-primary-text)' : 'var(--brand-accent-text)',
@@ -771,11 +713,11 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* Orta Alan: Tam Ortalı Serlevha Arapça + Klasik Durak Gülü + Ortalı Meal */}
-      <div className="py-1.5 space-y-2.5 text-center">
+      <div className="py-0.5 sm:py-1.5 space-y-1.5 sm:space-y-2.5 text-center">
         <p
           dir="rtl"
           lang="ar"
-          className="text-center leading-[2.15] text-[21px] sm:text-[23px] break-words"
+          className="text-center leading-[1.95] sm:leading-[2.15] text-[18px] sm:text-[23px] break-words"
           style={{
             fontFamily: '"Scheherazade New", "Amiri Quran", serif',
             color: 'var(--text-primary)',
@@ -794,7 +736,7 @@ export const HomePage: React.FC = () => {
         </p>
 
         <p
-          className="text-xs sm:text-[13px] leading-relaxed text-center max-w-[46ch] mx-auto"
+          className="text-[11.5px] sm:text-[13px] leading-snug sm:leading-relaxed text-center max-w-[46ch] mx-auto"
           style={{ color: 'var(--text-secondary)' }}
         >
           {verse.meal}
@@ -803,7 +745,7 @@ export const HomePage: React.FC = () => {
 
       {/* Eşit Alt Taban Satırı */}
       <div
-        className="mt-auto pt-2.5 border-t flex items-center justify-between gap-2 text-[11px]"
+        className="mt-auto pt-2 sm:pt-2.5 border-t flex items-center justify-between gap-2 text-[11px]"
         style={{
           borderColor: 'color-mix(in srgb, var(--border-subtle) 75%, transparent)',
           color: 'var(--text-muted)',
@@ -825,7 +767,7 @@ export const HomePage: React.FC = () => {
     activeReflectionTab === 'kamer' ? REFLECTION_VERSES.kamer : REFLECTION_VERSES.furkan;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* ====================================================================
           1. Tefekkür & İlahî Çağrı — Mushaf Serlevha Kartı (50% / 50% Eksen)
           ==================================================================== */}
@@ -843,22 +785,22 @@ export const HomePage: React.FC = () => {
             }}
           />
 
-          <div className="p-4 sm:p-5 space-y-3.5">
+          <div className="p-3 sm:p-5 space-y-2.5 sm:space-y-3.5">
             {/* Kompakt Üst Başlık Satırı + Daralt / Aç İkonu */}
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center sm:items-start justify-between gap-2.5">
               <div className="min-w-0 space-y-0.5">
                 <p
-                  className="text-[11px] font-bold tracking-tight"
+                  className="hidden sm:block text-[11px] font-bold tracking-tight"
                   style={{ color: 'var(--brand-primary-text)' }}
                 >
                   Muallimun Kur&apos;an, Meal &amp; Araştırma
                 </p>
-                <h2 className="text-base sm:text-lg font-extrabold tracking-tight leading-snug text-balance">
+                <h2 className="text-sm sm:text-lg font-extrabold tracking-tight leading-snug text-balance">
                   Tefekkür &amp; İlahî Çağrı
                 </h2>
                 {!isReflectionCollapsed && (
                   <p
-                    className="text-xs sm:text-[13px] leading-relaxed max-w-4xl pt-0.5"
+                    className="hidden sm:block text-xs sm:text-[13px] leading-relaxed max-w-4xl pt-0.5"
                     style={{ color: 'var(--text-secondary)' }}
                   >
                     Kur&apos;an-ı Kerim, anlaşılması ve öğüt alınması kolaylaştırılmış bir hidayet
@@ -880,7 +822,7 @@ export const HomePage: React.FC = () => {
                     : 'Tefekkür çerçevesini daralt'
                 }
                 title={isReflectionCollapsed ? 'Tefekkür ayetlerini aç' : 'Tefekkür ayetlerini gizle'}
-                className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer shrink-0 transition-colors hover:border-[var(--brand-primary)]"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border flex items-center justify-center cursor-pointer shrink-0 transition-colors hover:border-[var(--brand-primary)]"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
@@ -895,7 +837,7 @@ export const HomePage: React.FC = () => {
               </button>
             </div>
 
-            {/* Ayet Kartları (Masaüstünde %50 / %50; mobilde 2'li sekme) */}
+            {/* Ayet Kartları (Masaüstünde %50 / %50; mobilde kompakt 2'li sekme) */}
             {!isReflectionCollapsed && (
               <>
                 <div className="hidden lg:grid lg:grid-cols-2 gap-4 items-stretch">
@@ -903,9 +845,9 @@ export const HomePage: React.FC = () => {
                   {renderReflectionVerseCard(REFLECTION_VERSES.furkan, 'accent')}
                 </div>
 
-                <div className="lg:hidden space-y-2.5">
+                <div className="lg:hidden space-y-2">
                   <div
-                    className="grid grid-cols-2 gap-1 p-1 rounded-xl"
+                    className="grid grid-cols-2 gap-1 p-0.5 rounded-xl"
                     style={{ backgroundColor: 'var(--bg-surface-soft)' }}
                     role="tablist"
                     aria-label="Tefekkür ayetleri"
@@ -927,7 +869,7 @@ export const HomePage: React.FC = () => {
                             sfxService.play('click');
                             setActiveReflectionTab(tab.id);
                           }}
-                          className="min-h-[36px] px-2 rounded-lg text-[11px] sm:text-xs font-bold transition-colors cursor-pointer truncate"
+                          className="min-h-[32px] px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer truncate"
                           style={{
                             backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                             color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -1115,23 +1057,74 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 <div
-                  className="px-4 py-2.5 flex items-center justify-between gap-2 border-r"
+                  className="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 border-r"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
-                  <span
-                    className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    <Layers
-                      className="w-3.5 h-3.5 shrink-0"
-                      style={{ color: 'var(--brand-primary-text)' }}
-                    />
-                    <span>Aktif Havuz</span>
-                  </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
-                    {formatNumberTr(poolStats.surahCount)} Sure ·{' '}
-                    {formatNumberTr(poolStats.ayahCount)} Ayet
-                  </span>
+                  {hatimSummary ? (
+                    <>
+                      <span
+                        className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <BookOpenCheck
+                          className="w-3.5 h-3.5 shrink-0"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        />
+                        <span>Hatim</span>
+                      </span>
+                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                        {formatNumberTr(hatimSummary.completedCount)}/604 Sayfa
+                      </span>
+                    </>
+                  ) : classicalStats ? (
+                    <>
+                      <span
+                        className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <BookMarked
+                          className="w-3.5 h-3.5 shrink-0"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        />
+                        <span>Hafızlık</span>
+                      </span>
+                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                        {formatNumberTr(classicalStats.hasCount)}/604 Has
+                      </span>
+                    </>
+                  ) : memUnits.length > 0 ? (
+                    <>
+                      <span
+                        className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <BookMarked
+                          className="w-3.5 h-3.5 shrink-0"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        />
+                        <span>Ezber</span>
+                      </span>
+                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                        {formatNumberTr(memUnits.length)} Bölüm
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <BookOpenCheck
+                          className="w-3.5 h-3.5 shrink-0"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        />
+                        <span>Okuma Hedefi</span>
+                      </span>
+                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                        30 Cüz
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 <div className="px-4 py-2.5 flex items-center justify-between gap-2">
@@ -1167,13 +1160,13 @@ export const HomePage: React.FC = () => {
              Sol: Çalışma Masam · Sağ: Havuzdan Bir Ayet + Aktif Çalışma Havuzum
           ==================================================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-        {/* SOL SÜTUN (%50): Yenilenmiş Çalışma Masam (Sadece Odak Satırları) */}
-        <div className="surface-card rounded-2xl p-4 sm:p-5 flex flex-col gap-3.5">
+        {/* SOL SÜTUN (%50): Günlük Takip (Kişiselleştirilebilir Odak Satırları) */}
+        <div className="surface-card rounded-2xl p-3.5 sm:p-5 flex flex-col gap-3 sm:gap-3.5">
           {/* Üst Başlık + Hata Kampı + Özelleştir */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: 'var(--brand-primary-soft)',
                   color: 'var(--brand-primary-text)',
@@ -1183,8 +1176,8 @@ export const HomePage: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <h3 className="text-base sm:text-lg font-extrabold tracking-tight truncate">
-                    Çalışma Masam
+                  <h3 className="text-sm sm:text-lg font-extrabold tracking-tight truncate">
+                    Günlük Takip
                   </h3>
                   {deskPrefs.profile !== 'all' && (
                     <span
@@ -1195,8 +1188,11 @@ export const HomePage: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                  Profilinize göre kişiselleştirilebilir günlük odak satırları
+                <p
+                  className="hidden sm:block text-xs truncate"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Kaldığınız okuma konumu ve kişisel ders rutininiz
                 </p>
               </div>
             </div>
@@ -1414,12 +1410,12 @@ export const HomePage: React.FC = () => {
                       : 'Okumaya Başla'}
                   </p>
                   <p
-                    className="text-xs tabular-nums truncate"
+                    className="text-xs tabular-nums leading-snug break-words"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     {lastRead ? (
                       <>
-                        {lastRead.ayah}. Ayet · Sayfa {lastRead.page} · {lastReadModeLabel}
+                        {lastRead.ayah}. Ayet · S.{lastRead.page} · {lastReadModeLabel}
                         {hatimBookmark ? ` · Hatim S.${hatimBookmark.page}` : ''}
                       </>
                     ) : (
@@ -1769,15 +1765,15 @@ export const HomePage: React.FC = () => {
           )}
         </div>
 
-        {/* SAĞ SÜTUN (%50): Havuzdan Bir Ayet (Üst · flex-1) + Aktif Çalışma Havuzum (Alt) */}
-        <div className="flex flex-col gap-4 h-full">
-          {/* Üst Sağ Kart: Tam Donanımlı Havuzdan Bir Ayet (Ölü Beyaz Boşluksuz) */}
-          <div className="surface-card rounded-2xl p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3">
+        {/* SAĞ SÜTUN (%50): Seçkiden Bir Ayet (Üst · flex-1) + Odak Surelerim (Alt) */}
+        <div className="flex flex-col gap-3 sm:gap-4 h-full">
+          {/* Üst Sağ Kart: Tam Donanımlı Seçkiden Bir Ayet */}
+          <div className="surface-card rounded-2xl p-3.5 sm:p-5 flex-1 flex flex-col justify-between gap-3">
             {/* Üst Başlık Satırı */}
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="text-base sm:text-lg font-extrabold tracking-tight">
-                  Havuzdan Bir Ayet
+                <h3 className="text-sm sm:text-lg font-extrabold tracking-tight">
+                  Seçkiden Bir Ayet
                 </h3>
                 {previewAyah && (
                   <p
@@ -2070,21 +2066,78 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Alt Sağ Kart: Kompakt Aktif Çalışma Havuzum (deskPrefs.showPoolAndExamSection açıkken) */}
+          {/* Alt Sağ Kart: Odak Surelerim (Mobilde kompakt akordeon, masaüstünde açık kart) */}
           {deskPrefs.showPoolAndExamSection && (
-            <div className="surface-card rounded-2xl p-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="surface-card rounded-2xl p-3.5 sm:p-4 space-y-3">
+              {/* Mobil (< lg) Tek Satırlık Akordeon Başlığı + Hızlı Test Butonu */}
+              <div className="flex lg:hidden items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setIsMobileFocusSurahsOpen((prev) => !prev);
+                  }}
+                  aria-expanded={isMobileFocusSurahsOpen}
+                  className="flex-1 min-w-0 flex items-center gap-2 text-left cursor-pointer py-0.5"
+                >
+                  <span
+                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <Target className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5 text-xs font-extrabold tracking-tight">
+                      <span className="truncate">Odak Surelerim</span>
+                      <span
+                        className="text-[11px] font-semibold tabular-nums whitespace-nowrap shrink-0"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        ({formatNumberTr(poolStats.surahCount)} Sure
+                        {poolStats.questionCount > 0
+                          ? ` · ${formatNumberTr(poolStats.questionCount)} Soru`
+                          : ''}
+                        )
+                      </span>
+                    </span>
+                  </span>
+                  {isMobileFocusSurahsOpen ? (
+                    <ChevronUp
+                      className="w-4 h-4 shrink-0"
+                      style={{ color: 'var(--text-muted)' }}
+                    />
+                  ) : (
+                    <ChevronDown
+                      className="w-4 h-4 shrink-0"
+                      style={{ color: 'var(--text-muted)' }}
+                    />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleStartExam}
+                  className="min-h-[32px] px-2.5 rounded-lg text-[11px] font-extrabold text-white inline-flex items-center gap-1 cursor-pointer shrink-0 whitespace-nowrap"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                >
+                  <Trophy className="w-3 h-3 shrink-0" />
+                  <span>Test</span>
+                </button>
+              </div>
+
+              {/* Masaüstü Başlık (lg+) */}
+              <div className="hidden lg:flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <h4 className="text-sm sm:text-[15px] font-extrabold tracking-tight">
-                      Aktif Çalışma Havuzum
-                    </h4>
+                    <h4 className="text-[15px] font-extrabold tracking-tight">Odak Surelerim</h4>
                     <span
                       className="text-xs font-semibold tabular-nums"
                       style={{ color: 'var(--text-muted)' }}
                     >
-                      · {formatNumberTr(poolStats.surahCount)} Sure ·{' '}
-                      {formatNumberTr(poolStats.ayahCount)} Ayet
+                      · Seçkili okuma ve test grubunuz · {formatNumberTr(poolStats.surahCount)} Sure
                       {poolStats.questionCount > 0
                         ? ` · ${formatNumberTr(poolStats.questionCount)} Soru`
                         : ''}
@@ -2111,337 +2164,120 @@ export const HomePage: React.FC = () => {
                   }}
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-                  <span>Havuzu Düzenle</span>
+                  <span>Sureleri Seç</span>
                 </button>
               </div>
 
-              {/* Seçili Surelerin Zarif Etkileşimli Çipleri */}
-              {activePoolSurahChips.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {activePoolSurahChips.map((chip) => (
-                    <button
-                      key={chip.no}
-                      type="button"
-                      onClick={() => handleFocusSurahAction(chip.no, 'reader')}
-                      title={`${chip.no}. ${chip.shortName} suresini aç`}
-                      className="min-h-[30px] px-2.5 rounded-lg border text-[11.5px] font-semibold tabular-nums cursor-pointer transition-colors hover:border-[var(--brand-primary)]/45 hover:bg-[var(--brand-primary-soft)]/60"
-                      style={{
-                        backgroundColor:
-                          'color-mix(in srgb, var(--bg-canvas) 55%, var(--bg-surface))',
-                        borderColor: 'var(--border-subtle)',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      {chip.no}. {chip.shortName}
-                    </button>
-                  ))}
-                  {remainingPoolSurahCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={openPoolModal}
-                      className="min-h-[30px] px-2.5 rounded-lg text-[11.5px] font-bold tabular-nums cursor-pointer hover:underline"
-                      style={{ color: 'var(--brand-primary-text)' }}
-                    >
-                      +{formatNumberTr(remainingPoolSurahCount)} sure
-                    </button>
-                  )}
+              {/* İçerik (Mobilde akordeon açıkken, masaüstünde her zaman görünür) */}
+              <div className={`${isMobileFocusSurahsOpen ? 'space-y-3 pt-1' : 'hidden lg:block lg:space-y-3'}`}>
+                <div className="flex lg:hidden items-center justify-between gap-2">
+                  <p className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                    Seçkili okuma ve test grubunuz · {formatNumberTr(poolStats.surahCount)} Sure
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openPoolModal}
+                    className="min-h-[30px] px-2.5 rounded-lg text-[11px] font-bold border inline-flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <SlidersHorizontal className="w-3 h-3 shrink-0" />
+                    <span>Sureleri Seç</span>
+                  </button>
                 </div>
-              )}
 
-              {poolStats.questionCount === 0 && (
-                <p className="text-[11.5px] font-medium" style={{ color: 'var(--brand-accent-text)' }}>
-                  Bu seçimde henüz hazır sınav sorusu yok; okuma ve dinleme yapabilir veya soru
-                  bankası bulunan sureleri havuza ekleyebilirsiniz.
-                </p>
-              )}
+                {/* Seçili Surelerin Zarif Etkileşimli Çipleri */}
+                {activePoolSurahChips.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {activePoolSurahChips.map((chip) => (
+                      <button
+                        key={chip.no}
+                        type="button"
+                        onClick={() => handleFocusSurahAction(chip.no, 'reader')}
+                        title={`${chip.no}. ${chip.shortName} suresini aç`}
+                        className="min-h-[30px] px-2.5 rounded-lg border text-[11.5px] font-semibold tabular-nums cursor-pointer transition-colors hover:border-[var(--brand-primary)]/45 hover:bg-[var(--brand-primary-soft)]/60"
+                        style={{
+                          backgroundColor:
+                            'color-mix(in srgb, var(--bg-canvas) 55%, var(--bg-surface))',
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        {chip.no}. {chip.shortName}
+                      </button>
+                    ))}
+                    {remainingPoolSurahCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={openPoolModal}
+                        className="min-h-[30px] px-2.5 rounded-lg text-[11.5px] font-bold tabular-nums cursor-pointer hover:underline"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        +{formatNumberTr(remainingPoolSurahCount)} sure
+                      </button>
+                    )}
+                  </div>
+                )}
 
-              {/* Kompakt Havuz Aksiyon Satırı: Sınav Başlat · Havuzu Oku · Havuzu Dinle */}
-              <div
-                className="pt-2.5 border-t flex flex-wrap items-center gap-2"
-                style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 75%, transparent)' }}
-              >
-                <button
-                  type="button"
-                  onClick={handleStartExam}
-                  className="flex-1 min-w-[130px] min-h-[38px] px-3.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-opacity hover:opacity-95 cursor-pointer whitespace-nowrap"
-                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                {poolStats.questionCount === 0 && (
+                  <p className="text-[11.5px] font-medium" style={{ color: 'var(--brand-accent-text)' }}>
+                    Bu seçimde henüz hazır sınav sorusu yok; okuma ve dinleme yapabilir veya soru
+                    bankası bulunan sureleri seçkinize ekleyebilirsiniz.
+                  </p>
+                )}
+
+                {/* Kompakt Aksiyon Satırı: Hızlı Test Başlat · Sırayla Oku · Dinle */}
+                <div
+                  className="pt-2.5 border-t flex flex-wrap items-center gap-2"
+                  style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 75%, transparent)' }}
                 >
-                  <Trophy className="w-3.5 h-3.5 shrink-0" />
-                  <span>Sınav Başlat</span>
-                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleStartExam}
+                    className="flex-1 min-w-[140px] min-h-[38px] px-3.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-opacity hover:opacity-95 cursor-pointer whitespace-nowrap"
+                    style={{ backgroundColor: 'var(--brand-primary)' }}
+                  >
+                    <Trophy className="w-3.5 h-3.5 shrink-0" />
+                    <span>Hızlı Test Başlat</span>
+                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleOpenPoolReader}
-                  className="min-h-[38px] px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap hover:border-[var(--brand-primary)]"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                  <span>Havuzu Oku</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenPoolReader}
+                    className="min-h-[38px] px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap hover:border-[var(--brand-primary)]"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                    <span>Sırayla Oku</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleListenActivePool}
-                  className="min-h-[38px] px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap hover:border-[var(--brand-primary)]"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--brand-primary-text)',
-                  }}
-                >
-                  <Headphones className="w-3.5 h-3.5 shrink-0" />
-                  <span>Havuzu Dinle</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={handleListenActivePool}
+                    className="min-h-[38px] px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap hover:border-[var(--brand-primary)]"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <Headphones className="w-3.5 h-3.5 shrink-0" />
+                    <span>Dinle</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
       </section>
-
-      {/* ====================================================================
-          3. Soru Bankası Bulunan Sureler — 114 Sureye Ölçeklenebilir 4'lü Vitrin
-          ==================================================================== */}
-      {deskPrefs.showPoolAndExamSection && (
-      <section aria-label="Soru bankası bulunan sureler" className="space-y-3.5">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-2.5">
-          <div>
-            <h3 className="text-lg sm:text-xl font-extrabold tracking-tight">
-              Soru Bankası Bulunan Sureler
-            </h3>
-            <p className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
-              Havuzunuzdaki sureler öncelikli olarak listelenir; tüm soru bankasına arama veya Sınav
-              Merkezi üzerinden ulaşabilirsiniz.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {/* Kompakt Anlık Sure Arama Kutusu */}
-            <div className="relative flex-1 sm:flex-initial sm:w-48">
-              <Search
-                className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: 'var(--text-muted)' }}
-              />
-              <input
-                type="search"
-                value={quizSurahQuery}
-                onChange={(e) => setQuizSurahQuery(e.target.value)}
-                placeholder="Sure ara..."
-                aria-label="Soru bankası bulunan surelerde ara"
-                className="w-full h-9 pl-8 pr-7 rounded-xl border text-xs font-medium outline-none focus:border-[var(--brand-primary)]"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                }}
-              />
-              {quizSurahQuery && (
-                <button
-                  type="button"
-                  onClick={() => setQuizSurahQuery('')}
-                  aria-label="Sure filtresini temizle"
-                  className="w-6 h-6 rounded-md flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={handleStartExam}
-              className="min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-strong)',
-                color: 'var(--brand-primary-text)',
-              }}
-            >
-              <span className="tabular-nums">
-                Tüm Soru Bankaları ({formatNumberTr(availableQuestionSurahs.length)} Sure ·{' '}
-                {formatNumberTr(questionIndex?.items.length ?? 0)} Soru)
-              </span>
-              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-            </button>
-          </div>
-        </div>
-
-        {visibleQuizSurahs.length === 0 ? (
-          <div
-            className="surface-card rounded-2xl p-6 text-center space-y-2"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>
-              &ldquo;{quizSurahQuery.trim()}&rdquo; ile eşleşen soru bankalı sure bulunamadı.
-            </p>
-            <button
-              type="button"
-              onClick={() => setQuizSurahQuery('')}
-              className="text-xs font-bold underline underline-offset-4 cursor-pointer"
-              style={{ color: 'var(--brand-primary-text)' }}
-            >
-              Filtreyi Temizle
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1.5 -mx-1 px-1 no-scrollbar sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible sm:pb-0 sm:mx-0 sm:px-0">
-              {visibleQuizSurahs.map((surah) => {
-                const qCount = questionCountBySurah.get(surah.no) ?? surah.questionCount;
-                const inPool = poolStats.effectiveSurahs.includes(surah.no);
-                const directlySelected = studyPool.selectedSurahs.includes(surah.no);
-
-                return (
-                  <article
-                    key={surah.no}
-                    className="surface-card rounded-2xl p-4 flex flex-col justify-between transition-transform hover:-translate-y-0.5 min-w-[272px] w-[82vw] max-w-[310px] snap-start shrink-0 sm:min-w-0 sm:w-auto sm:max-w-none sm:shrink"
-                  >
-                    <div>
-                      {/* Üst Satır: Sure No + Arapça İsim */}
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <span
-                          className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-extrabold tabular-nums shrink-0"
-                          style={{
-                            backgroundColor: 'var(--brand-primary-soft)',
-                            color: 'var(--brand-primary-text)',
-                          }}
-                        >
-                          {surah.no}
-                        </span>
-
-                        <span
-                          className="arabic-title text-xl leading-none pt-0.5"
-                          style={{ color: 'var(--text-primary)' }}
-                        >
-                          {formatSafeArabicTitle(surah.nameAr)}
-                        </span>
-                      </div>
-
-                      {/* Sure Adı ve Yalın Metaveri */}
-                      <h4 className="text-base font-extrabold tracking-tight mb-1">
-                        {surah.nameTr}
-                      </h4>
-                      <p
-                        className="text-xs tabular-nums mb-3"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        {surah.type} · {formatNumberTr(surah.ayahCount)} Ayet ·{' '}
-                        {surah.cuzs.join(', ')}. Cüz
-                      </p>
-
-                      {/* Soru Sayısı Vurgusu */}
-                      <button
-                        type="button"
-                        onClick={() => handleFocusSurahAction(surah.no, 'exam')}
-                        className="w-full py-2 px-3 rounded-xl flex items-center justify-between text-xs font-bold mb-4 cursor-pointer transition-opacity hover:opacity-90"
-                        style={{
-                          backgroundColor: 'var(--bg-surface-soft)',
-                          color: 'var(--brand-primary-text)',
-                        }}
-                      >
-                        <span>Hazır Soru Bankası</span>
-                        <span className="tabular-nums">{formatNumberTr(qCount)} Soru →</span>
-                      </button>
-                    </div>
-
-                    {/* Kart Aksiyonları */}
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleFocusSurahAction(surah.no, 'exam')}
-                          className="min-h-[42px] px-3 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-opacity hover:opacity-95 cursor-pointer"
-                          style={{ backgroundColor: 'var(--brand-primary)' }}
-                        >
-                          <Trophy className="w-3.5 h-3.5 shrink-0" />
-                          <span className="whitespace-nowrap">Sınava Gir</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleFocusSurahAction(surah.no, 'reader')}
-                          className="min-h-[42px] px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                          style={{
-                            backgroundColor: 'var(--bg-surface)',
-                            borderColor: 'var(--border-strong)',
-                            color: 'var(--text-primary)',
-                          }}
-                        >
-                          <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                          <span className="whitespace-nowrap">Meal Oku</span>
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!directlySelected && inPool) {
-                            sfxService.play('click');
-                            openPoolModal();
-                          } else {
-                            handleToggleSurahInPool(surah.no);
-                          }
-                        }}
-                        disabled={
-                          directlySelected &&
-                          studyPool.selectedSurahs.length === 1 &&
-                          studyPool.selectedJuzs.length === 0
-                        }
-                        className="w-full min-h-[36px] px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                        style={{
-                          backgroundColor: inPool ? 'var(--brand-primary-soft)' : 'transparent',
-                          color: inPool ? 'var(--brand-primary-text)' : 'var(--text-muted)',
-                        }}
-                      >
-                        {directlySelected ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 shrink-0" />
-                            <span>Çalışma Havuzunda</span>
-                          </>
-                        ) : inPool ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 shrink-0" />
-                            <span>Cüz ile Havuzda · Düzenle</span>
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-3.5 h-3.5 shrink-0" />
-                            <span>Havuza Ekle</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            {totalMatchedQuizSurahs > MAX_HOME_QUIZ_CARDS && (
-              <div className="flex justify-center pt-1">
-                <button
-                  type="button"
-                  onClick={handleStartExam}
-                  className="text-xs font-bold inline-flex items-center gap-1.5 hover:underline cursor-pointer"
-                  style={{ color: 'var(--brand-primary-text)' }}
-                >
-                  <span>
-                    +{formatNumberTr(totalMatchedQuizSurahs - MAX_HOME_QUIZ_CARDS)} sure daha var ·
-                    Tümünü Sınav Merkezinde Gör
-                  </span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </section>
-      )}
     </div>
   );
 };

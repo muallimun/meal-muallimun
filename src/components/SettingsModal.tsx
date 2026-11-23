@@ -768,7 +768,7 @@ export const SettingsModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[86dvh] rounded-t-3xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-2xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -776,14 +776,14 @@ export const SettingsModal: React.FC = () => {
       >
         {/* Başlık */}
         <div
-          className="px-4 sm:px-5 py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div className="min-w-0">
             <h2 id="settings-modal-title" className="text-sm sm:text-lg font-extrabold tracking-tight truncate">
               Ayarlar ve Kişiselleştirme
             </h2>
-            <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+            <p className="hidden sm:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
               Tüm tercihler cihazınızda otomatik olarak saklanır.
             </p>
           </div>
@@ -794,7 +794,7 @@ export const SettingsModal: React.FC = () => {
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-pointer shrink-0 transition-colors hover:bg-[var(--bg-surface-soft)]"
             style={{ color: 'var(--text-secondary)' }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 

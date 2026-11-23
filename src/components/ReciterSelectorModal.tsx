@@ -429,14 +429,14 @@ export const ReciterSelectorModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full sm:max-w-2xl max-h-[86dvh] sm:max-h-[84dvh] rounded-t-3xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-2xl max-h-[88dvh] sm:max-h-[84dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
         }}
       >
         {/* Mobil Tutamak Çizgisi */}
-        <div className="sm:hidden flex justify-center pt-2 pb-0.5 shrink-0">
+        <div className="sm:hidden flex justify-center pt-1.5 pb-0 shrink-0">
           <span
             className="w-10 h-1 rounded-full opacity-40"
             style={{ backgroundColor: 'var(--text-muted)' }}
@@ -445,12 +445,12 @@ export const ReciterSelectorModal: React.FC = () => {
 
         {/* Üst Başlık */}
         <div
-          className="px-4 sm:px-5 py-3 border-b flex items-center justify-between gap-3 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3 border-b flex items-center justify-between gap-2.5 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <span
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
@@ -466,7 +466,7 @@ export const ReciterSelectorModal: React.FC = () => {
                 Kur&apos;an Okuyucu Seç ({reciters.length} Kurrâ)
               </h2>
               <p
-                className="text-[11px] sm:text-xs truncate"
+                className="hidden sm:block text-xs truncate"
                 style={{ color: 'var(--text-muted)' }}
               >
                 Aktif tilavet:{' '}
@@ -484,10 +484,10 @@ export const ReciterSelectorModal: React.FC = () => {
             type="button"
             onClick={handleClose}
             aria-label="Okuyucu seçiciyi kapat"
-            className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)] shrink-0"
+            className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)] shrink-0"
             style={{ color: 'var(--text-secondary)' }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 

@@ -67,25 +67,25 @@ export const FihristHubPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-2.5 sm:space-y-4 pb-4 sm:pb-6">
       {/* Üst Başlık + 4 Bölmeli Birleşik Alt Sekme Çubuğu */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-2.5 min-w-0">
-          <div className="flex items-center gap-2.5 min-w-0">
+      <section className="space-y-2 sm:space-y-3">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
               }}
             >
-              <Compass className="w-5 h-5" />
+              <Compass className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <h2 className="text-base sm:text-xl font-extrabold tracking-tight truncate">
                 Fihrist &amp; Araştırma
               </h2>
-              <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+              <p className="hidden sm:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                 601 Konu · 114 Sure Künyesi · Mehdi Bazergan Kronolojisi · Kişisel Defterim
               </p>
             </div>
@@ -146,7 +146,7 @@ export const FihristHubPage: React.FC = () => {
                   sfxService.play('click');
                   setSubTab(tab.id);
                 }}
-                className="min-h-[40px] px-1 sm:px-2.5 rounded-xl text-[11px] sm:text-xs md:text-sm font-extrabold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer min-w-0"
+                className="min-h-[36px] sm:min-h-[40px] px-1 sm:px-2.5 rounded-xl text-[11px] sm:text-xs md:text-sm font-extrabold flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer min-w-0"
                 style={{
                   backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                   color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',

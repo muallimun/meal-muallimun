@@ -377,81 +377,122 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
             mobileShowDetail ? 'hidden lg:flex' : 'flex'
           } flex-col surface-card rounded-2xl overflow-hidden lg:sticky lg:top-16 lg:h-[calc(100dvh-11.5rem)] min-w-0`}
         >
-          {/* Arama Kutusu */}
+          {/* Arama Kutusu + Mobilde Tek Satır Harf Seçici */}
           <div
-            className="p-3 border-b space-y-2.5 shrink-0"
+            className="p-2.5 sm:p-3 border-b space-y-2 sm:space-y-2.5 shrink-0"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
-            <div className="relative">
-              <Search
-                className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: 'var(--text-muted)' }}
-              />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="601 konu içinde ara (örn. sabır, takva, adalet)..."
-                aria-label="Konu fihristinde ara"
-                className="w-full min-h-[40px] pl-9 pr-9 rounded-xl border text-xs sm:text-sm font-medium outline-none transition-colors focus:border-teal-600"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                }}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  aria-label="Aramayı temizle"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center absolute right-1.5 top-1/2 -translate-y-1/2 cursor-pointer"
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex-1 min-w-0">
+                <Search
+                  className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                   style={{ color: 'var(--text-muted)' }}
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+                />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="601 konu içinde ara (sabır, takva...)"
+                  aria-label="Konu fihristinde ara"
+                  className="w-full min-h-[38px] sm:min-h-[40px] pl-9 pr-8 rounded-xl border text-xs sm:text-sm font-medium outline-none transition-colors focus:border-teal-600"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Aramayı temizle"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Mobil (< md) Kompakt Harf Filtresi Butonu */}
+              <div className="md:hidden shrink-0 flex items-center">
+                {selectedLetter !== 'ALL' && !searchQuery ? (
+                  <div
+                    className="inline-flex items-center rounded-xl border overflow-hidden min-h-[38px]"
+                    style={{
+                      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                      borderColor: 'rgba(16, 185, 129, 0.42)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setIsMobileLettersOpen((v) => !v);
+                      }}
+                      aria-expanded={isMobileLettersOpen}
+                      className="min-h-[36px] pl-2.5 pr-1.5 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <span>Harf: {selectedLetter}</span>
+                      {isMobileLettersOpen ? (
+                        <ChevronUp className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setSelectedLetter('ALL');
+                        setIsMobileLettersOpen(false);
+                      }}
+                      aria-label="Harf filtresini temizle"
+                      title="Harf filtresini temizle"
+                      className="min-h-[36px] px-2 border-l inline-flex items-center justify-center cursor-pointer"
+                      style={{ borderColor: 'rgba(16, 185, 129, 0.32)' }}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsMobileLettersOpen((v) => !v);
+                    }}
+                    aria-expanded={isMobileLettersOpen}
+                    className="min-h-[38px] px-2.5 rounded-xl border text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors"
+                    style={{
+                      backgroundColor: isMobileLettersOpen
+                        ? 'var(--brand-primary-soft)'
+                        : 'var(--bg-surface-soft)',
+                      borderColor: isMobileLettersOpen
+                        ? 'var(--brand-primary)'
+                        : 'var(--border-subtle)',
+                      color: isMobileLettersOpen
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-primary)',
+                    }}
+                  >
+                    <span>Harf: Tümü</span>
+                    {isMobileLettersOpen ? (
+                      <ChevronUp className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Mobil Harf Filtresi Aç/Kapa Tetikleyici (Sıfır kaydırma çubuğu & sıfır kesilme) */}
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                setIsMobileLettersOpen((v) => !v);
-              }}
-              aria-expanded={isMobileLettersOpen}
-              className="lg:hidden w-full min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 cursor-pointer transition-colors"
-              style={{
-                backgroundColor:
-                  selectedLetter !== 'ALL' && !searchQuery
-                    ? 'var(--brand-primary-soft)'
-                    : 'var(--bg-surface-soft)',
-                borderColor:
-                  selectedLetter !== 'ALL' && !searchQuery
-                    ? 'var(--brand-primary)'
-                    : 'var(--border-subtle)',
-                color:
-                  selectedLetter !== 'ALL' && !searchQuery
-                    ? 'var(--brand-primary-text)'
-                    : 'var(--text-primary)',
-              }}
-            >
-              <span className="truncate">
-                Harfe Göre Filtrele ({selectedLetter === 'ALL' ? 'Tümü' : selectedLetter})
-              </span>
-              {isMobileLettersOpen ? (
-                <ChevronUp className="w-4 h-4 shrink-0 opacity-75" />
-              ) : (
-                <ChevronDown className="w-4 h-4 shrink-0 opacity-75" />
-              )}
-            </button>
-
-            {/* A–Z Harf Mini Izgarası (Mobilde katlanabilir wrap, masaüstünde daima açık wrap) */}
+            {/* A–Z Harf Mini Izgarası (Mobilde tek tıkla açılır ve seçimde kapanır; md+ daima açık) */}
             <div
               className={`${
                 isMobileLettersOpen ? 'flex' : 'hidden'
-              } lg:flex flex-wrap items-center gap-1`}
+              } md:flex flex-wrap items-center gap-1`}
             >
               <button
                 type="button"

@@ -507,15 +507,15 @@ export const MemorizationHubPage: React.FC = () => {
   }, [units, activeGroupPresets]);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
+    <div className="max-w-5xl mx-auto space-y-3 sm:space-y-5">
       {/* Üst Başlık Şeridi */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight flex items-center gap-2">
-            <BookMarked className="w-6 h-6 shrink-0" style={{ color: 'var(--brand-primary)' }} />
+          <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight flex items-center gap-2">
+            <BookMarked className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" style={{ color: 'var(--brand-primary)' }} />
             <span>Ezber Modu</span>
           </h1>
-          <p className="text-xs sm:text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+          <p className="hidden sm:block text-xs sm:text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             {hubView === 'classical'
               ? 'Osmanlı–Diyanet usulü 30 cüz · 20 tur dönüşümlü Ham ve Has ders takip sistemi'
               : hubView === 'hifz_map'
@@ -531,7 +531,7 @@ export const MemorizationHubPage: React.FC = () => {
               sfxService.play('click');
               openReciterSelector('memorize');
             }}
-            className="min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer max-w-[155px] sm:max-w-[180px]"
+            className="min-h-[36px] sm:min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer max-w-[155px] sm:max-w-[180px]"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-subtle)',
@@ -539,7 +539,7 @@ export const MemorizationHubPage: React.FC = () => {
             }}
           >
             <Headphones
-              className="w-4 h-4 shrink-0"
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0"
               style={{ color: 'var(--brand-primary-text)' }}
             />
             <span className="truncate">{activeReciter.shortLabel}</span>
@@ -553,7 +553,7 @@ export const MemorizationHubPage: React.FC = () => {
               setIsBackupModalOpen(true);
             }}
             title="Ezber havuzunu JSON olarak yedekle veya yükle"
-            className="min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+            className="min-h-[36px] sm:min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-subtle)',
@@ -571,7 +571,7 @@ export const MemorizationHubPage: React.FC = () => {
                 sfxService.play('click');
                 setIsCreateModalOpen(true);
               }}
-              className="flex-1 sm:flex-none min-h-[40px] px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shrink-0"
+              className="flex-1 sm:flex-none min-h-[36px] sm:min-h-[40px] px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shrink-0"
               style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               <Plus className="w-4 h-4 shrink-0" />

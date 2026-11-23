@@ -201,7 +201,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       }}
     >
       <div
-        className="w-full sm:max-w-lg max-h-[86dvh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-lg max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -210,13 +210,13 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       >
         {/* Üst Başlık */}
         <div
-          className="px-4 py-3 border-b flex items-center justify-between gap-2 shrink-0"
+          className="px-4 py-2.5 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0"
           style={{
             borderColor: 'var(--border-subtle)',
             backgroundColor: 'var(--bg-surface-soft)',
           }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <span
               className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
               style={{
@@ -240,7 +240,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Konum seçiciyi kapat"
-            className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-subtle)',

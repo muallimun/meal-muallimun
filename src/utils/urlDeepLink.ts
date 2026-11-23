@@ -124,9 +124,33 @@ export function parseInitialUrlTarget(search: string): UrlDeepLinkTarget | null 
   return null;
 }
 
+export function parseInitialPathnameTarget(pathname: string): UrlDeepLinkTarget | null {
+  if (!pathname || pathname === '/') return null;
+  const trimmed = pathname.replace(/\/+$/, '');
+  const lastSegment = trimmed.split('/').pop() ?? '';
+  const tabTarget = normalizeTabParam(lastSegment);
+  if (tabTarget) {
+    return { kind: 'tab', tab: tabTarget };
+  }
+  return null;
+}
+
+export function isReaderSubroutePath(pathname: string): boolean {
+  return /\/(mushaf|okuma|reader)\/?$/i.test(pathname);
+}
+
+export function isKnownAppSubroutePath(pathname: string): boolean {
+  return /\/(mushaf|okuma|reader|fihrist|arastirma|defter|ezber|memorize|hafizlik|sinav|exam|test|oyunlar|oyun|games)\/?$/i.test(
+    pathname,
+  );
+}
+
 export function hasInitialDeepLinkTarget(): boolean {
   if (typeof window === 'undefined') return false;
-  return parseInitialUrlTarget(window.location.search) !== null;
+  return (
+    parseInitialUrlTarget(window.location.search) !== null ||
+    parseInitialPathnameTarget(window.location.pathname) !== null
+  );
 }
 
 export function buildVerseShareUrl(surah: number, ayah: number): string {

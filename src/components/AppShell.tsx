@@ -407,16 +407,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           Sağ Ana İçerik Kabuğu (İnce h-14 Üst Çubuk + İçerik + Alt Bilgi)
           ==================================================================== */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Tüm cihazlarda birleşik h-14 (56px) Üst Çubuk — Mobilde Okuma modunun tamamında (Mushaf/Kart/Kitap) gizlenir */}
+        {/* Mobilde kompakt h-12 (48px), masaüstünde h-14 (56px) Üst Çubuk — Mobilde Okuma modunun tamamında gizlenir */}
         <header
-          className={`${isReaderTab ? 'hidden lg:block' : ''} sticky top-0 z-30 h-14 border-b backdrop-blur-md shrink-0`}
+          className={`${isReaderTab ? 'hidden lg:block' : ''} sticky top-0 z-30 h-12 lg:h-14 border-b backdrop-blur-md shrink-0`}
           style={{
             backgroundColor: 'var(--bg-nav)',
             borderColor: 'var(--border-subtle)',
           }}
         >
           <div
-            className={`h-full ${contentWidthClass} mx-auto px-3 sm:px-4 lg:px-4 xl:px-5 flex items-center justify-between gap-2`}
+            className={`h-full ${contentWidthClass} mx-auto px-2.5 sm:px-4 lg:px-4 xl:px-5 flex items-center justify-between gap-1.5 sm:gap-2`}
           >
             {/* Sol: Menü (Masaüstü) + Marka + Kompakt Navigasyon */}
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0">
@@ -619,7 +619,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               }
             />
 
-            {/* Sağ Global Araçlar: Tüm sekmelerde 40px dokunma hedefli ikon butonları */}
+            {/* Sağ Global Araçlar: Mobilde 36px, tablet/masaüstünde 40px dokunma hedefli ikon butonları */}
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* 1. Hızlı Arama Tetikleyicisi (Ctrl+K) — Yalnızca İkon */}
               <button
@@ -627,7 +627,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 onClick={openSearchModal}
                 title="Hızlı Ara (Ctrl+K)"
                 aria-label="Hızlı Ara (Ctrl+K)"
-                className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50 touch-manipulation"
+                className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -647,7 +647,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                     : 'Sayfa Ayraçlarım & Hatim'
                 }
                 aria-label="Sayfa Ayraçlarım ve Hatim"
-                className="relative min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
+                className="relative w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
                 style={{
                   backgroundColor:
                     bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
@@ -703,7 +703,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 }}
                 title="Kullanım Rehberi"
                 aria-label="Kullanım Rehberi"
-                className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer hover:border-teal-600/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
+                className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer hover:border-teal-600/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -719,7 +719,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 onClick={openSettingsModal}
                 title="Görünüm ve Ayarlar"
                 aria-label="Ayarları aç"
-                className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
+                className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -865,24 +865,32 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 : `px-1.5 pt-0 sm:px-3 lg:px-6 ${isDesktopMushaf ? 'lg:pt-2' : 'lg:pt-3.5'}`
               : isReaderTab
                 ? 'px-2.5 pt-0 sm:px-4 lg:px-6 lg:pt-3.5'
-                : 'px-3.5 pt-3.5 sm:px-5 lg:px-6 lg:pt-4'
+                : 'px-2.5 pt-2 sm:px-4 sm:pt-4 lg:px-6 lg:pt-4'
           } ${
             isMobileReaderImmersive
               ? isFullAudioBarDocked
                 ? `pb-32 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
                 : `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-              : isFullAudioBarDocked
-                ? `pb-10 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
-                : `pb-4 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+              : activeTab !== 'home'
+                ? isExamActive || isMemorizationZenActive
+                  ? `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                  : isFullAudioBarDocked
+                    ? `pb-36 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                    : isAudioBarVisible
+                      ? `pb-24 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                      : `pb-20 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                : isFullAudioBarDocked
+                  ? `pb-10 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                  : `pb-4 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
           }`}
         >
           {children}
         </main>
 
-        {/* Alt Bilgi (Footer) — Mobilde Saf Odak modunda, masaüstünde Mushaf sahnesinde gizlenir */}
+        {/* Alt Bilgi (Footer) — Mobilde yalnızca Ana Sayfa'da görünür; masaüstünde Mushaf sahnesinde gizlenir */}
         <footer
           className={`${
-            isMobileReaderImmersive
+            isMobileReaderImmersive || activeTab !== 'home'
               ? isDesktopMushaf
                 ? 'hidden'
                 : 'hidden lg:block'

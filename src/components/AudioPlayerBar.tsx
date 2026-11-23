@@ -544,12 +544,12 @@ export const AudioPlayerBar: React.FC = () => {
                 ================================================================ */}
             {showDetailsPanel && (
               <div
-                className="p-3.5 space-y-3 text-xs max-h-[68dvh] overflow-y-auto border-b rounded-t-2xl"
+                className="p-2.5 sm:p-3.5 space-y-2.5 sm:space-y-3 text-xs max-h-[80dvh] sm:max-h-[68dvh] overflow-y-auto border-b rounded-t-2xl"
                 style={{ borderColor: 'var(--border-subtle)' }}
               >
                 {/* Özel Başlık Çubuğu: Başlık · Sunum Modu · Bağımsız Pencere Kapatma (×) */}
                 <div
-                  className="flex items-center justify-between gap-2 pb-2.5 border-b"
+                  className="flex items-center justify-between gap-2 pb-2 sm:pb-2.5 border-b"
                   style={{ borderColor: 'var(--border-subtle)' }}
                 >
                   <div className="flex items-center gap-2 min-w-0">
@@ -718,89 +718,109 @@ export const AudioPlayerBar: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 2. Okuyucu & Sesli Meal Kaynağı */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      openReciterSelector();
-                    }}
-                    title={`Kur'an okuyucu: ${activeReciter.label}`}
-                    className="min-h-[34px] px-2.5 rounded-xl border font-bold cursor-pointer flex-1 min-w-[180px] flex items-center justify-between gap-2"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-subtle)',
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    <span className="flex items-center gap-1.5 min-w-0">
-                      <Headphones
-                        className="w-3.5 h-3.5 shrink-0"
-                        style={{ color: 'var(--brand-primary-text)' }}
-                      />
-                      <span className="truncate">{activeReciter.label}</span>
-                    </span>
-                    <span
-                      className="text-[11px] font-extrabold flex items-center gap-0.5 shrink-0"
-                      style={{ color: 'var(--brand-primary-text)' }}
+                {/* 2. Bağlama Duyarlı Okuyucu & Sesli Meal Kaynağı Satırı */}
+                <div
+                  className={
+                    audioPrefs.mode === 'ar_then_meal'
+                      ? 'flex flex-col sm:flex-row sm:items-center gap-2'
+                      : 'flex items-center gap-2'
+                  }
+                >
+                  {audioPrefs.mode !== 'meal' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        openReciterSelector();
+                      }}
+                      title={`Kur'an okuyucu: ${activeReciter.label}`}
+                      className="min-h-[34px] px-2.5 rounded-xl border font-bold cursor-pointer w-full sm:flex-1 min-w-0 flex items-center justify-between gap-2"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-primary)',
+                      }}
                     >
-                      <span>Değiştir</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
-                  </button>
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <Headphones
+                          className="w-3.5 h-3.5 shrink-0"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        />
+                        <span className="truncate">{activeReciter.label}</span>
+                      </span>
+                      <span
+                        className="text-[11px] font-extrabold flex items-center gap-0.5 shrink-0"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        <span>Değiştir</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </span>
+                    </button>
+                  )}
 
-                  {mealSources.length > 0 && (
+                  {audioPrefs.mode !== 'ar' && mealSources.length > 0 && (
                     <div
-                      className="flex items-center p-0.5 rounded-xl border shrink-0"
+                      className={`flex items-center justify-between gap-2 p-1 rounded-xl border ${
+                        audioPrefs.mode === 'meal' ? 'w-full' : 'w-full sm:w-auto shrink-0'
+                      }`}
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
                       }}
                     >
                       <span
-                        className="px-2 text-[10px] font-extrabold uppercase tracking-wider"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="px-2 text-[11px] font-bold inline-flex items-center gap-1.5 whitespace-nowrap"
+                        style={{ color: 'var(--text-secondary)' }}
                       >
-                        Meal
+                        <Volume2
+                          className="w-3.5 h-3.5 shrink-0"
+                          style={{ color: 'var(--brand-accent-text)' }}
+                        />
+                        <span>{audioPrefs.mode === 'meal' ? 'Sesli Meal Kaynağı' : 'Meal'}</span>
                       </span>
-                      {mealSources.map((src) => {
-                        const active = audioPrefs.mealAudioSource === src.id;
-                        const label =
-                          src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
-                        return (
-                          <button
-                            key={src.id}
-                            type="button"
-                            onClick={() => handleMealSourceChange(src.id)}
-                            className="min-h-[30px] px-2.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
-                            style={{
-                              backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                              color: active ? 'var(--brand-accent-text)' : 'var(--text-muted)',
-                            }}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {mealSources.map((src) => {
+                          const active = audioPrefs.mealAudioSource === src.id;
+                          const label =
+                            src.id === 'tdv' ? 'TDV' : src.id === 'dib' ? 'DİB' : src.shortLabel;
+                          return (
+                            <button
+                              key={src.id}
+                              type="button"
+                              onClick={() => handleMealSourceChange(src.id)}
+                              className="min-h-[28px] px-2.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                              style={{
+                                backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                                color: active ? 'var(--brand-accent-text)' : 'var(--text-muted)',
+                                boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                              }}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* 3. Okuma Hızı & Ayet Tekrarı */}
-                <div
-                  className="pt-2.5 border-t grid grid-cols-1 sm:grid-cols-2 gap-2.5"
-                  style={{ borderColor: 'var(--border-subtle)' }}
-                >
-                  <div className="flex items-center justify-between gap-2">
+                {/* 3. Okuma Hızı & Ayet Tekrarı — Etiketleri Üstte, İki Bağımsız Alt Grup Kutusu */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div
+                    className="rounded-xl border p-2 sm:p-2.5"
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, var(--bg-canvas) 45%, var(--bg-surface))',
+                      borderColor: 'color-mix(in srgb, var(--border-subtle) 75%, transparent)',
+                    }}
+                  >
                     <span
-                      className="text-[11px] font-bold whitespace-nowrap"
-                      style={{ color: 'var(--text-secondary)' }}
+                      className="block text-[10px] font-bold uppercase tracking-wider mb-1.5"
+                      style={{ color: 'var(--text-muted)' }}
                     >
-                      Okuma Hızı
+                      OKUMA HIZI
                     </span>
                     <div
-                      className="inline-flex items-center p-0.5 rounded-xl"
+                      className="grid grid-cols-4 gap-1 p-0.5 rounded-lg"
                       style={{ backgroundColor: 'var(--bg-surface-soft)' }}
                     >
                       {PLAYBACK_RATES.map((rate) => {
@@ -813,10 +833,11 @@ export const AudioPlayerBar: React.FC = () => {
                               sfxService.play('click');
                               updateAudioPrefs({ playbackRate: rate });
                             }}
-                            className="h-7 px-2 rounded-lg text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                            className="h-7 rounded-md text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
                             style={{
                               backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                               color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                              boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                             }}
                           >
                             {rate}x
@@ -826,15 +847,21 @@ export const AudioPlayerBar: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2">
+                  <div
+                    className="rounded-xl border p-2 sm:p-2.5"
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, var(--bg-canvas) 45%, var(--bg-surface))',
+                      borderColor: 'color-mix(in srgb, var(--border-subtle) 75%, transparent)',
+                    }}
+                  >
                     <span
-                      className="text-[11px] font-bold whitespace-nowrap"
-                      style={{ color: 'var(--text-secondary)' }}
+                      className="block text-[10px] font-bold uppercase tracking-wider mb-1.5"
+                      style={{ color: 'var(--text-muted)' }}
                     >
-                      Ayet Tekrarı
+                      AYET TEKRARI
                     </span>
                     <div
-                      className="inline-flex items-center p-0.5 rounded-xl"
+                      className="grid grid-cols-5 gap-1 p-0.5 rounded-lg"
                       style={{ backgroundColor: 'var(--bg-surface-soft)' }}
                     >
                       {REPEAT_COUNTS.map((rep) => {
@@ -847,10 +874,11 @@ export const AudioPlayerBar: React.FC = () => {
                               sfxService.play('click');
                               updateAudioPrefs({ repeatCount: rep });
                             }}
-                            className="h-7 px-2 rounded-lg text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                            className="h-7 rounded-md text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
                             style={{
                               backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                               color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                              boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                             }}
                           >
                             {rep === 'infinite' ? '∞' : `${rep}x`}
@@ -1109,8 +1137,8 @@ export const AudioPlayerBar: React.FC = () => {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    {/* Tıklanabilir Sure · Ayet ▾ Hızlı Atlayıcı (Ayet numarası asla kesilmez) */}
-                    <div ref={ayahPickerRef} className="relative min-w-0 max-w-full">
+                    {/* Tıklanabilir Sure · Ayet ▾ Hızlı Atlayıcı (Masaüstünde tam sure adı, mobilde kesilmesiz kısa ad) */}
+                    <div ref={ayahPickerRef} className="relative min-w-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -1124,7 +1152,8 @@ export const AudioPlayerBar: React.FC = () => {
                         style={{ color: 'var(--text-primary)' }}
                       >
                         <span className="truncate sm:hidden">{shortSurahLabel}</span>
-                        <span className="hidden sm:inline truncate sm:max-w-none">
+                        <span className="hidden sm:inline whitespace-nowrap">
+                          {audioState.currentSurah ? `${audioState.currentSurah}. ` : ''}
                           {fullSurahLabel}
                         </span>
                         <span className="shrink-0 whitespace-nowrap">

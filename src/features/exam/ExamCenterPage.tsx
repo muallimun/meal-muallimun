@@ -354,7 +354,7 @@ export const ExamCenterPage: React.FC = () => {
   const wrongCount = gamification.wrongQuestionIds.length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5 sm:space-y-4">
       {/* Sınav Merkezi Alt Sekmeleri: Sınav Oluştur | Eğitsel Oyunlar | Hata Kampı (X) + Bağlamsal Rehber */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div
@@ -374,7 +374,7 @@ export const ExamCenterPage: React.FC = () => {
             sfxService.play('click');
             setHubSubTab('builder');
           }}
-          className="min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          className="min-h-[36px] sm:min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
           style={{
             backgroundColor: hubSubTab === 'builder' ? 'var(--bg-surface)' : 'transparent',
             color: hubSubTab === 'builder' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -393,7 +393,7 @@ export const ExamCenterPage: React.FC = () => {
             sfxService.play('click');
             setHubSubTab('games');
           }}
-          className="min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          className="min-h-[36px] sm:min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
           style={{
             backgroundColor: hubSubTab === 'games' ? 'var(--bg-surface)' : 'transparent',
             color: hubSubTab === 'games' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -412,7 +412,7 @@ export const ExamCenterPage: React.FC = () => {
             sfxService.play('click');
             setHubSubTab('mistakes');
           }}
-          className="min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          className="min-h-[36px] sm:min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
           style={{
             backgroundColor: hubSubTab === 'mistakes' ? 'var(--bg-surface)' : 'transparent',
             color:

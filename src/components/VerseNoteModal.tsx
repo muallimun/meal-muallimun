@@ -181,7 +181,7 @@ export const VerseNoteModal: React.FC = () => {
     >
       <form
         onSubmit={handleSave}
-        className="w-full sm:max-w-xl max-h-[92dvh] sm:max-h-[88dvh] rounded-t-3xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-xl max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -189,15 +189,15 @@ export const VerseNoteModal: React.FC = () => {
       >
         {/* Başlık */}
         <div
-          className="px-4 sm:px-5 py-3.5 border-b flex items-center justify-between gap-2.5 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <span
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: activePalette.softBg,
                 color: activePalette.dot,
@@ -223,10 +223,10 @@ export const VerseNoteModal: React.FC = () => {
             type="button"
             onClick={closeVerseNoteModal}
             aria-label="Not penceresini kapat"
-            className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer hover:bg-[var(--bg-surface)]"
+            className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer hover:bg-[var(--bg-surface)] shrink-0"
             style={{ color: 'var(--text-secondary)' }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 

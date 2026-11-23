@@ -219,23 +219,23 @@ export const SurahNuzulTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-2.5 sm:space-y-3.5">
       {/* Arama, Sıralama ve Filtre Şeridi */}
-      <div className="surface-card rounded-2xl p-3.5 sm:p-4 space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_16rem] gap-2.5">
+      <div className="surface-card rounded-2xl p-2.5 sm:p-4 space-y-2 sm:space-y-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
           {/* Akıllı Arama */}
-          <div className="relative">
+          <div className="relative flex-1 min-w-0">
             <Search
-              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 pointer-events-none"
               style={{ color: 'var(--text-muted)' }}
             />
             <input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Sure no, adı veya Türkçe anlamı ara (örümcek, bal arısı, mağara, sofra)..."
+              placeholder="Sure no, adı veya anlamı ara..."
               aria-label="Sure ve nüzul rehberinde ara"
-              className="w-full min-h-[42px] pl-9 pr-9 rounded-xl border text-xs sm:text-sm font-medium outline-none focus:border-teal-600"
+              className="w-full min-h-[38px] sm:min-h-[42px] pl-8 sm:pl-9 pr-8 sm:pr-9 rounded-xl border text-xs sm:text-sm font-medium outline-none focus:border-teal-600"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -247,7 +247,7 @@ export const SurahNuzulTab: React.FC = () => {
                 type="button"
                 onClick={() => setSearchQuery('')}
                 aria-label="Aramayı temizle"
-                className="w-7 h-7 rounded-lg flex items-center justify-center absolute right-1.5 top-1/2 -translate-y-1/2 cursor-pointer"
+                className="w-7 h-7 rounded-lg flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
                 style={{ color: 'var(--text-muted)' }}
               >
                 <X className="w-3.5 h-3.5" />
@@ -256,9 +256,9 @@ export const SurahNuzulTab: React.FC = () => {
           </div>
 
           {/* Sıralama Seçici */}
-          <div className="relative flex items-center">
+          <div className="relative flex items-center w-[132px] sm:w-56 shrink-0">
             <ArrowUpDown
-              className="w-4 h-4 absolute left-3 pointer-events-none"
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4 absolute left-2.5 sm:left-3 pointer-events-none"
               style={{ color: 'var(--text-muted)' }}
             />
             <select
@@ -268,7 +268,7 @@ export const SurahNuzulTab: React.FC = () => {
                 setSortBy(e.target.value as SurahSortKey);
               }}
               aria-label="Sıralama ölçütü"
-              className="w-full min-h-[42px] pl-9 pr-3 rounded-xl border text-xs sm:text-sm font-bold outline-none cursor-pointer"
+              className="w-full min-h-[38px] sm:min-h-[42px] pl-7 sm:pl-9 pr-2 sm:pr-3 rounded-xl border text-[11px] sm:text-sm font-bold outline-none cursor-pointer truncate"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -284,15 +284,19 @@ export const SurahNuzulTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Filtre Çipleri */}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1.5">
+        {/* Filtre Çipleri — Mobilde tek satır kompakt */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar sm:flex-wrap min-w-0">
             {(
               [
-                { id: 'all', label: `Tümü (${counts.total})` },
-                { id: 'mekki', label: `Mekkî (${counts.mekki})` },
-                { id: 'medeni', label: `Medenî (${counts.medeni})` },
-                { id: 'medeni_exceptions', label: `Medenî İstisnalı (${counts.exceptions})` },
+                { id: 'all', mobileLabel: 'Tümü', label: `Tümü (${counts.total})` },
+                { id: 'mekki', mobileLabel: 'Mekkî', label: `Mekkî (${counts.mekki})` },
+                { id: 'medeni', mobileLabel: 'Medenî', label: `Medenî (${counts.medeni})` },
+                {
+                  id: 'medeni_exceptions',
+                  mobileLabel: 'İstisna',
+                  label: `Medenî İstisnalı (${counts.exceptions})`,
+                },
               ] as const
             ).map((chip) => {
               const active = filterBy === chip.id;
@@ -304,7 +308,7 @@ export const SurahNuzulTab: React.FC = () => {
                     sfxService.play('click');
                     setFilterBy(chip.id);
                   }}
-                  className="min-h-[34px] px-3 rounded-xl border text-xs font-bold transition-colors cursor-pointer"
+                  className="min-h-[30px] sm:min-h-[34px] px-2.5 sm:px-3 rounded-xl border text-[11px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
                   style={{
                     backgroundColor: active
                       ? 'var(--brand-primary)'
@@ -313,14 +317,19 @@ export const SurahNuzulTab: React.FC = () => {
                     color: active ? '#FFFFFF' : 'var(--text-secondary)',
                   }}
                 >
-                  {chip.label}
+                  <span className="sm:hidden">{chip.mobileLabel}</span>
+                  <span className="hidden sm:inline">{chip.label}</span>
                 </button>
               );
             })}
           </div>
 
-          <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
-            {filteredAndSorted.length} sure gösteriliyor
+          <span
+            className="text-[11px] sm:text-xs font-semibold tabular-nums shrink-0 whitespace-nowrap"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <span className="sm:hidden">{filteredAndSorted.length} sure</span>
+            <span className="hidden sm:inline">{filteredAndSorted.length} sure gösteriliyor</span>
           </span>
         </div>
       </div>

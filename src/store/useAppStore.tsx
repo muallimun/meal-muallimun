@@ -82,7 +82,13 @@ import {
   subscribeInstallPrompt,
   triggerPwaInstallPrompt,
 } from '../utils/pwaUtils';
-import { hasInitialDeepLinkTarget, parseInitialUrlTarget } from '../utils/urlDeepLink';
+import {
+  hasInitialDeepLinkTarget,
+  isKnownAppSubroutePath,
+  isReaderSubroutePath,
+  parseInitialPathnameTarget,
+  parseInitialUrlTarget,
+} from '../utils/urlDeepLink';
 
 export type UserGuideTabId = 'quickstart' | 'modules' | 'offline_backup' | 'shortcuts';
 
@@ -2850,11 +2856,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFeedbackSeed(null);
   }, []);
 
-  // Açılışta URL doğrudan bağlantı (Deep-Link) parametrelerini tek seferlik çözümle
+  // Açılışta URL doğrudan bağlantı (Deep-Link) parametrelerini ve /mushaf/ gibi alt yolları tek seferlik çözümle
   useEffect(() => {
     if (initialUrlHandledRef.current) return;
     if (typeof window === 'undefined') return;
-    const target = parseInitialUrlTarget(window.location.search);
+    const target =
+      parseInitialUrlTarget(window.location.search) ??
+      parseInitialPathnameTarget(window.location.pathname);
     if (!target) {
       initialUrlHandledRef.current = true;
       return;
@@ -2911,6 +2919,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Çapraz kaynak iframe ortamında sessiz geç
     }
   }, [meta, navigateToStudy, navigateToExam, setActiveTab, openUserGuide]);
+
+  // Sekme değiştiğinde /mushaf/ gibi eski okuma rotasını history.replaceState ile temiz köke senkronize et
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!initialUrlHandledRef.current) return;
+    if (activeTab === 'reader') return;
+
+    try {
+      const { pathname, hash } = window.location;
+      const shouldCleanPath =
+        isReaderSubroutePath(pathname) ||
+        (activeTab === 'home' && isKnownAppSubroutePath(pathname));
+      if (shouldCleanPath) {
+        window.history.replaceState(window.history.state, '', `/${hash}`);
+      }
+    } catch {
+      // Kısıtlı ortamda sessiz geç
+    }
+  }, [activeTab]);
 
   const poolStats = useMemo(
     () => computePoolStats(persisted.studyPool, meta, questionIndex),

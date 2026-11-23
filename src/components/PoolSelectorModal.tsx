@@ -183,40 +183,40 @@ export const PoolSelectorModal: React.FC = () => {
 
       {/* Modal Gövdesi */}
       <div
-        className="relative z-10 w-full sm:max-w-3xl max-h-[92dvh] sm:max-h-[86dvh] rounded-t-3xl sm:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
+        className="relative z-10 w-full sm:max-w-3xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
         }}
       >
         {/* Mobil Tutamaç */}
-        <div className="sm:hidden pt-2.5 flex justify-center">
+        <div className="sm:hidden pt-1.5 flex justify-center">
           <div
-            className="w-10 h-1.5 rounded-full"
+            className="w-10 h-1 rounded-full"
             style={{ backgroundColor: 'var(--border-strong)' }}
           />
         </div>
 
         {/* Üst Başlık */}
         <div
-          className="px-5 py-4 border-b flex items-center justify-between gap-3 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2.5 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
               }}
             >
-              <Layers className="w-5 h-5" />
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h2 id="pool-modal-title" className="text-lg font-extrabold tracking-tight truncate">
+              <h2 id="pool-modal-title" className="text-base sm:text-lg font-extrabold tracking-tight truncate">
                 Çalışma Havuzu Seçici
               </h2>
-              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+              <p className="hidden sm:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                 Hazır paketlerden, surelerden veya cüzlerden çalışma kapsamınızı belirleyin.
               </p>
             </div>
@@ -226,20 +226,20 @@ export const PoolSelectorModal: React.FC = () => {
             type="button"
             onClick={closePoolModal}
             aria-label="Pencereyi kapat"
-            className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center border transition-colors cursor-pointer shrink-0"
+            className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] rounded-xl flex items-center justify-center border transition-colors cursor-pointer shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
               color: 'var(--text-primary)',
             }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
         {/* 3 Sekmeli Geçiş Çubuğu */}
         <div
-          className="px-5 pt-3 pb-3 border-b shrink-0"
+          className="px-4 sm:px-5 py-2 sm:py-3 border-b shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div

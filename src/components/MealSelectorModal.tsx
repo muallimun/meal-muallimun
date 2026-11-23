@@ -179,7 +179,7 @@ export const MealSelectorModal: React.FC = () => {
       onClick={closeMealSelector}
     >
       <div
-        className="w-full sm:max-w-2xl max-h-[90dvh] sm:max-h-[86dvh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-2xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -189,27 +189,27 @@ export const MealSelectorModal: React.FC = () => {
       >
         {/* Üst Başlık */}
         <div
-          className="px-4 sm:px-5 py-3.5 border-b flex items-center justify-between gap-3 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2.5 shrink-0"
           style={{
             borderColor: 'var(--border-subtle)',
             backgroundColor: 'var(--bg-surface-soft)',
           }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <span
-              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
               }}
             >
-              <BookOpen className="w-5 h-5" />
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-extrabold tracking-tight truncate">
+              <h2 className="text-sm sm:text-lg font-extrabold tracking-tight truncate">
                 Meal &amp; Tefsir Seçici ({counts.total} Eser)
               </h2>
-              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+              <p className="hidden sm:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                 {isDual
                   ? `Çift Meal: ${primaryMeal.shortLabel} + ${secondaryMeal.shortLabel}`
                   : `Aktif Meal: ${primaryMeal.label}`}
@@ -221,14 +221,14 @@ export const MealSelectorModal: React.FC = () => {
             type="button"
             onClick={closeMealSelector}
             aria-label="Meal seçiciyi kapat"
-            className="min-w-[40px] min-h-[40px] rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+            className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-subtle)',
               color: 'var(--text-muted)',
             }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
