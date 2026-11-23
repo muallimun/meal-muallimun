@@ -81,6 +81,8 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   );
 
   const isCompletingRef = useRef(false);
+  const sessionStartedAtRef = useRef<number>(Date.now());
+  const initialElapsedSecRef = useRef<number>(session.elapsedSec);
   const feedbackSectionRef = useRef<HTMLDivElement | null>(null);
   const mobileStripRef = useRef<HTMLDivElement | null>(null);
   // Yarışma Arenası'nda aktif sorudan geri dönülüp tekrar gelindiğinde sürenin sıfırlanmasını engeller
@@ -91,6 +93,14 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
         : [],
     ),
   );
+
+  // Yeni bir sınav oturumu yüklendiğinde başlangıç zamanını sıfırla
+  useEffect(() => {
+    isCompletingRef.current = false;
+    sessionStartedAtRef.current = Date.now();
+    initialElapsedSecRef.current = session.elapsedSec;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.sessionId]);
 
   // Sınav açıldığında arka plandaki tilavet/meal sesini duraklat ve ekran kilidini tazele
   useEffect(() => {
@@ -196,7 +206,22 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     (finalSession: ExamSessionState, endedByNoLives = false) => {
       if (isCompletingRef.current) return;
       isCompletingRef.current = true;
-      onCompleteExam(finalSession, endedByNoLives);
+      const sittingSec = Math.max(
+        0,
+        Math.round((Date.now() - sessionStartedAtRef.current) / 1000),
+      );
+      const accurateElapsedSec = Math.max(
+        1,
+        finalSession.elapsedSec,
+        initialElapsedSecRef.current + sittingSec,
+      );
+      onCompleteExam(
+        {
+          ...finalSession,
+          elapsedSec: accurateElapsedSec,
+        },
+        endedByNoLives,
+      );
     },
     [onCompleteExam],
   );

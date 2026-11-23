@@ -589,6 +589,8 @@ export interface ExamResultSummary {
   scorePct: number;
   earnedXp: number;
   durationSec: number;
+  avgSecPerQuestion?: number;
+  passThresholdPct?: number;
   maxStreak: number;
   newlyMasteredCount: number;
   endedByNoLives?: boolean;

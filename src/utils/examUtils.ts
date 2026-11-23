@@ -323,11 +323,120 @@ export function formatDurationTr(totalSec: number): string {
   return `${mins} dk ${String(secs).padStart(2, '0')} sn`;
 }
 
+export const EXAM_PASS_THRESHOLD_PCT = 70;
+
 export function formatClockTimer(totalSec: number): string {
   const safe = Math.max(0, Math.floor(totalSec));
   const mins = Math.floor(safe / 60);
   const secs = safe % 60;
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+/**
+ * Soru başına ortalama süreyi saniye cinsinden hesaplar (1 ondalık hassasiyet veya tam saniye).
+ */
+export function calculateAvgSecPerQuestion(durationSec: number, questionCount: number): number {
+  if (!Number.isFinite(durationSec) || !Number.isFinite(questionCount) || questionCount <= 0) {
+    return 0;
+  }
+  const safeDuration = Math.max(0, durationSec);
+  return Math.round((safeDuration / questionCount) * 10) / 10;
+}
+
+/**
+ * Soru başına ortalama süreyi insanca okunur Türkçe etikete dönüştürür (ör. "14 sn/soru" veya "1 dk 05 sn/soru").
+ */
+export function formatAvgSpeedTr(avgSec: number): string {
+  if (!Number.isFinite(avgSec) || avgSec <= 0) return '0 sn/soru';
+  if (avgSec < 60) {
+    const rounded = avgSec < 10 ? Math.round(avgSec * 10) / 10 : Math.round(avgSec);
+    const display = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace('.', ',');
+    return `${display} sn/soru`;
+  }
+  return `${formatDurationTr(Math.round(avgSec))}/soru`;
+}
+
+/**
+ * Kısa Sure:Ayet referansı üretir (ör. "17:23–24", "49:12" veya "17. Sure").
+ */
+export function formatShortVerseRef(surahNo: number, verseRefs: number[]): string {
+  if (verseRefs.length === 0) return `${surahNo}. Sure`;
+  if (verseRefs.length === 1) return `${surahNo}:${verseRefs[0]}`;
+  const first = verseRefs[0];
+  const last = verseRefs[verseRefs.length - 1];
+  const isContiguous = last - first + 1 === verseRefs.length;
+  if (isContiguous) return `${surahNo}:${first}–${last}`;
+  if (verseRefs.length <= 3) return `${surahNo}:${verseRefs.join(',')}`;
+  return `${surahNo}:${first}–${last}`;
+}
+
+/**
+ * Sınav sonucu için panoya kopyalamaya ve isteğe bağlı gönderime uygun temiz Türkçe özet metni üretir.
+ */
+export function buildExamSummaryPlainText(params: {
+  title: string;
+  scorePct: number;
+  passThresholdPct: number;
+  correct: number;
+  wrong: number;
+  blank: number;
+  totalQuestions: number;
+  durationSec: number;
+  avgSecPerQuestion: number;
+  surahBreakdown: Array<{ surahNo: number; surahName: string; correct: number; total: number }>;
+  completedAt?: string;
+}): string {
+  const {
+    title,
+    scorePct,
+    passThresholdPct,
+    correct,
+    wrong,
+    blank,
+    totalQuestions,
+    durationSec,
+    avgSecPerQuestion,
+    surahBreakdown,
+    completedAt,
+  } = params;
+
+  const passedLabel =
+    scorePct >= passThresholdPct
+      ? `Başarılı (%${passThresholdPct} barajı geçildi)`
+      : `Geliştirilebilir (%${passThresholdPct} barajı altı)`;
+
+  const dateText = (() => {
+    try {
+      return new Intl.DateTimeFormat('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(completedAt ? new Date(completedAt) : new Date());
+    } catch {
+      return '';
+    }
+  })();
+
+  const lines: string[] = [
+    `Muallimun Kur'an & Meal — ${title}`,
+    ...(dateText ? [`Tarih: ${dateText}`] : []),
+    `Başarı: %${scorePct} (${passedLabel})`,
+    `Sonuç: ${correct} Doğru · ${wrong} Yanlış · ${blank} Boş (Toplam ${totalQuestions} Soru)`,
+    `Süre: ${formatDurationTr(durationSec)} (Ortalama: ${formatAvgSpeedTr(avgSecPerQuestion)})`,
+  ];
+
+  if (surahBreakdown.length > 0) {
+    lines.push('', 'Sure Bazlı Dağılım:');
+    for (const item of surahBreakdown) {
+      const pct = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
+      lines.push(`- ${item.surahNo}. ${item.surahName}: ${item.correct}/${item.total} (%${pct})`);
+    }
+  }
+
+  lines.push('', 'Kaynak: https://kuran.muallimun.net');
+  return lines.join('\n');
 }
 
 /**

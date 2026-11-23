@@ -352,7 +352,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       <section className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 min-w-0">
           <h2 className="text-lg sm:text-xl font-extrabold tracking-tight whitespace-nowrap">
-            Yarışma &amp; Sınav Merkezi
+            Meal Sınavı
           </h2>
           <span
             className="text-xs font-semibold tabular-nums"

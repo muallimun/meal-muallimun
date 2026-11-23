@@ -8,13 +8,18 @@ import type {
   ExamConfig,
   ExamResultSummary,
   ExamSessionState,
+  PreparedQuestion,
 } from '../../types/quran';
 import {
+  EXAM_PASS_THRESHOLD_PCT,
+  calculateAvgSecPerQuestion,
   clearActiveExamSession,
   getQuestionUid,
   loadActiveExamSession,
+  prepareQuestionOptions,
   saveActiveExamSession,
   selectAndPrepareExamQuestions,
+  shuffleArray,
 } from '../../utils/examUtils';
 import { formatNumberTr } from '../../utils/poolUtils';
 import { GamesHubTab } from '../games/GamesHubTab';
@@ -246,9 +251,13 @@ export const ExamCenterPage: React.FC = () => {
         new Set(finalSession.questions.map((q) => q.question.surah)),
       ).sort((a, b) => a - b);
 
-      const durationSec = Math.max(
-        finalSession.elapsedSec,
-        Math.round((Date.now() - finalSession.startedAt) / 1000),
+      const durationSec =
+        finalSession.elapsedSec > 0
+          ? Math.max(1, Math.round(finalSession.elapsedSec))
+          : Math.max(1, Math.round((Date.now() - finalSession.startedAt) / 1000));
+      const avgSecPerQuestion = calculateAvgSecPerQuestion(
+        durationSec,
+        finalSession.questions.length,
       );
 
       const { earnedXp, newlyMasteredCount, scorePct } = recordExamResult({
@@ -276,6 +285,8 @@ export const ExamCenterPage: React.FC = () => {
         scorePct,
         earnedXp,
         durationSec,
+        avgSecPerQuestion,
+        passThresholdPct: EXAM_PASS_THRESHOLD_PCT,
         maxStreak: finalSession.maxStreak,
         newlyMasteredCount,
         endedByNoLives,
@@ -309,20 +320,67 @@ export const ExamCenterPage: React.FC = () => {
     setPhase('hub');
   };
 
-  const handleStartWrongMiniTest = (wrongUids: string[], surahs: number[]) => {
-    void startExamFromConfig({
-      mode: 'practice',
-      surahs: surahs.length > 0 ? surahs : (questionIndex?.availableSurahs ?? []),
-      difficulty: 'all',
-      mealBasis: 'all',
-      questionCount: 0,
-      prioritizeUnsolved: false,
-      arenaTimePerQuestion: 45,
-      isMistakeCamp: true,
-      customQuestionUids: wrongUids,
-      title: 'Yanlışlardan Mini Telafi Testi',
-    });
-  };
+  const handleStartRetryIncorrect = useCallback(
+    (retryQuestions: PreparedQuestion[], surahs: number[]) => {
+      if (retryQuestions.length === 0) return;
+
+      const freshPrepared = shuffleArray(retryQuestions).map((pq) =>
+        prepareQuestionOptions(pq.question),
+      );
+      const retrySurahs =
+        surahs.length > 0
+          ? surahs
+          : Array.from(new Set(freshPrepared.map((q) => q.question.surah))).sort((a, b) => a - b);
+
+      const retryConfig: ExamConfig = {
+        mode: 'practice',
+        surahs: retrySurahs,
+        difficulty: 'all',
+        mealBasis: 'all',
+        questionCount: freshPrepared.length,
+        prioritizeUnsolved: false,
+        arenaTimePerQuestion: 45,
+        isMistakeCamp: true,
+        customQuestionUids: freshPrepared.map((q) => q.uid),
+        title: 'Yanlış / Boş Sorular Tekrarı',
+      };
+
+      claimAudioFocus('activity_scene');
+      sfxService.play('start');
+
+      const mockTotalSec = Math.max(60, Math.round(freshPrepared.length * 90));
+      const newSession: ExamSessionState = {
+        sessionId: `exam_retry_${Date.now()}`,
+        config: retryConfig,
+        questions: freshPrepared,
+        currentIndex: 0,
+        answers: {},
+        flaggedUids: [],
+        eliminatedOptionsByUid: {},
+        hintRevealedUids: [],
+        livesRemaining: 3,
+        currentStreak: 0,
+        maxStreak: 0,
+        jokers: {
+          fiftyFiftyUsed: false,
+          verseHintUsed: false,
+          extraTimeUsed: false,
+        },
+        startedAt: Date.now(),
+        elapsedSec: 0,
+        questionRemainingSec: retryConfig.arenaTimePerQuestion,
+        totalRemainingSec: mockTotalSec,
+      };
+
+      saveActiveExamSession(newSession);
+      setActiveSession(newSession);
+      setResumableSession(null);
+      setResultSummary(null);
+      setPhase('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [],
+  );
 
   if (phase === 'active' && activeSession) {
     return (
@@ -340,7 +398,7 @@ export const ExamCenterPage: React.FC = () => {
     return (
       <ExamResultView
         result={resultSummary}
-        onStartWrongMiniTest={handleStartWrongMiniTest}
+        onRetryIncorrectQuestions={handleStartRetryIncorrect}
         onNewExam={() => {
           sfxService.play('click');
           setResultSummary(null);
@@ -355,7 +413,7 @@ export const ExamCenterPage: React.FC = () => {
 
   return (
     <div className="space-y-2.5 sm:space-y-4">
-      {/* Sınav Merkezi Alt Sekmeleri: Sınav Oluştur | Eğitsel Oyunlar | Hata Kampı (X) + Bağlamsal Rehber */}
+      {/* Sınav Merkezi Alt Sekmeleri: Meal Sınavı | Eğitsel Oyunlar | Hata Kampı (X) */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div
           role="tablist"
@@ -374,7 +432,7 @@ export const ExamCenterPage: React.FC = () => {
             sfxService.play('click');
             setHubSubTab('builder');
           }}
-          className="min-h-[36px] sm:min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          className="min-h-[38px] sm:min-h-[40px] px-1.5 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap min-w-0"
           style={{
             backgroundColor: hubSubTab === 'builder' ? 'var(--bg-surface)' : 'transparent',
             color: hubSubTab === 'builder' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -382,7 +440,7 @@ export const ExamCenterPage: React.FC = () => {
           }}
         >
           <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span>Sınav Oluştur</span>
+          <span>Meal Sınavı</span>
         </button>
 
         <button
@@ -393,7 +451,7 @@ export const ExamCenterPage: React.FC = () => {
             sfxService.play('click');
             setHubSubTab('games');
           }}
-          className="min-h-[36px] sm:min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          className="min-h-[38px] sm:min-h-[40px] px-1.5 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap min-w-0"
           style={{
             backgroundColor: hubSubTab === 'games' ? 'var(--bg-surface)' : 'transparent',
             color: hubSubTab === 'games' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -412,7 +470,7 @@ export const ExamCenterPage: React.FC = () => {
             sfxService.play('click');
             setHubSubTab('mistakes');
           }}
-          className="min-h-[36px] sm:min-h-[40px] px-2 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          className="min-h-[38px] sm:min-h-[40px] px-1.5 sm:px-5 rounded-xl text-[11px] sm:text-sm font-extrabold inline-flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap min-w-0"
           style={{
             backgroundColor: hubSubTab === 'mistakes' ? 'var(--bg-surface)' : 'transparent',
             color:

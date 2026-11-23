@@ -98,7 +98,7 @@ export const RelatedVerseDrawer: React.FC<RelatedVerseDrawerProps> = ({
           <button
             type="button"
             onClick={handleToggle}
-            className="min-h-[42px] px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer"
+            className="min-h-[44px] px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-bold flex items-center gap-2 transition-colors cursor-pointer max-w-full"
             style={{
               backgroundColor: isOpen ? 'var(--brand-primary-soft)' : 'var(--bg-surface-soft)',
               borderColor: isOpen ? 'var(--brand-primary)' : 'var(--border-subtle)',
@@ -106,7 +106,7 @@ export const RelatedVerseDrawer: React.FC<RelatedVerseDrawerProps> = ({
             }}
           >
             <BookOpen className="w-4 h-4 shrink-0" />
-            <span className="text-left">{triggerText}</span>
+            <span className="text-left break-words min-w-0">{triggerText}</span>
             {isOpen ? (
               <ChevronUp className="w-4 h-4 shrink-0" />
             ) : (
@@ -124,7 +124,7 @@ export const RelatedVerseDrawer: React.FC<RelatedVerseDrawerProps> = ({
                   page: firstPage,
                 })
               }
-              className="min-h-[42px] px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="min-h-[44px] px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-strong)',
@@ -132,7 +132,7 @@ export const RelatedVerseDrawer: React.FC<RelatedVerseDrawerProps> = ({
               }}
             >
               <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-              <span className="whitespace-nowrap">Mushaf / Okuma Ekranında Aç</span>
+              <span className="whitespace-nowrap">Okuyucuda Aç</span>
             </button>
           )}
         </div>
