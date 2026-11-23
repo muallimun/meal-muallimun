@@ -59,20 +59,35 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
     wordAudioService.subscribe,
     wordAudioService.getSnapshot,
   );
-  const [coords, setCoords] = useState<{ top: number; left: number; width: number }>({
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    isMobileSheet: boolean;
+  }>({
     top: -9999,
     left: -9999,
     width: 320,
+    isMobileSheet: false,
   });
 
-  // Viewport sınırlarına göre akıllı konumlandırma (360px mobil + masaüstü güvenli)
+  // Viewport sınırlarına göre akıllı konumlandırma (360px mobil alt sabit kompakt kart + masaüstü kenar korumalı)
   useLayoutEffect(() => {
     if (!selection) return;
 
     const margin = 12;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const width = Math.min(340, Math.max(260, vw - margin * 2));
+    const isMobileSheet = vw < 640;
+
+    if (isMobileSheet) {
+      const width = Math.max(220, Math.min(380, vw - margin * 2));
+      const left = Math.max(margin, Math.round((vw - width) / 2));
+      setCoords({ top: 0, left, width, isMobileSheet: true });
+      return;
+    }
+
+    const width = Math.min(340, Math.max(240, vw - margin * 2));
     const measuredHeight = popoverRef.current?.offsetHeight || 220;
 
     const anchorCenterX = (selection.rect.left + selection.rect.right) / 2;
@@ -89,9 +104,9 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
     } else {
       top = Math.max(margin, selection.rect.top - measuredHeight - gap);
     }
-    top = Math.max(margin, top);
+    top = Math.max(margin, Math.min(top, vh - measuredHeight - margin));
 
-    setCoords({ top, left, width });
+    setCoords({ top, left, width, isMobileSheet: false });
   }, [selection]);
 
   useBackButtonGuard('tajweed_rule_popover', Boolean(selection), onClose);
@@ -142,10 +157,17 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
       aria-label={`Tecvit Kuralı: ${rule.nameTr}`}
       onClick={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
-      className={`fixed ${Z_LAYERS.POPOVER} rounded-2xl border shadow-2xl overflow-hidden animate-in fade-in duration-150`}
+      className={`fixed ${Z_LAYERS.POPOVER} rounded-2xl border shadow-2xl overflow-y-auto max-w-[calc(100vw-24px)] max-h-[calc(100dvh-24px)] animate-in fade-in duration-150`}
       style={{
-        top: `${coords.top}px`,
-        left: `${coords.left}px`,
+        ...(coords.isMobileSheet
+          ? {
+              bottom: 'max(14px, env(safe-area-inset-bottom, 0px))',
+              left: `${coords.left}px`,
+            }
+          : {
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+            }),
         width: `${coords.width}px`,
         backgroundColor: 'var(--bg-surface)',
         borderColor: 'var(--border-subtle)',

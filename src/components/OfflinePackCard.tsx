@@ -359,7 +359,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
               feedback.type === 'success'
                 ? 'var(--brand-primary-soft)'
                 : feedback.type === 'error'
-                  ? 'rgba(239, 68, 68, 0.08)'
+                  ? 'var(--state-danger-bg)'
                   : 'var(--bg-surface)',
             borderColor:
               feedback.type === 'success'
@@ -371,7 +371,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
               feedback.type === 'success'
                 ? 'var(--brand-primary-text)'
                 : feedback.type === 'error'
-                  ? '#B91C1C'
+                  ? 'var(--state-danger-text)'
                   : 'var(--text-secondary)',
           }}
         >

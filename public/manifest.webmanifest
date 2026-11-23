@@ -25,5 +25,28 @@
       "type": "image/png",
       "purpose": "any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Okumaya Devam Et",
+      "short_name": "Okuma",
+      "description": "Mushaf ve meal okuma ekranını doğrudan aç",
+      "url": "/?tab=okuma",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Ezber & Hafızlık",
+      "short_name": "Ezber",
+      "description": "Klasik hafızlık ve ezber havuzuna git",
+      "url": "/?tab=ezber",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Konu Fihristi",
+      "short_name": "Fihrist",
+      "description": "601 konulu fihrist ve araştırma merkezini aç",
+      "url": "/?tab=fihrist",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
   ]
 }

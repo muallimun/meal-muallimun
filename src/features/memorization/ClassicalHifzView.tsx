@@ -1405,7 +1405,9 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                     borderColor: selectedPageIsHas
                       ? 'rgba(239, 68, 68, 0.4)'
                       : 'var(--brand-primary)',
-                    color: selectedPageIsHas ? '#B91C1C' : 'var(--brand-primary-text)',
+                    color: selectedPageIsHas
+                      ? 'var(--state-danger-text)'
+                      : 'var(--brand-primary-text)',
                   }}
                 >
                   {selectedPageIsHas ? (
@@ -1574,8 +1576,8 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                     className="w-full min-h-[40px] rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                     style={{
                       borderColor: 'rgba(239, 68, 68, 0.35)',
-                      color: '#B91C1C',
-                      backgroundColor: 'rgba(239, 68, 68, 0.06)',
+                      color: 'var(--state-danger-text)',
+                      backgroundColor: 'var(--state-danger-bg)',
                     }}
                   >
                     <Trash2 className="w-3.5 h-3.5 shrink-0" />
@@ -1586,10 +1588,10 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
                     className="p-3 rounded-xl border space-y-2"
                     style={{
                       borderColor: 'rgba(239, 68, 68, 0.45)',
-                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                      backgroundColor: 'var(--state-danger-bg)',
                     }}
                   >
-                    <p className="text-xs font-bold" style={{ color: '#B91C1C' }}>
+                    <p className="text-xs font-bold" style={{ color: 'var(--state-danger-text)' }}>
                       Klasik hafızlık planınız ve Has sayfa kayıtlarınız sıfırlanacak (Ezber
                       Havuzunuz etkilenmez). Onaylıyor musunuz?
                     </p>

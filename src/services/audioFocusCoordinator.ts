@@ -10,6 +10,7 @@ export type AudioOwnerId =
   | 'memorization'
   | 'word_wbw'
   | 'preview_clip'
+  | 'game_audio'
   | 'zen_user_voice'
   | 'zen_mic'
   | 'activity_scene';

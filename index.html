@@ -35,7 +35,7 @@
     />
     <meta name="twitter:image" content="https://kuran.muallimun.net/icons/icon-512.png" />
 
-    <meta name="theme-color" content="#0F766E" />
+    <meta name="theme-color" content="#faf6ee" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -91,8 +91,17 @@
           } else {
             root.classList.remove('dark');
           }
+          var themeColorMap = { light: '#f4f7f7', cream: '#faf6ee', dark: '#0b1314' };
+          var metaTheme = document.querySelector('meta[name="theme-color"]');
+          if (metaTheme) {
+            metaTheme.setAttribute('content', themeColorMap[theme] || '#faf6ee');
+          }
         } catch (e) {
           document.documentElement.setAttribute('data-theme', 'cream');
+          var fallbackMeta = document.querySelector('meta[name="theme-color"]');
+          if (fallbackMeta) {
+            fallbackMeta.setAttribute('content', '#faf6ee');
+          }
         }
       })();
     </script>

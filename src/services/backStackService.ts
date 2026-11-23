@@ -19,8 +19,6 @@ const pushedGuardTokens = new Set<string>();
 let popListenerAttached = false;
 let keyListenerAttached = false;
 let pushedHistoryDepth = 0;
-let ignoreNextPopCount = 0;
-let ignoreResetTimer: number | null = null;
 let reconcileTimer: number | null = null;
 let tokenCounter = 0;
 
@@ -35,32 +33,6 @@ function isTopLevelBrowser(): boolean {
   } catch {
     // Çapraz kaynak iframe erişim hatası -> gömülü ortamda çalışıyoruz
     return false;
-  }
-}
-
-function clearIgnoreResetTimer(): void {
-  if (ignoreResetTimer !== null && typeof window !== 'undefined') {
-    window.clearTimeout(ignoreResetTimer);
-    ignoreResetTimer = null;
-  }
-}
-
-function scheduleIgnoreSafetyReset(): void {
-  if (typeof window === 'undefined') return;
-  clearIgnoreResetTimer();
-  ignoreResetTimer = window.setTimeout(() => {
-    ignoreNextPopCount = 0;
-    ignoreResetTimer = null;
-  }, 400);
-}
-
-function getCurrentGuardToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const st = window.history.state as Record<string, unknown> | null;
-    return typeof st?.__muallimunBackGuard === 'string' ? st.__muallimunBackGuard : null;
-  } catch {
-    return null;
   }
 }
 
@@ -79,12 +51,12 @@ function stripGuardFromCurrentState(): void {
 
 /**
  * Tek mikro-görevde (setTimeout(..., 0)) tüm ardışık register/unregister değişimlerini
- * birleştirip tarayıcı geçmişini (history) tek adımda hedef derinlikle eşitler.
- * - Aynı tick içinde bir katman kapanıp yenisi açıldıysa (`desired === pushed > 0`),
- *   `history.back()` + `pushState` yarışına girmez; `replaceState` ile üst kaydı günceller.
- * - Yığın boşaldığında yalnızca mevcut history kaydı gerçekten bizim ittiğimiz
- *   `__muallimunBackGuard` belirtecine sahipse ve `history.length > 1` ise geri sarar;
- *   aksi halde körlemesine `history.go(-diff)` çağırmaz, sadece sayacı ve state'i senkronlar.
+ * birleştirip tarayıcı geçmişini (history) güvenli biçimde senkronlar.
+ * - Programatik kapanışlarda (`desiredDepth < pushedHistoryDepth`) ASLA `history.go()` veya
+ *   `history.back()` çağırmaz; Chromium History Manipulation Intervention kaynaklı dış siteye
+ *   atılma riskini sıfırlar, mevcut kaydı yalnızca `replaceState` ile yerinde temizler/günceller.
+ * - Gerçek donanım/tarayıcı Geri tuşu (`popstate`) geldiğinde LIFO olarak en üst katmanı kapatır;
+ *   yığın boşsa fazladan guard kaydını sayfadan çıkmadan sessizce yutar.
  * - İframe önizlemelerinde `window.history` API'sine dokunmaz.
  */
 function reconcileHistory(): void {
@@ -129,45 +101,22 @@ function reconcileHistory(): void {
     return;
   }
 
-  // desiredDepth < pushedHistoryDepth
-  const diff = pushedHistoryDepth - desiredDepth;
-  const currentGuardToken = getCurrentGuardToken();
-  const isKnownGuardState =
-    currentGuardToken !== null && pushedGuardTokens.has(currentGuardToken);
-
-  if (!isKnownGuardState || window.history.length <= 1) {
-    // Mevcut geçmiş kaydı bizim aktif yığınımıza ait değil; asla tarayıcıyı geri döndürme!
-    pushedHistoryDepth = desiredDepth;
-    if (desiredDepth === 0) {
-      stripGuardFromCurrentState();
-      pushedGuardTokens.clear();
-    } else {
-      const topEntry = activeStack[desiredDepth - 1];
-      try {
-        pushedGuardTokens.add(topEntry.token);
-        window.history.replaceState(
-          { ...(window.history.state ?? {}), __muallimunBackGuard: topEntry.token },
-          '',
-        );
-      } catch {
-        // ignore
-      }
-    }
-    return;
-  }
-
+  // desiredDepth < pushedHistoryDepth (programatik kapatma: ×, Vazgeç, backdrop, Escape)
+  // ASLA window.history.go() veya window.history.back() çağırma; yalnızca yerinde replaceState uygula.
   pushedHistoryDepth = desiredDepth;
   if (desiredDepth === 0) {
+    stripGuardFromCurrentState();
     pushedGuardTokens.clear();
-  }
-  ignoreNextPopCount += diff;
-  scheduleIgnoreSafetyReset();
-  try {
-    window.history.go(-diff);
-  } catch {
-    ignoreNextPopCount = Math.max(0, ignoreNextPopCount - diff);
-    if (ignoreNextPopCount === 0) {
-      clearIgnoreResetTimer();
+  } else {
+    const topEntry = activeStack[desiredDepth - 1];
+    try {
+      pushedGuardTokens.add(topEntry.token);
+      window.history.replaceState(
+        { ...(window.history.state ?? {}), __muallimunBackGuard: topEntry.token },
+        '',
+      );
+    } catch {
+      // Geçmiş güncelleme kısıtlıysa sessizce devam et
     }
   }
 }
@@ -179,20 +128,17 @@ function scheduleReconcile(): void {
 }
 
 function handlePopState(): void {
-  if (ignoreNextPopCount > 0) {
-    ignoreNextPopCount -= 1;
-    if (ignoreNextPopCount === 0) {
-      clearIgnoreResetTimer();
-    }
-    return;
-  }
-
   if (pushedHistoryDepth > 0) {
     pushedHistoryDepth -= 1;
   }
 
   const top = activeStack.pop();
-  if (!top) return;
+  if (!top) {
+    // Programatik kapatma sonrası fazladan boş bir guard geçmiş kaydına denk gelindiyse
+    // sayfadan çıkmadan sessizce yut ve mevcut kaydın guard işaretini temizle.
+    stripGuardFromCurrentState();
+    return;
+  }
 
   try {
     top.onBack();
@@ -200,7 +146,7 @@ function handlePopState(): void {
     // Katman kapatma hatasını sessizce yut
   }
 
-  // Kapatma sonrası kalan yığın ile history derinliği ayrıştıysa eşitle
+  // Kapatma sonrası kalan yığın ile history durumunu yerinde eşitle
   scheduleReconcile();
 }
 

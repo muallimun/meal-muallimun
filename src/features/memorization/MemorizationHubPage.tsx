@@ -1581,13 +1581,15 @@ export const MemorizationHubPage: React.FC = () => {
                     backgroundColor:
                       backupFeedback.type === 'success'
                         ? 'var(--brand-primary-soft)'
-                        : 'rgba(239, 68, 68, 0.08)',
+                        : 'var(--state-danger-bg)',
                     borderColor:
                       backupFeedback.type === 'success'
                         ? 'var(--brand-primary)'
                         : 'rgba(239, 68, 68, 0.35)',
                     color:
-                      backupFeedback.type === 'success' ? 'var(--brand-primary-text)' : '#B91C1C',
+                      backupFeedback.type === 'success'
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--state-danger-text)',
                   }}
                 >
                   {backupFeedback.text}

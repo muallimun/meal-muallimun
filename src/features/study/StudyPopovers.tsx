@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BookMarked, BookOpenCheck, Play, X } from 'lucide-react';
 import { Z_LAYERS } from '../../config/zLayers';
@@ -18,24 +18,45 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import type { RukuItem } from '../../types/fihrist';
 
+interface PopoverCoords {
+  top: number;
+  left: number;
+  width: number;
+  isMobileSheet: boolean;
+}
+
 function computeClampedPosition(
   anchor: PopoverAnchorRect,
-  width: number,
-  estimatedHeight: number,
-): { top: number; left: number } {
+  preferredWidth: number,
+  measuredHeight: number,
+): PopoverCoords {
   const margin = 12;
-  const vw = typeof window !== 'undefined' ? window.innerWidth : 375;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 360;
   const vh = typeof window !== 'undefined' ? window.innerHeight : 700;
-  const maxWidth = Math.min(width, vw - margin * 2);
 
-  let left = anchor.left + anchor.width / 2 - maxWidth / 2;
-  left = Math.max(margin, Math.min(vw - maxWidth - margin, left));
-
-  let top = anchor.bottom + 8;
-  if (top + estimatedHeight > vh - margin) {
-    top = Math.max(margin, anchor.top - estimatedHeight - 8);
+  if (vw < 640) {
+    const width = Math.max(220, Math.min(360, vw - margin * 2));
+    const left = Math.max(margin, Math.round((vw - width) / 2));
+    return { top: 0, left, width, isMobileSheet: true };
   }
-  return { top, left };
+
+  const width = Math.min(preferredWidth, Math.max(220, vw - margin * 2));
+  const rawLeft = anchor.left + anchor.width / 2 - width / 2;
+  const left = Math.max(margin, Math.min(rawLeft, vw - width - margin));
+
+  const gap = 8;
+  const spaceBelow = vh - anchor.bottom - margin;
+  const spaceAbove = anchor.top - margin;
+
+  let top: number;
+  if (spaceBelow >= measuredHeight + gap || spaceBelow >= spaceAbove) {
+    top = Math.min(anchor.bottom + gap, vh - measuredHeight - margin);
+  } else {
+    top = Math.max(margin, anchor.top - measuredHeight - gap);
+  }
+  top = Math.max(margin, Math.min(top, vh - measuredHeight - margin));
+
+  return { top, left, width, isMobileSheet: false };
 }
 
 /**
@@ -45,8 +66,20 @@ export const WaqfPopoverHost: React.FC = () => {
   const { openWaqfGuide } = useAppStore();
   const [payload, setPayload] = useState<WaqfPopoverPayload | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const [coords, setCoords] = useState<PopoverCoords>({
+    top: -9999,
+    left: -9999,
+    width: 310,
+    isMobileSheet: false,
+  });
 
   useEffect(() => subscribeWaqfPopover(setPayload), []);
+
+  useLayoutEffect(() => {
+    if (!payload) return;
+    const measuredHeight = popoverRef.current?.offsetHeight || 190;
+    setCoords(computeClampedPosition(payload.anchorRect, 310, measuredHeight));
+  }, [payload]);
 
   useBackButtonGuard('waqf_popover', Boolean(payload), closeWaqfPopover);
 
@@ -58,32 +91,42 @@ export const WaqfPopoverHost: React.FC = () => {
       if (target?.closest('[data-waqf-sign="1"]')) return;
       closeWaqfPopover();
     };
-    const handleScroll = () => closeWaqfPopover();
+    const handleScrollOrResize = (e: Event) => {
+      if (e.target instanceof Node && popoverRef.current?.contains(e.target)) return;
+      closeWaqfPopover();
+    };
 
     window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize, { passive: true });
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
     };
   }, [payload]);
 
   if (!payload || typeof document === 'undefined') return null;
 
-  const { sign, anchorRect } = payload;
-  const popWidth = Math.min(310, (typeof window !== 'undefined' ? window.innerWidth : 375) - 24);
-  const { top, left } = computeClampedPosition(anchorRect, popWidth, 185);
+  const { sign } = payload;
 
   return createPortal(
     <div
       ref={popoverRef}
       role="dialog"
       aria-label={`${sign.nameTr} durak açıklaması`}
-      className={`fixed ${Z_LAYERS.POPOVER} rounded-2xl border shadow-2xl p-3.5`}
+      className={`fixed ${Z_LAYERS.POPOVER} rounded-2xl border shadow-2xl p-3.5 max-w-[calc(100vw-24px)] max-h-[calc(100dvh-24px)] overflow-y-auto`}
       style={{
-        top: `${top}px`,
-        left: `${left}px`,
-        width: `${popWidth}px`,
+        ...(coords.isMobileSheet
+          ? {
+              bottom: 'max(14px, env(safe-area-inset-bottom, 0px))',
+              left: `${coords.left}px`,
+            }
+          : {
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+            }),
+        width: `${coords.width}px`,
         backgroundColor: 'var(--bg-surface)',
         borderColor: 'var(--border-subtle)',
       }}
@@ -160,8 +203,20 @@ export const RukuPopoverHost: React.FC = () => {
   const { manifest, meta, audioPrefs, openQuickMemorize } = useAppStore();
   const [payload, setPayload] = useState<RukuPopoverPayload | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
+  const [coords, setCoords] = useState<PopoverCoords>({
+    top: -9999,
+    left: -9999,
+    width: 300,
+    isMobileSheet: false,
+  });
 
   useEffect(() => subscribeRukuPopover(setPayload), []);
+
+  useLayoutEffect(() => {
+    if (!payload) return;
+    const measuredHeight = popoverRef.current?.offsetHeight || 170;
+    setCoords(computeClampedPosition(payload.anchorRect, 300, measuredHeight));
+  }, [payload]);
 
   useBackButtonGuard('ruku_popover', Boolean(payload), closeRukuPopover);
 
@@ -173,21 +228,24 @@ export const RukuPopoverHost: React.FC = () => {
       if (target?.closest('[data-ruku-badge="1"]')) return;
       closeRukuPopover();
     };
-    const handleScroll = () => closeRukuPopover();
+    const handleScrollOrResize = (e: Event) => {
+      if (e.target instanceof Node && popoverRef.current?.contains(e.target)) return;
+      closeRukuPopover();
+    };
 
     window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize, { passive: true });
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
     };
   }, [payload]);
 
   if (!payload || typeof document === 'undefined') return null;
 
-  const { ruku, surahNameTr, page, anchorRect } = payload;
-  const popWidth = Math.min(300, (typeof window !== 'undefined' ? window.innerWidth : 375) - 24);
-  const { top, left } = computeClampedPosition(anchorRect, popWidth, 165);
+  const { ruku, surahNameTr, page } = payload;
 
   const handlePlayRuku = () => {
     if (!manifest || !meta) return;
@@ -230,11 +288,18 @@ export const RukuPopoverHost: React.FC = () => {
       ref={popoverRef}
       role="dialog"
       aria-label={`${surahNameTr} ${ruku.surahRuku}. Rükû`}
-      className={`fixed ${Z_LAYERS.POPOVER} rounded-2xl border shadow-2xl p-3.5`}
+      className={`fixed ${Z_LAYERS.POPOVER} rounded-2xl border shadow-2xl p-3.5 max-w-[calc(100vw-24px)] max-h-[calc(100dvh-24px)] overflow-y-auto`}
       style={{
-        top: `${top}px`,
-        left: `${left}px`,
-        width: `${popWidth}px`,
+        ...(coords.isMobileSheet
+          ? {
+              bottom: 'max(14px, env(safe-area-inset-bottom, 0px))',
+              left: `${coords.left}px`,
+            }
+          : {
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+            }),
+        width: `${coords.width}px`,
         backgroundColor: 'var(--bg-surface)',
         borderColor: 'var(--border-subtle)',
       }}

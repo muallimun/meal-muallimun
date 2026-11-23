@@ -817,14 +817,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </div>
         )}
 
-        {/* Güvenli PWA Yeni Sürüm Bildirim Şeridi (Sınav veya Ezber Zen aktifken gösterilmez) */}
+        {/* Güvenli PWA Yeni Sürüm Bildirim Şeridi (Sınav, Ezber Zen veya Tam Ekran Okuma aktifken gösterilmez) */}
         {pwaUpdateAvailable &&
           !dismissedPwaUpdate &&
           !isExamActive &&
-          !isMemorizationZenActive && (
+          !isMemorizationZenActive &&
+          !isMobileReaderImmersive && (
             <div
               role="status"
-              className="px-4 py-1.5 text-xs border-b"
+              className="relative z-20 px-4 py-1.5 text-xs border-b shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -841,7 +842,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   className="inline-flex items-center gap-1.5 font-extrabold cursor-pointer hover:underline text-left"
                 >
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  <span>✨ Yeni sürüm hazır · Şimdi Güncelle</span>
+                  <span>Yeni sürüm hazır · Şimdi Güncelle</span>
                 </button>
                 <button
                   type="button"

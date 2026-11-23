@@ -1604,7 +1604,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const themeColorMeta = document.querySelector('meta[name="theme-color"]');
     if (themeColorMeta) {
-      themeColorMeta.setAttribute('content', theme === 'dark' ? '#0B1314' : '#0F766E');
+      const themeColor =
+        theme === 'dark' ? '#0b1314' : theme === 'light' ? '#f4f7f7' : '#faf6ee';
+      themeColorMeta.setAttribute('content', themeColor);
     }
 
     root.style.setProperty('--font-arabic', resolveArabicFontFamily(arabicFont));

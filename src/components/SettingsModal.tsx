@@ -1822,7 +1822,7 @@ export const SettingsModal: React.FC = () => {
                       backgroundColor:
                         backupStatus.type === 'success'
                           ? 'var(--brand-primary-soft)'
-                          : 'rgba(239, 68, 68, 0.08)',
+                          : 'var(--state-danger-bg)',
                       borderColor:
                         backupStatus.type === 'success'
                           ? 'var(--brand-primary)'
@@ -1830,7 +1830,7 @@ export const SettingsModal: React.FC = () => {
                       color:
                         backupStatus.type === 'success'
                           ? 'var(--brand-primary-text)'
-                          : '#B91C1C',
+                          : 'var(--state-danger-text)',
                     }}
                   >
                     {backupStatus.text}

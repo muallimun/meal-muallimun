@@ -2100,9 +2100,9 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
               <div
                 className="p-3.5 rounded-2xl border text-xs font-semibold flex items-center justify-between gap-2"
                 style={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  backgroundColor: 'var(--state-danger-bg)',
                   borderColor: 'rgba(239, 68, 68, 0.35)',
-                  color: '#B91C1C',
+                  color: 'var(--state-danger-text)',
                 }}
               >
                 <span>{loadError || audioSnap.errorMessage}</span>

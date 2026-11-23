@@ -341,11 +341,33 @@ export default async function handler(req, res) {
       signal: controller.signal,
     });
 
-    if (!upstreamRes.ok) {
+    const rawText = await upstreamRes.text();
+    const trimmed = rawText.trim();
+    const isHtmlResponse =
+      /^<!doctype html/i.test(trimmed) ||
+      /^<html[\s>]/i.test(trimmed) ||
+      trimmed.includes('accounts.google.com');
+
+    if (!upstreamRes.ok || isHtmlResponse) {
       return sendJson(res, 502, {
         ok: false,
-        error: 'Mesajınız şu anda iletilemedi. Lütfen kısa bir süre sonra tekrar deneyin.',
+        error: 'Bildirim servisi şu anda yanıt veremiyor. Lütfen daha sonra tekrar deneyin.',
       });
+    }
+
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      let parsedJson = null;
+      try {
+        parsedJson = JSON.parse(trimmed);
+      } catch {
+        // JSON formatında olmayan düz metin yanıtları başarılı kabul edilir
+      }
+      if (parsedJson && typeof parsedJson === 'object' && parsedJson.ok === false) {
+        return sendJson(res, 502, {
+          ok: false,
+          error: 'Bildirim servisi şu anda yanıt veremiyor. Lütfen daha sonra tekrar deneyin.',
+        });
+      }
     }
 
     return sendJson(res, 200, { ok: true });

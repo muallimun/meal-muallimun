@@ -677,9 +677,9 @@ export const FeedbackModal: React.FC = () => {
                   role="alert"
                   className="p-3 rounded-xl border flex items-start gap-2 text-xs font-bold"
                   style={{
-                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    backgroundColor: 'var(--state-danger-bg)',
                     borderColor: 'rgba(239, 68, 68, 0.35)',
-                    color: '#B91C1C',
+                    color: 'var(--state-danger-text)',
                   }}
                 >
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
