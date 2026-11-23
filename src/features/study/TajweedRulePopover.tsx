@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, Sparkles, Volume2, X } from 'lucide-react';
+import { AlertCircle, Loader2, Sparkles, Volume2, X } from 'lucide-react';
 import { Z_LAYERS } from '../../config/zLayers';
 import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
@@ -280,8 +280,12 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
                 wordAudioState.playingKey === audioKey && wordAudioState.status === 'loading';
               const isThisWordPlaying =
                 wordAudioState.playingKey === audioKey && wordAudioState.status === 'playing';
+              const isThisWordError =
+                wordAudioState.playingKey === audioKey &&
+                wordAudioState.status === 'error' &&
+                Boolean(wordAudioState.errorMessage);
               return (
-                <div className="flex justify-center">
+                <div className="flex flex-col items-center gap-1.5">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -324,6 +328,19 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
                           : 'Kelimeyi Dinle'}
                     </span>
                   </button>
+                  {isThisWordError && (
+                    <p
+                      role="alert"
+                      className="text-[11px] font-semibold leading-snug text-left px-2 py-1 rounded-lg flex items-start gap-1.5 w-full"
+                      style={{
+                        backgroundColor: 'var(--state-danger-bg)',
+                        color: 'var(--state-danger-text)',
+                      }}
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <span>{wordAudioState.errorMessage}</span>
+                    </p>
+                  )}
                 </div>
               );
             })()}

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import {
+  AlertCircle,
   ArrowLeft,
   ChevronUp,
   Clock,
@@ -148,6 +149,12 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
     previewKey !== null &&
     previewSnap.activeKey === previewKey &&
     previewSnap.status === 'loading';
+  const audioErrorMessage =
+    previewKey !== null &&
+    previewSnap.activeKey === previewKey &&
+    previewSnap.status === 'error'
+      ? previewSnap.errorMessage
+      : null;
 
   // Sure değiştiğinde veya bileşen kapandığında bu sahneye ait önizleme sesini temizle
   useEffect(() => {
@@ -291,6 +298,21 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
             }}
           >
             {formatPlayerText(hud.featuredNote)}
+          </div>
+        )}
+
+        {audioErrorMessage && (
+          <div
+            role="alert"
+            className="text-xs font-semibold leading-snug px-3 py-2 rounded-xl border flex items-start gap-1.5"
+            style={{
+              backgroundColor: 'var(--state-danger-bg)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--state-danger-text)',
+            }}
+          >
+            <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>{audioErrorMessage}</span>
           </div>
         )}
 

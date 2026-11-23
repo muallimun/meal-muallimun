@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
+  AlertCircle,
   CheckCircle2,
   Link2,
   Loader2,
@@ -380,6 +381,12 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
     currentPreviewKey !== null &&
     previewSnap.activeKey === currentPreviewKey &&
     previewSnap.status === 'loading';
+  const audioErrorMessage =
+    currentPreviewKey !== null &&
+    previewSnap.activeKey === currentPreviewKey &&
+    previewSnap.status === 'error'
+      ? previewSnap.errorMessage
+      : null;
 
   const handlePlayPromptAudio = () => {
     if (!currentQuestion || !currentPreviewKey) return;
@@ -709,6 +716,21 @@ export const RabtQuizModal: React.FC<RabtQuizModalProps> = ({
                     </button>
                   )}
                 </div>
+
+                {audioErrorMessage && (
+                  <p
+                    role="alert"
+                    className="text-[11.5px] font-semibold px-2.5 py-1.5 rounded-lg border flex items-start gap-1.5 leading-snug"
+                    style={{
+                      backgroundColor: 'var(--state-danger-bg)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--state-danger-text)',
+                    }}
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>{audioErrorMessage}</span>
+                  </p>
+                )}
 
                 <p
                   dir="rtl"

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
+  AlertCircle,
   AudioLines,
   BookOpen,
   ChevronRight,
@@ -1062,8 +1063,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       <main className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-12 lg:px-20 py-4 overflow-y-auto">
         {displayedVerse ? (
           <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-4 sm:gap-6 text-center transition-opacity duration-200">
-            {/* Yalnızca Tilâvet Secdesi veya Aktif Ses Fazı Rozeti (Mükerrer sure:ayet rozeti yok) */}
-            {(isSajdah || isPlaying || isLoading) && (
+            {/* Yalnızca Tilâvet Secdesi, Aktif Ses Fazı veya Ses Hata Bildirimi */}
+            {(isSajdah || isPlaying || isLoading || Boolean(audioState.errorMessage)) && (
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {isSajdah && (
                   <span
@@ -1098,6 +1099,29 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                       : audioState.activePhase === 'meal'
                         ? `Ses: ${activeSpokenMeal?.label ?? 'Sesli Meal'}`
                         : 'Arapça Tilavet akıyor'}
+                  </span>
+                )}
+
+                {audioState.errorMessage && (
+                  <span
+                    role="alert"
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border max-w-xl text-left"
+                    style={{
+                      backgroundColor: 'var(--state-danger-bg)',
+                      borderColor: 'rgba(239, 68, 68, 0.35)',
+                      color: 'var(--state-danger-text)',
+                    }}
+                  >
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{audioState.errorMessage}</span>
+                    <button
+                      type="button"
+                      onClick={() => audioQueueService.clearError()}
+                      aria-label="Hata uyarısını kapat"
+                      className="ml-1 opacity-75 hover:opacity-100 cursor-pointer shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </span>
                 )}
               </div>

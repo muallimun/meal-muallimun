@@ -1,10 +1,12 @@
 import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
+import { AUDIO_LOAD_ERROR_MESSAGE } from './audioQueueService';
 
 export type PreviewClipStatus = 'idle' | 'loading' | 'playing' | 'error';
 
 export interface PreviewClipSnapshot {
   activeKey: string | null;
   status: PreviewClipStatus;
+  errorMessage: string | null;
 }
 
 type Listener = () => void;
@@ -14,6 +16,7 @@ const LOAD_TIMEOUT_MS = 12_000;
 const INITIAL_SNAPSHOT: PreviewClipSnapshot = {
   activeKey: null,
   status: 'idle',
+  errorMessage: null,
 };
 
 function dedupeValidUrls(urls: string[]): string[] {
@@ -39,6 +42,7 @@ class PreviewAudioService {
   private audio: HTMLAudioElement | null = null;
   private abortController: AbortController | null = null;
   private loadTimer: number | null = null;
+  private stallTimer: number | null = null;
   private sessionId = 0;
 
   public subscribe = (listener: Listener): (() => void) => {
@@ -53,7 +57,8 @@ class PreviewAudioService {
   private emit(next: PreviewClipSnapshot): void {
     if (
       this.snapshot.activeKey === next.activeKey &&
-      this.snapshot.status === next.status
+      this.snapshot.status === next.status &&
+      this.snapshot.errorMessage === next.errorMessage
     ) {
       return;
     }
@@ -70,8 +75,16 @@ class PreviewAudioService {
     }
   }
 
+  private clearStallTimer(): void {
+    if (this.stallTimer !== null && typeof window !== 'undefined') {
+      window.clearTimeout(this.stallTimer);
+      this.stallTimer = null;
+    }
+  }
+
   private teardownAudio(): void {
     this.clearLoadTimer();
+    this.clearStallTimer();
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
@@ -87,6 +100,12 @@ class PreviewAudioService {
         // ignore cleanup errors
       }
       this.audio = null;
+    }
+  }
+
+  public clearError(): void {
+    if (this.snapshot.status === 'error' || this.snapshot.errorMessage) {
+      this.emit(INITIAL_SNAPSHOT);
     }
   }
 
@@ -109,18 +128,18 @@ class PreviewAudioService {
       typeof window === 'undefined' ||
       typeof Audio === 'undefined'
     ) {
-      this.emit({ activeKey: key, status: 'error' });
+      this.emit({ activeKey: key, status: 'error', errorMessage: AUDIO_LOAD_ERROR_MESSAGE });
       return;
     }
 
-    this.emit({ activeKey: key, status: 'loading' });
+    this.emit({ activeKey: key, status: 'loading', errorMessage: null });
 
     const playAt = (urlIndex: number) => {
       if (session !== this.sessionId) return;
       const targetUrl = cleanUrls[urlIndex];
       if (!targetUrl) {
         this.teardownAudio();
-        this.emit({ activeKey: key, status: 'error' });
+        this.emit({ activeKey: key, status: 'error', errorMessage: AUDIO_LOAD_ERROR_MESSAGE });
         return;
       }
 
@@ -139,12 +158,25 @@ class PreviewAudioService {
         if (failed || session !== this.sessionId) return;
         failed = true;
         this.clearLoadTimer();
+        this.clearStallTimer();
         if (urlIndex + 1 < cleanUrls.length) {
           playAt(urlIndex + 1);
           return;
         }
         this.teardownAudio();
-        this.emit({ activeKey: key, status: 'error' });
+        this.emit({ activeKey: key, status: 'error', errorMessage: AUDIO_LOAD_ERROR_MESSAGE });
+      };
+
+      const scheduleStallWatchdog = () => {
+        if (session !== this.sessionId) return;
+        this.clearStallTimer();
+        const timeAtStall = audio.currentTime;
+        this.stallTimer = window.setTimeout(() => {
+          if (session !== this.sessionId || audio.paused) return;
+          if (Math.abs(audio.currentTime - timeAtStall) < 0.05) {
+            onFail();
+          }
+        }, LOAD_TIMEOUT_MS);
       };
 
       this.loadTimer = window.setTimeout(() => {
@@ -153,23 +185,18 @@ class PreviewAudioService {
       }, LOAD_TIMEOUT_MS);
 
       audio.addEventListener(
-        'canplay',
-        () => {
-          if (session !== this.sessionId) return;
-          this.clearLoadTimer();
-        },
-        { signal },
-      );
-
-      audio.addEventListener(
         'playing',
         () => {
           if (session !== this.sessionId) return;
           this.clearLoadTimer();
-          this.emit({ activeKey: key, status: 'playing' });
+          this.clearStallTimer();
+          this.emit({ activeKey: key, status: 'playing', errorMessage: null });
         },
         { signal },
       );
+
+      audio.addEventListener('waiting', scheduleStallWatchdog, { signal });
+      audio.addEventListener('stalled', scheduleStallWatchdog, { signal });
 
       audio.addEventListener(
         'ended',

@@ -464,7 +464,7 @@ export const UserGuideModal: React.FC = () => {
   const matchesOfflineBackup = useMemo(() => {
     if (!isSearching) return false;
     return normalizeForSearch(
-      'çevrimdışı offline paket indir önbellek pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle',
+      'çevrimdışı offline paket indir önbellek pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle kaynaklar atıf telif bilgilendirme ticari değil',
     ).includes(normalizedQuery);
   }, [isSearching, normalizedQuery]);
 
@@ -888,6 +888,30 @@ export const UserGuideModal: React.FC = () => {
                     <span>Ayarlar &amp; Yedekleme Ekranını Aç</span>
                   </button>
                 </div>
+              </div>
+
+              {/* Veri Kaynakları ve Bilgilendirme */}
+              <div
+                className="rounded-2xl border p-4 space-y-2"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <FileText
+                    className="w-4 h-4 shrink-0"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  />
+                  <h3 className="text-sm font-extrabold">Veri Kaynakları ve Bilgilendirme</h3>
+                </div>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  Muallimun Kur&apos;an &amp; Meal; ticari bir amaç gütmeksizin eğitim, okuma,
+                  hafızlık ve ilmî araştırma amacıyla hazırlanmıştır. Uygulamada sunulan Mushaf
+                  metni, 27 meal ve tefsir kataloğu ile 28 okuyucuya ait sesli tilavet arşivi,
+                  ilgili müelliflere, kurumlara ve açık ilmî kaynaklara atıfla kullanıcıların
+                  istifadesine sunulmaktadır.
+                </p>
               </div>
             </section>
           )}

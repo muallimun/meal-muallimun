@@ -152,16 +152,13 @@ export const SurahNuzulTab: React.FC = () => {
   );
 
   const renderRangeChips = (s: SurahExtraInfo) => {
+    const trimmedNote = s.nuzulNote?.trim() ?? '';
     const hasMedeni = Boolean(s.medeniAyahs && s.medeniAyahs.length > 0);
-    const hasNote = Boolean(s.nuzulNote);
+    const hasNote = trimmedNote.length > 0;
     const hasNoteRanges = Boolean(s.nuzulNoteRanges && s.nuzulNoteRanges.length > 0);
 
     if (!hasMedeni && !hasNote) {
-      return (
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          —
-        </span>
-      );
+      return null;
     }
 
     return (
@@ -195,7 +192,7 @@ export const SurahNuzulTab: React.FC = () => {
 
         {hasNote && (
           <div className="flex flex-wrap items-center gap-1.5 text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
-            <span>{s.nuzulNote}</span>
+            <span>{trimmedNote}</span>
             {hasNoteRanges &&
               s.nuzulNoteRanges!.map((range, idx) => (
                 <button
@@ -571,7 +568,7 @@ export const SurahNuzulTab: React.FC = () => {
                     </span>
                   </div>
 
-                  {(s.medeniAyahs?.length || s.nuzulNote) && (
+                  {(Boolean(s.medeniAyahs?.length) || Boolean(s.nuzulNote?.trim())) && (
                     <div className="pt-0.5">{renderRangeChips(s)}</div>
                   )}
                 </article>

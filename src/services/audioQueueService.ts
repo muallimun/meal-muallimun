@@ -56,6 +56,7 @@ export interface AudioQueueSnapshot {
   isWordSyncActive: boolean;
   previewReciterId: string | null;
   previewStatus: PreviewAudioStatus;
+  previewErrorMessage: string | null;
 }
 
 export interface WordSyncSnapshot {
@@ -128,6 +129,8 @@ type Listener = () => void;
 
 const MAX_CONSECUTIVE_FAILURES = 3;
 const LOAD_TIMEOUT_MS = 12000;
+export const AUDIO_LOAD_ERROR_MESSAGE =
+  'Ses dosyasına ulaşılamadı. İnternet bağlantınızı kontrol edin veya farklı bir okuyucu seçin.';
 
 const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   status: 'idle',
@@ -157,6 +160,7 @@ const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   isWordSyncActive: false,
   previewReciterId: null,
   previewStatus: 'idle',
+  previewErrorMessage: null,
 };
 
 const INITIAL_WORD_SYNC_SNAPSHOT: WordSyncSnapshot = {
@@ -1223,7 +1227,6 @@ class AudioQueueService {
       'canplay',
       () => {
         if (session !== this.playSessionId) return;
-        this.clearLoadTimer();
         this.clearStallTimer();
       },
       { signal },
@@ -1296,13 +1299,20 @@ class AudioQueueService {
     if (session !== this.playSessionId) return;
     this.consecutiveFailures += 1;
 
-    if (this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+    const hasMoreStepsInVerse = this.currentStepIndex + 1 < this.steps.length;
+    const hasMoreVerses =
+      !this.singleAyahOnly &&
+      (this.currentVerseIndex + 1 < this.verses.length || this.atomicSegments.length > 0);
+
+    if (
+      this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES ||
+      (!hasMoreStepsInVerse && !hasMoreVerses)
+    ) {
       this.teardownAudioElement();
       this.setMediaPlaybackState('paused');
       this.emit({
-        status: 'paused',
-        errorMessage:
-          'Ses dosyalarına şu anda ulaşılamıyor. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+        status: 'error',
+        errorMessage: AUDIO_LOAD_ERROR_MESSAGE,
       });
       return;
     }
@@ -1312,6 +1322,14 @@ class AudioQueueService {
       if (session !== this.playSessionId) return;
       this.advanceToNextStep();
     }, 350);
+  }
+
+  public clearError(): void {
+    if (!this.snapshot.errorMessage && this.snapshot.status !== 'error') return;
+    this.emit({
+      errorMessage: null,
+      ...(this.snapshot.status === 'error' ? { status: 'paused' as const } : {}),
+    });
   }
 
   private advanceToNextStep(): void {
@@ -2069,10 +2087,15 @@ class AudioQueueService {
   public stopPreview(): void {
     this.previewSessionId += 1;
     this.teardownPreviewAudio();
-    if (this.snapshot.previewReciterId !== null || this.snapshot.previewStatus !== 'idle') {
+    if (
+      this.snapshot.previewReciterId !== null ||
+      this.snapshot.previewStatus !== 'idle' ||
+      this.snapshot.previewErrorMessage !== null
+    ) {
       this.emit({
         previewReciterId: null,
         previewStatus: 'idle',
+        previewErrorMessage: null,
       });
     }
   }
@@ -2098,13 +2121,18 @@ class AudioQueueService {
 
     const urls = this.buildAudioUrlsForSource(reciter, 1, 1);
     if (urls.length === 0 || typeof window === 'undefined' || typeof Audio === 'undefined') {
-      this.emit({ previewReciterId: reciter.id, previewStatus: 'error' });
+      this.emit({
+        previewReciterId: reciter.id,
+        previewStatus: 'error',
+        previewErrorMessage: AUDIO_LOAD_ERROR_MESSAGE,
+      });
       return;
     }
 
     this.emit({
       previewReciterId: reciter.id,
       previewStatus: 'loading',
+      previewErrorMessage: null,
     });
 
     const playAt = (urlIndex: number) => {
@@ -2112,7 +2140,11 @@ class AudioQueueService {
       const targetUrl = urls[urlIndex];
       if (!targetUrl) {
         this.teardownPreviewAudio();
-        this.emit({ previewReciterId: reciter.id, previewStatus: 'error' });
+        this.emit({
+          previewReciterId: reciter.id,
+          previewStatus: 'error',
+          previewErrorMessage: AUDIO_LOAD_ERROR_MESSAGE,
+        });
         return;
       }
 
@@ -2134,7 +2166,11 @@ class AudioQueueService {
           return;
         }
         this.teardownPreviewAudio();
-        this.emit({ previewReciterId: reciter.id, previewStatus: 'error' });
+        this.emit({
+          previewReciterId: reciter.id,
+          previewStatus: 'error',
+          previewErrorMessage: AUDIO_LOAD_ERROR_MESSAGE,
+        });
       };
 
       this.previewLoadTimer = window.setTimeout(() => {
@@ -2143,20 +2179,15 @@ class AudioQueueService {
       }, LOAD_TIMEOUT_MS);
 
       audio.addEventListener(
-        'canplay',
-        () => {
-          if (session !== this.previewSessionId) return;
-          this.clearPreviewLoadTimer();
-        },
-        { signal },
-      );
-
-      audio.addEventListener(
         'playing',
         () => {
           if (session !== this.previewSessionId) return;
           this.clearPreviewLoadTimer();
-          this.emit({ previewReciterId: reciter.id, previewStatus: 'playing' });
+          this.emit({
+            previewReciterId: reciter.id,
+            previewStatus: 'playing',
+            previewErrorMessage: null,
+          });
         },
         { signal },
       );
@@ -2166,7 +2197,11 @@ class AudioQueueService {
         () => {
           if (session !== this.previewSessionId) return;
           this.teardownPreviewAudio();
-          this.emit({ previewReciterId: null, previewStatus: 'idle' });
+          this.emit({
+            previewReciterId: null,
+            previewStatus: 'idle',
+            previewErrorMessage: null,
+          });
         },
         { signal },
       );

@@ -356,7 +356,8 @@ class MemorizationAudioController {
     if (!url) {
       this.emit({
         status: 'error',
-        errorMessage: 'Ses dosyası yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+        errorMessage:
+          'Ses dosyasına ulaşılamadı. İnternet bağlantınızı kontrol edin veya farklı bir okuyucu seçin.',
       });
       this.setMediaPlaybackState('paused');
       void this.releaseWakeLock();
@@ -415,7 +416,8 @@ class MemorizationAudioController {
       }
       this.emit({
         status: 'error',
-        errorMessage: 'Ses kaydına ulaşılamadı. Tekrar deneyebilir veya farklı bir kurrâ seçebilirsiniz.',
+        errorMessage:
+          'Ses dosyasına ulaşılamadı. İnternet bağlantınızı kontrol edin veya farklı bir okuyucu seçin.',
       });
       this.setMediaPlaybackState('paused');
       void this.releaseWakeLock();

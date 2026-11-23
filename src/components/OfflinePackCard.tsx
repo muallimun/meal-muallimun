@@ -457,18 +457,26 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
         </p>
       )}
 
-      {/* Ses Dosyaları Hakkında Şeffaf Not */}
-      <p
-        className="text-[11px] leading-relaxed flex items-start gap-1.5"
-        style={{ color: 'var(--text-muted)' }}
+      {/* Çevrimdışı Paket Kapsamı Bilgilendirmesi */}
+      <div
+        className="rounded-xl border px-3 py-2.5 text-[11.5px] leading-relaxed flex items-start gap-2"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-subtle)',
+          color: 'var(--text-secondary)',
+        }}
       >
-        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-        <span>
-          Not: Sesli tilavet (MP3) dosyaları yüksek boyutları nedeniyle bu pakete dahil edilmez;
-          yalnızca Arapça metinler, mealler, kelime kırılımı, tecvit, fihrist ve sınav soruları
-          çevrimdışı kaydedilir.
-        </span>
-      </p>
+        <Info
+          className="w-3.5 h-3.5 shrink-0 mt-0.5"
+          style={{ color: 'var(--brand-primary-text)' }}
+        />
+        <p>
+          <strong style={{ color: 'var(--text-primary)' }}>Bilgi:</strong> Çevrimdışı paket; Mushaf
+          sayfalarını, seçili mealleri, fihristi ve sınav metinlerini internetsiz kullanım için
+          cihazınıza kaydeder. Cihaz hafızasını aşırı doldurmamak amacıyla 28 okuyucuya ait sesli
+          tilavet kayıtları çevrimiçi (internet üzerinden) dinlenir.
+        </p>
+      </div>
     </div>
   );
 };

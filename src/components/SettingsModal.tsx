@@ -1107,6 +1107,20 @@ export const SettingsModal: React.FC = () => {
                       )}
                     </button>
                   </div>
+                  {audioState.previewReciterId === activeReciter.id &&
+                    audioState.previewStatus === 'error' &&
+                    audioState.previewErrorMessage && (
+                      <p
+                        role="alert"
+                        className="text-[11px] font-semibold leading-snug px-2.5 py-1.5 rounded-lg"
+                        style={{
+                          backgroundColor: 'var(--state-danger-bg)',
+                          color: 'var(--state-danger-text)',
+                        }}
+                      >
+                        {audioState.previewErrorMessage}
+                      </p>
+                    )}
                 </div>
               </section>
 
@@ -2019,6 +2033,38 @@ export const SettingsModal: React.FC = () => {
                   <MessageSquareHeart className="w-4 h-4 shrink-0" />
                   <span>Görüş / Hata Bildir</span>
                 </button>
+              </section>
+
+              {/* Veri Kaynakları ve Bilgilendirme */}
+              <section
+                className="p-3.5 sm:p-4 rounded-2xl border space-y-1.5"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Info
+                    className="w-4 h-4 shrink-0"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  />
+                  <h3
+                    className="text-xs sm:text-sm font-extrabold"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    Veri Kaynakları ve Bilgilendirme
+                  </h3>
+                </div>
+                <p
+                  className="text-[11.5px] leading-relaxed"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  Muallimun Kur&apos;an &amp; Meal; ticari bir amaç gütmeksizin eğitim, okuma,
+                  hafızlık ve ilmî araştırma amacıyla hazırlanmıştır. Uygulamada sunulan Mushaf
+                  metni, 27 meal ve tefsir kataloğu ile 28 okuyucuya ait sesli tilavet arşivi,
+                  ilgili müelliflere, kurumlara ve açık ilmî kaynaklara atıfla kullanıcıların
+                  istifadesine sunulmaktadır.
+                </p>
               </section>
 
               {/* Varsayılanlara Sıfırla */}

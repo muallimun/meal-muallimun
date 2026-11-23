@@ -172,42 +172,68 @@ export const RelatedVerseDrawer: React.FC<RelatedVerseDrawerProps> = ({
           ) : bundle ? (
             <>
               {/* Sure Genel Bilgisi kapsamlı sorularda sure özet bilgisi */}
-              {isSurahInfoBroad && (
-                <div
-                  className="p-3.5 rounded-xl border space-y-2 text-xs sm:text-sm leading-relaxed"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {hintOnly ? (
-                    <p>
-                      <strong>Bağlam İpucu:</strong> {bundle.surahMeta.nameTr} ({bundle.surahMeta.nameAr}),{' '}
-                      {bundle.surahMeta.type} dönem surelerindendir ve toplam {bundle.surahMeta.ayahCount} ayetten oluşur.
-                    </p>
-                  ) : (
-                    <>
-                      {bundle.surahMeta.hakkinda && (
-                        <div>
-                          <p className="text-[11px] font-bold mb-0.5" style={{ color: 'var(--brand-primary-text)' }}>
-                            Sure Hakkında
-                          </p>
-                          <p>{bundle.surahMeta.hakkinda}</p>
-                        </div>
+              {isSurahInfoBroad &&
+                (() => {
+                  const surahIntroBlocks = [
+                    {
+                      key: 'hakkinda',
+                      label: 'Sure Hakkında',
+                      color: 'var(--brand-primary-text)',
+                      text: bundle.surahMeta.hakkinda?.trim() ?? '',
+                    },
+                    {
+                      key: 'nuzul',
+                      label: 'Nüzul Sebebi',
+                      color: 'var(--brand-primary-text)',
+                      text: bundle.surahMeta.nuzul?.trim() ?? '',
+                    },
+                    {
+                      key: 'konusu',
+                      label: 'Konusu',
+                      color: 'var(--brand-accent-text)',
+                      text: bundle.surahMeta.konusu?.trim() ?? '',
+                    },
+                  ].filter((item) => item.text.length > 0);
+
+                  if (!hintOnly && surahIntroBlocks.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <div
+                      className="p-3.5 rounded-xl border space-y-2 text-xs sm:text-sm leading-relaxed"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      {hintOnly ? (
+                        <p>
+                          <strong>Bağlam İpucu:</strong> {bundle.surahMeta.nameTr} (
+                          {bundle.surahMeta.nameAr}), {bundle.surahMeta.type} dönem surelerindendir
+                          ve toplam {bundle.surahMeta.ayahCount} ayetten oluşur.
+                        </p>
+                      ) : (
+                        surahIntroBlocks.map((block, idx) => (
+                          <div
+                            key={block.key}
+                            className={idx > 0 ? 'pt-2 border-t' : undefined}
+                            style={idx > 0 ? { borderColor: 'var(--border-subtle)' } : undefined}
+                          >
+                            <p
+                              className="text-[11px] font-bold mb-0.5"
+                              style={{ color: block.color }}
+                            >
+                              {block.label}
+                            </p>
+                            <p>{block.text}</p>
+                          </div>
+                        ))
                       )}
-                      {bundle.surahMeta.konusu && (
-                        <div className="pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                          <p className="text-[11px] font-bold mb-0.5" style={{ color: 'var(--brand-accent-text)' }}>
-                            Konusu
-                          </p>
-                          <p>{bundle.surahMeta.konusu}</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
+                    </div>
+                  );
+                })()}
 
               {/* Ayetler (Arapça Mushaf Metni + Meal) */}
               {!isSurahInfoBroad && (

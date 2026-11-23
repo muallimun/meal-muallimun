@@ -182,10 +182,11 @@ export const VerseCard: React.FC<VerseCardProps> = ({
   const isMedeniExceptionAyah = Boolean(
     surahExtraInfo?.medeniAyahs?.some(([s, e]) => verse.ayah >= s && verse.ayah <= e),
   );
+  const trimmedNuzulNote = surahExtraInfo?.nuzulNote?.trim() ?? '';
   const matchingNuzulNote =
-    surahExtraInfo?.nuzulNote &&
-    surahExtraInfo.nuzulNoteRanges?.some(([s, e]) => verse.ayah >= s && verse.ayah <= e)
-      ? surahExtraInfo.nuzulNote
+    trimmedNuzulNote &&
+    surahExtraInfo?.nuzulNoteRanges?.some(([s, e]) => verse.ayah >= s && verse.ayah <= e)
+      ? trimmedNuzulNote
       : null;
 
   const showWordGrid =

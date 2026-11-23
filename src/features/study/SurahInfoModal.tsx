@@ -157,14 +157,16 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({
               borderColor: 'var(--border-subtle)',
             }}
           >
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <span className="font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
-                Sure Künyesi:
-              </span>
-              <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {extraInfo.meaningTr}
-              </span>
-            </div>
+            {extraInfo.meaningTr?.trim() && (
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                  Sure Künyesi:
+                </span>
+                <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {extraInfo.meaningTr.trim()}
+                </span>
+              </div>
+            )}
 
             <div
               className="flex flex-wrap items-center gap-x-2 gap-y-0.5 tabular-nums"
@@ -201,12 +203,12 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({
               </div>
             )}
 
-            {extraInfo.nuzulNote && (
+            {extraInfo.nuzulNote?.trim() && (
               <p className="leading-relaxed pt-0.5" style={{ color: 'var(--text-secondary)' }}>
                 <span className="font-bold" style={{ color: 'var(--text-muted)' }}>
                   Nüzul Notu:{' '}
                 </span>
-                {extraInfo.nuzulNote}
+                {extraInfo.nuzulNote.trim()}
               </p>
             )}
           </div>
@@ -246,27 +248,29 @@ export const SurahInfoModal: React.FC<SurahInfoModalProps> = ({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto p-5">
-          {activeSection ? (
-            <p
-              className="turkish-reading text-sm sm:text-base whitespace-pre-line"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {activeSection.content}
-            </p>
-          ) : (
-            <div
-              className="p-6 rounded-xl text-center text-sm flex flex-col items-center gap-2"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <BookOpen className="w-5 h-5" />
-              <span>Bu sure için ayrıntılı tanıtım metni bulunmuyor.</span>
-            </div>
-          )}
-        </div>
+        {(activeSection || !extraInfo) && (
+          <div className="flex-1 overflow-y-auto p-5">
+            {activeSection ? (
+              <p
+                className="turkish-reading text-sm sm:text-base whitespace-pre-line"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {activeSection.content}
+              </p>
+            ) : (
+              <div
+                className="p-6 rounded-xl text-center text-sm flex flex-col items-center gap-2"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <BookOpen className="w-5 h-5" />
+                <span>Bu sure için ayrıntılı tanıtım metni bulunmuyor.</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {onReadSurah && (
           <div

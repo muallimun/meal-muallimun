@@ -305,7 +305,10 @@ export function searchSurahsInstant(
   const hits: SurahSearchHit[] = [];
 
   for (const s of meta.surahs) {
-    const meaningTr = surahExtrasMap?.get(s.no)?.meaningTr;
+    const meaningTr = surahExtrasMap?.get(s.no)?.meaningTr?.trim() || undefined;
+    const topicText = s.konusu?.trim() ?? '';
+    const aboutText = s.hakkinda?.trim() ?? '';
+    const defaultSnippet = topicText || aboutText || `${s.type} · ${s.ayahCount} ayet`;
 
     if (arabicQ) {
       if (matchesNormalizedText(normalizeArabic(s.nameAr), normQ, true, includeSubstring)) {
@@ -313,7 +316,7 @@ export function searchSurahsInstant(
           surah: s,
           meaningTr,
           matchedField: 'name',
-          snippet: s.konusu || s.hakkinda || `${s.type} · ${s.ayahCount} ayet`,
+          snippet: defaultSnippet,
         });
       }
       continue;
@@ -329,7 +332,7 @@ export function searchSurahsInstant(
         surah: s,
         meaningTr,
         matchedField: 'name',
-        snippet: s.konusu || s.hakkinda || `${s.type} · ${s.ayahCount} ayet`,
+        snippet: defaultSnippet,
       });
       continue;
     }
@@ -343,14 +346,12 @@ export function searchSurahsInstant(
           surah: s,
           meaningTr,
           matchedField: 'meaning',
-          snippet: `Anlamı: ${meaningTr}${s.konusu ? ` · ${s.konusu}` : ''}`,
+          snippet: `Anlamı: ${meaningTr}${topicText ? ` · ${topicText}` : ''}`,
         });
         continue;
       }
 
-      const topicText = s.konusu || '';
-      const aboutText = s.hakkinda || '';
-      if (matchesNormalizedText(normalizeTurkish(topicText), normQ, false, includeSubstring)) {
+      if (topicText && matchesNormalizedText(normalizeTurkish(topicText), normQ, false, includeSubstring)) {
         hits.push({
           surah: s,
           meaningTr,
@@ -358,6 +359,7 @@ export function searchSurahsInstant(
           snippet: topicText,
         });
       } else if (
+        aboutText &&
         matchesNormalizedText(normalizeTurkish(aboutText), normQ, false, includeSubstring)
       ) {
         hits.push({

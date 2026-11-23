@@ -705,6 +705,33 @@ export const ReciterSelectorModal: React.FC = () => {
           )}
         </div>
 
+        {/* Önizleme Ses Hatası Bildirimi */}
+        {audioState.previewStatus === 'error' && audioState.previewErrorMessage && (
+          <div
+            role="alert"
+            className="px-4 sm:px-5 py-2 border-t flex items-center justify-between gap-2 text-xs shrink-0"
+            style={{
+              backgroundColor: 'var(--state-danger-bg)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--state-danger-text)',
+            }}
+          >
+            <span className="flex items-center gap-1.5 font-semibold leading-snug">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{audioState.previewErrorMessage}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => audioQueueService.stopPreview()}
+              aria-label="Hata uyarısını kapat"
+              className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 cursor-pointer opacity-75 hover:opacity-100"
+              style={{ color: 'var(--state-danger-text)' }}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Alt Bilgilendirme & Kapat */}
         <div
           className="px-4 sm:px-5 py-2.5 border-t flex items-center justify-between gap-3 shrink-0"

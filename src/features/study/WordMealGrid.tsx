@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
-import { Eye, EyeOff, Loader2, Volume2 } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2, Volume2 } from 'lucide-react';
 import { sfxService } from '../../services/sfxService';
 import { buildWordAudioKey, wordAudioService } from '../../services/wordAudioService';
 import type { WordMealMode, WordPair } from '../../types/quran';
@@ -122,6 +122,24 @@ export const WordMealGrid: React.FC<WordMealGridProps> = ({
           </p>
         )
       )}
+
+      {canPlayWordAudio &&
+        wordAudioState.status === 'error' &&
+        wordAudioState.errorMessage &&
+        wordAudioState.playingKey?.startsWith(`${surah}:${ayah}:`) && (
+          <p
+            role="alert"
+            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border flex items-start gap-1.5 leading-snug"
+            style={{
+              backgroundColor: 'var(--state-danger-bg)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--state-danger-text)',
+            }}
+          >
+            <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>{wordAudioState.errorMessage}</span>
+          </p>
+        )}
 
       <div className="flex flex-wrap gap-2" dir="rtl">
         {words.map(([arWord, trMeaning], idx) => {

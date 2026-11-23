@@ -1,12 +1,13 @@
 import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
-import { audioQueueService } from './audioQueueService';
+import { AUDIO_LOAD_ERROR_MESSAGE, audioQueueService } from './audioQueueService';
 import { mapDisplayWordIndexToQul } from '../utils/wordSyncUtils';
 
-export type WordAudioStatus = 'idle' | 'loading' | 'playing';
+export type WordAudioStatus = 'idle' | 'loading' | 'playing' | 'error';
 
 export interface WordAudioSnapshot {
   playingKey: string | null;
   status: WordAudioStatus;
+  errorMessage: string | null;
 }
 
 type Listener = () => void;
@@ -14,10 +15,12 @@ type Listener = () => void;
 const DEFAULT_WBW_PRIMARY = 'https://audio.qurancdn.com/wbw/{SSS}_{AAA}_{WWW}.mp3';
 const DEFAULT_WBW_FALLBACK = 'https://verses.quran.com/wbw/{SSS}_{AAA}_{WWW}.mp3';
 const WORD_LOAD_TIMEOUT_MS = 10_000;
+const ERROR_AUTO_CLEAR_MS = 6_500;
 
 const INITIAL_SNAPSHOT: WordAudioSnapshot = {
   playingKey: null,
   status: 'idle',
+  errorMessage: null,
 };
 
 function pad3(n: number): string {
@@ -49,6 +52,7 @@ class WordAudioService {
   private audio: HTMLAudioElement | null = null;
   private abortController: AbortController | null = null;
   private loadTimer: number | null = null;
+  private errorClearTimer: number | null = null;
   private sessionId = 0;
 
   public subscribe = (listener: Listener): (() => void) => {
@@ -63,7 +67,8 @@ class WordAudioService {
   private emit(next: WordAudioSnapshot): void {
     if (
       this.snapshot.playingKey === next.playingKey &&
-      this.snapshot.status === next.status
+      this.snapshot.status === next.status &&
+      this.snapshot.errorMessage === next.errorMessage
     ) {
       return;
     }
@@ -77,6 +82,29 @@ class WordAudioService {
     if (this.loadTimer !== null && typeof window !== 'undefined') {
       window.clearTimeout(this.loadTimer);
       this.loadTimer = null;
+    }
+  }
+
+  private clearErrorTimer(): void {
+    if (this.errorClearTimer !== null && typeof window !== 'undefined') {
+      window.clearTimeout(this.errorClearTimer);
+      this.errorClearTimer = null;
+    }
+  }
+
+  private emitError(key: string, session: number): void {
+    this.clearErrorTimer();
+    this.emit({
+      playingKey: key,
+      status: 'error',
+      errorMessage: AUDIO_LOAD_ERROR_MESSAGE,
+    });
+    if (typeof window !== 'undefined') {
+      this.errorClearTimer = window.setTimeout(() => {
+        if (session === this.sessionId && this.snapshot.status === 'error') {
+          this.emit(INITIAL_SNAPSHOT);
+        }
+      }, ERROR_AUTO_CLEAR_MS);
     }
   }
 
@@ -97,8 +125,16 @@ class WordAudioService {
     }
   }
 
+  public clearError(): void {
+    this.clearErrorTimer();
+    if (this.snapshot.status === 'error' || this.snapshot.errorMessage) {
+      this.emit(INITIAL_SNAPSHOT);
+    }
+  }
+
   public stop(): void {
     this.sessionId += 1;
+    this.clearErrorTimer();
     this.teardownAudio();
     this.emit(INITIAL_SNAPSHOT);
   }
@@ -122,9 +158,10 @@ class WordAudioService {
     const key = buildWordAudioKey(surah, ayah, wordIndex1Based);
     this.sessionId += 1;
     const session = this.sessionId;
+    this.clearErrorTimer();
     this.teardownAudio();
 
-    this.emit({ playingKey: key, status: 'loading' });
+    this.emit({ playingKey: key, status: 'loading', errorMessage: null });
 
     const startWithMeta = (
       primaryTemplate: string,
@@ -149,7 +186,7 @@ class WordAudioService {
         const targetUrl = urls[urlIndex];
         if (!targetUrl) {
           this.teardownAudio();
-          this.emit(INITIAL_SNAPSHOT);
+          this.emitError(key, session);
           return;
         }
 
@@ -170,12 +207,14 @@ class WordAudioService {
           if (failed || session !== this.sessionId) return;
           failed = true;
           this.clearLoadTimer();
+          // Birincil kaynak başarısız olursa hata göstermeden alternatif kaynağa geç
           if (urlIndex + 1 < urls.length) {
             playAttempt(urlIndex + 1);
             return;
           }
+          // Yalnızca tüm kaynaklar başarısız olduğunda kullanıcıya hata bildir
           this.teardownAudio();
-          this.emit(INITIAL_SNAPSHOT);
+          this.emitError(key, session);
         };
 
         this.loadTimer = window.setTimeout(() => {
@@ -184,20 +223,11 @@ class WordAudioService {
         }, WORD_LOAD_TIMEOUT_MS);
 
         audio.addEventListener(
-          'canplay',
-          () => {
-            if (session !== this.sessionId) return;
-            this.clearLoadTimer();
-          },
-          { signal },
-        );
-
-        audio.addEventListener(
           'playing',
           () => {
             if (session !== this.sessionId) return;
             this.clearLoadTimer();
-            this.emit({ playingKey: key, status: 'playing' });
+            this.emit({ playingKey: key, status: 'playing', errorMessage: null });
           },
           { signal },
         );
@@ -241,13 +271,16 @@ class WordAudioService {
     }
 
     // Meta henüz bellekte değilse hızlıca yükle; hata olursa varsayılan şablonlarla devam et
-    void audioQueueService.ensureSegMetaLoaded().then((loadedMeta) => {
-      startWithMeta(
-        loadedMeta?.wbwAudioTemplate || DEFAULT_WBW_PRIMARY,
-        loadedMeta?.wbwFallbackTemplate || DEFAULT_WBW_FALLBACK,
-        loadedMeta?.wordCounts?.[surah - 1]?.[ayah - 1] ?? null,
-      );
-    });
+    void audioQueueService
+      .ensureSegMetaLoaded()
+      .catch(() => null)
+      .then((loadedMeta) => {
+        startWithMeta(
+          loadedMeta?.wbwAudioTemplate || DEFAULT_WBW_PRIMARY,
+          loadedMeta?.wbwFallbackTemplate || DEFAULT_WBW_FALLBACK,
+          loadedMeta?.wordCounts?.[surah - 1]?.[ayah - 1] ?? null,
+        );
+      });
   }
 }
 

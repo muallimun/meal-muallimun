@@ -147,12 +147,12 @@ export const AudioPlayerBar: React.FC = () => {
     }
   }, [audioState.isVisible, audioState.status, setIsExpanded, setIsMinimized]);
 
-  // Sesli meal uyarısı çıkarsa mini moddan çık
+  // Sesli meal uyarısı veya ses yükleme hatası çıkarsa mini moddan çık
   useEffect(() => {
-    if (audioState.missingMealAudio && isMinimized) {
+    if ((audioState.missingMealAudio || Boolean(audioState.errorMessage)) && isMinimized) {
       setIsMinimized(false);
     }
-  }, [audioState.missingMealAudio, isMinimized, setIsMinimized]);
+  }, [audioState.missingMealAudio, audioState.errorMessage, isMinimized, setIsMinimized]);
 
   // Sure veya ayet değişince varsayılan aralık uçlarını güncel tut
   useEffect(() => {
@@ -1106,6 +1106,35 @@ export const AudioPlayerBar: React.FC = () => {
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Ses Yükleme Hata Şeridi (Mobil ve Masaüstünde Kesilmeden Okunabilir) */}
+            {audioState.errorMessage && !audioState.missingMealAudio && (
+              <div
+                role="alert"
+                className={`px-3 py-2 border-b flex items-start justify-between gap-2 text-[11.5px] leading-snug ${
+                  showDetailsPanel ? '' : 'rounded-t-2xl'
+                }`}
+                style={{
+                  backgroundColor: 'var(--state-danger-bg)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--state-danger-text)',
+                }}
+              >
+                <div className="flex items-start gap-1.5 min-w-0">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span className="font-semibold">{audioState.errorMessage}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => audioQueueService.clearError()}
+                  aria-label="Hata uyarısını kapat"
+                  className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 cursor-pointer opacity-75 hover:opacity-100"
+                  style={{ color: 'var(--state-danger-text)' }}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
 
