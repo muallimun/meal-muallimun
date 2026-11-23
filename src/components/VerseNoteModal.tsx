@@ -181,7 +181,7 @@ export const VerseNoteModal: React.FC = () => {
     >
       <form
         onSubmit={handleSave}
-        className="w-full sm:max-w-xl max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-xl md:max-w-2xl max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',

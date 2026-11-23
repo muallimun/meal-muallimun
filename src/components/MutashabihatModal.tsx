@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeftRight,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Loader2,
   Play,
@@ -12,7 +14,7 @@ import { getMealTextPresentation } from '../config/mealsConfig';
 import { useActiveMeals } from '../hooks/useActiveMeals';
 import { useMutashabihatData } from '../hooks/useStudyReferenceData';
 import { audioQueueService } from '../services/audioQueueService';
-import { dataService } from '../services/dataService';
+import { dataService, toArabicIndicDigits } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { MutashabihatEntryTuple, MutashabihatWordRange } from '../types/fihrist';
@@ -22,8 +24,24 @@ import { tokenizeArabicWithWaqf } from '../utils/wordSyncUtils';
 interface HighlightedArabicProps {
   text: string;
   ranges: readonly MutashabihatWordRange[];
+  ayahNo?: number;
   isFocused?: boolean;
   fontSize?: number;
+}
+
+function extractArabicRangePhrase(
+  text: string | undefined,
+  range: MutashabihatWordRange | undefined,
+): string {
+  if (!text || !Array.isArray(range) || range.length < 2) return '';
+  const tokens = tokenizeArabicWithWaqf(text);
+  if (tokens.length === 0) return '';
+  const start = Math.max(1, Math.min(tokens.length, Math.min(range[0], range[1])));
+  const end = Math.max(1, Math.min(tokens.length, Math.max(range[0], range[1])));
+  return tokens
+    .slice(start - 1, end)
+    .join(' ')
+    .trim();
 }
 
 /**
@@ -33,6 +51,7 @@ interface HighlightedArabicProps {
 const HighlightedArabic: React.FC<HighlightedArabicProps> = ({
   text,
   ranges,
+  ayahNo,
   isFocused = false,
   fontSize = 24,
 }) => {
@@ -58,11 +77,14 @@ const HighlightedArabic: React.FC<HighlightedArabicProps> = ({
     ? '0 0 0 2px rgba(13, 148, 136, 0.16)'
     : '0 0 0 2px rgba(217, 119, 6, 0.12)';
 
+  const showRosette =
+    ayahNo !== undefined && !/[\u0660-\u0669\u06DD﴿﴾]\s*$/.test(text);
+
   return (
     <p
       dir="rtl"
       lang="ar"
-      className="font-arabic leading-[2.05] text-right break-words"
+      className="arabic-text leading-[2.05] text-right break-words"
       style={{
         fontSize: `${fontSize}px`,
         color: 'var(--text-primary)',
@@ -87,6 +109,14 @@ const HighlightedArabic: React.FC<HighlightedArabicProps> = ({
           </React.Fragment>
         );
       })}
+      {showRosette && (
+        <span
+          className="inline-block mr-1.5 font-normal select-none"
+          style={{ color: 'var(--brand-primary-text)', fontSize: '0.88em' }}
+        >
+          ﴿{toArabicIndicDigits(ayahNo)}﴾
+        </span>
+      )}
     </p>
   );
 };
@@ -113,6 +143,7 @@ export const MutashabihatModal: React.FC = () => {
   const [bundlesBySurah, setBundlesBySurah] = useState<Map<number, SurahBundle>>(() => new Map());
   const [isLoadingVerses, setIsLoadingVerses] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [showSourceMeal, setShowSourceMeal] = useState(true);
 
   const neededSurahs = useMemo(() => {
     if (!mutashabihatTarget) return [];
@@ -239,7 +270,7 @@ export const MutashabihatModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full sm:max-w-2xl max-h-[90dvh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full md:max-w-3xl lg:max-w-4xl max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
@@ -247,12 +278,12 @@ export const MutashabihatModal: React.FC = () => {
       >
         {/* Başlık */}
         <div
-          className="px-4 sm:px-5 py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-accent-soft)',
                 color: 'var(--brand-accent-text)',
@@ -277,7 +308,7 @@ export const MutashabihatModal: React.FC = () => {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+              <p className="hidden sm:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                 {sourceSurahMeta?.nameTr ?? `${mutashabihatTarget.surah}. Sure`} ·{' '}
                 {mutashabihatTarget.ayah}. Ayet — Lafız benzerliği karşılaştırması
               </p>
@@ -295,41 +326,68 @@ export const MutashabihatModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Sabitlenen Kaynak Ayet Kartı */}
+        {/* Sabitlenen & Daraltılabilir Kaynak Ayet Kartı */}
         <div
-          className="px-4 sm:px-5 py-3 border-b shrink-0"
+          className="px-4 sm:px-5 py-2.5 sm:py-3 border-b shrink-0"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
             <span
-              className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider"
+              className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider min-w-0"
               style={{ color: 'var(--brand-primary-text)' }}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate tabular-nums">
                 Kaynak Ayet · {sourceSurahMeta?.nameTr ?? `${mutashabihatTarget.surah}. Sure`}{' '}
                 {mutashabihatTarget.surah}:{mutashabihatTarget.ayah}
+                {sourceVerse ? ` · ${sourceVerse.cuz}. Cüz · Sayfa ${sourceVerse.page}` : ''}
               </span>
             </span>
 
-            {sourceVerse && (
-              <button
-                type="button"
-                onClick={() => handlePlaySingleVerse(sourceVerse)}
-                className="h-7 px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--brand-primary-text)',
-                }}
-              >
-                <Volume2 className="w-3.5 h-3.5" />
-                <span>Dinle</span>
-              </button>
-            )}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {sourcePrimaryMeal?.t && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setShowSourceMeal((v) => !v);
+                  }}
+                  aria-expanded={showSourceMeal}
+                  className="h-7 px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  <span>{showSourceMeal ? 'Meali Gizle' : 'Meali Göster'}</span>
+                  {showSourceMeal ? (
+                    <ChevronUp className="w-3.5 h-3.5 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+                  )}
+                </button>
+              )}
+
+              {sourceVerse && (
+                <button
+                  type="button"
+                  onClick={() => handlePlaySingleVerse(sourceVerse)}
+                  className="h-7 px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>Dinle</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {sourceVerse ? (
@@ -337,10 +395,11 @@ export const MutashabihatModal: React.FC = () => {
               <HighlightedArabic
                 text={sourceVerse.ar.t}
                 ranges={activeSourceRanges}
+                ayahNo={sourceVerse.ayah}
                 isFocused={focusedIndex !== null}
                 fontSize={clampedArabicSize}
               />
-              {sourcePrimaryMeal?.t && (
+              {showSourceMeal && sourcePrimaryMeal?.t && (
                 <p
                   dir={primaryPres.dir}
                   lang={primaryPres.lang}
@@ -423,10 +482,10 @@ export const MutashabihatModal: React.FC = () => {
                       </span>
                       {targetVerse && (
                         <span
-                          className="text-[11px] font-semibold tabular-nums"
+                          className="text-[11px] font-semibold tabular-nums whitespace-nowrap"
                           style={{ color: 'var(--text-muted)' }}
                         >
-                          (Syf {targetVerse.page})
+                          · {targetVerse.cuz}. Cüz · Sayfa {targetVerse.page}
                         </span>
                       )}
                     </div>
@@ -459,12 +518,13 @@ export const MutashabihatModal: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Arapça Metin (Hedef Kelime Aralığı Vurgulu) */}
+                  {/* Arapça Metin (Hedef Kelime Aralığı Vurgulu + Otantik Ayet Durağı) */}
                   {targetVerse ? (
                     <>
                       <HighlightedArabic
                         text={targetVerse.ar.t}
                         ranges={targetRange ? [targetRange] : []}
+                        ayahNo={targetVerse.ayah}
                         isFocused={isCardFocused}
                         fontSize={clampedArabicSize}
                       />
@@ -516,14 +576,69 @@ export const MutashabihatModal: React.FC = () => {
                         </p>
                       )}
 
-                      {srcRange && targetRange && (
-                        <div className="mt-2 flex items-center justify-between text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                          <span>
-                            Benzerlik: Kaynak {srcRange[0]}–{srcRange[1]}. kelime ↔ Hedef{' '}
-                            {targetRange[0]}–{targetRange[1]}. kelime
-                          </span>
-                        </div>
-                      )}
+                      {/* Pedagojik Arapça Lafız Karşılaştırma Şeridi */}
+                      {(() => {
+                        const sourcePhrase = extractArabicRangePhrase(sourceVerse?.ar.t, srcRange);
+                        const targetPhrase = extractArabicRangePhrase(targetVerse.ar.t, targetRange);
+                        if (sourcePhrase && targetPhrase) {
+                          return (
+                            <div
+                              className="mt-2.5 pt-2 border-t flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]"
+                              style={{
+                                borderColor: 'var(--border-subtle)',
+                                color: 'var(--text-muted)',
+                              }}
+                            >
+                              <span
+                                className="font-bold shrink-0"
+                                style={{ color: 'var(--text-secondary)' }}
+                              >
+                                Benzer Lafız:
+                              </span>
+                              <span
+                                dir="rtl"
+                                lang="ar"
+                                className="arabic-text text-sm sm:text-[15px] leading-snug px-2 py-0.5 rounded-lg"
+                                style={{
+                                  backgroundColor: 'rgba(217, 119, 6, 0.14)',
+                                  color: 'var(--text-primary)',
+                                }}
+                              >
+                                {sourcePhrase}
+                              </span>
+                              <span
+                                className="font-extrabold select-none"
+                                style={{ color: 'var(--brand-primary-text)' }}
+                                aria-hidden="true"
+                              >
+                                ⇄
+                              </span>
+                              <span
+                                dir="rtl"
+                                lang="ar"
+                                className="arabic-text text-sm sm:text-[15px] leading-snug px-2 py-0.5 rounded-lg"
+                                style={{
+                                  backgroundColor: 'rgba(13, 148, 136, 0.14)',
+                                  color: 'var(--text-primary)',
+                                }}
+                              >
+                                {targetPhrase}
+                              </span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div
+                            className="mt-2.5 pt-2 border-t text-[11px] font-semibold"
+                            style={{
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            Lafız ve ibare benzerliği
+                          </div>
+                        );
+                      })()}
                     </>
                   ) : (
                     <div className="py-3 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>

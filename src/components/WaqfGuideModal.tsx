@@ -29,7 +29,7 @@ export const WaqfGuideModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full sm:max-w-xl max-h-[88dvh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full md:max-w-2xl lg:max-w-3xl max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
@@ -37,12 +37,12 @@ export const WaqfGuideModal: React.FC = () => {
       >
         {/* Başlık */}
         <div
-          className="px-4 sm:px-5 py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
@@ -54,7 +54,7 @@ export const WaqfGuideModal: React.FC = () => {
               <h2 className="text-sm sm:text-base font-extrabold truncate">
                 Secâvend Vakıf (Durak) Rehberi
               </h2>
-              <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+              <p className="hidden sm:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                 Kur&apos;an tilavetinde durma ve geçme işaretlerinin anlamları
               </p>
             </div>
@@ -95,8 +95,8 @@ export const WaqfGuideModal: React.FC = () => {
           </span>
         </div>
 
-        {/* 8 Secâvend Kartı */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] space-y-2.5">
+        {/* 8 Secâvend Kartı — Masaüstünde 2 sütunlu ferah ızgara */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] grid grid-cols-1 md:grid-cols-2 gap-3 content-start">
           {waqfSigns.map((item) => (
             <div
               key={item.code}

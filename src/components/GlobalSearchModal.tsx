@@ -973,8 +973,8 @@ export const GlobalSearchModal: React.FC = () => {
             </button>
           </div>
 
-          {/* Tek Satırlık Kaydırılabilir Kapsam & Ek/Kök Filtre Şeridi */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          {/* Kaydırılabilir (Mobil) / Sarılabilir (Masaüstü) Kapsam & Ek/Kök Filtre Şeridi */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pr-4 py-0.5 md:pr-0 md:flex-wrap md:overflow-visible">
             {(
               [
                 { id: 'all', label: "Tüm Kur'an (114)" },
@@ -1312,7 +1312,7 @@ export const GlobalSearchModal: React.FC = () => {
             )}
 
             {/* 5 Sonuç Sekmesi */}
-            <div className="px-3 sm:px-4 py-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <div className="px-3 sm:px-4 py-1.5 pr-6 flex items-center gap-1 overflow-x-auto no-scrollbar md:pr-4 md:flex-wrap md:overflow-visible">
               {tabs.map((t) => {
                 const active = activeTab === t.id;
                 return (

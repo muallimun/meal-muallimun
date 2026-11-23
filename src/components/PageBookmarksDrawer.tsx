@@ -173,7 +173,7 @@ export const PageBookmarksDrawer: React.FC = () => {
       }}
     >
       <aside
-        className="w-full max-w-md h-full flex flex-col border-l shadow-2xl"
+        className="w-full md:max-w-2xl lg:max-w-3xl h-full flex flex-col border-l shadow-2xl"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
@@ -181,12 +181,12 @@ export const PageBookmarksDrawer: React.FC = () => {
       >
         {/* Başlık */}
         <div
-          className="px-5 py-4 border-b flex items-center justify-between gap-3 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-4 border-b flex items-center justify-between gap-3 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
@@ -195,10 +195,10 @@ export const PageBookmarksDrawer: React.FC = () => {
               <Bookmark className="w-4 h-4 fill-current" />
             </div>
             <div className="min-w-0">
-              <h2 id="bookmarks-drawer-title" className="text-base font-extrabold tracking-tight">
+              <h2 id="bookmarks-drawer-title" className="text-sm sm:text-base font-extrabold tracking-tight">
                 Sayfa Ayraçlarım
               </h2>
-              <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+              <p className="hidden sm:block text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
                 {sortedBookmarks.length > 0
                   ? `${sortedBookmarks.length} kayıtlı ayraç · Tek tıkla Mushaf sayfasına gidin`
                   : 'Mushaf sayfalarına ayraç koyarak kaldığınız yeri işaretleyin'}
@@ -210,7 +210,7 @@ export const PageBookmarksDrawer: React.FC = () => {
             type="button"
             onClick={closeBookmarksDrawer}
             aria-label="Ayraçlar çekmecesini kapat"
-            className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)] shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)] shrink-0"
             style={{ color: 'var(--text-secondary)' }}
           >
             <X className="w-5 h-5" />
@@ -220,7 +220,7 @@ export const PageBookmarksDrawer: React.FC = () => {
         {/* Hızlı Kısayol: Son Okunan Sayfayı İşaretle */}
         {studyProgress.lastRead && (
           <div
-            className="px-5 py-3 border-b flex flex-wrap items-center justify-between gap-2 shrink-0"
+            className="px-4 py-2.5 sm:px-5 sm:py-3 border-b flex flex-wrap items-center justify-between gap-2 shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
@@ -374,7 +374,8 @@ export const PageBookmarksDrawer: React.FC = () => {
               </button>
             </div>
           ) : (
-            sortedBookmarks.map((bm) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start">
+              {sortedBookmarks.map((bm) => {
               const palette = BOOKMARK_COLOR_STYLES[bm.color] ?? BOOKMARK_COLOR_STYLES.amber;
               const sMeta = surahMap.get(bm.surah);
               const isEditing = editingId === bm.id;
@@ -518,7 +519,8 @@ export const PageBookmarksDrawer: React.FC = () => {
                   )}
                 </div>
               );
-            })
+              })}
+            </div>
           )}
         </div>
       </aside>

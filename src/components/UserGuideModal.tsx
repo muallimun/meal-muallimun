@@ -479,7 +479,7 @@ export const UserGuideModal: React.FC = () => {
 
   return (
     <div
-      className={`fixed inset-0 ${Z_LAYERS.MODAL} flex items-center justify-center p-2 sm:p-4 bg-black/55 backdrop-blur-[2px]`}
+      className={`fixed inset-0 ${Z_LAYERS.MODAL} flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-[2px]`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="user-guide-modal-title"
@@ -491,7 +491,7 @@ export const UserGuideModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full max-w-3xl max-h-[92dvh] rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full md:max-w-3xl lg:max-w-4xl max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -500,30 +500,30 @@ export const UserGuideModal: React.FC = () => {
       >
         {/* Başlık */}
         <div
-          className="px-4 py-3.5 sm:px-5 sm:py-4 border-b flex items-center justify-between gap-3 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2.5 shrink-0"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
               }}
             >
-              <HelpCircle className="w-5 h-5" />
+              <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <h2
                 id="user-guide-modal-title"
-                className="text-base sm:text-lg font-extrabold tracking-tight truncate"
+                className="text-sm sm:text-lg font-extrabold tracking-tight truncate"
               >
                 Muallimun Kullanım Kılavuzu
               </h2>
-              <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+              <p className="hidden sm:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                 Okuma, ezber, araştırma, sınav, yedekleme ve çevrimdışı kullanım rehberi
               </p>
             </div>

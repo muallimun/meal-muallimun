@@ -11,7 +11,6 @@ import {
   X,
 } from 'lucide-react';
 import {
-  MEAL_CATEGORIES,
   findMealById,
   getAllMeals,
   getMealLangBadge,
@@ -136,7 +135,6 @@ export const MealSelectorModal: React.FC = () => {
   if (!isMealSelectorOpen) return null;
 
   const selectedIdForSlot = activeSlot === 'primary' ? primaryMeal.id : secondaryMeal.id;
-  const otherSlotId = activeSlot === 'primary' ? secondaryMeal.id : primaryMeal.id;
 
   const handleSelectMeal = (meal: MealDefinition) => {
     if (activeSlot === 'primary') {
@@ -179,7 +177,7 @@ export const MealSelectorModal: React.FC = () => {
       onClick={closeMealSelector}
     >
       <div
-        className="w-full sm:max-w-2xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full md:max-w-3xl lg:max-w-4xl max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -232,15 +230,16 @@ export const MealSelectorModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Tek / Çift Meal ve Slot Seçimi */}
+        {/* Tek / Çift Meal + Arama Satırı ve Kategori Filtreleri */}
         <div
-          className="px-4 sm:px-5 py-3 border-b space-y-2.5 shrink-0"
+          className="px-4 sm:px-5 py-2.5 sm:py-3 border-b space-y-2.5 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Masaüstünde Tek/Çift Meal Anahtarı + Arama Kutusu Aynı Yatay Satırda */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
             {/* Tek / Çift Meal Anahtarı */}
             <div
-              className="inline-flex items-center p-0.5 rounded-xl border"
+              className="inline-flex items-center p-0.5 rounded-xl border shrink-0 self-start sm:self-auto"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -252,14 +251,14 @@ export const MealSelectorModal: React.FC = () => {
                   setMealDisplayMode('single');
                   setActiveSlot('primary');
                 }}
-                className="min-h-[36px] px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="min-h-[36px] px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                 style={{
                   backgroundColor: !isDual ? 'var(--bg-surface)' : 'transparent',
                   color: !isDual ? 'var(--brand-primary-text)' : 'var(--text-muted)',
                   boxShadow: !isDual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                 }}
               >
-                <BookOpen className="w-3.5 h-3.5" />
+                <BookOpen className="w-3.5 h-3.5 shrink-0" />
                 <span>Tek Meal</span>
               </button>
               <button
@@ -267,23 +266,49 @@ export const MealSelectorModal: React.FC = () => {
                 onClick={() => {
                   setMealDisplayMode('dual');
                 }}
-                className="min-h-[36px] px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="min-h-[36px] px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                 style={{
                   backgroundColor: isDual ? 'var(--bg-surface)' : 'transparent',
                   color: isDual ? 'var(--brand-primary-text)' : 'var(--text-muted)',
                   boxShadow: isDual ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                 }}
               >
-                <Columns2 className="w-3.5 h-3.5" />
+                <Columns2 className="w-3.5 h-3.5 shrink-0" />
                 <span>Çift Meal (Karşılaştırmalı)</span>
               </button>
             </div>
 
-            {isDual && (
-              <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                Aşağıdan seçeceğiniz slotu belirleyin:
-              </span>
-            )}
+            {/* Arama Kutusu */}
+            <div className="relative flex-1 min-w-0">
+              <Search
+                className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: 'var(--text-muted)' }}
+              />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Meal, tefsir veya müellif ara... (Elmalılı, Müyesser, Celâleyn, Saheeh)"
+                className="w-full min-h-[40px] pl-10 pr-9 rounded-xl border text-base sm:text-sm focus:outline-none"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Aramayı temizle"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {isDual && (
@@ -294,7 +319,7 @@ export const MealSelectorModal: React.FC = () => {
                   sfxService.play('click');
                   setActiveSlot('primary');
                 }}
-                className="min-h-[44px] px-3 py-2 rounded-xl border text-left transition-colors cursor-pointer"
+                className="min-h-[42px] px-3 py-1.5 rounded-xl border text-left transition-colors cursor-pointer"
                 style={{
                   backgroundColor:
                     activeSlot === 'primary'
@@ -321,7 +346,7 @@ export const MealSelectorModal: React.FC = () => {
                   sfxService.play('click');
                   setActiveSlot('secondary');
                 }}
-                className="min-h-[44px] px-3 py-2 rounded-xl border text-left transition-colors cursor-pointer"
+                className="min-h-[42px] px-3 py-1.5 rounded-xl border text-left transition-colors cursor-pointer"
                 style={{
                   backgroundColor:
                     activeSlot === 'secondary'
@@ -344,40 +369,8 @@ export const MealSelectorModal: React.FC = () => {
             </div>
           )}
 
-          {/* Arama Kutusu */}
-          <div className="relative">
-            <Search
-              className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: 'var(--text-muted)' }}
-            />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Meal, tefsir veya müellif ara... (Elmalılı, Müyesser, Celâleyn, Saheeh)"
-              className="w-full min-h-[42px] pl-10 pr-9 rounded-xl border text-base sm:text-sm focus:outline-none"
-              style={{
-                backgroundColor: 'var(--bg-surface-soft)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-              }}
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                aria-label="Aramayı temizle"
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Kategori Çipleri */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          {/* Kategori Çipleri — Masaüstünde kesilmesiz tam wrap, mobilde taşmasız yatay kaydırma */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 pr-4 no-scrollbar md:mx-0 md:px-0 md:pr-0 md:pb-0 md:flex-wrap md:overflow-visible">
             {filterTabs.map((tab) => {
               const active = activeTab === tab.id;
               return (
@@ -402,8 +395,8 @@ export const MealSelectorModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Meal Listesi */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3 space-y-2">
+        {/* Meal Listesi — Masaüstünde 2 sütunlu ferah eser ızgarası */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3">
           {filteredMeals.length === 0 ? (
             <div
               className="rounded-2xl border p-8 text-center"
@@ -418,63 +411,93 @@ export const MealSelectorModal: React.FC = () => {
               </p>
             </div>
           ) : (
-            filteredMeals.map((meal) => {
-              const isSelected = meal.id === selectedIdForSlot;
-              const isOtherSlot = isDual && meal.id === otherSlotId && !isSelected;
-              const isFav = favoriteSet.has(meal.id);
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 content-start">
+              {filteredMeals.map((meal) => {
+                const isSelected = meal.id === selectedIdForSlot;
+                const isPrimaryAssigned = meal.id === primaryMeal.id;
+                const isSecondaryAssigned = isDual && meal.id === secondaryMeal.id;
+                const isAnyAssigned = isSelected || isPrimaryAssigned || isSecondaryAssigned;
+                const isFav = favoriteSet.has(meal.id);
 
-              return (
-                <div
-                  key={meal.id}
-                  className="rounded-2xl border transition-all flex items-center gap-2 p-2 sm:p-2.5"
-                  style={{
-                    backgroundColor: isSelected
-                      ? activeSlot === 'primary'
-                        ? 'var(--brand-primary-soft)'
-                        : 'var(--brand-accent-soft)'
-                      : 'var(--bg-surface)',
-                    borderColor: isSelected
-                      ? activeSlot === 'primary'
-                        ? 'var(--brand-primary)'
-                        : 'var(--brand-accent)'
-                      : 'var(--border-subtle)',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSelectMeal(meal)}
-                    className="flex-1 min-w-0 flex items-center gap-3 text-left cursor-pointer min-h-[44px] px-1"
+                return (
+                  <div
+                    key={meal.id}
+                    className="rounded-2xl border transition-all flex items-center gap-2 p-2 sm:p-2.5"
+                    style={{
+                      backgroundColor: isSelected
+                        ? activeSlot === 'primary'
+                          ? 'var(--brand-primary-soft)'
+                          : 'var(--brand-accent-soft)'
+                        : isDual && (isPrimaryAssigned || isSecondaryAssigned)
+                          ? 'var(--bg-surface-soft)'
+                          : 'var(--bg-surface)',
+                      borderColor: isSelected
+                        ? activeSlot === 'primary'
+                          ? 'var(--brand-primary)'
+                          : 'var(--brand-accent)'
+                        : isDual && isPrimaryAssigned
+                          ? 'rgba(15, 118, 110, 0.35)'
+                          : isDual && isSecondaryAssigned
+                            ? 'rgba(217, 119, 6, 0.35)'
+                            : 'var(--border-subtle)',
+                    }}
                   >
-                    <span
-                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border text-xs font-extrabold"
-                      style={{
-                        backgroundColor: isSelected
-                          ? activeSlot === 'primary'
-                            ? 'var(--brand-primary)'
-                            : 'var(--brand-accent)'
-                          : 'var(--bg-surface-soft)',
-                        borderColor: isSelected ? 'transparent' : 'var(--border-subtle)',
-                        color: isSelected ? '#FFFFFF' : 'var(--text-muted)',
-                      }}
+                    <button
+                      type="button"
+                      onClick={() => handleSelectMeal(meal)}
+                      className="flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 text-left cursor-pointer min-h-[44px] px-1"
                     >
-                      {isSelected ? <Check className="w-4 h-4" /> : meal.id.toUpperCase()}
-                    </span>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-extrabold truncate">{meal.label}</span>
-                        {isOtherSlot && (
-                          <span
-                            className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
-                            style={{
-                              backgroundColor: 'var(--bg-surface-soft)',
-                              color: 'var(--text-muted)',
-                            }}
-                          >
-                            {activeSlot === 'primary' ? '2. Meal' : '1. Meal'}
-                          </span>
+                      <span
+                        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border"
+                        style={{
+                          backgroundColor: isSelected
+                            ? activeSlot === 'primary'
+                              ? 'var(--brand-primary)'
+                              : 'var(--brand-accent)'
+                            : isAnyAssigned
+                              ? 'var(--brand-primary-soft)'
+                              : 'var(--bg-surface-soft)',
+                          borderColor: isSelected ? 'transparent' : 'var(--border-subtle)',
+                          color: isSelected
+                            ? '#FFFFFF'
+                            : isAnyAssigned
+                              ? 'var(--brand-primary-text)'
+                              : 'var(--text-muted)',
+                        }}
+                      >
+                        {isAnyAssigned ? (
+                          <Check className="w-4 h-4 stroke-[2.5]" />
+                        ) : (
+                          <BookOpen className="w-4 h-4" />
                         )}
-                      </div>
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm font-extrabold truncate">{meal.label}</span>
+                          {isDual && isPrimaryAssigned && (
+                            <span
+                              className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md whitespace-nowrap"
+                              style={{
+                                backgroundColor: 'var(--brand-primary)',
+                                color: '#FFFFFF',
+                              }}
+                            >
+                              1. Meal
+                            </span>
+                          )}
+                          {isDual && isSecondaryAssigned && (
+                            <span
+                              className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md whitespace-nowrap"
+                              style={{
+                                backgroundColor: 'var(--brand-accent)',
+                                color: '#FFFFFF',
+                              }}
+                            >
+                              2. Meal
+                            </span>
+                          )}
+                        </div>
 
                       <div className="flex items-center gap-1.5 flex-wrap mt-1">
                         <span
@@ -566,9 +589,10 @@ export const MealSelectorModal: React.FC = () => {
                   >
                     <Star className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
                   </button>
-                </div>
-              );
-            })
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
@@ -587,7 +611,7 @@ export const MealSelectorModal: React.FC = () => {
               style={{ color: 'var(--brand-primary-text)' }}
             />
             <span className="truncate">
-              {MEAL_CATEGORIES.length} kategori · Seslendirmesiz mealde Arapça tilavet ve TDV/DİB sesli meal kesintisiz sürer.
+              Seslendirmesiz meallerde Arapça tilavet ve TDV/DİB sesli meal kesintisiz devam eder.
             </span>
           </span>
           {isDual && (

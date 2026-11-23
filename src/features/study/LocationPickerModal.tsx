@@ -201,7 +201,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       }}
     >
       <div
-        className="w-full sm:max-w-lg max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full md:max-w-2xl lg:max-w-3xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -324,9 +324,9 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                 )}
               </div>
 
-              <div className="space-y-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {filteredSurahs.length === 0 ? (
-                  <p className="text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                  <p className="md:col-span-2 text-xs text-center py-8" style={{ color: 'var(--text-muted)' }}>
                     Aramanızla eşleşen sure bulunamadı.
                   </p>
                 ) : (
@@ -503,7 +503,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
           )}
 
           {activeTab === 'juz' && (
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
               {(meta?.juzs ?? Array.from({ length: 30 }, (_, i) => ({ no: i + 1 }))).map((j) => {
                 const active = j.no === currentJuzNo;
                 return (
@@ -631,7 +631,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                   Eşleşen rükû bölümü bulunamadı.
                 </p>
               ) : (
-                <div className="space-y-1.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {filteredRukus.map((r) => {
                     const sName = surahNameMap.get(r.surah) ?? `${r.surah}. Sure`;
                     const isCurrentRuku =
@@ -733,7 +733,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                 )}
               </div>
 
-              <div className="grid grid-cols-5 sm:grid-cols-7 gap-1.5">
+              <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-10 gap-1.5">
                 {filteredAyahs.map((ayahNo) => {
                   const active = ayahNo === currentAyahNo;
                   return (

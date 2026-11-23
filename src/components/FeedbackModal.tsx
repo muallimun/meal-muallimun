@@ -329,7 +329,7 @@ export const FeedbackModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full sm:max-w-xl max-h-[92dvh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-xl md:max-w-2xl max-h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -338,21 +338,21 @@ export const FeedbackModal: React.FC = () => {
       >
         {/* Başlık */}
         <div
-          className="px-4 py-3.5 sm:px-5 sm:py-4 border-b flex items-center justify-between gap-2.5 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2 shrink-0"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <span
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
               }}
             >
-              <MessageSquareHeart className="w-5 h-5" />
+              <MessageSquareHeart className="w-4 h-4 sm:w-5 sm:h-5" />
             </span>
             <div className="min-w-0">
               <h2
@@ -361,7 +361,7 @@ export const FeedbackModal: React.FC = () => {
               >
                 İletişim &amp; Geri Bildirim
               </h2>
-              <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+              <p className="hidden sm:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                 Görüş, öneri ve hata bildirimlerinizi doğrudan iletebilirsiniz
               </p>
             </div>

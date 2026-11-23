@@ -183,7 +183,7 @@ export const PoolSelectorModal: React.FC = () => {
 
       {/* Modal Gövdesi */}
       <div
-        className="relative z-10 w-full sm:max-w-3xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
+        className="relative z-10 w-full md:max-w-2xl lg:max-w-3xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',

@@ -429,7 +429,7 @@ export const ReciterSelectorModal: React.FC = () => {
       }}
     >
       <div
-        className="w-full sm:max-w-2xl max-h-[88dvh] sm:max-h-[84dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full md:max-w-3xl lg:max-w-4xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -537,8 +537,8 @@ export const ReciterSelectorModal: React.FC = () => {
             )}
           </div>
 
-          {/* Kategori Çipleri */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1">
+          {/* Kategori Çipleri — Masaüstünde tam wrap, mobilde taşmasız yatay kaydırma */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 pr-4 no-scrollbar md:mx-0 md:px-0 md:pr-0 md:pb-0 md:flex-wrap md:overflow-visible">
             {filterChips.map((chip) => {
               const active = activeFilter === chip.id;
               return (
@@ -629,7 +629,7 @@ export const ReciterSelectorModal: React.FC = () => {
                       Doğal tekrar boşluklu muallim kayıtları
                     </span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 content-start">
                     {filteredReciters.recommended.map(renderReciterRow)}
                   </div>
                 </section>
@@ -644,10 +644,10 @@ export const ReciterSelectorModal: React.FC = () => {
                       style={{ color: 'var(--brand-accent-text)' }}
                     >
                       <Star className="w-3.5 h-3.5 fill-current" />
-                      <span>Favori Okuyucuların ({filteredReciters.favs.length})</span>
+                      <span>Favori Okuyucularınız ({filteredReciters.favs.length})</span>
                     </h3>
                   </div>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 content-start">
                     {filteredReciters.favs.map(renderReciterRow)}
                   </div>
                 </section>
@@ -678,7 +678,7 @@ export const ReciterSelectorModal: React.FC = () => {
                               {cat.description}
                             </span>
                           </div>
-                          <div className="space-y-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 content-start">
                             {items.map(renderReciterRow)}
                           </div>
                         </section>
@@ -695,7 +695,7 @@ export const ReciterSelectorModal: React.FC = () => {
                         Diğer Okuyucular ({filteredReciters.rest.length})
                       </h3>
                     )}
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 content-start">
                       {filteredReciters.rest.map(renderReciterRow)}
                     </div>
                   </section>

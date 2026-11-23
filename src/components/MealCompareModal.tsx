@@ -8,8 +8,10 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Columns2,
   Copy,
   FileText,
+  List,
   Loader2,
   Pause,
   Play,
@@ -25,7 +27,7 @@ import {
   getMealTextPresentation,
 } from '../config/mealsConfig';
 import { audioQueueService } from '../services/audioQueueService';
-import { SAJDAH_AYAH_IDS, dataService } from '../services/dataService';
+import { SAJDAH_AYAH_IDS, dataService, toArabicIndicDigits } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { CombinedVerse, MealCategory, MealDefinition, SurahBundle } from '../types/quran';
@@ -77,6 +79,8 @@ export const MealCompareModal: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFootnotes, setExpandedFootnotes] = useState<Record<string, boolean>>({});
   const [copiedMealId, setCopiedMealId] = useState<string | null>(null);
+  const [isArabicCollapsed, setIsArabicCollapsed] = useState(false);
+  const [compareColumns, setCompareColumns] = useState<1 | 2>(1);
 
   const surahNo = compareTarget?.surah ?? null;
   const ayahNo = compareTarget?.ayah ?? null;
@@ -326,7 +330,7 @@ export const MealCompareModal: React.FC = () => {
       onClick={closeMealCompare}
     >
       <div
-        className="w-full sm:max-w-4xl h-[94dvh] sm:h-[90dvh] rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden"
+        className="w-full md:max-w-3xl lg:max-w-5xl max-h-[88dvh] h-[88dvh] rounded-t-2xl sm:rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-strong)',
@@ -336,21 +340,21 @@ export const MealCompareModal: React.FC = () => {
       >
         {/* Üst Başlık ve Ayet Navigasyonu */}
         <div
-          className="px-4 sm:px-5 py-3 border-b flex items-center justify-between gap-2 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3 border-b flex items-center justify-between gap-2 shrink-0"
           style={{
             borderColor: 'var(--border-subtle)',
             backgroundColor: 'var(--bg-surface-soft)',
           }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <span
-              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
               }}
             >
-              <Scale className="w-5 h-5" />
+              <Scale className="w-4 h-4 sm:w-5 sm:h-5" />
             </span>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -380,7 +384,7 @@ export const MealCompareModal: React.FC = () => {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+              <p className="hidden sm:block text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
                 {allMeals.length} Meal &amp; Tefsir Karşılaştırma &amp; Araştırma Merkezi
               </p>
             </div>
@@ -451,8 +455,93 @@ export const MealCompareModal: React.FC = () => {
           </div>
         </div>
 
+        {/* Üstte Sabit & Daraltılabilir Kaynak Arapça Ayet */}
+        {verse && !loadError && (
+          <div
+            className="px-4 sm:px-5 py-2.5 sm:py-3 border-b shrink-0"
+            style={{
+              backgroundColor: 'var(--bg-mushaf)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className="text-[11px] font-extrabold uppercase tracking-wider truncate"
+                style={{ color: 'var(--brand-primary-text)' }}
+              >
+                Arapça Metin · {surahName} {verse.surah}:{verse.ayah}
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setIsArabicCollapsed((v) => !v);
+                  }}
+                  aria-expanded={!isArabicCollapsed}
+                  className="min-h-[30px] px-2 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  <span>{isArabicCollapsed ? 'Ayeti Göster' : 'Daralt'}</span>
+                  {isArabicCollapsed ? (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleBookmarkAyah(verse.id)}
+                  className="min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  style={{
+                    backgroundColor: isBookmarked
+                      ? 'var(--brand-accent-soft)'
+                      : 'var(--bg-surface)',
+                    borderColor: isBookmarked
+                      ? 'var(--brand-accent)'
+                      : 'var(--border-subtle)',
+                    color: isBookmarked
+                      ? 'var(--brand-accent-text)'
+                      : 'var(--text-secondary)',
+                  }}
+                >
+                  <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
+                  <span className="hidden sm:inline">
+                    {isBookmarked ? 'Favori Ayet' : 'Ayeti Kaydet'}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {!isArabicCollapsed && (
+              <p
+                dir="rtl"
+                lang="ar"
+                className="arabic-text text-right leading-[2.05] mt-1.5 max-h-[18dvh] overflow-y-auto"
+                style={{
+                  fontSize: `${Math.min(30, Math.max(22, settings.arabicFontSize - 2))}px`,
+                }}
+              >
+                {verse.ar.t}
+                {!/[\u0660-\u0669\u06DD﴿﴾]\s*$/.test(verse.ar.t) && (
+                  <span
+                    className="inline-block mr-1.5 font-normal select-none"
+                    style={{ color: 'var(--brand-primary-text)', fontSize: '0.88em' }}
+                  >
+                    ﴿{toArabicIndicDigits(verse.ayah)}﴾
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Kaydırılabilir İçerik */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3.5 space-y-3.5">
           {isLoadingBundle && !verse ? (
             <div className="py-16 flex flex-col items-center justify-center gap-2">
               <Loader2 className="w-7 h-7 animate-spin" style={{ color: 'var(--brand-primary)' }} />
@@ -475,58 +564,10 @@ export const MealCompareModal: React.FC = () => {
           ) : (
             verse && (
               <>
-                {/* Arapça Ayet Kutusu */}
-                <div
-                  className="rounded-2xl border p-4 sm:p-5"
-                  style={{
-                    backgroundColor: 'var(--bg-mushaf)',
-                    borderColor: 'var(--border-strong)',
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span
-                      className="text-xs font-extrabold uppercase tracking-wider"
-                      style={{ color: 'var(--brand-primary-text)' }}
-                    >
-                      Arapça Metin · {surahName} {verse.surah}:{verse.ayah}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => toggleBookmarkAyah(verse.id)}
-                      className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1 cursor-pointer"
-                      style={{
-                        backgroundColor: isBookmarked
-                          ? 'var(--brand-accent-soft)'
-                          : 'var(--bg-surface)',
-                        borderColor: isBookmarked
-                          ? 'var(--brand-accent)'
-                          : 'var(--border-subtle)',
-                        color: isBookmarked
-                          ? 'var(--brand-accent-text)'
-                          : 'var(--text-secondary)',
-                      }}
-                    >
-                      <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
-                      <span>{isBookmarked ? 'Favori Ayet' : 'Ayeti Kaydet'}</span>
-                    </button>
-                  </div>
-
-                  <p
-                    dir="rtl"
-                    lang="ar"
-                    className="arabic-text text-right leading-[2.2]"
-                    style={{
-                      fontSize: `${Math.min(34, Math.max(24, settings.arabicFontSize))}px`,
-                    }}
-                  >
-                    {verse.ar.t}
-                  </p>
-                </div>
-
-                {/* Filtre & Arama Çubuğu */}
+                {/* Filtre, Arama & Masaüstü Sütun Seçici */}
                 <div className="space-y-2.5">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <div className="relative flex-1">
+                    <div className="relative flex-1 min-w-0">
                       <Search
                         className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                         style={{ color: 'var(--text-muted)' }}
@@ -556,33 +597,82 @@ export const MealCompareModal: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-                      {filterChips.map((chip) => {
-                        const active = filterTab === chip.id;
-                        return (
-                          <button
-                            key={chip.id}
-                            type="button"
-                            onClick={() => {
-                              sfxService.play('click');
-                              setFilterTab(chip.id);
-                            }}
-                            className="min-h-[36px] px-3 rounded-xl border text-xs font-bold whitespace-nowrap cursor-pointer shrink-0"
-                            style={{
-                              backgroundColor: active
-                                ? 'var(--brand-primary)'
-                                : 'var(--bg-surface-soft)',
-                              borderColor: active
-                                ? 'var(--brand-primary)'
-                                : 'var(--border-subtle)',
-                              color: active ? '#FFFFFF' : 'var(--text-secondary)',
-                            }}
-                          >
-                            {chip.label}
-                          </button>
-                        );
-                      })}
+                    {/* Masaüstü (lg+) 1 / 2 Sütun Görünüm Anahtarı */}
+                    <div
+                      className="hidden lg:inline-flex items-center p-0.5 rounded-xl border shrink-0"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setCompareColumns(1);
+                        }}
+                        aria-pressed={compareColumns === 1}
+                        className="min-h-[34px] px-2.5 rounded-lg text-xs font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: compareColumns === 1 ? 'var(--bg-surface)' : 'transparent',
+                          color:
+                            compareColumns === 1
+                              ? 'var(--brand-primary-text)'
+                              : 'var(--text-muted)',
+                        }}
+                      >
+                        <List className="w-3.5 h-3.5" />
+                        <span>Liste</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setCompareColumns(2);
+                        }}
+                        aria-pressed={compareColumns === 2}
+                        className="min-h-[34px] px-2.5 rounded-lg text-xs font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: compareColumns === 2 ? 'var(--bg-surface)' : 'transparent',
+                          color:
+                            compareColumns === 2
+                              ? 'var(--brand-primary-text)'
+                              : 'var(--text-muted)',
+                        }}
+                      >
+                        <Columns2 className="w-3.5 h-3.5" />
+                        <span>2 Sütun</span>
+                      </button>
                     </div>
+                  </div>
+
+                  {/* Kategori Çipleri — Masaüstünde tam wrap, mobilde taşmasız yatay şerit */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 pr-4 no-scrollbar md:mx-0 md:px-0 md:pr-0 md:pb-0 md:flex-wrap md:overflow-visible">
+                    {filterChips.map((chip) => {
+                      const active = filterTab === chip.id;
+                      return (
+                        <button
+                          key={chip.id}
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setFilterTab(chip.id);
+                          }}
+                          className="min-h-[34px] px-3 rounded-xl border text-xs font-bold whitespace-nowrap cursor-pointer shrink-0"
+                          style={{
+                            backgroundColor: active
+                              ? 'var(--brand-primary)'
+                              : 'var(--bg-surface-soft)',
+                            borderColor: active
+                              ? 'var(--brand-primary)'
+                              : 'var(--border-subtle)',
+                            color: active ? '#FFFFFF' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {chip.label}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {isLoadingExtra && (
@@ -616,8 +706,14 @@ export const MealCompareModal: React.FC = () => {
                   )}
                 </div>
 
-                {/* 24 Meal Karşılaştırma Kartları */}
-                <div className="space-y-3">
+                {/* Meal Karşılaştırma Kartları */}
+                <div
+                  className={
+                    compareColumns === 2
+                      ? 'grid grid-cols-1 lg:grid-cols-2 gap-3 items-start'
+                      : 'space-y-3'
+                  }
+                >
                   {mealRows.length === 0 ? (
                     <div
                       className="rounded-2xl border p-8 text-center"

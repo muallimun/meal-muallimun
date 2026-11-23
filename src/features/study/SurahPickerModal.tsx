@@ -77,34 +77,34 @@ export const SurahPickerModal: React.FC<SurahPickerModalProps> = ({
       />
 
       <div
-        className="relative z-10 w-full sm:max-w-2xl max-h-[88dvh] rounded-t-3xl sm:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
+        className="relative z-10 w-full md:max-w-2xl lg:max-w-3xl max-h-[88dvh] sm:max-h-[86dvh] rounded-t-2xl sm:rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-subtle)',
         }}
       >
-        <div className="sm:hidden pt-2.5 flex justify-center">
+        <div className="sm:hidden pt-1.5 flex justify-center">
           <div
-            className="w-10 h-1.5 rounded-full"
+            className="w-10 h-1 rounded-full"
             style={{ backgroundColor: 'var(--border-strong)' }}
           />
         </div>
 
         <div
-          className="px-5 py-4 border-b flex items-center justify-between gap-3 shrink-0"
+          className="px-4 py-2.5 sm:px-5 sm:py-3.5 border-b flex items-center justify-between gap-2.5 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 color: 'var(--brand-primary-text)',
               }}
             >
-              <BookMarked className="w-5 h-5" />
+              <BookMarked className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <h2 id="surah-picker-title" className="text-lg font-extrabold truncate">
+            <h2 id="surah-picker-title" className="text-base sm:text-lg font-extrabold truncate">
               Sure Seç
             </h2>
           </div>
@@ -113,14 +113,14 @@ export const SurahPickerModal: React.FC<SurahPickerModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Sure seçiciyi kapat"
-            className="min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center border cursor-pointer shrink-0"
+            className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] rounded-xl flex items-center justify-center border cursor-pointer shrink-0"
             style={{
               backgroundColor: 'var(--bg-surface-soft)',
               borderColor: 'var(--border-subtle)',
               color: 'var(--text-primary)',
             }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
