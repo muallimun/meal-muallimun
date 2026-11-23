@@ -4,14 +4,18 @@ import {
   CloudDownload,
   Info,
   Loader2,
+  RefreshCw,
   Square,
+  Trash2,
   WifiOff,
 } from 'lucide-react';
 import { isExtraMealId } from '../config/mealsConfig';
 import {
+  clearOfflinePack,
   downloadOfflineTextPack,
   isAbortError,
   loadOfflinePackStatus,
+  verifyOfflinePackCache,
   type OfflinePackProgress,
   type OfflinePackScope,
   type OfflinePackStatus,
@@ -39,10 +43,11 @@ function formatDateTr(iso: string): string {
 }
 
 export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = false }) => {
-  const { poolStats, settings, questionIndex, isOnline, dataSourceMode } = useAppStore();
+  const { manifest, poolStats, settings, questionIndex, isOnline, dataSourceMode } = useAppStore();
 
   const [status, setStatus] = useState<OfflinePackStatus | null>(() => loadOfflinePackStatus());
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [activeScope, setActiveScope] = useState<OfflinePackScope | null>(null);
   const [progress, setProgress] = useState<OfflinePackProgress | null>(null);
   const [feedback, setFeedback] = useState<{
@@ -53,7 +58,14 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    let active = true;
+    void verifyOfflinePackCache().then((isValid) => {
+      if (active && !isValid) {
+        setStatus((prev) => (prev !== null ? null : prev));
+      }
+    });
     return () => {
+      active = false;
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
     };
@@ -122,8 +134,8 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
         setFeedback({
           type: 'success',
           text:
-            result.failedFilesCount > 0
-              ? `${formatNumberTr(result.status.surahCount)} sure önbelleğe alındı (${result.failedFilesCount} isteğe bağlı parça atlandı).`
+            result.optionalFailedCount > 0
+              ? `${formatNumberTr(result.status.surahCount)} sure önbelleğe alındı (${result.optionalFailedCount} isteğe bağlı parça atlandı).`
               : `${formatNumberTr(result.status.surahCount)} sure metinleri, mealler ve rehberler çevrimdışı kullanım için kaydedildi.`,
         });
       } catch (err) {
@@ -166,6 +178,34 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
     abortControllerRef.current?.abort();
   }, []);
 
+  const handleClearCache = useCallback(async () => {
+    if (isDownloading || isClearing) return;
+    sfxService.play('click');
+    setIsClearing(true);
+    setFeedback(null);
+    try {
+      await clearOfflinePack();
+      setStatus(null);
+      setFeedback({
+        type: 'info',
+        text: 'Çevrimdışı metin önbelleği cihazınızdan temizlendi.',
+      });
+    } catch {
+      setFeedback({
+        type: 'error',
+        text: 'Çevrimdışı önbellek temizlenirken bir sorun oluştu.',
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  }, [isDownloading, isClearing]);
+
+  const hasDataUpdate = Boolean(
+    status &&
+      manifest?.dataVersion &&
+      status.dataVersion &&
+      status.dataVersion !== manifest.dataVersion,
+  );
   const updatedDateLabel = status ? formatDateTr(status.updatedAt) : '';
 
   return (
@@ -199,26 +239,41 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
           </div>
         </div>
 
-        <span
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold shrink-0"
-          style={{
-            backgroundColor: status ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
-            color: status ? 'var(--brand-primary-text)' : 'var(--text-muted)',
-            border: '1px solid var(--border-subtle)',
-          }}
-        >
-          {status ? (
-            <>
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                Hazır: {formatNumberTr(status.surahCount)} Sure Çevrimdışı Önbellekte
-                {updatedDateLabel ? ` · ${updatedDateLabel}` : ''}
-              </span>
-            </>
-          ) : (
-            <span>Henüz tam paket indirilmedi</span>
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+          {hasDataUpdate && (
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold shrink-0"
+              style={{
+                backgroundColor: 'var(--brand-accent-soft)',
+                color: 'var(--brand-accent-text)',
+                border: '1px solid rgba(217, 119, 6, 0.35)',
+              }}
+            >
+              <RefreshCw className="w-3 h-3 shrink-0" />
+              <span>Yeni Veri Güncellemesi Mevcut</span>
+            </span>
           )}
-        </span>
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold shrink-0"
+            style={{
+              backgroundColor: status ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+              color: status ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            {status ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>
+                  Hazır: {formatNumberTr(status.surahCount)} Sure Çevrimdışı Önbellekte
+                  {updatedDateLabel ? ` · ${updatedDateLabel}` : ''}
+                </span>
+              </>
+            ) : (
+              <span>Henüz tam paket indirilmedi</span>
+            )}
+          </span>
+        </div>
       </div>
 
       {/* İndirme Kapsam Etiketleri */}
@@ -307,34 +362,57 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
 
       {/* Aksiyon Butonları */}
       {!isDownloading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button
-            type="button"
-            disabled={!isOnline || dataSourceMode === 'demo'}
-            onClick={() => void handleStartDownload('pool')}
-            className="min-h-[44px] px-3.5 py-2 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--brand-primary)',
-              color: 'var(--brand-primary-text)',
-            }}
-          >
-            <CloudDownload className="w-4 h-4 shrink-0" />
-            <span className="truncate">
-              Havuzumu Çevrimdışı İndir ({formatNumberTr(poolCount)} Sure)
-            </span>
-          </button>
+        <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={!isOnline || dataSourceMode === 'demo' || isClearing}
+              onClick={() => void handleStartDownload('pool')}
+              className="min-h-[44px] px-3.5 py-2 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--brand-primary)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <CloudDownload className="w-4 h-4 shrink-0" />
+              <span className="truncate">
+                Havuzumu Çevrimdışı İndir ({formatNumberTr(poolCount)} Sure)
+              </span>
+            </button>
 
-          <button
-            type="button"
-            disabled={!isOnline || dataSourceMode === 'demo'}
-            onClick={() => void handleStartDownload('full')}
-            className="min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 transition-opacity cursor-pointer hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-            style={{ backgroundColor: 'var(--brand-primary)' }}
-          >
-            <CloudDownload className="w-4 h-4 shrink-0" />
-            <span className="truncate">Tüm Kur&apos;an Metinlerini İndir (114 Sure)</span>
-          </button>
+            <button
+              type="button"
+              disabled={!isOnline || dataSourceMode === 'demo' || isClearing}
+              onClick={() => void handleStartDownload('full')}
+              className="min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 transition-opacity cursor-pointer hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <CloudDownload className="w-4 h-4 shrink-0" />
+              <span className="truncate">Tüm Kur&apos;an Metinlerini İndir (114 Sure)</span>
+            </button>
+          </div>
+
+          {status && (
+            <button
+              type="button"
+              disabled={isClearing}
+              onClick={() => void handleClearCache()}
+              className="w-full min-h-[38px] px-3 py-1.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer hover:opacity-90 disabled:opacity-50 disabled:cursor-wait touch-manipulation"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--state-danger-text)',
+              }}
+            >
+              {isClearing ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span>{isClearing ? 'Önbellek Temizleniyor...' : 'Çevrimdışı Önbelleği Temizle'}</span>
+            </button>
+          )}
         </div>
       )}
 

@@ -870,16 +870,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           } ${
             isMobileReaderImmersive
               ? isFullAudioBarDocked
-                ? `pb-32 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                ? `pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
                 : `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
               : activeTab !== 'home'
                 ? isExamActive || isMemorizationZenActive
                   ? `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
                   : isFullAudioBarDocked
-                    ? `pb-36 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                    ? `pb-[calc(var(--bottom-nav-h)+6.25rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
                     : isAudioBarVisible
-                      ? `pb-24 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                      : `pb-20 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                      ? `pb-[calc(var(--bottom-nav-h)+4rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                      : `pb-[calc(var(--bottom-nav-h)+1rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
                 : isFullAudioBarDocked
                   ? `pb-10 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
                   : `pb-4 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
@@ -902,10 +902,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             isExamActive || isMemorizationZenActive
               ? 'pb-5 lg:pb-5'
               : isFullAudioBarDocked
-                ? 'pb-36 lg:pb-24'
+                ? 'pb-[calc(var(--bottom-nav-h)+6.25rem)] lg:pb-24'
                 : isAudioBarVisible
-                  ? 'pb-24 lg:pb-14'
-                  : 'pb-20 lg:pb-5'
+                  ? 'pb-[calc(var(--bottom-nav-h)+4rem)] lg:pb-14'
+                  : 'pb-[calc(var(--bottom-nav-h)+1rem)] lg:pb-5'
           }`}
           style={{ borderColor: 'var(--border-subtle)' }}
         >

@@ -441,6 +441,11 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     e.target.value = '';
     if (!file) return;
     try {
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error(
+          'Yedek dosyası 5 MB sınırını aşıyor. Lütfen geçerli bir Araştırma Defteri JSON dosyası seçin.',
+        );
+      }
       const text = await file.text();
       const res = researchStorage.importBackup(text, importMode);
       sfxService.play('click');

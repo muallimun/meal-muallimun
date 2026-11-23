@@ -437,7 +437,9 @@ export const AudioPlayerBar: React.FC = () => {
         role="region"
         aria-label="Küçültülmüş ses oynatıcı"
         className={`fixed ${
-          isMobileReaderImmersive ? 'bottom-3' : 'bottom-[4.5rem]'
+          isMobileReaderImmersive
+            ? 'bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))]'
+            : 'bottom-[calc(var(--bottom-nav-h)+0.5rem)]'
         } lg:bottom-4 right-3 sm:right-4 z-[55]`}
       >
         <div
@@ -526,7 +528,11 @@ export const AudioPlayerBar: React.FC = () => {
       <div
         role="region"
         aria-label="Ses oynatıcı"
-        className={`fixed ${isMobileReaderImmersive ? 'bottom-2.5' : 'bottom-16'} lg:bottom-4 left-0 right-0 ${
+        className={`fixed ${
+          isMobileReaderImmersive
+            ? 'bottom-[max(0.625rem,env(safe-area-inset-bottom,0px))]'
+            : 'bottom-[calc(var(--bottom-nav-h)+0.375rem)]'
+        } lg:bottom-4 left-0 right-0 ${
           isSidebarCollapsed ? 'lg:left-0' : 'lg:left-64 xl:left-68'
         } ${showDetailsPanel ? 'z-[90]' : 'z-[55]'} px-2 sm:px-4 pointer-events-none`}
       >

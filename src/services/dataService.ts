@@ -92,6 +92,26 @@ let resolvedBaseUrl: string | null = null;
 let activeSourceMode: DataSourceMode = HAS_CUSTOM_DATA_BASE_URL ? 'remote' : 'local';
 let demoMode = false;
 let dataGeneration = 0;
+let activeManifestDataVersion: string | null = null;
+
+const dataGenerationListeners = new Set<() => void>();
+
+export function onDataGenerationChange(listener: () => void): () => void {
+  dataGenerationListeners.add(listener);
+  return () => {
+    dataGenerationListeners.delete(listener);
+  };
+}
+
+function notifyDataGenerationChange(): void {
+  for (const listener of dataGenerationListeners) {
+    try {
+      listener();
+    } catch {
+      // ignore listener errors
+    }
+  }
+}
 
 export function padSurahNo(surahNo: number): string {
   return String(surahNo).padStart(3, '0');
@@ -111,6 +131,7 @@ export function enableDemoMode(): void {
   dataGeneration += 1;
   demoMode = true;
   activeSourceMode = 'demo';
+  activeManifestDataVersion = null;
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
@@ -119,12 +140,14 @@ export function enableDemoMode(): void {
   extraMealsRawCache.clear();
   extraMealsInflight.clear();
   notifyExtraMealsListeners();
+  notifyDataGenerationChange();
 }
 
 export function disableDemoMode(): void {
   dataGeneration += 1;
   demoMode = false;
   resolvedBaseUrl = null;
+  activeManifestDataVersion = null;
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
@@ -133,10 +156,12 @@ export function disableDemoMode(): void {
   extraMealsRawCache.clear();
   extraMealsInflight.clear();
   notifyExtraMealsListeners();
+  notifyDataGenerationChange();
 }
 
 export function clearDataCache(): void {
   dataGeneration += 1;
+  activeManifestDataVersion = null;
   memoryCache.clear();
   inflightRequests.clear();
   surahBundleCache.clear();
@@ -145,6 +170,7 @@ export function clearDataCache(): void {
   extraMealsRawCache.clear();
   extraMealsInflight.clear();
   notifyExtraMealsListeners();
+  notifyDataGenerationChange();
 }
 
 function getCandidateBaseUrls(): string[] {
@@ -160,7 +186,9 @@ function getCandidateBaseUrls(): string[] {
   return [LOCAL_DATA_BASE_URL, LIVE_DATA_BASE_URL];
 }
 
-const PERSISTENT_DATA_CACHE_NAME = 'muallimun-offline-json-v1';
+export const PERSISTENT_DATA_CACHE_NAME = 'muallimun-offline-json-v1';
+const DATA_VERSION_HEADER = 'X-Muallimun-Data-Version';
+const NETWORK_FIRST_META_PATHS = new Set<string>(['manifest.json', 'meta.json']);
 const CORE_OFFLINE_JSON_PATHS = new Set<string>([
   'manifest.json',
   'meta.json',
@@ -168,13 +196,16 @@ const CORE_OFFLINE_JSON_PATHS = new Set<string>([
   'fihrist/topics.json',
 ]);
 
-async function fetchWithTimeout(
+async function fetchTextWithTimeout(
   url: string,
   timeoutMs = 9000,
   externalSignal?: AbortSignal,
-): Promise<Response> {
+): Promise<{ ok: boolean; status: number; contentType: string; text: string }> {
   if (typeof AbortController === 'undefined') {
-    return fetch(url, { headers: { Accept: 'application/json' } });
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    const contentType = res.headers.get('content-type') || '';
+    const text = res.ok ? await res.text() : '';
+    return { ok: res.ok, status: res.status, contentType, text };
   }
   const controller = new AbortController();
   const onExternalAbort = () => controller.abort();
@@ -187,24 +218,34 @@ async function fetchWithTimeout(
   }
   const timerId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, {
+    const res = await fetch(url, {
       headers: { Accept: 'application/json' },
       signal: controller.signal,
     });
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok) {
+      return { ok: false, status: res.status, contentType, text: '' };
+    }
+    const text = await res.text();
+    return { ok: true, status: res.status, contentType, text };
   } finally {
     clearTimeout(timerId);
     externalSignal?.removeEventListener('abort', onExternalAbort);
   }
 }
 
-async function readPersistentJsonCache<T>(cleanPath: string): Promise<T | null> {
+async function readPersistentJsonCacheWithMeta<T>(
+  cleanPath: string,
+): Promise<{ data: T; dataVersion: string | null } | null> {
   if (typeof window === 'undefined' || !('caches' in window)) return null;
   try {
     const cache = await window.caches.open(PERSISTENT_DATA_CACHE_NAME);
     const key = `/__offline_cache__/data/${cleanPath}`;
     const res = await cache.match(key);
     if (!res) return null;
-    return (await res.json()) as T;
+    const dataVersion = res.headers.get(DATA_VERSION_HEADER);
+    const data = (await res.json()) as T;
+    return { data, dataVersion };
   } catch {
     return null;
   }
@@ -214,8 +255,9 @@ async function writePersistentJsonCache(
   cleanPath: string,
   rawText: string,
   forcePersist = false,
-): Promise<void> {
-  if (typeof window === 'undefined' || !('caches' in window)) return;
+  dataVersion?: string,
+): Promise<boolean> {
+  if (typeof window === 'undefined' || !('caches' in window)) return false;
 
   // Aktif Service Worker (Workbox) sure parçalarını zaten kendi önbelleğinde tutuyorsa
   // normal gezinmede yalnızca çekirdek meta dosyalarını ikincil önbelleğe yaz (çift depolamayı önle).
@@ -223,20 +265,28 @@ async function writePersistentJsonCache(
   const hasSwController =
     typeof navigator !== 'undefined' && Boolean(navigator.serviceWorker?.controller);
   if (!forcePersist && hasSwController && !CORE_OFFLINE_JSON_PATHS.has(cleanPath)) {
-    return;
+    return false;
   }
 
   try {
     const cache = await window.caches.open(PERSISTENT_DATA_CACHE_NAME);
     const key = `/__offline_cache__/data/${cleanPath}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json; charset=utf-8',
+    };
+    const versionToStore = dataVersion ?? activeManifestDataVersion;
+    if (versionToStore) {
+      headers[DATA_VERSION_HEADER] = versionToStore;
+    }
     await cache.put(
       key,
       new Response(rawText, {
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        headers,
       }),
     );
+    return true;
   } catch {
-    // Depolama kısıtlıysa sessizce geç
+    return false;
   }
 }
 
@@ -247,8 +297,11 @@ async function writePersistentJsonCache(
 export async function prefetchJsonForOffline(
   relativePath: string,
   signal?: AbortSignal,
+  forceRefresh = false,
+  expectedDataVersion?: string,
 ): Promise<boolean> {
   if (demoMode) return false;
+  if (typeof window === 'undefined' || !('caches' in window)) return false;
   const cleanPath = relativePath.replace(/^\/+/, '');
   if (signal?.aborted) {
     const err = new Error('Çevrimdışı indirme iptal edildi.');
@@ -256,12 +309,17 @@ export async function prefetchJsonForOffline(
     throw err;
   }
 
-  // Zaten kalıcı önbellekte varsa tekrar ağa çıkma
-  if (typeof window !== 'undefined' && 'caches' in window) {
+  // Zaten kalıcı önbellekte geçerli sürümle varsa tekrar ağa çıkma
+  if (!forceRefresh) {
     try {
       const cache = await window.caches.open(PERSISTENT_DATA_CACHE_NAME);
       const existing = await cache.match(`/__offline_cache__/data/${cleanPath}`);
-      if (existing) return true;
+      if (existing) {
+        const cachedVersion = existing.headers.get(DATA_VERSION_HEADER);
+        if (!expectedDataVersion || !cachedVersion || cachedVersion === expectedDataVersion) {
+          return true;
+        }
+      }
     } catch {
       // Okuma başarısızsa ağdan devam et
     }
@@ -276,19 +334,22 @@ export async function prefetchJsonForOffline(
     }
     const url = `${base.replace(/\/+$/, '')}/${cleanPath}`;
     try {
-      const res = await fetchWithTimeout(url, 12000, signal);
+      const res = await fetchTextWithTimeout(url, 12000, signal);
       if (!res.ok) continue;
-      const text = await res.text();
-      const trimmed = text.trimStart();
+      const trimmed = res.text.trimStart();
       if (trimmed.startsWith('<!doctype') || trimmed.startsWith('<html')) {
         continue;
       }
       // Geçerli JSON doğrulaması (bozuk içerik önbelleğe yazılmaz)
-      JSON.parse(text);
+      JSON.parse(res.text);
       resolvedBaseUrl = base;
       activeSourceMode = base === LOCAL_DATA_BASE_URL ? 'local' : 'remote';
-      await writePersistentJsonCache(cleanPath, text, true);
-      return true;
+      return await writePersistentJsonCache(
+        cleanPath,
+        res.text,
+        true,
+        expectedDataVersion ?? activeManifestDataVersion ?? undefined,
+      );
     } catch (err) {
       if (signal?.aborted) {
         const abortErr = new Error('Çevrimdışı indirme iptal edildi.');
@@ -322,15 +383,21 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
 
   const promise = (async () => {
     const isOfflineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
+    const isNetworkFirstMeta = NETWORK_FIRST_META_PATHS.has(cleanPath);
 
-    // Çevrimdışıysa doğrudan kalıcı tarayıcı önbelleğinden anında dön
-    if (isOfflineNow) {
-      const offlineCached = await readPersistentJsonCache<T>(cleanPath);
-      if (offlineCached !== null) {
+    // Çevrimdışıysa veya Lie-Fi gecikmelerini önlemek için statik içerik parçası kalıcı önbellekteyse 0ms'de dön
+    const preReadCached = await readPersistentJsonCacheWithMeta<T>(cleanPath);
+    if (preReadCached !== null) {
+      const versionMatches =
+        !activeManifestDataVersion ||
+        !preReadCached.dataVersion ||
+        preReadCached.dataVersion === activeManifestDataVersion;
+
+      if (isOfflineNow || (!isNetworkFirstMeta && versionMatches)) {
         if (reqGen === dataGeneration) {
-          memoryCache.set(cacheKey, offlineCached);
+          memoryCache.set(cacheKey, preReadCached.data);
         }
-        return offlineCached;
+        return preReadCached.data;
       }
     }
 
@@ -340,22 +407,31 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
     for (const base of candidates) {
       const url = `${base.replace(/\/+$/, '')}/${cleanPath}`;
       try {
-        const res = await fetchWithTimeout(url, 9000);
+        const res = await fetchTextWithTimeout(url, 9000);
         if (!res.ok) {
           throw new Error(`HTTP ${res.status} (${url})`);
         }
-        const contentType = res.headers.get('content-type') || '';
-        const text = await res.text();
-        if (text.trimStart().startsWith('<!doctype') || text.trimStart().startsWith('<html')) {
-          throw new Error(`Beklenmeyen HTML yanıtı (${url}) ${contentType}`);
+        if (
+          res.text.trimStart().startsWith('<!doctype') ||
+          res.text.trimStart().startsWith('<html')
+        ) {
+          throw new Error(`Beklenmeyen HTML yanıtı (${url}) ${res.contentType}`);
         }
-        const data = JSON.parse(text) as T;
+        const data = JSON.parse(res.text) as T;
         if (reqGen === dataGeneration) {
           resolvedBaseUrl = base;
           activeSourceMode = base === LOCAL_DATA_BASE_URL ? 'local' : 'remote';
           memoryCache.set(cacheKey, data);
         }
-        void writePersistentJsonCache(cleanPath, text);
+        const versionTag =
+          cleanPath === 'manifest.json' &&
+          data &&
+          typeof data === 'object' &&
+          'dataVersion' in data &&
+          typeof (data as { dataVersion?: unknown }).dataVersion === 'string'
+            ? (data as { dataVersion: string }).dataVersion
+            : activeManifestDataVersion ?? undefined;
+        void writePersistentJsonCache(cleanPath, res.text, false, versionTag);
         return data;
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
@@ -363,12 +439,11 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
     }
 
     // Ağ istekleri başarısız olduysa kalıcı önbellekteki son kopyaya düş
-    const cachedFallback = await readPersistentJsonCache<T>(cleanPath);
-    if (cachedFallback !== null) {
+    if (preReadCached !== null) {
       if (reqGen === dataGeneration) {
-        memoryCache.set(cacheKey, cachedFallback);
+        memoryCache.set(cacheKey, preReadCached.data);
       }
-      return cachedFallback;
+      return preReadCached.data;
     }
 
     throw new Error(
@@ -389,7 +464,11 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
 
 export async function getManifest(): Promise<ManifestData> {
   if (demoMode) return DEMO_MANIFEST;
-  return fetchJsonWithFallback<ManifestData>('manifest.json');
+  const manifest = await fetchJsonWithFallback<ManifestData>('manifest.json');
+  if (manifest && typeof manifest.dataVersion === 'string' && manifest.dataVersion.trim()) {
+    activeManifestDataVersion = manifest.dataVersion.trim();
+  }
+  return manifest;
 }
 
 export async function getMeta(): Promise<MetaData> {

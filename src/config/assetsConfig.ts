@@ -245,9 +245,9 @@ const DEFAULT_ARABIC_AUDIO_SOURCES: readonly ResolvedAudioSource[] = [
     shortLabel: 'İshak Danış',
     reciterName: 'İshak Danış',
     baseUrl:
-      'https://dn721808.ca.archive.org/0/items/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
-    fallbackBaseUrl:
       'https://archive.org/download/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
+    fallbackBaseUrl:
+      'https://dn721808.ca.archive.org/0/items/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
     ext: 'mp3',
   },
 ];
@@ -260,8 +260,8 @@ const DEFAULT_MEAL_AUDIO_SOURCES: readonly ResolvedAudioSource[] = [
     label: 'TDV Meali (Seyfullah Kartal)',
     shortLabel: 'TDV Sesli',
     reciterName: 'Seyfullah Kartal',
-    baseUrl: 'https://dn710902.ca.archive.org/0/items/seyfullah-kartal-ayet-ayet-meal-arsivi',
-    fallbackBaseUrl: 'https://archive.org/download/seyfullah-kartal-ayet-ayet-meal-arsivi',
+    baseUrl: 'https://archive.org/download/seyfullah-kartal-ayet-ayet-meal-arsivi',
+    fallbackBaseUrl: 'https://dn710902.ca.archive.org/0/items/seyfullah-kartal-ayet-ayet-meal-arsivi',
     ext: 'mp3',
   },
   {
@@ -271,23 +271,39 @@ const DEFAULT_MEAL_AUDIO_SOURCES: readonly ResolvedAudioSource[] = [
     label: 'DİB Yeni Meal (Mehmet Emin Ay)',
     shortLabel: 'DİB Sesli',
     reciterName: 'Mehmet Emin Ay',
-    baseUrl: 'https://dn711208.ca.archive.org/0/items/mehmet-emin-ay-ayet-ayet-meal-arsivi',
-    fallbackBaseUrl: 'https://archive.org/download/mehmet-emin-ay-ayet-ayet-meal-arsivi',
+    baseUrl: 'https://archive.org/download/mehmet-emin-ay-ayet-ayet-meal-arsivi',
+    fallbackBaseUrl: 'https://dn711208.ca.archive.org/0/items/mehmet-emin-ay-ayet-ayet-meal-arsivi',
     ext: 'mp3',
   },
 ];
 
-function inferArchiveFallbackUrl(baseUrl: string, id: string): string | undefined {
+function normalizeArchiveUrls(
+  rawBaseUrl: string,
+  rawFallbackUrl: string | undefined,
+  id: string,
+): { baseUrl: string; fallbackBaseUrl?: string } {
+  const cleanBase = rawBaseUrl.replace(/\/+$/, '');
+  const cleanFallback = rawFallbackUrl?.replace(/\/+$/, '') || undefined;
+  const ephemeralMatch = cleanBase.match(/^https?:\/\/[^/]*\.archive\.org\/0\/items\/(.+)$/i);
+  if (ephemeralMatch && ephemeralMatch[1]) {
+    const permanent = `https://archive.org/download/${ephemeralMatch[1].replace(/\/+$/, '')}`;
+    return {
+      baseUrl: permanent,
+      fallbackBaseUrl: cleanBase !== permanent ? cleanBase : cleanFallback,
+    };
+  }
   const known = [...DEFAULT_ARABIC_AUDIO_SOURCES, ...DEFAULT_MEAL_AUDIO_SOURCES].find(
     (item) => item.id === id,
   );
-  if (known?.fallbackBaseUrl) return known.fallbackBaseUrl;
-
-  const match = baseUrl.match(/\/0\/items\/(.+)$/);
-  if (match && match[1]) {
-    return `https://archive.org/download/${match[1].replace(/\/+$/, '')}`;
-  }
-  return undefined;
+  const candidateFallback =
+    (cleanFallback && cleanFallback !== cleanBase ? cleanFallback : undefined) ??
+    (known?.fallbackBaseUrl && known.fallbackBaseUrl !== cleanBase
+      ? known.fallbackBaseUrl
+      : undefined);
+  return {
+    baseUrl: cleanBase,
+    fallbackBaseUrl: candidateFallback,
+  };
 }
 
 function extractReciterName(label: string): string {
@@ -323,7 +339,7 @@ export function getDynamicMealAudioSources(
   for (const [key, src] of Object.entries(manifest.audioSources)) {
     if (!src || src.kind !== 'meal' || !src.baseUrl?.trim()) continue;
     const id = src.id || key;
-    const cleanBase = src.baseUrl.replace(/\/+$/, '');
+    const normalizedUrls = normalizeArchiveUrls(src.baseUrl, src.fallbackBaseUrl, id);
     const reciterName = src.reciterName || extractReciterName(src.label);
     const shortTag =
       id === 'tdv'
@@ -338,8 +354,8 @@ export function getDynamicMealAudioSources(
       label: src.label,
       shortLabel: shortTag,
       reciterName,
-      baseUrl: cleanBase,
-      fallbackBaseUrl: src.fallbackBaseUrl?.replace(/\/+$/, '') || inferArchiveFallbackUrl(cleanBase, id),
+      baseUrl: normalizedUrls.baseUrl,
+      fallbackBaseUrl: normalizedUrls.fallbackBaseUrl,
       ext: src.ext || 'mp3',
     });
   }

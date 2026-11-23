@@ -1,5 +1,6 @@
 import { dataService } from './dataService';
 import type { MetaData } from '../types/quran';
+import { isAllPersistencePaused, reportStorageQuotaError } from '../utils/storageQuotaBus';
 
 export const HATIM_STORAGE_KEY = 'muallimun_hatim_planner_v1';
 export const HATIM_TOTAL_PAGES = 604;
@@ -431,11 +432,11 @@ function emitChange(): void {
 function persistState(next: HatimPlannerState): HatimPlannerState {
   cachedState = next;
   hydrated = true;
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && !isAllPersistencePaused()) {
     try {
       window.localStorage.setItem(HATIM_STORAGE_KEY, JSON.stringify(next));
     } catch {
-      // ignore quota errors
+      reportStorageQuotaError();
     }
   }
   emitChange();

@@ -57,6 +57,7 @@ import {
   validateVerseNotesJson,
 } from '../services/verseNotesStorage';
 import { setStorePersistencePaused, useAppStore } from '../store/useAppStore';
+import { setAllPersistencePaused } from '../utils/storageQuotaBus';
 import type { MemorizationBackupPayload } from '../types/memorization';
 import type { ExamSessionState, ThemeMode } from '../types/quran';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
@@ -144,7 +145,7 @@ function summarizeClassicalPlan(plan: unknown): string {
   const rec = plan as { currentRound?: unknown; hasPages?: unknown };
   const round =
     typeof rec.currentRound === 'number' && Number.isFinite(rec.currentRound)
-      ? Math.max(1, Math.min(20, Math.floor(rec.currentRound)))
+      ? Math.max(1, Math.min(24, Math.floor(rec.currentRound)))
       : null;
   const hasCount = Array.isArray(rec.hasPages) ? rec.hasPages.length : 0;
   if (round === null) return 'Başlatılmamış';
@@ -281,6 +282,7 @@ export const SettingsModal: React.FC = () => {
     null,
   );
   const [isBackupBusy, setIsBackupBusy] = useState(false);
+  const [isReloadingAfterRestore, setIsReloadingAfterRestore] = useState(false);
   const backupFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useBackButtonGuard('settings_modal', isSettingsModalOpen, closeSettingsModal);
@@ -617,14 +619,24 @@ export const SettingsModal: React.FC = () => {
 
     // 1) Mevcut durumun eksiksiz rollback anlık görüntüsünü al
     const prevLocalEntries: Record<string, string> = {};
-    for (let i = 0; i < window.localStorage.length; i += 1) {
-      const key = window.localStorage.key(i);
-      if (!key || !key.startsWith('muallimun')) continue;
-      const val = window.localStorage.getItem(key);
-      if (val !== null) {
-        prevLocalEntries[key] = val;
+    try {
+      for (let i = 0; i < window.localStorage.length; i += 1) {
+        const key = window.localStorage.key(i);
+        if (!key || !key.startsWith('muallimun')) continue;
+        const val = window.localStorage.getItem(key);
+        if (val !== null) {
+          prevLocalEntries[key] = val;
+        }
       }
+    } catch {
+      setBackupStatus({
+        type: 'error',
+        text: 'Tarayıcı yerel depolama alanı okunamadığı için geri yükleme güvenli biçimde iptal edildi.',
+      });
+      setIsBackupBusy(false);
+      return;
     }
+
     const prevExamSession = loadActiveExamSession();
     let prevMemorization: MemorizationBackupPayload | null = null;
     try {
@@ -633,8 +645,9 @@ export const SettingsModal: React.FC = () => {
       prevMemorization = null;
     }
 
-    // 2) Store otomatik yazımını duraklat ki mevcut bellek state'i geri yüklemeyi ezmesin
+    // 2) Tüm otomatik depolama yazımlarını duraklat ki mevcut bellek state'i geri yüklemeyi ezmesin
     setStorePersistencePaused(true);
+    setAllPersistencePaused(true);
 
     try {
       if (pending.hasFullStorage) {
@@ -668,6 +681,7 @@ export const SettingsModal: React.FC = () => {
       }
 
       setPendingBackupRestore(null);
+      setIsReloadingAfterRestore(true);
       sfxService.play('correct');
       setBackupStatus({
         type: 'success',
@@ -714,7 +728,9 @@ export const SettingsModal: React.FC = () => {
         }
       }
 
+      setAllPersistencePaused(false);
       setStorePersistencePaused(false);
+      setIsReloadingAfterRestore(false);
       setBackupStatus({
         type: 'error',
         text:
@@ -759,12 +775,14 @@ export const SettingsModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[92] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-[2px]"
+      className={`fixed inset-0 z-[92] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-[2px] ${
+        isReloadingAfterRestore ? 'pointer-events-none select-none' : ''
+      }`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="settings-modal-title"
       onClick={(e) => {
-        if (e.target === e.currentTarget) closeSettingsModal();
+        if (e.target === e.currentTarget && !isReloadingAfterRestore) closeSettingsModal();
       }}
     >
       <div

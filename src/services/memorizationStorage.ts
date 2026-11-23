@@ -16,6 +16,7 @@ import type {
 } from '../types/memorization';
 import { REVIEW_INTERVAL_DAYS } from '../types/memorization';
 import { clampAyahRange, isValidVerseKey } from '../utils/quranBounds';
+import { reportStorageQuotaError } from '../utils/storageQuotaBus';
 
 const DB_NAME = 'muallimun_memorization_db_v1';
 const DB_VERSION = 1;
@@ -202,16 +203,17 @@ function lsGet<T>(key: string): T | null {
   }
 }
 
-function lsSet<T>(key: string, value: T | null): void {
-  if (typeof window === 'undefined') return;
+function lsSet<T>(key: string, value: T | null): boolean {
+  if (typeof window === 'undefined') return false;
   try {
     if (value === null || value === undefined) {
       window.localStorage.removeItem(`${LS_PREFIX}${key}`);
     } else {
       window.localStorage.setItem(`${LS_PREFIX}${key}`, JSON.stringify(value));
     }
+    return true;
   } catch {
-    // Depolama kotası veya gizli sekme kısıtlıysa sessizce geç
+    return false;
   }
 }
 
@@ -764,14 +766,20 @@ export function readClassicalPlanSync(): ClassicalHifzPlan | null {
 async function writeUnitsInternal(units: MemorizationUnit[]): Promise<MemorizationUnit[]> {
   const clean = sanitizeUnitsList(units);
   const now = Date.now();
-  lsSet(KEY_UNITS, clean);
-  writeLsTimestamp(KEY_UNITS, now);
+  const lsOk = lsSet(KEY_UNITS, clean);
+  if (lsOk) {
+    writeLsTimestamp(KEY_UNITS, now);
+  }
   const envelope: IdbEnvelope<MemorizationUnit[]> = {
     __envelopeV1: true,
     updatedAt: now,
     data: clean,
   };
-  await idbSet(KEY_UNITS, envelope);
+  const idbOk = await idbSet(KEY_UNITS, envelope);
+  if (!lsOk && !idbOk) {
+    reportStorageQuotaError();
+    throw new Error('Depolama alanı dolu veya erişilemiyor; ezber verileri kaydedilemedi.');
+  }
   notifyListeners();
   return clean;
 }
@@ -891,14 +899,20 @@ export async function loadPrefs(): Promise<MemorizationPrefs> {
 export async function savePrefs(prefs: MemorizationPrefs): Promise<void> {
   const clean = sanitizePrefs(prefs);
   const now = Date.now();
-  lsSet(KEY_PREFS, clean);
-  writeLsTimestamp(KEY_PREFS, now);
+  const lsOk = lsSet(KEY_PREFS, clean);
+  if (lsOk) {
+    writeLsTimestamp(KEY_PREFS, now);
+  }
   const envelope: IdbEnvelope<MemorizationPrefs> = {
     __envelopeV1: true,
     updatedAt: now,
     data: clean,
   };
-  await idbSet(KEY_PREFS, envelope);
+  const idbOk = await idbSet(KEY_PREFS, envelope);
+  if (!lsOk && !idbOk) {
+    reportStorageQuotaError();
+    throw new Error('Depolama alanı dolu veya erişilemiyor; ezber tercihleri kaydedilemedi.');
+  }
   notifyListeners();
 }
 
@@ -939,17 +953,24 @@ export async function saveActiveSession(
 ): Promise<void> {
   const clean = snapshot ? sanitizeActiveSession(snapshot) : null;
   const now = Date.now();
-  lsSet(KEY_ACTIVE_SESSION, clean);
-  writeLsTimestamp(KEY_ACTIVE_SESSION, now);
+  const lsOk = lsSet(KEY_ACTIVE_SESSION, clean);
+  if (lsOk) {
+    writeLsTimestamp(KEY_ACTIVE_SESSION, now);
+  }
+  let idbOk = false;
   if (clean) {
     const envelope: IdbEnvelope<ActiveSessionSnapshot> = {
       __envelopeV1: true,
       updatedAt: now,
       data: clean,
     };
-    await idbSet(KEY_ACTIVE_SESSION, envelope);
+    idbOk = await idbSet(KEY_ACTIVE_SESSION, envelope);
   } else {
-    await idbSet(KEY_ACTIVE_SESSION, null);
+    idbOk = await idbSet(KEY_ACTIVE_SESSION, null);
+  }
+  if (!lsOk && !idbOk) {
+    reportStorageQuotaError();
+    throw new Error('Depolama alanı dolu veya erişilemiyor; aktif ezber oturumu kaydedilemedi.');
   }
   notifyListeners();
 }
@@ -999,17 +1020,24 @@ export async function loadClassicalPlan(): Promise<ClassicalHifzPlan | null> {
 export async function saveClassicalPlan(plan: ClassicalHifzPlan | null): Promise<void> {
   const clean = plan ? sanitizeClassicalPlan(plan) : null;
   const now = Date.now();
-  lsSet(KEY_CLASSICAL_PLAN, clean);
-  writeLsTimestamp(KEY_CLASSICAL_PLAN, now);
+  const lsOk = lsSet(KEY_CLASSICAL_PLAN, clean);
+  if (lsOk) {
+    writeLsTimestamp(KEY_CLASSICAL_PLAN, now);
+  }
+  let idbOk = false;
   if (clean) {
     const envelope: IdbEnvelope<ClassicalHifzPlan> = {
       __envelopeV1: true,
       updatedAt: now,
       data: clean,
     };
-    await idbSet(KEY_CLASSICAL_PLAN, envelope);
+    idbOk = await idbSet(KEY_CLASSICAL_PLAN, envelope);
   } else {
-    await idbSet(KEY_CLASSICAL_PLAN, null);
+    idbOk = await idbSet(KEY_CLASSICAL_PLAN, null);
+  }
+  if (!lsOk && !idbOk) {
+    reportStorageQuotaError();
+    throw new Error('Depolama alanı dolu veya erişilemiyor; klasik hafızlık planı kaydedilemedi.');
   }
   notifyListeners();
 }

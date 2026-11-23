@@ -116,7 +116,10 @@ export interface StartSegmentQueueOptions {
   repeatCountOverride?: RepeatCountOption;
 }
 
-type NextPageProvider = (nextPage: number) => Promise<{
+type NextPageProvider = (
+  nextPage: number,
+  isSessionActive: () => boolean,
+) => Promise<{
   verses: CombinedVerse[];
   contextKey: string;
 } | null>;
@@ -200,6 +203,7 @@ class AudioQueueService {
   private lastMatchedSegmentIdx = 0;
   private wordSyncRafId: number | null = null;
 
+  private sharedAudio: HTMLAudioElement | null = null;
   private audio: HTMLAudioElement | null = null;
   private audioAbortController: AbortController | null = null;
   private preloader: HTMLAudioElement | null = null;
@@ -209,6 +213,7 @@ class AudioQueueService {
   private previewSessionId = 0;
   private skipTimer: number | null = null;
   private loadTimer: number | null = null;
+  private stallTimer: number | null = null;
   private playSessionId = 0;
   private consecutiveFailures = 0;
   private userPausedDuringLoad = false;
@@ -1000,9 +1005,27 @@ class AudioQueueService {
     }
   }
 
+  private clearStallTimer(): void {
+    if (this.stallTimer !== null) {
+      window.clearTimeout(this.stallTimer);
+      this.stallTimer = null;
+    }
+  }
+
+  private getOrCreateAudioElement(): HTMLAudioElement {
+    if (!this.sharedAudio) {
+      // Archive.org / EveryAyah yönlendirmelerinde CORS engeli olmaması için crossOrigin KULLANILMAZ
+      const el = new Audio();
+      el.preload = 'auto';
+      this.sharedAudio = el;
+    }
+    return this.sharedAudio;
+  }
+
   private teardownAudioElement(preserveWordSyncFlag = false): void {
     this.clearSkipTimer();
     this.clearLoadTimer();
+    this.clearStallTimer();
     this.clearWordSyncState(preserveWordSyncFlag);
 
     if (this.audioAbortController) {
@@ -1149,8 +1172,8 @@ class AudioQueueService {
       return;
     }
 
-    // Archive.org / EveryAyah yönlendirmelerinde CORS engeli olmaması için crossOrigin KULLANILMAZ
-    const audio = new Audio();
+    // iOS kilit ekranında arka plan ses oturumunu korumak için tek HTMLAudioElement yeniden kullanılır
+    const audio = this.getOrCreateAudioElement();
     audio.preload = 'auto';
     audio.playbackRate = this.prefs.playbackRate;
 
@@ -1165,6 +1188,7 @@ class AudioQueueService {
       if (handledFailure || session !== this.playSessionId) return;
       handledFailure = true;
       this.clearLoadTimer();
+      this.clearStallTimer();
 
       if (urlIndex + 1 < step.urls.length) {
         this.playCurrentStep(urlIndex + 1);
@@ -1172,6 +1196,22 @@ class AudioQueueService {
       }
 
       this.handleStepExhausted(session);
+    };
+
+    const scheduleStallWatchdog = () => {
+      if (session !== this.playSessionId) return;
+      this.stopWordSyncLoop();
+      if (this.snapshot.status === 'playing') {
+        this.emit({ status: 'loading' });
+      }
+      this.clearStallTimer();
+      const timeAtStall = audio.currentTime;
+      this.stallTimer = window.setTimeout(() => {
+        if (session !== this.playSessionId || audio.paused) return;
+        if (Math.abs(audio.currentTime - timeAtStall) < 0.05) {
+          handleFailure();
+        }
+      }, LOAD_TIMEOUT_MS);
     };
 
     this.loadTimer = window.setTimeout(() => {
@@ -1184,6 +1224,7 @@ class AudioQueueService {
       () => {
         if (session !== this.playSessionId) return;
         this.clearLoadTimer();
+        this.clearStallTimer();
       },
       { signal },
     );
@@ -1193,6 +1234,7 @@ class AudioQueueService {
       () => {
         if (session !== this.playSessionId) return;
         this.clearLoadTimer();
+        this.clearStallTimer();
         this.consecutiveFailures = 0;
         audio.playbackRate = this.prefs.playbackRate;
         this.emit({ status: 'playing', errorMessage: null });
@@ -1203,23 +1245,15 @@ class AudioQueueService {
       { signal },
     );
 
-    audio.addEventListener(
-      'waiting',
-      () => {
-        if (session !== this.playSessionId) return;
-        this.stopWordSyncLoop();
-        if (this.snapshot.status === 'playing') {
-          this.emit({ status: 'loading' });
-        }
-      },
-      { signal },
-    );
+    audio.addEventListener('waiting', scheduleStallWatchdog, { signal });
+    audio.addEventListener('stalled', scheduleStallWatchdog, { signal });
 
     audio.addEventListener(
       'ended',
       () => {
         if (session !== this.playSessionId) return;
         this.clearLoadTimer();
+        this.clearStallTimer();
         this.clearWordSyncState(true);
         this.advanceToNextStep();
       },
@@ -1245,6 +1279,7 @@ class AudioQueueService {
         if (errName === 'AbortError') return;
         if (errName === 'NotAllowedError') {
           this.clearLoadTimer();
+          this.clearStallTimer();
           this.setMediaPlaybackState('paused');
           this.emit({
             status: 'paused',
@@ -1469,7 +1504,10 @@ class AudioQueueService {
         try {
           let nextPageData: { verses: CombinedVerse[]; contextKey: string } | null = null;
           if (this.nextPageProvider) {
-            nextPageData = await this.nextPageProvider(nextPageNo);
+            nextPageData = await this.nextPageProvider(
+              nextPageNo,
+              () => session === this.playSessionId,
+            );
           } else {
             // StudyPage kapalı olsa bile (Ana Sayfa / Ezber sekmesindeyken) doğrudan dataService ile devam et
             const bundle = await dataService.getPageBundle(nextPageNo);
@@ -1487,9 +1525,13 @@ class AudioQueueService {
             this.verses = nextPageData.verses;
             this.contextKey = nextPageData.contextKey;
             this.queueBaseTitle = `Sayfa ${nextPageNo}`;
-            this.currentVerseIndex = 0;
+            const startIdx = Math.max(
+              0,
+              this.verses.findIndex((v) => v.page >= nextPageNo),
+            );
+            this.currentVerseIndex = startIdx;
 
-            for (let i = 0; i < this.verses.length; i += 1) {
+            for (let i = startIdx; i < this.verses.length; i += 1) {
               const nextSteps = this.buildStepsForVerse(i, true);
               if (nextSteps.length > 0) {
                 this.currentVerseIndex = i;
@@ -1853,6 +1895,7 @@ class AudioQueueService {
       }
       this.clearSkipTimer();
       this.clearLoadTimer();
+      this.clearStallTimer();
       this.stopWordSyncLoop();
       try {
         this.audio?.pause();

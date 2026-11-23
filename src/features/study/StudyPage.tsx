@@ -505,39 +505,43 @@ export const StudyPage: React.FC = () => {
       return;
     }
 
-    audioQueueService.registerNextPageProvider(async (nextPageNo: number) => {
-      if (nextPageNo > pageBounds.maxPage) return null;
-      const firstPageNo =
-        isEffectiveDualLeaf && nextPageNo >= pageBounds.maxPage
-          ? Math.max(pageBounds.minPage, pageBounds.maxPage - 1)
-          : nextPageNo;
-      const shouldLoadSecond = isEffectiveDualLeaf && firstPageNo < pageBounds.maxPage;
-      const [nextBundle, secondBundle] = await Promise.all([
-        dataService.getPageBundle(firstPageNo),
-        shouldLoadSecond ? dataService.getPageBundle(firstPageNo + 1) : Promise.resolve(null),
-      ]);
-      if (nextBundle.verses.length === 0) return null;
+    audioQueueService.registerNextPageProvider(
+      async (nextPageNo: number, isSessionActive: () => boolean) => {
+        if (nextPageNo > pageBounds.maxPage) return null;
+        const firstPageNo =
+          isEffectiveDualLeaf && nextPageNo >= pageBounds.maxPage
+            ? Math.max(pageBounds.minPage, pageBounds.maxPage - 1)
+            : nextPageNo;
+        const shouldLoadSecond = isEffectiveDualLeaf && firstPageNo < pageBounds.maxPage;
+        const [nextBundle, secondBundle] = await Promise.all([
+          dataService.getPageBundle(firstPageNo),
+          shouldLoadSecond ? dataService.getPageBundle(firstPageNo + 1) : Promise.resolve(null),
+        ]);
+        if (!isSessionActive() || nextBundle.verses.length === 0) return null;
 
-      setCurrentPageNo(nextBundle.pageNo);
-      setPageBundle(nextBundle);
-      setSecondPageBundle(secondBundle);
-      setSelectedAyahId(nextBundle.verses[0].id);
-      setCurrentSurahNo(nextBundle.verses[0].surah);
+        const combinedVerses = secondBundle
+          ? [...nextBundle.verses, ...secondBundle.verses]
+          : nextBundle.verses;
+        const targetStartVerse =
+          combinedVerses.find((v) => v.page >= nextPageNo) ?? nextBundle.verses[0];
 
-      const preloadTarget = shouldLoadSecond ? firstPageNo + 2 : firstPageNo + 1;
-      if (preloadTarget <= pageBounds.maxPage) {
-        dataService.getPageBundle(preloadTarget).catch(() => {});
-      }
+        setCurrentPageNo(nextBundle.pageNo);
+        setPageBundle(nextBundle);
+        setSecondPageBundle(secondBundle);
+        setSelectedAyahId(targetStartVerse.id);
+        setCurrentSurahNo(targetStartVerse.surah);
 
-      const combinedVerses = secondBundle
-        ? [...nextBundle.verses, ...secondBundle.verses]
-        : nextBundle.verses;
+        const preloadTarget = shouldLoadSecond ? firstPageNo + 2 : firstPageNo + 1;
+        if (preloadTarget <= pageBounds.maxPage) {
+          dataService.getPageBundle(preloadTarget).catch(() => {});
+        }
 
-      return {
-        verses: combinedVerses,
-        contextKey: `page:${nextBundle.pageNo}`,
-      };
-    });
+        return {
+          verses: combinedVerses,
+          contextKey: `page:${nextBundle.pageNo}`,
+        };
+      },
+    );
 
     return () => {
       audioQueueService.registerNextPageProvider(null);

@@ -1,4 +1,5 @@
 import { getSurahMaxAyah } from '../utils/quranBounds';
+import { isAllPersistencePaused, reportStorageQuotaError } from '../utils/storageQuotaBus';
 
 export const VERSE_NOTES_STORAGE_KEY = 'muallimun_verse_notes_v1';
 export const MAX_VERSE_NOTE_LENGTH = 4000;
@@ -227,14 +228,14 @@ function emitChange(): void {
 
 function persistNotes(next: VerseNote[]): void {
   rebuildCaches(next);
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && !isAllPersistencePaused()) {
     try {
       window.localStorage.setItem(
         VERSE_NOTES_STORAGE_KEY,
         JSON.stringify({ version: 1, notes: cachedNotes }),
       );
     } catch {
-      // ignore storage quota errors
+      reportStorageQuotaError();
     }
   }
   emitChange();

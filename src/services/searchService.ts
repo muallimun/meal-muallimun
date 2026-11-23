@@ -1,5 +1,5 @@
 import { findMealById, isExtraMealId, isRtlMeal } from '../config/mealsConfig';
-import { dataService } from './dataService';
+import { dataService, onDataGenerationChange } from './dataService';
 import { makeVerseNoteKey, verseNotesStorage } from './verseNotesStorage';
 import type { FihristTopic, SurahExtraInfo } from '../types/fihrist';
 import type { ManifestData, MealVerse, MetaData, SurahMeta, WordSurahFile } from '../types/quran';
@@ -147,6 +147,8 @@ const BATCH_SIZE = 10;
 export function clearSearchIndexCache(): void {
   surahSearchIndexCache.clear();
 }
+
+onDataGenerationChange(clearSearchIndexCache);
 
 export function getCachedIndexedSurahCount(): number {
   return surahSearchIndexCache.size;

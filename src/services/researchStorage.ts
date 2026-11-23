@@ -5,8 +5,14 @@ import type {
   ResearchVerseEntry,
 } from '../types/fihrist';
 import { clampAyahRange } from '../utils/quranBounds';
+import { isAllPersistencePaused, reportStorageQuotaError } from '../utils/storageQuotaBus';
 
 export const RESEARCH_NOTEBOOK_STORAGE_KEY = 'muallimun_research_notebooks_v1';
+const MAX_RESEARCH_TOPICS = 500;
+const MAX_ITEMS_PER_TOPIC = 500;
+const MAX_TOPIC_TITLE_LEN = 200;
+const MAX_TOPIC_DESC_LEN = 1000;
+const MAX_ENTRY_NOTE_LEN = 4000;
 
 type Listener = () => void;
 
@@ -39,7 +45,9 @@ function sanitizeVerseEntry(raw: unknown, idx: number): ResearchVerseEntry | nul
     startAyah = Number(rawStart);
     endAyah = rawEnd !== undefined ? Number(rawEnd) : startAyah;
     if (typeof r.id === 'string' && r.id.trim()) id = r.id.trim();
-    if (typeof r.note === 'string' && r.note.trim()) note = r.note.trim();
+    if (typeof r.note === 'string' && r.note.trim()) {
+      note = r.note.trim().slice(0, MAX_ENTRY_NOTE_LEN);
+    }
     if (typeof r.addedAt === 'string' && r.addedAt) addedAt = r.addedAt;
   }
 
@@ -72,7 +80,7 @@ function sanitizeTopic(raw: unknown, idx: number): ResearchTopic | null {
   if (!raw || typeof raw !== 'object') return null;
   const t = raw as Record<string, unknown>;
   const rawTitle = typeof t.title === 'string' ? t.title : typeof t.name === 'string' ? t.name : '';
-  const title = rawTitle.trim();
+  const title = rawTitle.trim().slice(0, MAX_TOPIC_TITLE_LEN);
   if (!title) return null;
 
   const rawItems = Array.isArray(t.items)
@@ -85,7 +93,7 @@ function sanitizeTopic(raw: unknown, idx: number): ResearchTopic | null {
   const items: ResearchVerseEntry[] = [];
   const seenItemIds = new Set<string>();
 
-  for (let i = 0; i < rawItems.length; i += 1) {
+  for (let i = 0; i < rawItems.length && items.length < MAX_ITEMS_PER_TOPIC; i += 1) {
     const clean = sanitizeVerseEntry(rawItems[i], i);
     if (!clean) continue;
     if (seenItemIds.has(clean.id)) {
@@ -101,7 +109,7 @@ function sanitizeTopic(raw: unknown, idx: number): ResearchTopic | null {
     title,
     description:
       typeof t.description === 'string' && t.description.trim()
-        ? t.description.trim()
+        ? t.description.trim().slice(0, MAX_TOPIC_DESC_LEN)
         : undefined,
     items,
     createdAt: typeof t.createdAt === 'string' && t.createdAt ? t.createdAt : now,
@@ -123,7 +131,7 @@ function readFromStorage(): ResearchTopic[] {
 
     const out: ResearchTopic[] = [];
     const seenIds = new Set<string>();
-    for (let i = 0; i < list.length; i += 1) {
+    for (let i = 0; i < list.length && out.length < MAX_RESEARCH_TOPICS; i += 1) {
       const clean = sanitizeTopic(list[i], i);
       if (!clean) continue;
       if (seenIds.has(clean.id)) {
@@ -138,18 +146,49 @@ function readFromStorage(): ResearchTopic[] {
   }
 }
 
-function writeToStorage(topics: ResearchTopic[]): void {
-  memoryTopics = topics;
-  if (typeof window !== 'undefined') {
-    try {
-      window.localStorage.setItem(RESEARCH_NOTEBOOK_STORAGE_KEY, JSON.stringify(topics));
-    } catch {
-      // Depolama kotası doluysa bellek kopyasıyla devam et
-    }
+function readLatestTopicsForMutation(): ResearchTopic[] {
+  if (typeof window === 'undefined') {
+    return memoryTopics ?? [];
   }
+  try {
+    const raw = window.localStorage.getItem(RESEARCH_NOTEBOOK_STORAGE_KEY);
+    if (raw === null) {
+      return memoryTopics ?? [];
+    }
+    const fresh = readFromStorage();
+    memoryTopics = fresh;
+    return fresh;
+  } catch {
+    return memoryTopics ?? [];
+  }
+}
+
+function emitListeners(): void {
   for (const listener of listeners) {
     listener();
   }
+}
+
+function writeToStorage(topics: ResearchTopic[]): void {
+  const capped = topics.slice(0, MAX_RESEARCH_TOPICS);
+  memoryTopics = capped;
+  if (typeof window !== 'undefined' && !isAllPersistencePaused()) {
+    try {
+      window.localStorage.setItem(RESEARCH_NOTEBOOK_STORAGE_KEY, JSON.stringify(capped));
+    } catch {
+      reportStorageQuotaError();
+    }
+  }
+  emitListeners();
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === RESEARCH_NOTEBOOK_STORAGE_KEY) {
+      memoryTopics = readFromStorage();
+      emitListeners();
+    }
+  });
 }
 
 export function getResearchTopicsSnapshot(): ResearchTopic[] {
@@ -167,17 +206,17 @@ export function subscribeResearchTopics(listener: Listener): () => void {
 }
 
 export function createResearchTopic(title: string, description?: string): ResearchTopic {
-  const cleanTitle = title.trim() || 'Yeni Araştırma Konusu';
+  const cleanTitle = title.trim().slice(0, MAX_TOPIC_TITLE_LEN) || 'Yeni Araştırma Konusu';
   const now = new Date().toISOString();
   const topic: ResearchTopic = {
     id: generateId('rt'),
     title: cleanTitle,
-    description: description?.trim() || undefined,
+    description: description?.trim().slice(0, MAX_TOPIC_DESC_LEN) || undefined,
     items: [],
     createdAt: now,
     updatedAt: now,
   };
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   writeToStorage([topic, ...current]);
   return topic;
 }
@@ -186,16 +225,19 @@ export function updateResearchTopicMeta(
   topicId: string,
   patch: { title?: string; description?: string },
 ): void {
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   const now = new Date().toISOString();
   const next = current.map((topic) => {
     if (topic.id !== topicId) return topic;
     return {
       ...topic,
-      title: patch.title !== undefined ? patch.title.trim() || topic.title : topic.title,
+      title:
+        patch.title !== undefined
+          ? patch.title.trim().slice(0, MAX_TOPIC_TITLE_LEN) || topic.title
+          : topic.title,
       description:
         patch.description !== undefined
-          ? patch.description.trim() || undefined
+          ? patch.description.trim().slice(0, MAX_TOPIC_DESC_LEN) || undefined
           : topic.description,
       updatedAt: now,
     };
@@ -204,7 +246,7 @@ export function updateResearchTopicMeta(
 }
 
 export function deleteResearchTopic(topicId: string): void {
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   writeToStorage(current.filter((t) => t.id !== topicId));
 }
 
@@ -214,7 +256,7 @@ export function addVersesToResearchTopic(
 ): { addedCount: number; skippedDuplicates: number } {
   if (ranges.length === 0) return { addedCount: 0, skippedDuplicates: 0 };
 
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   const now = new Date().toISOString();
   let addedCount = 0;
   let skippedDuplicates = 0;
@@ -224,9 +266,11 @@ export function addVersesToResearchTopic(
     const existingKeys = new Set(
       topic.items.map((it) => `${it.surah}:${it.startAyah}-${it.endAyah}`),
     );
+    const remainingSlots = Math.max(0, MAX_ITEMS_PER_TOPIC - topic.items.length);
     const newEntries: ResearchVerseEntry[] = [];
 
     for (const r of ranges) {
+      if (newEntries.length >= remainingSlots) break;
       const clamped = clampAyahRange(r.surah, r.startAyah, r.endAyah);
       if (!clamped) continue;
       const { surah: s, startAyah: a1, endAyah: a2 } = clamped;
@@ -242,7 +286,7 @@ export function addVersesToResearchTopic(
         surah: s,
         startAyah: a1,
         endAyah: a2,
-        note: r.note?.trim() || undefined,
+        note: r.note?.trim().slice(0, MAX_ENTRY_NOTE_LEN) || undefined,
         addedAt: now,
       });
     }
@@ -266,9 +310,9 @@ export function updateResearchVerseNote(
   entryId: string,
   note: string,
 ): void {
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   const now = new Date().toISOString();
-  const cleanNote = note.trim();
+  const cleanNote = note.trim().slice(0, MAX_ENTRY_NOTE_LEN);
   const next = current.map((topic) => {
     if (topic.id !== topicId) return topic;
     return {
@@ -294,9 +338,10 @@ export function updateResearchVerse(
   );
   if (!clamped) return;
   const { surah: s, startAyah: a1, endAyah: a2 } = clamped;
-  const cleanNote = patch.note !== undefined ? patch.note.trim() || undefined : undefined;
+  const cleanNote =
+    patch.note !== undefined ? patch.note.trim().slice(0, MAX_ENTRY_NOTE_LEN) || undefined : undefined;
 
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   const now = new Date().toISOString();
   const next = current.map((topic) => {
     if (topic.id !== topicId) return topic;
@@ -320,7 +365,7 @@ export function updateResearchVerse(
 }
 
 export function removeResearchVerse(topicId: string, entryId: string): void {
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   const now = new Date().toISOString();
   const next = current.map((topic) => {
     if (topic.id !== topicId) return topic;
@@ -338,7 +383,7 @@ export function moveResearchVerse(
   entryId: string,
   direction: 'up' | 'down',
 ): void {
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   const now = new Date().toISOString();
   const next = current.map((topic) => {
     if (topic.id !== topicId) return topic;
@@ -360,26 +405,29 @@ export function moveResearchVerse(
 
 export function copyFihristTopicToNotebook(fihristTopic: FihristTopic): ResearchTopic {
   const now = new Date().toISOString();
-  const items: ResearchVerseEntry[] = fihristTopic.refs.map(([surah, startAyah, endAyah], idx) => ({
-    id: `${generateId('rv')}_${idx}`,
-    surah,
-    startAyah,
-    endAyah,
-    addedAt: now,
-  }));
+  const items: ResearchVerseEntry[] = fihristTopic.refs
+    .slice(0, MAX_ITEMS_PER_TOPIC)
+    .map(([surah, startAyah, endAyah], idx) => ({
+      id: `${generateId('rv')}_${idx}`,
+      surah,
+      startAyah,
+      endAyah,
+      addedAt: now,
+    }));
 
   const newTopic: ResearchTopic = {
     id: generateId('rt'),
-    title: fihristTopic.title,
-    description: fihristTopic.tags?.length
+    title: fihristTopic.title.trim().slice(0, MAX_TOPIC_TITLE_LEN),
+    description: (fihristTopic.tags?.length
       ? `Konu fihristinden kopyalandı · Etiketler: ${fihristTopic.tags.join(', ')}`
-      : 'Konu fihristinden kopyalandı',
+      : 'Konu fihristinden kopyalandı'
+    ).slice(0, MAX_TOPIC_DESC_LEN),
     items,
     createdAt: now,
     updatedAt: now,
   };
 
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   writeToStorage([newTopic, ...current]);
   return newTopic;
 }
@@ -425,7 +473,7 @@ export function importResearchBackupPayload(
   }
 
   const incoming: ResearchTopic[] = [];
-  for (let i = 0; i < rawTopics.length; i += 1) {
+  for (let i = 0; i < rawTopics.length && incoming.length < MAX_RESEARCH_TOPICS; i += 1) {
     const clean = sanitizeTopic(rawTopics[i], i);
     if (clean) incoming.push(clean);
   }
@@ -439,12 +487,13 @@ export function importResearchBackupPayload(
     return { importedTopics: incoming.length, totalTopics: incoming.length };
   }
 
-  const current = getResearchTopicsSnapshot();
+  const current = readLatestTopicsForMutation();
   const existingIds = new Set(current.map((t) => t.id));
   const merged = [...current];
   let importedCount = 0;
 
   for (const topic of incoming) {
+    if (merged.length >= MAX_RESEARCH_TOPICS) break;
     const finalTopic = existingIds.has(topic.id)
       ? { ...topic, id: generateId('rt') }
       : topic;

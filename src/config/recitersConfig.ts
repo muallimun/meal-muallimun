@@ -62,9 +62,9 @@ export const RECITERS_CATALOG: readonly ReciterDefinition[] = [
     category: 'turk',
     styleLabel: 'Hatim',
     baseUrl:
-      'https://dn721808.ca.archive.org/0/items/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
-    fallbackBaseUrl:
       'https://archive.org/download/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
+    fallbackBaseUrl:
+      'https://dn721808.ca.archive.org/0/items/ishak-danis-ayet-ayet-hatim-arsivi/Ishak_Danis',
     filePattern: 'underscore',
     ext: 'mp3',
   },
@@ -75,9 +75,9 @@ export const RECITERS_CATALOG: readonly ReciterDefinition[] = [
     category: 'turk',
     styleLabel: 'Hatim',
     baseUrl:
-      'https://dn711205.ca.archive.org/0/items/davut-kaya-ayet-ayet-hatim-arsivi/Davut_Kaya',
-    fallbackBaseUrl:
       'https://archive.org/download/davut-kaya-ayet-ayet-hatim-arsivi/Davut_Kaya',
+    fallbackBaseUrl:
+      'https://dn711205.ca.archive.org/0/items/davut-kaya-ayet-ayet-hatim-arsivi/Davut_Kaya',
     filePattern: 'underscore',
     ext: 'mp3',
   },
@@ -88,9 +88,9 @@ export const RECITERS_CATALOG: readonly ReciterDefinition[] = [
     category: 'turk',
     styleLabel: 'Hatim',
     baseUrl:
-      'https://dn710202.ca.archive.org/0/items/osman-sahin-ayet-ayet-hatim-arsivi',
-    fallbackBaseUrl:
       'https://archive.org/download/osman-sahin-ayet-ayet-hatim-arsivi',
+    fallbackBaseUrl:
+      'https://dn710202.ca.archive.org/0/items/osman-sahin-ayet-ayet-hatim-arsivi',
     filePattern: 'underscore',
     ext: 'mp3',
   },
@@ -415,17 +415,31 @@ export function getAllReciters(manifest: ManifestData | null): ReciterDefinition
     for (const [key, src] of Object.entries(manifest.audioSources)) {
       if (!src || src.kind !== 'ar' || !src.baseUrl?.trim()) continue;
       const id = src.id || key;
-      const cleanBase = src.baseUrl.replace(/\/+$/, '');
+      const rawBase = src.baseUrl.replace(/\/+$/, '');
+      const rawFallback = src.fallbackBaseUrl?.replace(/\/+$/, '') || undefined;
+      const ephemeralMatch = rawBase.match(/^https?:\/\/[^/]*\.archive\.org\/0\/items\/(.+)$/i);
+      const cleanBase =
+        ephemeralMatch && ephemeralMatch[1]
+          ? `https://archive.org/download/${ephemeralMatch[1].replace(/\/+$/, '')}`
+          : rawBase;
+      const normalizedFallback =
+        ephemeralMatch && ephemeralMatch[1]
+          ? rawBase
+          : rawFallback && rawFallback !== cleanBase
+            ? rawFallback
+            : undefined;
       const existing = map.get(id);
 
       if (existing) {
+        const existingFallback =
+          existing.fallbackBaseUrl && existing.fallbackBaseUrl !== cleanBase
+            ? existing.fallbackBaseUrl
+            : undefined;
         map.set(id, {
           ...existing,
           baseUrl: cleanBase,
           fallbackBaseUrl:
-            src.fallbackBaseUrl?.replace(/\/+$/, '') ||
-            existing.fallbackBaseUrl ||
-            inferArchiveFallback(cleanBase),
+            normalizedFallback || existingFallback || inferArchiveFallback(cleanBase),
           filePattern: src.filePattern ?? existing.filePattern,
           bitrate: src.bitrate ?? existing.bitrate,
           styleLabel: src.styleLabel ?? existing.styleLabel,
@@ -441,7 +455,7 @@ export function getAllReciters(manifest: ManifestData | null): ReciterDefinition
           styleLabel: src.styleLabel ?? (filePattern === 'underscore' ? 'Hatim' : 'Mürattel'),
           bitrate: src.bitrate,
           baseUrl: cleanBase,
-          fallbackBaseUrl: src.fallbackBaseUrl?.replace(/\/+$/, '') || inferArchiveFallback(cleanBase),
+          fallbackBaseUrl: normalizedFallback || inferArchiveFallback(cleanBase),
           filePattern,
           ext: 'mp3',
         });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Download, Home, RotateCcw, X } from 'lucide-react';
 import { memorizationStorage } from '../services/memorizationStorage';
+import type { MemorizationBackupPayload } from '../types/memorization';
 import { loadActiveExamSession } from '../utils/examUtils';
 
 export interface ErrorBoundaryProps {
@@ -14,6 +15,7 @@ interface ErrorBoundaryState {
   hasError: boolean;
   errorMessage: string;
   backupFeedback: string | null;
+  isExportingBackup: boolean;
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -23,6 +25,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       hasError: false,
       errorMessage: '',
       backupFeedback: null,
+      isExportingBackup: false,
     };
   }
 
@@ -54,7 +57,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     this.setState({ hasError: false, errorMessage: '', backupFeedback: null });
   };
 
-  private handleEmergencyBackup = (): void => {
+  private handleEmergencyBackup = async (): Promise<void> => {
+    if (this.state.isExportingBackup) return;
+    this.setState({ isExportingBackup: true, backupFeedback: null });
+
     try {
       const localEntries: Record<string, string> = {};
       if (typeof window !== 'undefined') {
@@ -68,9 +74,24 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         }
       }
 
-      const units = memorizationStorage.readUnitsSync();
-      const prefs = memorizationStorage.readPrefsSync();
-      const activeSession = memorizationStorage.readActiveSessionSync();
+      let isPartialFallback = false;
+      let memorizationPayload: MemorizationBackupPayload;
+
+      try {
+        memorizationPayload = await memorizationStorage.createBackupPayload();
+      } catch {
+        isPartialFallback = true;
+        memorizationPayload = {
+          app: 'muallimun-memorization',
+          version: 2,
+          exportedAt: new Date().toISOString(),
+          units: memorizationStorage.readUnitsSync(),
+          prefs: memorizationStorage.readPrefsSync(),
+          activeSession: memorizationStorage.readActiveSessionSync(),
+          classicalPlan: memorizationStorage.readClassicalPlanSync(),
+        };
+      }
+
       const activeExamSession = loadActiveExamSession();
 
       const payload = {
@@ -79,14 +100,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         emergency: true,
         exportedAt: new Date().toISOString(),
         localStorage: localEntries,
-        memorization: {
-          app: 'muallimun-memorization',
-          version: 2,
-          exportedAt: new Date().toISOString(),
-          units,
-          prefs,
-          activeSession,
-        },
+        memorization: memorizationPayload,
         ...(activeExamSession ? { activeExamSession } : {}),
       };
 
@@ -104,10 +118,14 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       this.setState({
-        backupFeedback: `Acil yedek indirildi (${Object.keys(localEntries).length} kayıt alanı ve ${units.length} ezber birimi).`,
+        isExportingBackup: false,
+        backupFeedback: isPartialFallback
+          ? `Kısmi acil yedek indirildi (yerel kopya · ${Object.keys(localEntries).length} kayıt alanı ve ${memorizationPayload.units.length} ezber birimi).`
+          : `Acil yedek indirildi (${Object.keys(localEntries).length} kayıt alanı ve ${memorizationPayload.units.length} ezber birimi).`,
       });
     } catch {
       this.setState({
+        isExportingBackup: false,
         backupFeedback: 'Acil yedek oluşturulurken bir sorun oluştu.',
       });
     }
@@ -251,8 +269,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           >
             <button
               type="button"
-              onClick={this.handleEmergencyBackup}
-              className="w-full min-h-[40px] px-4 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer"
+              disabled={this.state.isExportingBackup}
+              onClick={() => void this.handleEmergencyBackup()}
+              className="w-full min-h-[40px] px-4 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
               style={{
                 backgroundColor: 'var(--brand-primary-soft)',
                 borderColor: 'rgba(15, 118, 110, 0.35)',
@@ -260,7 +279,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               }}
             >
               <Download className="w-4 h-4 shrink-0" />
-              <span>Acil Yedek İndir (.json)</span>
+              <span>
+                {this.state.isExportingBackup ? 'Acil Yedek Hazırlanıyor...' : 'Acil Yedek İndir (.json)'}
+              </span>
             </button>
 
             {this.state.backupFeedback && (

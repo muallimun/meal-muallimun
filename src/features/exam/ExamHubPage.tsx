@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowRight,
   BookOpen,
   ClipboardCheck,
@@ -11,6 +12,7 @@ import {
   Loader2,
   Play,
   Printer,
+  RotateCcw,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -64,6 +66,8 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
   const {
     meta,
     questionIndex,
+    questionIndexError,
+    retryLoadQuestionIndex,
     poolStats,
     gamification,
     questionAudit,
@@ -88,6 +92,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState<boolean>(false);
   const [surahSearch, setSurahSearch] = useState<string>('');
+  const [isRetryingIndex, setIsRetryingIndex] = useState<boolean>(false);
 
   const reportedCount = Object.keys(questionAudit.reports).length;
 
@@ -210,8 +215,70 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
     }
   };
 
+  const handleRetryQuestionIndex = async () => {
+    if (isRetryingIndex) return;
+    sfxService.play('click');
+    setIsRetryingIndex(true);
+    try {
+      await retryLoadQuestionIndex();
+    } finally {
+      setIsRetryingIndex(false);
+    }
+  };
+
   return (
     <div className="space-y-4 pb-6">
+      {/* ====================================================================
+          Soru Bankası Dizini Yükleme Hatası Uyarısı
+          ==================================================================== */}
+      {questionIndex === null && questionIndexError && (
+        <section
+          role="alert"
+          aria-label="Soru bankası dizini yüklenemedi"
+          className="surface-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          style={{
+            backgroundColor: 'var(--state-danger-bg)',
+            borderColor: 'rgba(239, 68, 68, 0.35)',
+          }}
+        >
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.14)',
+                color: 'var(--state-danger-text)',
+              }}
+            >
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-extrabold" style={{ color: 'var(--state-danger-text)' }}>
+                {questionIndexError}
+              </p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                Okuma, Ezber ve Fihrist modüllerini kullanmaya devam edebilirsiniz. İnternet
+                bağlantınızı kontrol edip soru dizinini yeniden yükleyebilirsiniz.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            disabled={isRetryingIndex}
+            onClick={() => void handleRetryQuestionIndex()}
+            className="min-h-[40px] px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 disabled:opacity-60"
+            style={{ backgroundColor: 'var(--brand-primary)' }}
+          >
+            {isRetryingIndex ? (
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            ) : (
+              <RotateCcw className="w-4 h-4 shrink-0" />
+            )}
+            <span>{isRetryingIndex ? 'Yükleniyor...' : 'Yeniden Dene'}</span>
+          </button>
+        </section>
+      )}
+
       {/* ====================================================================
           Yarım Kalan Sınav Uyarısı (sessionStorage)
           ==================================================================== */}

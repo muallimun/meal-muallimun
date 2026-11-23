@@ -27,6 +27,11 @@ import { audioQueueService } from '../services/audioQueueService';
 import { dataService, type DataSourceMode } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { wakeLockService } from '../services/wakeLockService';
+import {
+  STORAGE_QUOTA_EVENT,
+  isAllPersistencePaused,
+  setAllPersistencePaused,
+} from '../utils/storageQuotaBus';
 import type { QuickResearchSeed } from '../types/fihrist';
 import type {
   MemorizeLaunchTarget,
@@ -1269,6 +1274,8 @@ interface AppContextValue {
   manifest: ManifestData | null;
   meta: MetaData | null;
   questionIndex: QuestionIndexFile | null;
+  questionIndexError: string | null;
+  retryLoadQuestionIndex: () => Promise<void>;
   isLoadingCore: boolean;
   coreError: string | null;
   dataSourceMode: DataSourceMode;
@@ -1297,6 +1304,7 @@ let storePersistencePaused = false;
 
 export function setStorePersistencePaused(paused: boolean): void {
   storePersistencePaused = paused;
+  setAllPersistencePaused(paused);
 }
 
 function readIntroDismissed(): boolean {
@@ -1439,6 +1447,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [manifest, setManifest] = useState<ManifestData | null>(null);
   const [meta, setMeta] = useState<MetaData | null>(null);
   const [questionIndex, setQuestionIndex] = useState<QuestionIndexFile | null>(null);
+  const [questionIndexError, setQuestionIndexError] = useState<string | null>(null);
   const [isLoadingCore, setIsLoadingCore] = useState(true);
   const [coreError, setCoreError] = useState<string | null>(null);
   const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>('local');
@@ -1492,6 +1501,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setStorageQuotaWarning(null);
   }, []);
 
+  useEffect(() => {
+    const handleQuotaEvent = () => {
+      setStorageQuotaWarning(STORAGE_QUOTA_WARNING_TEXT);
+    };
+    window.addEventListener(STORAGE_QUOTA_EVENT, handleQuotaEvent);
+    return () => {
+      window.removeEventListener(STORAGE_QUOTA_EVENT, handleQuotaEvent);
+    };
+  }, []);
+
   const latestPersistedRef = useRef<PersistedAppState>(persisted);
   const hasPendingPersistRef = useRef(false);
   const skipNextPersistRef = useRef(false);
@@ -1512,7 +1531,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       window.clearTimeout(persistTimerRef.current);
       persistTimerRef.current = null;
     }
-    if (!hasPendingPersistRef.current || storePersistencePaused) return;
+    if (!hasPendingPersistRef.current || storePersistencePaused || isAllPersistencePaused()) return;
     hasPendingPersistRef.current = false;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(latestPersistedRef.current));
@@ -1529,7 +1548,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       skipNextPersistRef.current = false;
       return;
     }
-    if (storePersistencePaused) return;
+    if (storePersistencePaused || isAllPersistencePaused()) return;
 
     hasPendingPersistRef.current = true;
     if (persistTimerRef.current !== null) {
@@ -1574,7 +1593,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sekmeler arası depolama senkronizasyonu (aktif sınav veya ezber oturumu sırasında kesinti yapmaz)
   useEffect(() => {
     const handleStorageSync = (e: StorageEvent) => {
-      if (e.key !== STORAGE_KEY || storePersistencePaused) return;
+      if (e.key !== STORAGE_KEY || storePersistencePaused || isAllPersistencePaused()) return;
       if (isExamActiveRef.current || isMemorizationZenActiveRef.current) return;
       if (persistTimerRef.current !== null) {
         window.clearTimeout(persistTimerRef.current);
@@ -1623,45 +1642,75 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [persisted.settings.wordSyncEnabled]);
 
-  // Çekirdek veri dosyalarını paralel yükle
+  const applyDefaultStudyPoolSurahs = useCallback((surahs: number[]) => {
+    if (surahs.length === 0) return;
+    setPersisted((prev) => {
+      if (prev.studyPool.isCustomized) return prev;
+      const sameLength = prev.studyPool.selectedSurahs.length === surahs.length;
+      const sameItems =
+        sameLength && prev.studyPool.selectedSurahs.every((s, idx) => s === surahs[idx]);
+      if (sameItems && prev.studyPool.selectedJuzs.length === 0) return prev;
+      return {
+        ...prev,
+        studyPool: {
+          selectedSurahs: [...surahs],
+          selectedJuzs: [],
+          isCustomized: false,
+        },
+      };
+    });
+  }, []);
+
+  const loadQuestionIndexSafely = useCallback(
+    async (fallbackSurahs?: number[], isCancelled?: () => boolean) => {
+      try {
+        const qIndexRes = await dataService.getQuestionIndex();
+        if (isCancelled?.()) return;
+        setQuestionIndex(qIndexRes);
+        setQuestionIndexError(null);
+        if (qIndexRes.availableSurahs.length > 0) {
+          applyDefaultStudyPoolSurahs(qIndexRes.availableSurahs);
+        }
+      } catch {
+        if (isCancelled?.()) return;
+        setQuestionIndex(null);
+        setQuestionIndexError('Soru bankası dizini şu anda yüklenemedi.');
+        if (fallbackSurahs && fallbackSurahs.length > 0) {
+          applyDefaultStudyPoolSurahs(fallbackSurahs);
+        }
+      }
+    },
+    [applyDefaultStudyPoolSurahs],
+  );
+
+  const retryLoadQuestionIndex = useCallback(async () => {
+    setQuestionIndexError(null);
+    await loadQuestionIndexSafely(manifest?.stats?.questionSurahs);
+  }, [loadQuestionIndexSafely, manifest?.stats?.questionSurahs]);
+
+  // Çekirdek veri dosyalarını paralel yükle (q/index.json bağımsızdır; çekirdek açılışı kilitlemez)
   useEffect(() => {
     let cancelled = false;
 
     async function loadCore() {
       setIsLoadingCore(true);
       setCoreError(null);
+      setQuestionIndexError(null);
       try {
-        const [manifestRes, metaRes, qIndexRes] = await Promise.all([
+        const [manifestRes, metaRes] = await Promise.all([
           dataService.getManifest(),
           dataService.getMeta(),
-          dataService.getQuestionIndex(),
         ]);
 
         if (cancelled) return;
         setManifest(manifestRes);
         setMeta(metaRes);
-        setQuestionIndex(qIndexRes);
         setDataSourceMode(dataService.getActiveDataSource());
 
-        if (qIndexRes.availableSurahs.length > 0) {
-          setPersisted((prev) => {
-            if (prev.studyPool.isCustomized) return prev;
-            const sameLength =
-              prev.studyPool.selectedSurahs.length === qIndexRes.availableSurahs.length;
-            const sameItems =
-              sameLength &&
-              prev.studyPool.selectedSurahs.every((s, idx) => s === qIndexRes.availableSurahs[idx]);
-            if (sameItems && prev.studyPool.selectedJuzs.length === 0) return prev;
-            return {
-              ...prev,
-              studyPool: {
-                selectedSurahs: [...qIndexRes.availableSurahs],
-                selectedJuzs: [],
-                isCustomized: false,
-              },
-            };
-          });
-        }
+        const fallbackSurahs = Array.isArray(manifestRes.stats?.questionSurahs)
+          ? manifestRes.stats.questionSurahs
+          : undefined;
+        void loadQuestionIndexSafely(fallbackSurahs, () => cancelled);
       } catch (err) {
         if (cancelled) return;
         setCoreError(
@@ -1680,7 +1729,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       cancelled = true;
     };
-  }, [reloadTick]);
+  }, [reloadTick, loadQuestionIndexSafely]);
 
   const updateSettings = useCallback((patch: Partial<AppSettings>) => {
     setPersisted((prev) => {
@@ -3084,6 +3133,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       manifest,
       meta,
       questionIndex,
+      questionIndexError,
+      retryLoadQuestionIndex,
       isLoadingCore,
       coreError,
       dataSourceMode,
@@ -3228,6 +3279,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       manifest,
       meta,
       questionIndex,
+      questionIndexError,
+      retryLoadQuestionIndex,
       isLoadingCore,
       coreError,
       dataSourceMode,

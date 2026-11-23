@@ -389,12 +389,13 @@ export function selectAndPrepareExamQuestions(params: {
 // Aktif Sınav Oturumu (sessionStorage) Kaydet / Geri Yükle / Temizle
 // ============================================================================
 
-export function saveActiveExamSession(session: ExamSessionState): void {
-  if (typeof window === 'undefined') return;
+export function saveActiveExamSession(session: ExamSessionState): boolean {
+  if (typeof window === 'undefined') return false;
   try {
     window.sessionStorage.setItem(ACTIVE_EXAM_SESSION_KEY, JSON.stringify(session));
+    return true;
   } catch {
-    // sessionStorage kısıtlıysa sessizce devam et
+    return false;
   }
 }
 
