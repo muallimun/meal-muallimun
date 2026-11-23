@@ -50,7 +50,7 @@ export interface MemorizationUnit {
   starredVerseKeys: string[];
   createdAt: number;
   lastPracticedAt: number | null;
-  /** Sabak–Sabkî–Menzil aralıklı tekrar basamağı (0..5 -> 1, 3, 7, 14, 30 gün) */
+  /** Üç aşamalı aralıklı tekrar basamağı (0..5 -> 1, 3, 7, 14, 30 gün) */
   reviewStep: number;
   /** SRS kutu indeksi (0..5, reviewStep ile senkron) */
   srsBox?: number;
@@ -202,25 +202,25 @@ export const RETENTION_STAGE_META: Record<
   }
 > = {
   raw: {
-    label: 'Ham · Çalışılıyor',
-    shortLabel: 'Ham',
-    description: 'Yeni başlandı, tekrar ve bağlantı aşamasında',
+    label: 'Yeni Ezber',
+    shortLabel: 'Yeni Ezber',
+    description: 'İlk öğrenme ve günlük yeni ders aşamasında',
     badgeBg: 'var(--brand-accent-soft)',
     badgeColor: 'var(--brand-accent-text)',
     badgeBorder: 'rgba(217, 119, 6, 0.35)',
   },
   fresh: {
-    label: 'Taze · Pekiştirme',
-    shortLabel: 'Taze',
-    description: 'Ezberlendi, akıcılık ve pekiştirme tekrarında',
+    label: 'Pekiştirme',
+    shortLabel: 'Pekiştirme',
+    description: 'Ezberlendi, yakın dönem pekiştirme tekrarında',
     badgeBg: 'rgba(14, 165, 233, 0.12)',
     badgeColor: '#0369A1',
     badgeBorder: 'rgba(14, 165, 233, 0.35)',
   },
   solid: {
-    label: 'Sağlam · Muhafaza',
-    shortLabel: 'Sağlam',
-    description: 'Oturmuş ezber, dönemsel muhafaza tekrarında',
+    label: 'Kalıcı Tekrar',
+    shortLabel: 'Kalıcı Tekrar',
+    description: 'Sağlamlaşmış ezber, uzun süreli muhafaza tekrarında',
     badgeBg: 'var(--brand-primary-soft)',
     badgeColor: 'var(--brand-primary-text)',
     badgeBorder: 'rgba(15, 118, 110, 0.35)',

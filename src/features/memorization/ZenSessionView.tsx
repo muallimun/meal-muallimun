@@ -1309,7 +1309,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
     ];
 
   // ============================================================================
-  // OTURUM SONU SAKİN ÖZET & SABAK–MENZİL ÖZ-DEĞERLENDİRME EKRANI
+  // OTURUM SONU SAKİN ÖZET & ARALIKLI TEKRAR ÖZ-DEĞERLENDİRME EKRANI
   // ============================================================================
   if (isFinished) {
     const currentStageMeta = RETENTION_STAGE_META[unit.stage];
@@ -1414,7 +1414,7 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
             </div>
           )}
 
-          {/* Sabak · Sabkî · Menzil 3 Butonlu Öz-Değerlendirme */}
+          {/* Üç Aşamalı Aralıklı Tekrar Öz-Değerlendirmesi */}
           <div className="space-y-2.5">
             <div className="text-center space-y-0.5">
               <p className="text-xs sm:text-sm font-extrabold">

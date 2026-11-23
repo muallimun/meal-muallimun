@@ -52,6 +52,7 @@ import {
   undoLastClassicalLesson,
   updateClassicalPlanSettings,
 } from '../../utils/classicalHifzUtils';
+import { MemorizationMethodGuide } from './MemorizationMethodGuide';
 
 interface ClassicalHifzViewProps {
   plan: ClassicalHifzPlan | null;
@@ -366,80 +367,8 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
   if (!plan || !plan.isActive || !lesson || !stats) {
     return (
       <div className="space-y-4">
-        {/* Başlık ve Usul Özeti */}
-        <section
-          className="rounded-3xl border p-4 sm:p-6 space-y-4"
-          style={{
-            backgroundColor: 'var(--bg-surface)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1 max-w-2xl">
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase tracking-wider"
-                style={{
-                  backgroundColor: 'var(--brand-accent-soft)',
-                  color: 'var(--brand-accent-text)',
-                }}
-              >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Osmanlı / Diyanet Klasik Hafızlık Usulü</span>
-              </span>
-              <h2 className="text-lg sm:text-2xl font-extrabold tracking-tight">
-                30 Cüz · 20 Tur Dönüşümlü Ham–Has Sistemi
-              </h2>
-              <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                Kur&apos;an kurslarında yüzyıllardır uygulanan bu yöntemle 604 sayfayı düzenli
-                turlar hâlinde ezberleyebilir, günlük Ham ve Has derslerinizi kolayca takip
-                edebilirsiniz.
-              </p>
-            </div>
-          </div>
-
-          {/* 3 Maddelik Yöntem Özeti */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            {[
-              {
-                step: '1',
-                title: '1. Turda Son Sayfalar (Ham)',
-                desc: 'Her cüzün en son sayfası (1. cüzde s. 20, 2. cüzde s. 40…) sırayla Ham olarak ezberlenir ve 30 cüz dönülür.',
-              },
-              {
-                step: '2',
-                title: '2. Turdan İtibaren Ham + Has',
-                desc: '2. tura dönüldüğünde 19. sayfa yeni Ham olur; önceki turda ezberlenen 20. sayfa artık Has (sağlam) kabul edilir.',
-              },
-              {
-                step: '3',
-                title: 'Sondan Başa Ezber, Yukarıdan Aşağı Dinletme',
-                desc: 'Sayfalar cüz sonundan başa doğru alınır; derste ise Mushaf sırasıyla yukarıdan aşağıya birbirine bağlanarak okunur.',
-              },
-            ].map((item) => (
-              <div
-                key={item.step}
-                className="rounded-2xl border p-3.5 space-y-1.5"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-6 h-6 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 text-white"
-                    style={{ backgroundColor: 'var(--brand-primary)' }}
-                  >
-                    {item.step}
-                  </span>
-                  <h3 className="text-xs sm:text-sm font-extrabold">{item.title}</h3>
-                </div>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* Açılır–Kapanır Klasik Hafızlık Usulü & Kavramlar Rehberi */}
+        <MemorizationMethodGuide variant="classical" hasActiveProgress={false} />
 
         {/* Kurulum Seçenekleri */}
         <section
@@ -726,6 +655,9 @@ export const ClassicalHifzView: React.FC<ClassicalHifzViewProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Tek Satırlık Açılır–Kapanır Klasik Hafızlık Rehberi & Kavramlar */}
+      <MemorizationMethodGuide variant="classical" hasActiveProgress={true} />
+
       {/* 1. Üst İlerleme Şeridi */}
       <section
         className="rounded-3xl border p-4 sm:p-5 space-y-3"

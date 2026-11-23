@@ -61,6 +61,7 @@ import {
 import { ClassicalHifzView } from './ClassicalHifzView';
 import { CreatePoolModal } from './CreatePoolModal';
 import { HifzMapView } from './HifzMapView';
+import { MemorizationMethodGuide } from './MemorizationMethodGuide';
 import { QuickStartDrawer } from './QuickStartDrawer';
 import { RabtQuizModal } from './RabtQuizModal';
 import { ZenSessionView } from './ZenSessionView';
@@ -515,7 +516,11 @@ export const MemorizationHubPage: React.FC = () => {
             <span>Ezber Modu</span>
           </h1>
           <p className="text-xs sm:text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-            Sabak–Menzil tekrar takvimi, hazır seçkiler ve odaklanmış çalışma alanı
+            {hubView === 'classical'
+              ? 'Osmanlı–Diyanet usulü 30 cüz · 20 tur dönüşümlü Ham ve Has ders takip sistemi'
+              : hubView === 'hifz_map'
+                ? '114 surenin tamamında ezberlenen ve çalışılan bölümlerin Mushaf özeti'
+                : 'Sure, aşır ve ayet seçkileriyle adım adım ezber ve aralıklı tekrar takibi'}
           </p>
         </div>
 
@@ -559,18 +564,20 @@ export const MemorizationHubPage: React.FC = () => {
             <span>Yedekle</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setIsCreateModalOpen(true);
-            }}
-            className="flex-1 sm:flex-none min-h-[40px] px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shrink-0"
-            style={{ backgroundColor: 'var(--brand-primary)' }}
-          >
-            <Plus className="w-4 h-4 shrink-0" />
-            <span>Yeni Ezber Ekle</span>
-          </button>
+          {hubView !== 'classical' && (
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsCreateModalOpen(true);
+              }}
+              className="flex-1 sm:flex-none min-h-[40px] px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shrink-0"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <Plus className="w-4 h-4 shrink-0" />
+              <span>Sure / Bölüm Ekle</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -758,6 +765,8 @@ export const MemorizationHubPage: React.FC = () => {
         />
       ) : (
         <>
+          {/* Açılır–Kapanır Sure & Aşır Ezberleme Yöntemi Rehberi */}
+          <MemorizationMethodGuide variant="pool" hasActiveProgress={units.length > 0} />
 
       {/* Bugünkü Çalışmam / Kaldığım Yer Sakin Hero Kartı */}
       {resumeUnit && activeSession ? (
@@ -957,9 +966,9 @@ export const MemorizationHubPage: React.FC = () => {
                 ...(dueUnits.length > 0
                   ? [{ id: 'due' as StageFilter, label: `Bugün Tekrar (${dueUnits.length})` }]
                   : []),
-                { id: 'raw', label: `Ham (${stageCounts.raw})` },
-                { id: 'fresh', label: `Taze (${stageCounts.fresh})` },
-                { id: 'solid', label: `Sağlam (${stageCounts.solid})` },
+                { id: 'raw', label: `Yeni Ezber (${stageCounts.raw})` },
+                { id: 'fresh', label: `Pekiştirme (${stageCounts.fresh})` },
+                { id: 'solid', label: `Kalıcı Tekrar (${stageCounts.solid})` },
               ] as Array<{ id: StageFilter; label: string }>
             ).map((chip) => {
               const active = stageFilter === chip.id;
@@ -1483,7 +1492,7 @@ export const MemorizationHubPage: React.FC = () => {
                 <div>
                   <p className="text-xs sm:text-sm font-extrabold">Yedeği Dışa Aktar</p>
                   <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Mevcut {units.length} ezber birimi, yıldızlı ayetler, Sabak–Menzil takvimi ve çalışma tercihleri tarih damgalı dosya olarak indirilir.
+                    Mevcut {units.length} ezber birimi, yıldızlı ayetler, tekrar takvimi ve çalışma tercihleri tarih damgalı dosya olarak indirilir.
                   </p>
                 </div>
                 <button

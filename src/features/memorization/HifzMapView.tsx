@@ -259,7 +259,7 @@ export const HifzMapView: React.FC<HifzMapViewProps> = ({
         >
           <span className="inline-flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
-            %100 Ezberlenen (Taze/Sağlam)
+            %100 Ezberlenen (Pekiştirme / Kalıcı)
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block" />
