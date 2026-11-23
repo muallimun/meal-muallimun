@@ -19,6 +19,47 @@ interface TajweedTextProps {
 }
 
 /**
+ * Karanlık ve Zümrüt zeminler için WCAG AAA yüksek parlaklıklı (high-luminance)
+ * tecvit renk haritası. Sessiz/hemze-i vasıl harflerinin kaybolmasını, yeşil/teal
+ * kuralların ise koyu zümrüt zemine karışmasını önler.
+ */
+const HIGH_LUMINANCE_DARK_TAJWEED_COLORS: Record<string, string> = {
+  // Sessiz / Okunmayan / Hemze-i Vasıl / Şemsî Lâm — net gümüş-slate (harf iskeleti okunur)
+  hw: '#CBD5E1',
+  sl: '#CBD5E1',
+  ls: '#CBD5E1',
+  iz: '#E2E8F0',
+  // Gunne & İhfâ — parlak nane/zümrüt yeşili
+  gh: '#86EFAC',
+  ik: '#6EE7B7',
+  iks: '#5EEAD4',
+  // İdgam-ı Meal Gunne — zümrüt zeminden ayrışan çok parlak açık yeşil-nane
+  ig: '#A7F3D0',
+  is: '#A7F3D0',
+  // İdgam-ı Bilâ Gunne / Mütecâniseyn / Mütekâribeyn — parlak lavanta
+  iwg: '#D8B4FE',
+  imj: '#D8B4FE',
+  imq: '#D8B4FE',
+  // Kalkale & İklâb — parlak camgöbeği / gök mavisi
+  qq: '#67E8F9',
+  iq: '#93C5FD',
+  // Medler — yüksek parlaklıklı altın, kehribar ve mercan-gül tonları
+  mn: '#FDE047',
+  mp: '#FDBA74',
+  mo: '#FDA4AF',
+  mmt: '#FDA4AF',
+  mmn: '#FB7185',
+  ml: '#FCA5A5',
+};
+
+export function resolveTajweedRuleColor(rule: TajweedRuleDef, theme: ThemeMode): string {
+  if (theme === 'dark') {
+    return HIGH_LUMINANCE_DARK_TAJWEED_COLORS[rule.code] ?? rule.colorDark;
+  }
+  return rule.colorLight;
+}
+
+/**
  * Arapça OpenType harf birleşmelerini (ligature & shaping) %100 koruyarak
  * renkli tecvit metni oluşturur ve Faz 2 kelime bazlı karaoke vurgusunu
  * sıfır satır kayması (Zero Layout Shift) ile uygular.
@@ -96,7 +137,7 @@ export const TajweedText: React.FC<TajweedTextProps> = ({
                   return <React.Fragment key={segIdx}>{text}</React.Fragment>;
                 }
 
-                const color = theme === 'dark' ? rule.colorDark : rule.colorLight;
+                const color = resolveTajweedRuleColor(rule, theme);
 
                 if (!interactive) {
                   return (

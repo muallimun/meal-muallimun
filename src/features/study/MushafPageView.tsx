@@ -1045,7 +1045,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 onScroll={paneSide ? () => handlePaneScroll(paneSide) : undefined}
                 className={`flex-1 flex flex-col justify-between ${
                   isDualPane
-                    ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain scrollbar-thin lg:pr-1.5 ${paneScrollPadding}`
+                    ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain mushaf-leaf-scroll lg:pr-1.5 ${paneScrollPadding}`
                     : ''
                 }`}
               >
@@ -1555,7 +1555,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               onScroll={paneSide ? () => handlePaneScroll(paneSide) : undefined}
               className={`flex-1 flex flex-col justify-between ${
                 isDualPane
-                  ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain scrollbar-thin lg:pr-1.5 ${paneScrollPadding}`
+                  ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain mushaf-leaf-scroll lg:pr-1.5 ${paneScrollPadding}`
                   : ''
               }`}
             >
@@ -2290,12 +2290,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       <div
         className={
           isBookSpread
-            ? `space-y-3 lg:flex lg:flex-col lg:gap-2.5 lg:space-y-0 lg:overflow-hidden ${
+            ? `space-y-2.5 lg:flex lg:flex-col lg:gap-0 lg:space-y-0 lg:overflow-visible ${
                 isAudioBarVisible
-                  ? 'lg:h-[calc(100dvh-13.25rem)] lg:min-h-[420px]'
-                  : 'lg:h-[calc(100dvh-8.75rem)] lg:min-h-[480px]'
+                  ? 'lg:h-[calc(100dvh-10.25rem)] lg:min-h-[480px]'
+                  : 'lg:h-[calc(100dvh-5.75rem)] lg:min-h-[640px]'
               }`
-            : 'max-w-[54rem] mx-auto w-full space-y-3'
+            : 'max-w-[54rem] mx-auto w-full space-y-2'
         }
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -2456,8 +2456,14 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
           </div>
         </div>
 
-        {/* Sade Sayfa Geçiş Kontrolleri + Ayet İncele Tetikleyicisi (Akıllı LTR/RTL Yönü) */}
-        <div className="flex items-center justify-between gap-2 shrink-0">
+        {/* Entegre Rahle Alt Kontrol Kapsülü (Tüm Sayfa & Ayet İncele Kontrolleri Korunur) */}
+        <div
+          className="relative z-20 -mt-2 lg:-mt-2.5 mx-auto w-fit max-w-full min-h-[34px] px-1.5 sm:px-2 py-1 rounded-full border shadow-md backdrop-blur-md flex items-center justify-center gap-1 sm:gap-1.5 shrink-0"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
+            borderColor: 'var(--border-strong)',
+          }}
+        >
           <button
             type="button"
             disabled={leftActionDisabled}
@@ -2465,33 +2471,46 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               sfxService.play('click');
               onChangePage(leftActionTarget);
             }}
-            className="flex-1 sm:flex-initial min-h-[40px] px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-strong)',
-              color: 'var(--text-primary)',
-            }}
+            title={
+              !leftActionDisabled
+                ? `${leftActionLabel} (Sayfa ${leftActionTarget})`
+                : leftActionDisabledTitle
+            }
+            className="min-h-[32px] sm:min-h-[30px] px-2.5 sm:px-3 rounded-full text-[11.5px] sm:text-xs font-bold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)] disabled:opacity-35 disabled:cursor-not-allowed whitespace-nowrap"
+            style={{ color: 'var(--text-primary)' }}
           >
-            <ChevronLeft className="w-4 h-4 shrink-0" />
-            <span className="whitespace-nowrap">{leftActionLabel}</span>
+            <ChevronLeft className="w-3.5 h-3.5 shrink-0" />
+            <span>{leftActionLabel}</span>
           </button>
 
-          <div className="flex items-center justify-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                onOpenLocationPicker?.('page');
-              }}
-              className="hidden sm:inline-flex text-xs font-bold tabular-nums hover:underline cursor-pointer"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              {isAnyDualPages && secondPageBundle
-                ? `Sayfa ${pageBundle.pageNo}–${secondPageBundle.pageNo}`
-                : `Sayfa ${pageBundle.pageNo}`}
-            </button>
+          <span
+            aria-hidden="true"
+            className="h-4 w-px shrink-0"
+            style={{ backgroundColor: 'var(--border-subtle)' }}
+          />
 
-            {selectedVerse && (
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              onOpenLocationPicker?.('page');
+            }}
+            title="Sayfa seçiciyi aç"
+            className="min-h-[30px] px-2 sm:px-2.5 rounded-full text-[11.5px] sm:text-xs font-extrabold tabular-nums transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)] whitespace-nowrap"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {isAnyDualPages && secondPageBundle
+              ? `Sayfa ${pageBundle.pageNo}–${secondPageBundle.pageNo}`
+              : `Sayfa ${pageBundle.pageNo}`}
+          </button>
+
+          {selectedVerse && (
+            <>
+              <span
+                aria-hidden="true"
+                className="h-4 w-px shrink-0"
+                style={{ backgroundColor: 'var(--border-subtle)' }}
+              />
               <button
                 type="button"
                 onClick={() => {
@@ -2499,16 +2518,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   setIsVerseDrawerOpen((prev) => !prev);
                 }}
                 aria-pressed={isVerseDrawerOpen}
-                className="min-h-[36px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
+                className="min-h-[30px] px-2.5 rounded-full border text-[11.5px] sm:text-xs font-bold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap transition-colors"
                 style={{
                   backgroundColor: isVerseDrawerOpen
-                    ? 'var(--brand-primary-soft)'
-                    : 'var(--bg-surface)',
-                  borderColor: isVerseDrawerOpen ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                  color: 'var(--brand-primary-text)',
+                    ? 'var(--brand-primary)'
+                    : 'var(--brand-primary-soft)',
+                  borderColor: 'var(--brand-primary)',
+                  color: isVerseDrawerOpen ? '#FFFFFF' : 'var(--brand-primary-text)',
                 }}
               >
-                <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                <BookOpen className="w-3 h-3 shrink-0" />
                 <span>
                   {isVerseDrawerOpen
                     ? `Kapat (${selectedVerse.ayah})`
@@ -2517,8 +2536,14 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                       : `Ayet (${selectedVerse.ayah})`}
                 </span>
               </button>
-            )}
-          </div>
+            </>
+          )}
+
+          <span
+            aria-hidden="true"
+            className="h-4 w-px shrink-0"
+            style={{ backgroundColor: 'var(--border-subtle)' }}
+          />
 
           <button
             type="button"
@@ -2527,15 +2552,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               sfxService.play('click');
               onChangePage(rightActionTarget);
             }}
-            className="flex-1 sm:flex-initial min-h-[40px] px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-strong)',
-              color: 'var(--text-primary)',
-            }}
+            title={
+              !rightActionDisabled
+                ? `${rightActionLabel} (Sayfa ${rightActionTarget})`
+                : rightActionDisabledTitle
+            }
+            className="min-h-[32px] sm:min-h-[30px] px-2.5 sm:px-3 rounded-full text-[11.5px] sm:text-xs font-bold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)] disabled:opacity-35 disabled:cursor-not-allowed whitespace-nowrap"
+            style={{ color: 'var(--text-primary)' }}
           >
-            <span className="whitespace-nowrap">{rightActionLabel}</span>
-            <ChevronRight className="w-4 h-4 shrink-0" />
+            <span>{rightActionLabel}</span>
+            <ChevronRight className="w-3.5 h-3.5 shrink-0" />
           </button>
         </div>
       </div>

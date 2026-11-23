@@ -1383,10 +1383,10 @@ export const HomePage: React.FC = () => {
                 {/* Satır 2: 30 Cüz Hatim Planım */}
                 {deskPrefs.showHatimRow && (
                   <div
-                    className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    className="p-3 flex items-center justify-between gap-2.5"
                     style={{ borderColor: 'var(--border-subtle)' }}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <span
                         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                         style={{
@@ -1396,19 +1396,16 @@ export const HomePage: React.FC = () => {
                       >
                         <BookOpenCheck className="w-4 h-4" />
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                          <span className="text-xs font-extrabold" style={{ color: '#047857' }}>
-                            30 Cüz Hatim
-                          </span>
                           <span className="text-xs sm:text-sm font-extrabold truncate">
                             {hatimSummary
-                              ? `${hatimState.activePlan?.title || 'Aktif Hatim'} · %${hatimSummary.percent}`
-                              : '30 Cüz Hatim Planı Başlat'}
+                              ? `${hatimState.activePlan?.title || '30 Cüz Hatim'} · %${hatimSummary.percent}`
+                              : '30 Cüz Hatim'}
                           </span>
                           {hatimSummary && (
                             <span
-                              className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
                               style={{
                                 backgroundColor: hatimSummary.isTodayQuotaMet
                                   ? 'rgba(16, 185, 129, 0.14)'
@@ -1419,8 +1416,8 @@ export const HomePage: React.FC = () => {
                               }}
                             >
                               {hatimSummary.isTodayQuotaMet
-                                ? 'Bugünkü hedef tamam'
-                                : `Bugün ${hatimSummary.todayRemainingPages} s. kaldı`}
+                                ? 'Bugün tamam'
+                                : `${hatimSummary.todayRemainingPages} s. kaldı`}
                             </span>
                           )}
                         </div>
@@ -1431,12 +1428,12 @@ export const HomePage: React.FC = () => {
                           {hatimSummary ? (
                             <>
                               {hatimSummary.completedCount}/604 Sayfa · {hatimSummary.completedJuzCount}/30 Cüz · Bugün{' '}
-                              {hatimSummary.todayCompletedCount}/{hatimSummary.todayTargetPages} sayfa
+                              {hatimSummary.todayCompletedCount}/{hatimSummary.todayTargetPages} s.
                             </>
                           ) : hatimState.history.length > 0 ? (
-                            `Tamamlanan hatim: ${hatimState.history.length} · Günlük sayfa veya hedef tarihle yeni plan oluşturun`
+                            `Tamamlanan hatim: ${hatimState.history.length} · Yeni plan oluşturun`
                           ) : (
-                            'Günlük sayfa hedefi, bitiş tarihi veya serbest cüz takibiyle hatim planlayın'
+                            'Günlük sayfa hedefi veya serbest cüz takibiyle hatim planlayın'
                           )}
                         </p>
                       </div>
@@ -1448,16 +1445,14 @@ export const HomePage: React.FC = () => {
                         sfxService.play('click');
                         openHatimModal();
                       }}
-                      className="min-h-[36px] px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
+                      className="min-h-[34px] px-2.5 sm:px-3 rounded-lg border text-xs font-bold inline-flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: hatimSummary ? 'var(--brand-primary)' : 'var(--border-strong)',
                         color: hatimSummary ? 'var(--brand-primary-text)' : 'var(--text-primary)',
                       }}
                     >
-                      <span>
-                        {hatimSummary ? 'Hatime Devam Et / Planla' : '30 Cüz Hatim Planı Başlat'}
-                      </span>
+                      <span>{hatimSummary ? 'Devam Et' : 'Planla'}</span>
                       <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                     </button>
                   </div>
@@ -1466,10 +1461,10 @@ export const HomePage: React.FC = () => {
                 {/* Satır 3: Ezber */}
                 {deskPrefs.showMemorizationRow && (
                   <div
-                    className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    className="p-3 flex items-center justify-between gap-2.5"
                     style={{ borderColor: 'var(--border-subtle)' }}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <span
                         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                         style={{
@@ -1479,23 +1474,22 @@ export const HomePage: React.FC = () => {
                       >
                         <BookMarked className="w-4 h-4" />
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                          <span className="text-xs font-extrabold" style={{ color: 'var(--brand-accent-text)' }}>
-                            Ezber
-                          </span>
                           <span className="text-xs sm:text-sm font-extrabold truncate">
-                            {memorizationSummary.title}
+                            {memorizationSummary.hasProgress
+                              ? memorizationSummary.title
+                              : 'Ezber & Hafızlık'}
                           </span>
                           {memorizationSummary.dueAyahCount > 0 && (
                             <span
-                              className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
                               style={{
                                 backgroundColor: 'var(--brand-primary-soft)',
                                 color: 'var(--brand-primary-text)',
                               }}
                             >
-                              Bugün Tekrar ({memorizationSummary.dueAyahCount} Ayet)
+                              {memorizationSummary.dueAyahCount} Tekrar
                             </span>
                           )}
                         </div>
@@ -1518,14 +1512,14 @@ export const HomePage: React.FC = () => {
                           setActiveTab('memorize');
                         }
                       }}
-                      className="min-h-[36px] px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
+                      className="min-h-[34px] px-2.5 sm:px-3 rounded-lg border text-xs font-bold inline-flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-strong)',
                         color: 'var(--text-primary)',
                       }}
                     >
-                      <span>{memorizationSummary.hasProgress ? 'Ezbere Devam Et' : 'Ezbere Başla'}</span>
+                      <span>{memorizationSummary.hasProgress ? 'Devam Et' : 'Başla'}</span>
                       <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                     </button>
                   </div>
@@ -1550,7 +1544,7 @@ export const HomePage: React.FC = () => {
                         </span>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                            <span className="text-xs font-extrabold" style={{ color: 'var(--brand-primary-text)' }}>
+                            <span className="text-xs sm:text-sm font-extrabold">
                               Dinleme &amp; Listeler
                             </span>
                             <span
@@ -1582,7 +1576,7 @@ export const HomePage: React.FC = () => {
                     </div>
 
                     {meta && manifest && audioPlaylists.length > 0 && (
-                      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                      <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap">
                         {audioPlaylists.slice(0, 4).map((playlist) => (
                           <button
                             key={playlist.id}
@@ -1607,7 +1601,7 @@ export const HomePage: React.FC = () => {
                               });
                             }}
                             title={`${playlist.name} listesini dinle`}
-                            className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors hover:border-[var(--brand-primary)] disabled:opacity-45 whitespace-nowrap"
+                            className="min-w-0 min-h-[34px] px-2.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors hover:border-[var(--brand-primary)] disabled:opacity-45 text-left"
                             style={{
                               backgroundColor: 'var(--bg-surface)',
                               borderColor: 'var(--border-subtle)',
@@ -1618,7 +1612,7 @@ export const HomePage: React.FC = () => {
                               className="w-3 h-3 fill-current shrink-0"
                               style={{ color: 'var(--brand-primary-text)' }}
                             />
-                            <span className="max-w-[165px] truncate">{playlist.name}</span>
+                            <span className="truncate">{playlist.name}</span>
                           </button>
                         ))}
                       </div>
@@ -1629,10 +1623,10 @@ export const HomePage: React.FC = () => {
                 {/* Satır 5: Son Kişisel Ayet Notlarım & Defterim */}
                 {deskPrefs.showNotesRow && (
                   <div
-                    className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    className="p-3 flex items-center justify-between gap-2.5"
                     style={{ borderColor: 'var(--border-subtle)' }}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <span
                         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                         style={{
@@ -1642,18 +1636,15 @@ export const HomePage: React.FC = () => {
                       >
                         <StickyNote className="w-4 h-4" />
                       </span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                          <span className="text-xs font-extrabold" style={{ color: '#0369A1' }}>
-                            Notlar &amp; Defterim
-                          </span>
                           <span className="text-xs sm:text-sm font-extrabold truncate">
                             {latestPersonalNote
                               ? `${surahMap.get(latestPersonalNote.surah)?.nameTr ?? `${latestPersonalNote.surah}. Sure`} ${latestPersonalNote.ayah}. Ayet`
-                              : 'Kişisel Ayet Notları'}
+                              : 'Notlar & Defterim'}
                           </span>
                           <span
-                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                            className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
                             style={{
                               backgroundColor: 'var(--bg-surface)',
                               color: 'var(--text-secondary)',
@@ -1669,7 +1660,7 @@ export const HomePage: React.FC = () => {
                         >
                           {latestPersonalNote
                             ? latestPersonalNote.text
-                            : 'Okuma sırasında ayetlere renkli ve etiketli tefekkür notları ekleyin'}
+                            : 'Okuma sırasında ayetlere renkli tefekkür notları ekleyin'}
                         </p>
                       </div>
                     </div>
@@ -1683,14 +1674,14 @@ export const HomePage: React.FC = () => {
                           notebookSubTab: personalVerseNotes.length > 0 ? 'notes' : 'topics',
                         });
                       }}
-                      className="min-h-[36px] px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
+                      className="min-h-[34px] px-2.5 sm:px-3 rounded-lg border text-xs font-bold inline-flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-strong)',
                         color: 'var(--text-primary)',
                       }}
                     >
-                      <span>Notlarım &amp; Defterim</span>
+                      <span>Aç</span>
                       <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                     </button>
                   </div>

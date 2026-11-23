@@ -4,6 +4,7 @@ import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
 import type { ThemeMode } from '../../types/quran';
 import type { TajweedRuleDef } from '../../types/tajweed';
+import { resolveTajweedRuleColor } from './TajweedText';
 
 interface TajweedLegendBarProps {
   rules: Record<string, TajweedRuleDef>;
@@ -60,7 +61,7 @@ const LEGEND_GROUPS: LegendGroupDef[] = [
     id: 'silent',
     label: 'Okunmayan Harf',
     fallbackLight: '#64748b',
-    fallbackDark: '#94a3b8',
+    fallbackDark: '#cbd5e1',
     fallbackSummary: 'Yazıda bulunan ancak geçişte okunmayan hemze-i vasl ve şemsî lam harfleri.',
   },
 ];
@@ -158,9 +159,7 @@ export const TajweedLegendBar: React.FC<TajweedLegendBarProps> = ({
             const list = groupedRules[group.id];
             const representative = list[0];
             const dotColor = representative
-              ? theme === 'dark'
-                ? representative.colorDark
-                : representative.colorLight
+              ? resolveTajweedRuleColor(representative, theme)
               : theme === 'dark'
                 ? group.fallbackDark
                 : group.fallbackLight;
@@ -256,7 +255,7 @@ export const TajweedLegendBar: React.FC<TajweedLegendBarProps> = ({
           {activeGroupRules.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
               {activeGroupRules.map((rule) => {
-                const c = theme === 'dark' ? rule.colorDark : rule.colorLight;
+                const c = resolveTajweedRuleColor(rule, theme);
                 return (
                   <div
                     key={rule.code}

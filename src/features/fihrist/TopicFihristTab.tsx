@@ -80,6 +80,7 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
   const [isLoadingTopics, setIsLoadingTopics] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLetter, setSelectedLetter] = useState<string>('ALL');
+  const [isMobileLettersOpen, setIsMobileLettersOpen] = useState(false);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
@@ -412,15 +413,54 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
               )}
             </div>
 
-            {/* A–Z Harf Şeridi (Mobilde yatay kaydırılabilir, masaüstünde sıkı wrap) */}
-            <div className="flex lg:flex-wrap items-center gap-1 overflow-x-auto lg:overflow-x-visible pb-0.5 lg:pb-0 no-scrollbar">
+            {/* Mobil Harf Filtresi Aç/Kapa Tetikleyici (Sıfır kaydırma çubuğu & sıfır kesilme) */}
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsMobileLettersOpen((v) => !v);
+              }}
+              aria-expanded={isMobileLettersOpen}
+              className="lg:hidden w-full min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center justify-between gap-2 cursor-pointer transition-colors"
+              style={{
+                backgroundColor:
+                  selectedLetter !== 'ALL' && !searchQuery
+                    ? 'var(--brand-primary-soft)'
+                    : 'var(--bg-surface-soft)',
+                borderColor:
+                  selectedLetter !== 'ALL' && !searchQuery
+                    ? 'var(--brand-primary)'
+                    : 'var(--border-subtle)',
+                color:
+                  selectedLetter !== 'ALL' && !searchQuery
+                    ? 'var(--brand-primary-text)'
+                    : 'var(--text-primary)',
+              }}
+            >
+              <span className="truncate">
+                Harfe Göre Filtrele ({selectedLetter === 'ALL' ? 'Tümü' : selectedLetter})
+              </span>
+              {isMobileLettersOpen ? (
+                <ChevronUp className="w-4 h-4 shrink-0 opacity-75" />
+              ) : (
+                <ChevronDown className="w-4 h-4 shrink-0 opacity-75" />
+              )}
+            </button>
+
+            {/* A–Z Harf Mini Izgarası (Mobilde katlanabilir wrap, masaüstünde daima açık wrap) */}
+            <div
+              className={`${
+                isMobileLettersOpen ? 'flex' : 'hidden'
+              } lg:flex flex-wrap items-center gap-1`}
+            >
               <button
                 type="button"
                 onClick={() => {
                   sfxService.play('click');
                   setSelectedLetter('ALL');
+                  setIsMobileLettersOpen(false);
                 }}
-                className="h-7 px-2.5 rounded-lg text-[11px] font-extrabold transition-colors cursor-pointer shrink-0"
+                className="min-w-[30px] h-7 px-2.5 rounded-lg text-xs font-extrabold transition-colors cursor-pointer shrink-0"
                 style={{
                   backgroundColor:
                     selectedLetter === 'ALL' && !searchQuery
@@ -445,8 +485,9 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
                       sfxService.play('click');
                       setSearchQuery('');
                       setSelectedLetter(letter);
+                      setIsMobileLettersOpen(false);
                     }}
-                    className="min-w-[28px] h-7 px-1.5 rounded-lg text-[11px] font-extrabold transition-colors cursor-pointer shrink-0"
+                    className="min-w-[30px] h-7 px-1.5 rounded-lg text-xs font-extrabold transition-colors cursor-pointer shrink-0"
                     style={{
                       backgroundColor: active
                         ? 'var(--brand-primary)'

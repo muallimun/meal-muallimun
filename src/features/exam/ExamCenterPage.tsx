@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { HelpCircle, Puzzle, RotateCcw, Trophy } from 'lucide-react';
+import { Puzzle, RotateCcw, Trophy } from 'lucide-react';
 import { claimAudioFocus } from '../../services/audioFocusCoordinator';
 import { dataService } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
@@ -35,7 +35,6 @@ export const ExamCenterPage: React.FC = () => {
     examNavTarget,
     clearExamNavTarget,
     setIsExamActive,
-    openUserGuide,
   } = useAppStore();
 
   const [phase, setPhase] = useState<ExamPhase>('hub');
@@ -439,24 +438,6 @@ export const ExamCenterPage: React.FC = () => {
           </span>
         </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            sfxService.play('click');
-            openUserGuide('modules');
-          }}
-          title="Sınav Merkezi & A4 Yazılı Rehberi"
-          className="min-h-[40px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shrink-0 hover:opacity-90 touch-manipulation ml-auto"
-          style={{
-            backgroundColor: 'var(--bg-surface)',
-            borderColor: 'var(--border-subtle)',
-            color: 'var(--brand-primary-text)',
-          }}
-        >
-          <HelpCircle className="w-3.5 h-3.5 shrink-0" />
-          <span>Rehber</span>
-        </button>
       </div>
 
       {hubSubTab === 'games' ? (

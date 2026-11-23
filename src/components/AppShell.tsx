@@ -86,6 +86,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   } = useAppStore();
 
   const isReaderTab = activeTab === 'reader';
+  const isDesktopMushaf = isReaderTab && studyPrefs.viewMode === 'mushaf';
   const isMobilePureReader =
     isReaderTab && (studyPrefs.viewMode === 'mushaf' || studyPrefs.viewMode === 'book');
 
@@ -861,27 +862,35 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           className={`flex-1 w-full ${contentWidthClass} mx-auto ${
             isMobilePureReader
               ? isMobileReaderImmersive
-                ? 'px-1.5 pt-12 sm:px-3 lg:px-6 lg:pt-3.5'
-                : 'px-1.5 pt-0 sm:px-3 lg:px-6 lg:pt-3.5'
+                ? `px-1.5 pt-12 sm:px-3 lg:px-6 ${isDesktopMushaf ? 'lg:pt-2' : 'lg:pt-3.5'}`
+                : `px-1.5 pt-0 sm:px-3 lg:px-6 ${isDesktopMushaf ? 'lg:pt-2' : 'lg:pt-3.5'}`
               : isReaderTab
                 ? 'px-2.5 pt-0 sm:px-4 lg:px-6 lg:pt-3.5'
                 : 'px-3.5 pt-3.5 sm:px-5 lg:px-6 lg:pt-4'
           } ${
             isMobileReaderImmersive
               ? isAudioBarDetailsOpen
-                ? 'pb-56 lg:pb-6'
+                ? `pb-56 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
                 : isAudioBarVisible
-                  ? 'pb-28 lg:pb-6'
-                  : 'pb-6 lg:pb-6'
-              : 'pb-4 lg:pb-6'
+                  ? `pb-28 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                  : `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+              : `pb-4 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
           }`}
         >
           {children}
         </main>
 
-        {/* Alt Bilgi (Footer) — Mobilde Saf Odak modunda gizlenir */}
+        {/* Alt Bilgi (Footer) — Mobilde Saf Odak modunda, masaüstünde Mushaf sahnesinde gizlenir */}
         <footer
-          className={`${isMobileReaderImmersive ? 'hidden lg:block' : ''} mt-auto border-t ${
+          className={`${
+            isMobileReaderImmersive
+              ? isDesktopMushaf
+                ? 'hidden'
+                : 'hidden lg:block'
+              : isDesktopMushaf
+                ? 'lg:hidden'
+                : ''
+          } mt-auto border-t ${
             isExamActive || isMemorizationZenActive
               ? 'pb-5 lg:pb-5'
               : isAudioBarDetailsOpen
@@ -1013,7 +1022,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   Aktif sınavdan çıkmak istiyor musunuz?
                 </h3>
                 <p className="text-xs sm:text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  Şu an devam eden bir sınavın var. Başka bir sekmeye geçersen sınav ilerlemen
+                  Şu an devam eden bir sınavınız var. Başka bir sekmeye geçerseniz sınav ilerlemeniz
                   oturum önbelleğinde saklanır; ancak zamanlayıcı duraklar.
                 </p>
               </div>

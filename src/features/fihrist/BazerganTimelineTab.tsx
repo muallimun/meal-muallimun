@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react
 import {
   BookOpen,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Headphones,
   Info,
@@ -467,10 +469,15 @@ export const BazerganTimelineTab: React.FC = () => {
     }
   }, [filteredYears, selectedYearName]);
 
-  const activeYear = useMemo(
-    () => filteredYears.find((y) => y.year === selectedYearName) ?? filteredYears[0] ?? null,
-    [filteredYears, selectedYearName],
-  );
+  const activeYearIndex = useMemo(() => {
+    if (filteredYears.length === 0) return -1;
+    const idx = filteredYears.findIndex((y) => y.year === selectedYearName);
+    return idx >= 0 ? idx : 0;
+  }, [filteredYears, selectedYearName]);
+
+  const activeYear = activeYearIndex >= 0 ? filteredYears[activeYearIndex] : null;
+  const canPrevYear = activeYearIndex > 0;
+  const canNextYear = activeYearIndex >= 0 && activeYearIndex < filteredYears.length - 1;
 
   const phaseCounts = useMemo(() => {
     const years = timeline?.years ?? [];
@@ -535,15 +542,27 @@ export const BazerganTimelineTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Dönem Filtresi + Yatay Kaydırılabilir Yıl Şeridi */}
+      {/* Dönem Filtresi + Yıl Seçici (Mobilde Tek Satır 3 Sütun + Önceki/Seçici/Sonraki, Masaüstünde Wrap) */}
       <div className="surface-card rounded-2xl p-3.5 sm:p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto sm:flex sm:items-center">
             {(
               [
-                { id: 'all', label: `Tümü (${phaseCounts.all} Yıl)` },
-                { id: 'Mekke', label: `Mekke (${phaseCounts.mekke} Yıl)` },
-                { id: 'Medine', label: `Medine (${phaseCounts.medine} Yıl)` },
+                {
+                  id: 'all',
+                  shortLabel: `Tümü (${phaseCounts.all})`,
+                  fullLabel: `Tümü (${phaseCounts.all} Yıl)`,
+                },
+                {
+                  id: 'Mekke',
+                  shortLabel: `Mekke (${phaseCounts.mekke})`,
+                  fullLabel: `Mekke (${phaseCounts.mekke} Yıl)`,
+                },
+                {
+                  id: 'Medine',
+                  shortLabel: `Medine (${phaseCounts.medine})`,
+                  fullLabel: `Medine (${phaseCounts.medine} Yıl)`,
+                },
               ] as const
             ).map((opt) => {
               const active = phaseFilter === opt.id;
@@ -555,7 +574,7 @@ export const BazerganTimelineTab: React.FC = () => {
                     sfxService.play('click');
                     setPhaseFilter(opt.id);
                   }}
-                  className="min-h-[34px] px-3 rounded-xl border text-xs font-bold transition-colors cursor-pointer"
+                  className="min-h-[36px] px-2 sm:px-3 rounded-xl border text-[11.5px] sm:text-xs font-bold transition-colors cursor-pointer whitespace-nowrap text-center"
                   style={{
                     backgroundColor: active
                       ? 'var(--brand-primary)'
@@ -564,7 +583,8 @@ export const BazerganTimelineTab: React.FC = () => {
                     color: active ? '#FFFFFF' : 'var(--text-secondary)',
                   }}
                 >
-                  {opt.label}
+                  <span className="sm:hidden">{opt.shortLabel}</span>
+                  <span className="hidden sm:inline">{opt.fullLabel}</span>
                 </button>
               );
             })}
@@ -572,7 +592,7 @@ export const BazerganTimelineTab: React.FC = () => {
 
           {timeline && (
             <span
-              className="text-[11px] font-semibold tabular-nums"
+              className="text-[11px] font-semibold tabular-nums text-right sm:text-left"
               style={{ color: 'var(--text-muted)' }}
             >
               Toplam {timeline.totalEntries} pasaj
@@ -580,8 +600,82 @@ export const BazerganTimelineTab: React.FC = () => {
           )}
         </div>
 
-        {/* Yıl Seçim Şeridi: Mobilde yatay kaydırma, masaüstünde (md+) düzenli satır kırılımı */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar md:flex-wrap md:overflow-visible md:pb-0">
+        {/* Mobil (< md) Kompakt Yıl Seçici: [ ‹ Önceki ] + Select + [ Sonraki › ] */}
+        {filteredYears.length > 0 && (
+          <div className="flex md:hidden items-center gap-1.5">
+            <button
+              type="button"
+              disabled={!canPrevYear}
+              onClick={() => {
+                if (!canPrevYear) return;
+                sfxService.play('click');
+                setSelectedYearName(filteredYears[activeYearIndex - 1].year);
+                setExpandedKey(null);
+              }}
+              aria-label="Önceki vahiy yılı"
+              className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-0.5 shrink-0 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <ChevronLeft className="w-4 h-4 shrink-0" />
+              <span>Önceki</span>
+            </button>
+
+            <select
+              aria-label="Vahiy yılı seçin"
+              value={activeYear?.year ?? ''}
+              onChange={(e) => {
+                sfxService.play('click');
+                setSelectedYearName(e.target.value);
+                setExpandedKey(null);
+              }}
+              className="flex-1 min-w-0 min-h-[38px] px-2.5 rounded-xl border text-xs font-extrabold outline-none cursor-pointer"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-strong)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              {filteredYears.map((group) => {
+                const compactYearLabel = group.year
+                  .replace(/^Vahyin\s+/i, '')
+                  .replace(/\s*Yılı$/i, ' Yıl');
+                return (
+                  <option key={group.year} value={group.year}>
+                    {compactYearLabel} · {group.entries.length} pasaj ({group.phase})
+                  </option>
+                );
+              })}
+            </select>
+
+            <button
+              type="button"
+              disabled={!canNextYear}
+              onClick={() => {
+                if (!canNextYear) return;
+                sfxService.play('click');
+                setSelectedYearName(filteredYears[activeYearIndex + 1].year);
+                setExpandedKey(null);
+              }}
+              aria-label="Sonraki vahiy yılı"
+              className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-0.5 shrink-0 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <span>Sonraki</span>
+              <ChevronRight className="w-4 h-4 shrink-0" />
+            </button>
+          </div>
+        )}
+
+        {/* Masaüstü (md+) Düzenli Satır Kırılımlı Yıl Şeridi (Sıfır kaydırma çubuğu) */}
+        <div className="hidden md:flex md:flex-wrap items-center gap-1.5">
           {filteredYears.map((group) => {
             const active = activeYear?.year === group.year;
             const isMedine = group.phase === 'Medine';

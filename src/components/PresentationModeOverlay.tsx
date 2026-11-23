@@ -8,6 +8,7 @@ import {
   Maximize2,
   Minimize2,
   MonitorPlay,
+  Palette,
   Pause,
   Play,
   SkipBack,
@@ -47,7 +48,28 @@ import { useActiveWordSync } from '../features/study/SyncedArabicText';
 import { TajweedText } from '../features/study/TajweedText';
 
 type PresentationContentMode = 'both' | 'ar' | 'meal';
-type PresentationTheme = 'dark' | 'emerald' | 'cream';
+type PresentationTheme = 'emerald' | 'cream' | 'slate' | 'light';
+
+const PRESENTATION_THEME_STORAGE_KEY = 'muallimun_presentation_theme_v1';
+const PRESENTATION_THEME_ORDER: readonly PresentationTheme[] = [
+  'emerald',
+  'cream',
+  'slate',
+  'light',
+];
+
+function loadSavedPresentationTheme(): PresentationTheme {
+  try {
+    const raw = window.localStorage.getItem(PRESENTATION_THEME_STORAGE_KEY);
+    if (raw === 'dark') return 'slate';
+    if (raw === 'emerald' || raw === 'cream' || raw === 'slate' || raw === 'light') {
+      return raw;
+    }
+  } catch {
+    // localStorage erişilemezse varsayılan Zümrüt Salon temasına dön
+  }
+  return 'emerald';
+}
 
 const DEFAULT_BESMELE: BesmeleInfo = {
   ayahId: 1001,
@@ -76,48 +98,79 @@ const THEME_PALETTES: Record<
   PresentationTheme,
   {
     label: string;
+    swatch: string;
     bg: string;
+    popoverBg: string;
     surface: string;
     border: string;
     text: string;
     muted: string;
     accent: string;
+    accentText: string;
     accentSoft: string;
     arabicColor: string;
+    ayahMarkerColor: string;
   }
 > = {
-  dark: {
-    label: 'Gece',
-    bg: '#070F10',
-    surface: 'rgba(18, 33, 35, 0.90)',
-    border: 'rgba(255, 255, 255, 0.12)',
-    text: '#F4F8F7',
-    muted: '#9AB3B0',
-    accent: '#2DD4BF',
-    accentSoft: 'rgba(45, 212, 191, 0.15)',
-    arabicColor: '#F8FAFC',
-  },
   emerald: {
-    label: 'Zümrüt',
-    bg: '#082624',
-    surface: 'rgba(12, 54, 50, 0.90)',
-    border: 'rgba(255, 255, 255, 0.15)',
-    text: '#F7FAF9',
+    label: 'Zümrüt Salon',
+    swatch: '#134E4A',
+    bg: 'radial-gradient(circle at 50% 42%, #134E4A 0%, #0B2E2B 65%, #071F1D 100%)',
+    popoverBg: '#0B2E2B',
+    surface: 'rgba(11, 46, 43, 0.90)',
+    border: 'rgba(255, 255, 255, 0.16)',
+    text: '#FFFDF7',
     muted: '#A8D3CE',
     accent: '#FBBF24',
+    accentText: '#071413',
     accentSoft: 'rgba(251, 191, 36, 0.16)',
-    arabicColor: '#FFFFFF',
+    arabicColor: '#FFFDF7',
+    ayahMarkerColor: '#FDE68A',
   },
   cream: {
-    label: 'Mushaf',
-    bg: '#F8F2E4',
+    label: 'Krem Mushaf',
+    swatch: '#FAF5E8',
+    bg: '#FAF5E8',
+    popoverBg: '#FAF5E8',
     surface: 'rgba(255, 252, 245, 0.94)',
-    border: 'rgba(15, 118, 110, 0.18)',
-    text: '#1B1710',
+    border: 'rgba(15, 118, 110, 0.20)',
+    text: '#18181B',
     muted: '#645946',
     accent: '#0F766E',
+    accentText: '#FFFFFF',
     accentSoft: 'rgba(15, 118, 110, 0.12)',
-    arabicColor: '#17130D',
+    arabicColor: '#18181B',
+    ayahMarkerColor: '#0F766E',
+  },
+  slate: {
+    label: 'Gece Antrasit',
+    swatch: '#111827',
+    bg: '#111827',
+    popoverBg: '#111827',
+    surface: 'rgba(24, 33, 47, 0.92)',
+    border: 'rgba(255, 255, 255, 0.14)',
+    text: '#F8FAFC',
+    muted: '#94A3B8',
+    accent: '#2DD4BF',
+    accentText: '#071413',
+    accentSoft: 'rgba(45, 212, 191, 0.15)',
+    arabicColor: '#F8FAFC',
+    ayahMarkerColor: '#5EEAD4',
+  },
+  light: {
+    label: 'Ferah Beyaz',
+    swatch: '#FFFFFF',
+    bg: '#FFFFFF',
+    popoverBg: '#FFFFFF',
+    surface: 'rgba(248, 250, 252, 0.95)',
+    border: 'rgba(15, 23, 42, 0.14)',
+    text: '#0F172A',
+    muted: '#475569',
+    accent: '#0F766E',
+    accentText: '#FFFFFF',
+    accentSoft: 'rgba(15, 118, 110, 0.10)',
+    arabicColor: '#0F172A',
+    ayahMarkerColor: '#0F766E',
   },
 };
 
@@ -177,7 +230,22 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   );
 
   const [contentMode, setContentMode] = useState<PresentationContentMode>('both');
-  const [presTheme, setPresTheme] = useState<PresentationTheme>('emerald');
+  const [presTheme, setPresThemeState] = useState<PresentationTheme>(loadSavedPresentationTheme);
+
+  const setPresTheme = (next: PresentationTheme) => {
+    setPresThemeState(next);
+    try {
+      window.localStorage.setItem(PRESENTATION_THEME_STORAGE_KEY, next);
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const cyclePresTheme = () => {
+    sfxService.play('click');
+    const idx = PRESENTATION_THEME_ORDER.indexOf(presTheme);
+    setPresTheme(PRESENTATION_THEME_ORDER[(idx + 1) % PRESENTATION_THEME_ORDER.length]);
+  };
   const [manualIndex, setManualIndex] = useState<number>(0);
   const [isSettingsPopoverOpen, setIsSettingsPopoverOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
@@ -464,11 +532,14 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const isArabicHighlighted = isAudioActiveOnVerse && audioState.activePhase === 'ar';
   const suppressBesmeleFill = isBesmeleHighlighted && isWordSyncActive;
   const suppressArabicFill = isArabicHighlighted && isWordSyncActive;
-  const presTajweedTheme: ThemeMode = presTheme === 'cream' ? 'cream' : 'dark';
-  const karaokeThemeClass =
-    presTheme === 'cream' ? 'presentation-karaoke-light' : 'presentation-karaoke-dark';
-  const softArabicPlayingBg =
-    presTheme === 'cream' ? 'rgba(13, 148, 136, 0.10)' : palette.accentSoft;
+  const isLightTheme = presTheme === 'cream' || presTheme === 'light';
+  const presTajweedTheme: ThemeMode =
+    presTheme === 'cream' ? 'cream' : presTheme === 'light' ? 'light' : 'dark';
+  const karaokeThemeClass = isLightTheme
+    ? 'presentation-karaoke-light'
+    : 'presentation-karaoke-dark';
+  const softArabicPlayingBg = isLightTheme ? 'rgba(13, 148, 136, 0.10)' : palette.accentSoft;
+  const darkArabicLegibilityShadow = !isLightTheme ? '0 1px 6px rgba(0, 0, 0, 0.38)' : undefined;
 
   const rawBesmeleWordIdx =
     isBesmeleHighlighted &&
@@ -612,7 +683,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       aria-label="Hatim ve Dinleme Sunum Modu"
       className="fixed inset-0 z-[85] flex flex-col justify-between overflow-hidden select-none"
       style={{
-        backgroundColor: palette.bg,
+        background: palette.bg,
         color: palette.text,
       }}
     >
@@ -696,6 +767,23 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             <span className="hidden lg:inline whitespace-nowrap">Kelime Takibi</span>
           </button>
 
+          {/* Hızlı Kontrol 3: Sunum Teması Değiştirici */}
+          <button
+            type="button"
+            onClick={cyclePresTheme}
+            title={`Sunum Teması: ${palette.label} (Değiştirmek için dokunun)`}
+            aria-label={`Sunum temasını değiştir (${palette.label})`}
+            className="min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
+            style={{
+              borderColor: palette.border,
+              backgroundColor: 'transparent',
+              color: palette.text,
+            }}
+          >
+            <Palette className="w-3.5 h-3.5 shrink-0" style={{ color: palette.accent }} />
+            <span className="hidden xl:inline whitespace-nowrap">{palette.label}</span>
+          </button>
+
           <div ref={settingsPopoverRef} className="relative">
             <button
               type="button"
@@ -708,7 +796,11 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               className="min-w-[40px] min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
               style={{
                 borderColor: isSettingsPopoverOpen ? palette.accent : palette.border,
-                backgroundColor: isSettingsPopoverOpen ? palette.accentSoft : 'rgba(0,0,0,0.14)',
+                backgroundColor: isSettingsPopoverOpen
+                  ? palette.accentSoft
+                  : isLightTheme
+                    ? 'rgba(15, 23, 42, 0.05)'
+                    : 'rgba(0,0,0,0.14)',
                 color: isSettingsPopoverOpen ? palette.accent : palette.text,
               }}
             >
@@ -729,7 +821,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   aria-label="Görünüm ve ses ayarları"
                   className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl max-h-[82dvh] overflow-y-auto p-4 pb-6 border-t shadow-2xl space-y-3.5 text-left md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-11 md:w-[320px] md:max-w-[calc(100vw-2rem)] md:max-h-[80dvh] md:rounded-2xl md:border md:p-3.5"
                   style={{
-                    backgroundColor: palette.bg,
+                    backgroundColor: palette.popoverBg,
                     borderColor: palette.border,
                     color: palette.text,
                     paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
@@ -840,7 +932,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                           className="min-h-[32px] px-1.5 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap"
                           style={{
                             backgroundColor: active ? palette.accent : 'transparent',
-                            color: active ? '#071413' : palette.text,
+                            color: active ? palette.accentText : palette.text,
                           }}
                         >
                           {item.label}
@@ -885,14 +977,15 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   </div>
                 </div>
 
-                {/* Sunum Teması */}
+                {/* Sunum Teması (4 Sınıf & Akıllı Tahta Teması) */}
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: palette.muted }}>
                     Sunum Teması
                   </p>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {(['emerald', 'dark', 'cream'] as PresentationTheme[]).map((t) => {
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {PRESENTATION_THEME_ORDER.map((t) => {
                       const active = presTheme === t;
+                      const def = THEME_PALETTES[t];
                       return (
                         <button
                           key={t}
@@ -901,14 +994,22 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                             sfxService.play('click');
                             setPresTheme(t);
                           }}
-                          className="min-h-[34px] px-2 rounded-xl border text-xs font-bold cursor-pointer"
+                          className="min-h-[36px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer inline-flex items-center gap-2 text-left"
                           style={{
                             borderColor: active ? palette.accent : palette.border,
                             backgroundColor: active ? palette.accentSoft : palette.surface,
-                            color: active ? palette.accent : palette.muted,
+                            color: active ? palette.accent : palette.text,
                           }}
                         >
-                          {THEME_PALETTES[t].label}
+                          <span
+                            aria-hidden="true"
+                            className="w-3.5 h-3.5 rounded-full border shrink-0"
+                            style={{
+                              backgroundColor: def.swatch,
+                              borderColor: 'rgba(148, 163, 184, 0.55)',
+                            }}
+                          />
+                          <span className="truncate">{def.label}</span>
                         </button>
                       );
                     })}
@@ -946,7 +1047,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             style={{
               borderColor: palette.border,
               backgroundColor: 'rgba(239, 68, 68, 0.14)',
-              color: presTheme === 'cream' ? '#B91C1C' : '#FCA5A5',
+              color: isLightTheme ? '#B91C1C' : '#FCA5A5',
             }}
           >
             <X className="w-4 h-4" />
@@ -966,15 +1067,13 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   <span
                     className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 border shadow-sm"
                     style={{
-                      backgroundColor:
-                        presTheme === 'cream'
-                          ? 'rgba(217, 119, 6, 0.16)'
-                          : 'rgba(251, 191, 36, 0.22)',
-                      borderColor:
-                        presTheme === 'cream'
-                          ? 'rgba(180, 83, 9, 0.45)'
-                          : 'rgba(251, 191, 36, 0.6)',
-                      color: presTheme === 'cream' ? '#92400E' : '#FDE68A',
+                      backgroundColor: isLightTheme
+                        ? 'rgba(217, 119, 6, 0.16)'
+                        : 'rgba(251, 191, 36, 0.22)',
+                      borderColor: isLightTheme
+                        ? 'rgba(180, 83, 9, 0.45)'
+                        : 'rgba(251, 191, 36, 0.6)',
+                      color: isLightTheme ? '#92400E' : '#FDE68A',
                     }}
                   >
                     <span className="text-base leading-none">۩</span>
@@ -1031,6 +1130,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                       isBesmeleHighlighted && !suppressBesmeleFill
                         ? palette.accent
                         : palette.arabicColor,
+                    textShadow: darkArabicLegibilityShadow,
                   }}
                 >
                   {useBesmeleTajweed && tjBesmele ? (
@@ -1132,6 +1232,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   fontSize: fontMetrics.arSize,
                   lineHeight: fontMetrics.arLine,
                   color: palette.arabicColor,
+                  textShadow: darkArabicLegibilityShadow,
                   backgroundColor:
                     isArabicHighlighted && !suppressArabicFill
                       ? softArabicPlayingBg
@@ -1213,15 +1314,13 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     title="Tilâvet Secdesi Ayeti"
                     className="inline-flex items-center justify-center mx-1.5 text-[0.62em] font-extrabold px-2 py-0.5 rounded-lg align-middle border"
                     style={{
-                      backgroundColor:
-                        presTheme === 'cream'
-                          ? 'rgba(217, 119, 6, 0.16)'
-                          : 'rgba(251, 191, 36, 0.22)',
-                      borderColor:
-                        presTheme === 'cream'
-                          ? 'rgba(180, 83, 9, 0.45)'
-                          : 'rgba(251, 191, 36, 0.55)',
-                      color: presTheme === 'cream' ? '#92400E' : '#FDE68A',
+                      backgroundColor: isLightTheme
+                        ? 'rgba(217, 119, 6, 0.16)'
+                        : 'rgba(251, 191, 36, 0.22)',
+                      borderColor: isLightTheme
+                        ? 'rgba(180, 83, 9, 0.45)'
+                        : 'rgba(251, 191, 36, 0.55)',
+                      color: isLightTheme ? '#92400E' : '#FDE68A',
                       fontFamily: 'var(--font-turkish)',
                     }}
                   >
@@ -1229,12 +1328,15 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   </span>
                 )}
                 <span
-                  className="arabic-text inline-block mx-2.5 text-[0.82em] align-middle select-none"
+                  className="arabic-text inline-block mx-2.5 text-[0.82em] align-middle select-none font-normal"
                   style={{
-                    color: palette.accent,
+                    backgroundColor: 'transparent',
+                    color: palette.ayahMarkerColor,
                   }}
                 >
-                  ﴿{toArabicIndicDigits(displayedVerse.ayah)}﴾
+                  {'\uFD3F'}
+                  {toArabicIndicDigits(displayedVerse.ayah)}
+                  {'\uFD3E'}
                 </span>
               </div>
             )}
@@ -1412,7 +1514,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             className="h-10 px-4 sm:px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95"
             style={{
               backgroundColor: palette.accent,
-              color: '#071413',
+              color: palette.accentText,
             }}
           >
             {isLoading ? (

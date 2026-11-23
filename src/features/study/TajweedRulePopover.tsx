@@ -7,6 +7,7 @@ import { sfxService } from '../../services/sfxService';
 import { buildWordAudioKey, wordAudioService } from '../../services/wordAudioService';
 import type { ThemeMode } from '../../types/quran';
 import type { TajweedActiveSelection, TajweedRuleDef } from '../../types/tajweed';
+import { resolveTajweedRuleColor } from './TajweedText';
 
 interface TajweedPopoverPayload {
   selection: TajweedActiveSelection;
@@ -132,7 +133,7 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
   if (!selection || typeof document === 'undefined') return null;
 
   const { word, rule } = selection;
-  const activeColor = theme === 'dark' ? rule.colorDark : rule.colorLight;
+  const activeColor = resolveTajweedRuleColor(rule, theme);
 
   return createPortal(
     <div
@@ -235,7 +236,7 @@ export const TajweedRulePopover: React.FC<TajweedRulePopoverProps> = ({
               if (!segRule) {
                 return <React.Fragment key={idx}>{segText}</React.Fragment>;
               }
-              const segColor = theme === 'dark' ? segRule.colorDark : segRule.colorLight;
+              const segColor = resolveTajweedRuleColor(segRule, theme);
               return (
                 <span key={idx} style={{ color: segColor }}>
                   {segText}
