@@ -883,5 +883,45 @@
   background-color: rgba(45, 212, 191, 0.48);
 }
 
+/* ==========================================================================
+   MUSHAF SAYFA GEÇİŞ ANİMASYONU (180ms — prefers-reduced-motion uyumlu)
+   ========================================================================== */
+@keyframes mushafPageEnterFromLeft {
+  0% {
+    opacity: 0.72;
+    transform: translateX(-14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes mushafPageEnterFromRight {
+  0% {
+    opacity: 0.72;
+    transform: translateX(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.mushaf-page-enter-left {
+  animation: mushafPageEnterFromLeft 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mushaf-page-enter-right {
+  animation: mushafPageEnterFromRight 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mushaf-page-enter-left,
+  .mushaf-page-enter-right {
+    animation: none !important;
+  }
+}
+
 
 

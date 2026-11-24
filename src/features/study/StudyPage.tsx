@@ -2468,12 +2468,12 @@ export const StudyPage: React.FC = () => {
           <Menu className="w-4 h-4" />
         </button>
       ) : (
-        /* Birleşik h-12 (48px) Mobil Okuma Şeridi — Mushaf, Kartlar ve Kitap'ta ortak; Kartlar & Kitap'ta aşağı kaydırmada gizlenir */
+        /* Birleşik Mobil Okuma Şeridi — Mushaf, Kartlar ve Kitap'ta ortak; Kartlar & Kitap'ta aşağı kaydırmada gizlenir */
         <header
           aria-label="Mobil okuma şeridi"
-          className={`lg:hidden sticky top-0 z-30 h-12 max-w-full overflow-x-clip ${
+          className={`lg:hidden sticky top-0 z-30 max-w-full overflow-x-clip ${
             viewMode === 'cards' ? '-mx-2.5 sm:-mx-4 px-2 sm:px-3.5' : '-mx-1.5 sm:-mx-3 px-2 sm:px-3'
-          } border-b backdrop-blur-md flex items-center justify-between gap-1.5 transition-transform duration-200 will-change-transform ${
+          } border-b backdrop-blur-md flex flex-col transition-transform duration-200 will-change-transform ${
             isMobileBarHidden ? '-translate-y-full' : 'translate-y-0'
           }`}
           style={{
@@ -2481,172 +2481,217 @@ export const StudyPage: React.FC = () => {
             borderColor: 'var(--border-subtle)',
           }}
         >
-          {/* Sol: Ferah Konum Seçici (17. İsrâ · S.281 ▾) */}
-          <button
-            type="button"
-            onClick={() => openLocationPicker('surah')}
-            title="Sure, Sayfa, Cüz veya Ayet seç"
-            className="flex-1 min-w-0 h-9 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-extrabold cursor-pointer text-left"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--text-primary)',
-            }}
-          >
-            <span className="truncate tabular-nums">{mobileLocationLabel}</span>
-            <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65 ml-auto" />
-          </button>
+          {/* 1. Satır (h-12): Konum Seçici + Tablet 3'lü segment + Dinle + Hızlı Ara + Ayraçlar + Okuma Menüsü */}
+          <div className="h-12 flex items-center justify-between gap-1.5">
+            {/* Sol: Ferah Konum Seçici (17. İsrâ · S.281 ▾) */}
+            <button
+              type="button"
+              onClick={() => openLocationPicker('surah')}
+              title="Sure, Sayfa, Cüz veya Ayet seç"
+              className="flex-1 min-w-0 h-9 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-extrabold cursor-pointer text-left"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <span className="truncate tabular-nums">{mobileLocationLabel}</span>
+              <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65 ml-auto" />
+            </button>
 
-          {/* Sağ: Tablet 3'lü segment + Dinle + Hızlı Ara + Ayraçlar + Görünüm (Okuma Menüsü) */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Geniş mobil / Tablet (640px–1023px): 3'lü segment */}
+            {/* Sağ: Tablet 3'lü segment + Dinle + Hızlı Ara + Ayraçlar + Görünüm (Okuma Menüsü) */}
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Geniş mobil / Tablet (640px–1023px): 3'lü segment */}
+              <div
+                className="hidden sm:flex items-center h-9 p-0.5 rounded-xl border shrink-0"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                {(
+                  [
+                    { id: 'mushaf', label: 'Mushaf' },
+                    { id: 'cards', label: 'Kartlar' },
+                    { id: 'book', label: 'Kitap' },
+                  ] as const
+                ).map((tab) => {
+                  const active = viewMode === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleSwitchViewMode(tab.id)}
+                      className="h-8 px-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                      style={{
+                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 🎧 Dinle / Duraklat */}
+              <button
+                type="button"
+                onClick={handleHeaderListen}
+                aria-label={
+                  hasDifferentSelectedWhilePlaying && explicitSelectedVerse
+                    ? `${explicitSelectedVerse.ayah}. ayetten dinle`
+                    : isAudioActivelyPlaying
+                      ? 'Dinlemeyi duraklat'
+                      : explicitSelectedVerse
+                        ? `${explicitSelectedVerse.ayah}. ayetten dinle`
+                        : 'Dinle'
+                }
+                title={
+                  hasDifferentSelectedWhilePlaying && explicitSelectedVerse
+                    ? `Seçili ayetten (${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah}) dinlemeye geç`
+                    : isAudioActivelyPlaying
+                      ? 'Dinlemeyi duraklat'
+                      : explicitSelectedVerse
+                        ? `${explicitSelectedVerse.ayah}. ayetten dinle`
+                        : 'Bu sayfayı / sureyi dinle'
+                }
+                className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-colors shrink-0"
+                style={{
+                  backgroundColor:
+                    isAudioActivelyPlaying || explicitSelectedVerse
+                      ? 'var(--brand-primary)'
+                      : 'var(--brand-primary-soft)',
+                  color:
+                    isAudioActivelyPlaying || explicitSelectedVerse
+                      ? '#FFFFFF'
+                      : 'var(--brand-primary-text)',
+                }}
+              >
+                {hasDifferentSelectedWhilePlaying ? (
+                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                ) : isAudioActivelyPlaying ? (
+                  <Pause className="w-4 h-4" />
+                ) : explicitSelectedVerse ? (
+                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                ) : (
+                  <Headphones className="w-4 h-4" />
+                )}
+              </button>
+
+              {/* 🔍 Hızlı Ara */}
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  openSearchModal();
+                }}
+                aria-label="Hızlı Ara"
+                title="Hızlı Ara"
+                className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <Search className="w-4 h-4" />
+              </button>
+
+              {/* 🔖 Sayfa Ayraçları & Hatim */}
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  openBookmarksDrawer();
+                }}
+                aria-label="Sayfa Ayraçları"
+                title={bookmarkCount > 0 ? `Sayfa Ayraçları (${bookmarkCount})` : 'Sayfa Ayraçları'}
+                className="relative w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+                style={{
+                  backgroundColor:
+                    bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
+                  borderColor:
+                    bookmarkCount > 0 ? 'rgba(217, 119, 6, 0.35)' : 'var(--border-subtle)',
+                  color: bookmarkCount > 0 ? 'var(--brand-accent-text)' : 'var(--text-primary)',
+                }}
+              >
+                <Bookmark className={`w-4 h-4 ${bookmarkCount > 0 ? 'fill-current' : ''}`} />
+                {bookmarkCount > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-extrabold tabular-nums flex items-center justify-center text-white dark:text-[#0b1314] leading-none pointer-events-none"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-text)',
+                      boxShadow: '0 0 0 1.5px var(--bg-nav)',
+                    }}
+                  >
+                    {bookmarkCount > 99 ? '99+' : bookmarkCount}
+                  </span>
+                )}
+              </button>
+
+              {/* ⚙️ Görünüm / Okuma Menüsü Çekmecesi */}
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setIsMobileDrawerOpen(true);
+                }}
+                aria-label="Görünüm ve Okuma Menüsü"
+                title="Görünüm ve Okuma Menüsü"
+                className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* 2. Satır (< 640px Telefonlar): Tek Dokunuşla Mushaf | Kartlar | Kitap Seçici */}
+          <div className="sm:hidden pb-1.5">
             <div
-              className="hidden sm:flex items-center h-9 p-0.5 rounded-xl border shrink-0"
+              className="grid grid-cols-3 gap-1 p-0.5 rounded-xl border"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
               }}
+              role="tablist"
+              aria-label="Okuma görünümü"
             >
               {(
                 [
-                  { id: 'mushaf', label: 'Mushaf' },
-                  { id: 'cards', label: 'Kartlar' },
-                  { id: 'book', label: 'Kitap' },
+                  { id: 'mushaf', label: 'Mushaf', icon: BookOpen },
+                  { id: 'cards', label: 'Kartlar', icon: LayoutList },
+                  { id: 'book', label: 'Kitap', icon: BookText },
                 ] as const
               ).map((tab) => {
                 const active = viewMode === tab.id;
+                const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
                     type="button"
+                    role="tab"
+                    aria-selected={active}
                     onClick={() => handleSwitchViewMode(tab.id)}
-                    className="h-8 px-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                    className="min-h-[36px] px-2 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap touch-manipulation"
                     style={{
                       backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                       color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                       boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                     }}
                   >
-                    {tab.label}
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{tab.label}</span>
                   </button>
                 );
               })}
             </div>
-
-            {/* 🎧 Dinle / Duraklat */}
-            <button
-              type="button"
-              onClick={handleHeaderListen}
-              aria-label={
-                hasDifferentSelectedWhilePlaying && explicitSelectedVerse
-                  ? `${explicitSelectedVerse.ayah}. ayetten dinle`
-                  : isAudioActivelyPlaying
-                    ? 'Dinlemeyi duraklat'
-                    : explicitSelectedVerse
-                      ? `${explicitSelectedVerse.ayah}. ayetten dinle`
-                      : 'Dinle'
-              }
-              title={
-                hasDifferentSelectedWhilePlaying && explicitSelectedVerse
-                  ? `Seçili ayetten (${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah}) dinlemeye geç`
-                  : isAudioActivelyPlaying
-                    ? 'Dinlemeyi duraklat'
-                    : explicitSelectedVerse
-                      ? `${explicitSelectedVerse.ayah}. ayetten dinle`
-                      : 'Bu sayfayı / sureyi dinle'
-              }
-              className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-colors shrink-0"
-              style={{
-                backgroundColor:
-                  isAudioActivelyPlaying || explicitSelectedVerse
-                    ? 'var(--brand-primary)'
-                    : 'var(--brand-primary-soft)',
-                color:
-                  isAudioActivelyPlaying || explicitSelectedVerse
-                    ? '#FFFFFF'
-                    : 'var(--brand-primary-text)',
-              }}
-            >
-              {hasDifferentSelectedWhilePlaying ? (
-                <Play className="w-4 h-4 fill-current ml-0.5" />
-              ) : isAudioActivelyPlaying ? (
-                <Pause className="w-4 h-4" />
-              ) : explicitSelectedVerse ? (
-                <Play className="w-4 h-4 fill-current ml-0.5" />
-              ) : (
-                <Headphones className="w-4 h-4" />
-              )}
-            </button>
-
-            {/* 🔍 Hızlı Ara */}
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                openSearchModal();
-              }}
-              aria-label="Hızlı Ara"
-              title="Hızlı Ara"
-              className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              <Search className="w-4 h-4" />
-            </button>
-
-            {/* 🔖 Sayfa Ayraçları & Hatim */}
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                openBookmarksDrawer();
-              }}
-              aria-label="Sayfa Ayraçları"
-              title={bookmarkCount > 0 ? `Sayfa Ayraçları (${bookmarkCount})` : 'Sayfa Ayraçları'}
-              className="relative w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
-              style={{
-                backgroundColor:
-                  bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
-                borderColor:
-                  bookmarkCount > 0 ? 'rgba(217, 119, 6, 0.35)' : 'var(--border-subtle)',
-                color: bookmarkCount > 0 ? 'var(--brand-accent-text)' : 'var(--text-primary)',
-              }}
-            >
-              <Bookmark className={`w-4 h-4 ${bookmarkCount > 0 ? 'fill-current' : ''}`} />
-              {bookmarkCount > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-extrabold tabular-nums flex items-center justify-center text-white dark:text-[#0b1314] leading-none pointer-events-none"
-                  style={{
-                    backgroundColor: 'var(--brand-accent-text)',
-                    boxShadow: '0 0 0 1.5px var(--bg-nav)',
-                  }}
-                >
-                  {bookmarkCount > 99 ? '99+' : bookmarkCount}
-                </span>
-              )}
-            </button>
-
-            {/* ⚙️ Görünüm / Okuma Menüsü Çekmecesi */}
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                setIsMobileDrawerOpen(true);
-              }}
-              aria-label="Görünüm ve Okuma Menüsü"
-              title="Görünüm ve Okuma Menüsü"
-              className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-            </button>
           </div>
         </header>
       )}

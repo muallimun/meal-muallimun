@@ -767,8 +767,138 @@ export const HomePage: React.FC = () => {
   const activeMobileVerse =
     activeReflectionTab === 'kamer' ? REFLECTION_VERSES.kamer : REFLECTION_VERSES.furkan;
 
+  const activeMemPct =
+    memActiveSession && memActiveSession.totalSteps > 0
+      ? Math.min(
+          100,
+          Math.round(((memActiveSession.stepIndex + 1) / memActiveSession.totalSteps) * 100),
+        )
+      : 0;
+  const quickResumePage = lastRead?.page ?? 1;
+  const quickResumeSurahNo = lastRead?.surah ?? 1;
+  const quickResumeAyahNo = lastRead?.ayah ?? 1;
+  const quickResumeSurahName =
+    lastSurahMeta?.shortNameTr ??
+    surahMap.get(quickResumeSurahNo)?.shortNameTr ??
+    'Fâtiha';
+  const quickResumeViewMode = lastRead?.viewMode ?? 'mushaf';
+  const mistakeCount = gamification.wrongQuestionIds.length;
+
   return (
     <div className="space-y-3 sm:space-y-4">
+      {/* ====================================================================
+          0. Kaldığın Yerden Devam Et — Hızlı Erişim Şeridi (İlk Bakış Alanı)
+          ==================================================================== */}
+      <section aria-label="Kaldığın yerden devam et">
+        <div
+          className="surface-card rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-l-4"
+          style={{
+            borderColor: 'var(--border-subtle)',
+            borderLeftColor: 'var(--brand-primary)',
+          }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--brand-primary-soft)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <BookOpen className="w-4 h-4 shrink-0" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p
+                  className="text-[11px] font-extrabold tracking-tight truncate"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  {lastRead ? 'Kaldığın Yerden Devam Et' : 'Okumaya Başla'}
+                </p>
+                {lastReadModeLabel && (
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    {lastReadModeLabel}
+                  </span>
+                )}
+              </div>
+              <p
+                className="text-xs sm:text-sm font-extrabold tabular-nums truncate"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Sayfa {quickResumePage} · {quickResumeSurahName} {quickResumeAyahNo}. Ayet
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            {memActiveSession && (
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  navigateToMemorizeUnit(memActiveSession.unitId);
+                }}
+                title={`${memActiveSession.unitTitle} ezber oturumuna devam et`}
+                className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--brand-accent-soft)',
+                  borderColor: 'rgba(217, 119, 6, 0.35)',
+                  color: 'var(--brand-accent-text)',
+                }}
+              >
+                <BookMarked className="w-3.5 h-3.5 shrink-0" />
+                <span>Ezber{activeMemPct > 0 ? ` · %${activeMemPct}` : ''}</span>
+              </button>
+            )}
+
+            {mistakeCount > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setActiveTab('mistakes');
+                }}
+                title="Hata Kampındaki bekleyen soruları çöz"
+                className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 whitespace-nowrap"
+                style={{
+                  backgroundColor: 'var(--state-danger-bg)',
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                  color: 'var(--state-danger-text)',
+                }}
+              >
+                <Target className="w-3.5 h-3.5 shrink-0" />
+                <span>Hata Kampı ({formatNumberTr(mistakeCount)})</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                navigateToStudy({
+                  surah: quickResumeSurahNo,
+                  ayah: quickResumeAyahNo,
+                  page: quickResumePage,
+                  viewMode: quickResumeViewMode,
+                  ...(quickResumeViewMode === 'mushaf' ? { ensureArabicVisible: true } : {}),
+                });
+              }}
+              className="flex-1 sm:flex-initial min-h-[38px] px-3.5 rounded-xl text-xs sm:text-sm font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer transition-opacity hover:opacity-95 whitespace-nowrap"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <span>{lastRead ? 'Devam Et' : 'Okumaya Geç'}</span>
+              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* ====================================================================
           1. Tefekkür & İlahî Çağrı — Mushaf Serlevha Kartı (50% / 50% Eksen)
           ==================================================================== */}

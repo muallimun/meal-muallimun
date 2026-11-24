@@ -51,7 +51,8 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   onExitKeepSession,
   onExitDiscardSession,
 }) => {
-  const { settings, meta, gamification, questionAudit, toggleBookmarkQuestion } = useAppStore();
+  const { settings, meta, gamification, questionAudit, toggleBookmarkQuestion, isExamActive } =
+    useAppStore();
 
   const [showExitModal, setShowExitModal] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
@@ -143,6 +144,19 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
       }
     }
   }, [session.currentIndex, currentQuestion, isArena, session.answers]);
+
+  // Antrenman modunda şık işaretlendiğinde veya ayet bloğu açıldığında açıklama alanını sabit alt çubuk üstüne kaydır
+  const currentAnsweredAt = currentAnswer?.answeredAt ?? null;
+  useEffect(() => {
+    if (!isPractice || !isAnswered || !currentAnsweredAt) return;
+    const rafId = window.requestAnimationFrame(() => {
+      feedbackSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [isPractice, isAnswered, currentAnsweredAt, openPracticeVerseDrawer]);
 
   const surahMeta = useMemo(() => {
     if (!meta || !currentQuestion) return null;
@@ -799,7 +813,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     <div
       onPointerDown={() => wakeLockService.ensureLock()}
       onClick={() => wakeLockService.ensureLock()}
-      className="max-w-6xl mx-auto space-y-2.5 pb-6"
+      className="max-w-6xl mx-auto space-y-2.5 pb-20 lg:pb-6"
     >
       {/* ====================================================================
           1. İnce Tek Şerit Aktif Sınav Üst Barı (Soru X/N · Sure · Zorluk · Süre)
@@ -1265,7 +1279,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
           {!isMock && isAnswered && currentAnswer && (
             <div
               ref={feedbackSectionRef}
-              className="pt-3 border-t space-y-2.5"
+              className="pt-3 border-t space-y-2.5 scroll-mb-24"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
               <div
@@ -1335,10 +1349,14 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
           )}
 
           {/* ================================================================
-              4. Birleşik Alt Gezinme ve Aksiyon Barı (Her 3 Sınav Tipinde de Mevcut)
+              4. Birleşik Alt Gezinme ve Aksiyon Barı (Mobilde Ekran Altına Sabit, Masaüstünde Akışta)
               ================================================================ */}
           <div
-            className="pt-3 border-t flex flex-wrap items-center justify-between gap-2"
+            className={`sticky ${
+              isExamActive
+                ? 'bottom-[max(0.25rem,env(safe-area-inset-bottom,0px))]'
+                : 'bottom-[calc(var(--bottom-nav-h)+0.25rem)]'
+            } lg:static z-20 -mx-4 sm:-mx-5 lg:mx-0 -mb-4 sm:-mb-5 lg:mb-0 px-3.5 sm:px-5 lg:px-0 py-2.5 lg:pt-3 lg:pb-0 rounded-b-2xl lg:rounded-none border-t backdrop-blur-md lg:backdrop-blur-none shadow-[0_-6px_18px_-8px_rgba(15,32,30,0.18)] lg:shadow-none flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-nav)] lg:bg-transparent`}
             style={{ borderColor: 'var(--border-subtle)' }}
           >
             {/* Sol: Önceki */}

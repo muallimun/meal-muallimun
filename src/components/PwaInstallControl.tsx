@@ -232,7 +232,7 @@ export const PwaInstallControl: React.FC<PwaInstallControlProps> = ({ variant })
           <button
             type="button"
             onClick={() => void handleInstallClick()}
-            className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border flex items-center gap-3 text-sm font-bold transition-colors cursor-pointer hover:opacity-95"
+            className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border flex items-center gap-2.5 text-xs sm:text-sm font-bold transition-colors cursor-pointer hover:opacity-95"
             style={{
               backgroundColor: 'var(--brand-primary-soft)',
               borderColor: 'var(--brand-primary)',
@@ -240,7 +240,7 @@ export const PwaInstallControl: React.FC<PwaInstallControlProps> = ({ variant })
             }}
           >
             <Download className="w-4 h-4 shrink-0" />
-            <span className="whitespace-nowrap truncate">Uygulamayı Cihaza Kur</span>
+            <span className="truncate">Ana Ekrana Ekle (Uygulama Olarak Kur)</span>
           </button>
           {manualHintBox}
         </div>
@@ -259,12 +259,12 @@ export const PwaInstallControl: React.FC<PwaInstallControlProps> = ({ variant })
 
     return (
       <>
-        <section aria-label="Uygulamayı cihaza kur" className="lg:hidden">
+        <section aria-label="Ana ekrana ekle" className="lg:hidden">
           <div
-            className="surface-card rounded-2xl p-4 sm:p-5 border-l-4"
+            className="surface-card rounded-2xl p-3.5 sm:p-4 border-l-4"
             style={{ borderLeftColor: 'var(--brand-primary)' }}
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-start sm:items-center gap-3 min-w-0">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
@@ -277,11 +277,11 @@ export const PwaInstallControl: React.FC<PwaInstallControlProps> = ({ variant })
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm sm:text-base font-extrabold tracking-tight">
-                    Muallimun&apos;u Cihazınıza Kurun
+                    Ana Ekrana Ekle (Uygulama Olarak Kur)
                   </h3>
                   <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                    Ana ekranınızdan tam ekran açın; daha önce açtığınız sure ve soruları internet
-                    yokken de çalışın.
+                    Ana ekranınızdan tek dokunuşla açın; indirilen sure, meal ve sorulara
+                    çevrimdışı da ulaşın.
                   </p>
                 </div>
               </div>
@@ -290,11 +290,11 @@ export const PwaInstallControl: React.FC<PwaInstallControlProps> = ({ variant })
                 <button
                   type="button"
                   onClick={() => void handleInstallClick()}
-                  className="flex-1 sm:flex-initial min-h-[44px] px-4 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 sm:flex-initial min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-2 cursor-pointer"
                   style={{ backgroundColor: 'var(--brand-primary)' }}
                 >
                   <Download className="w-4 h-4 shrink-0" />
-                  <span className="whitespace-nowrap">Uygulamayı Cihaza Kur</span>
+                  <span className="whitespace-nowrap">Ana Ekrana Ekle</span>
                 </button>
                 <button
                   type="button"

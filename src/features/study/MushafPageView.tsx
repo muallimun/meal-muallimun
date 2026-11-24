@@ -399,7 +399,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     right: false,
   });
 
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [swipeOffsetX, setSwipeOffsetX] = useState<number>(0);
+  const [isSwiping, setIsSwiping] = useState<boolean>(false);
+  const [pageTurnAnim, setPageTurnAnim] = useState<'none' | 'left' | 'right'>('none');
+
+  const touchStartRef = useRef<{
+    x: number;
+    y: number;
+    lock: 'none' | 'horizontal' | 'vertical';
+  } | null>(null);
+  const prevPageNoRef = useRef<number>(pageBundle.pageNo);
+  const pageAnimTimerRef = useRef<number | null>(null);
   const leftPaneRef = useRef<HTMLDivElement | null>(null);
   const rightPaneRef = useRef<HTMLDivElement | null>(null);
   const programmaticScrollUntilRef = useRef<{ left: number; right: number }>({
@@ -791,20 +801,102 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     onChangePage,
   ]);
 
-  // Mobilde yatay parmak kaydırma ile sayfa çevirme (LTR / RTL uyumlu)
+  // Sayfa numarası değiştiğinde kısa (180ms) zarif giriş geçişi (LTR / RTL yön duyarlı)
+  useEffect(() => {
+    const prev = prevPageNoRef.current;
+    const next = pageBundle.pageNo;
+    if (prev === next) return;
+    prevPageNoRef.current = next;
+
+    const movingForward = next > prev;
+    // RTL Mushaf'ta sonraki sayfa soldan, önceki sayfa sağdan; LTR kitapta tam tersi gelir
+    const enterSide: 'left' | 'right' = isLtrBook
+      ? movingForward
+        ? 'right'
+        : 'left'
+      : movingForward
+        ? 'left'
+        : 'right';
+    setPageTurnAnim(enterSide);
+
+    if (pageAnimTimerRef.current !== null) {
+      window.clearTimeout(pageAnimTimerRef.current);
+    }
+    pageAnimTimerRef.current = window.setTimeout(() => {
+      setPageTurnAnim('none');
+      pageAnimTimerRef.current = null;
+    }, 190);
+  }, [pageBundle.pageNo, isLtrBook]);
+
+  useEffect(() => {
+    return () => {
+      if (pageAnimTimerRef.current !== null) {
+        window.clearTimeout(pageAnimTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Mobilde canlı parmak takipli yatay kaydırma ile sayfa çevirme (LTR / RTL uyumlu)
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length !== 1) return;
     touchStartRef.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
+      lock: 'none',
     };
+    setIsSwiping(false);
+    setSwipeOffsetX(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const state = touchStartRef.current;
+    if (!state || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - state.x;
+    const dy = e.touches[0].clientY - state.y;
+
+    if (state.lock === 'none') {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        state.lock = 'vertical';
+        return;
+      }
+      if (Math.abs(dx) > Math.abs(dy) * 1.15) {
+        state.lock = 'horizontal';
+      } else {
+        return;
+      }
+    }
+
+    if (state.lock !== 'horizontal') return;
+
+    const wantsNext = isLtrBook ? dx < 0 : dx > 0;
+    const allowedInDirection = wantsNext ? canGoNext : canGoPrev;
+    const maxOffset = allowedInDirection ? 26 : 9;
+    const damped = Math.sign(dx) * Math.min(maxOffset, Math.abs(dx) * 0.28);
+
+    setIsSwiping(true);
+    setSwipeOffsetX(damped);
+  };
+
+  const resetSwipeVisual = () => {
+    setIsSwiping(false);
+    setSwipeOffsetX(0);
+  };
+
+  const handleTouchCancel = () => {
+    touchStartRef.current = null;
+    resetSwipeVisual();
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchStartRef.current || e.changedTouches.length !== 1) return;
-    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
-    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+    const state = touchStartRef.current;
     touchStartRef.current = null;
+    resetSwipeVisual();
+    if (!state || e.changedTouches.length !== 1) return;
+    if (state.lock === 'vertical') return;
+
+    const dx = e.changedTouches[0].clientX - state.x;
+    const dy = e.changedTouches[0].clientY - state.y;
 
     if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
     if (isLtrBook) {
@@ -2410,7 +2502,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             : `max-w-[54rem] mx-auto w-full space-y-2 ${isAudioBarVisible ? 'pb-32 lg:pb-24' : ''}`
         }
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       >
         {/* Masaüstü (lg+) Sağ/Sol Dış Kenar Sayfa Çevirme Okları + Kitap Çerçevesi (Akıllı LTR/RTL Yönü) */}
         <div
@@ -2458,12 +2552,49 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             </button>
           </div>
 
-          {/* Orta: Yaprak Çerçevesi */}
+          {/* Orta: Yaprak Çerçevesi (Mobilde canlı parmak kaydırma + dış kenar tek el dokunma şeritleri) */}
           <div
-            className={`flex-1 min-w-0 ${
+            className={`relative flex-1 min-w-0 ${
               isBookSpread ? 'lg:flex lg:flex-col lg:min-h-0' : 'max-w-3xl mx-auto w-full'
+            } ${
+              pageTurnAnim === 'left'
+                ? 'mushaf-page-enter-left'
+                : pageTurnAnim === 'right'
+                  ? 'mushaf-page-enter-right'
+                  : ''
             }`}
+            style={{
+              transform: swipeOffsetX !== 0 ? `translateX(${swipeOffsetX}px)` : undefined,
+              transition: isSwiping ? 'none' : 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
           >
+            {/* Mobil (< lg) Tek El Sol/Sağ Dış Kenar Sayfa Çevirme Şeritleri (Yalnızca 20px dış kenar boşluğu; metne dokunmaz) */}
+            {!leftActionDisabled && (
+              <button
+                type="button"
+                aria-label={`${leftActionLabel} (Sayfa ${leftActionTarget})`}
+                title={`${leftActionLabel} (Sayfa ${leftActionTarget})`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  sfxService.play('click');
+                  onChangePage(leftActionTarget);
+                }}
+                className="lg:hidden absolute left-0 top-14 bottom-12 w-5 z-10 rounded-l-xl bg-transparent active:bg-[var(--brand-primary)]/12 transition-colors cursor-pointer touch-manipulation"
+              />
+            )}
+            {!rightActionDisabled && (
+              <button
+                type="button"
+                aria-label={`${rightActionLabel} (Sayfa ${rightActionTarget})`}
+                title={`${rightActionLabel} (Sayfa ${rightActionTarget})`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  sfxService.play('click');
+                  onChangePage(rightActionTarget);
+                }}
+                className="lg:hidden absolute right-0 top-14 bottom-12 w-5 z-10 rounded-r-xl bg-transparent active:bg-[var(--brand-primary)]/12 transition-colors cursor-pointer touch-manipulation"
+              />
+            )}
             {isMealMode ? (
               isMealDual && secondPageBundle ? (
                 /* 2 SAYFA AÇIK KİTAP MEAL (LTR Türkçe Kitap Yönü — SOLDA pageNo, SAĞDA pageNo+1) */

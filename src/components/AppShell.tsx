@@ -17,6 +17,7 @@ import {
   Settings,
   Sparkles,
   Trophy,
+  Wifi,
   WifiOff,
   X,
 } from 'lucide-react';
@@ -97,7 +98,27 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [pendingNavTab, setPendingNavTab] = useState<NavTab | null>(null);
   const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
   const [dismissedPwaUpdate, setDismissedPwaUpdate] = useState(false);
+  const [dismissedOfflineBanner, setDismissedOfflineBanner] = useState(false);
+  const [showReconnectedBanner, setShowReconnectedBanner] = useState(false);
+  const wasOfflineRef = useRef(!isOnline);
   const moduleMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOnline) {
+      wasOfflineRef.current = true;
+      setDismissedOfflineBanner(false);
+      setShowReconnectedBanner(false);
+      return;
+    }
+    if (wasOfflineRef.current) {
+      wasOfflineRef.current = false;
+      setShowReconnectedBanner(true);
+      const timerId = window.setTimeout(() => {
+        setShowReconnectedBanner(false);
+      }, 3000);
+      return () => window.clearTimeout(timerId);
+    }
+  }, [isOnline]);
 
   const pwaUpdateAvailable = useSyncExternalStore(
     subscribePwaUpdate,
@@ -738,24 +759,52 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </div>
         </header>
 
-        {/* Çevrimdışı Durum Şeridi */}
-        {!isOnline && (
+        {/* Çevrimdışı / Yeniden Bağlandı Durum Şeridi */}
+        {!isOnline && !dismissedOfflineBanner && (
           <div
             role="status"
             aria-live="polite"
-            className="px-4 py-1.5 text-xs border-b"
+            className="px-3 sm:px-4 py-1.5 text-xs border-b shrink-0"
             style={{
               backgroundColor: 'var(--brand-accent-soft)',
               borderColor: 'var(--border-subtle)',
               color: 'var(--brand-accent-text)',
             }}
           >
-            <div className="max-w-6xl mx-auto flex items-center justify-center sm:justify-start gap-2 font-semibold">
-              <WifiOff className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                Çevrimdışı moddasınız — Önbellekteki sure, meal ve sorular kesintisiz çalışmaya devam
-                eder.
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 font-semibold">
+              <span className="flex items-center gap-2 min-w-0">
+                <WifiOff className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate sm:whitespace-normal">
+                  Çevrimdışı Mod — İndirilen sure ve mealler kullanıma hazır
+                </span>
               </span>
+              <button
+                type="button"
+                onClick={() => setDismissedOfflineBanner(true)}
+                aria-label="Çevrimdışı bildirimini kapat"
+                className="p-1 rounded-lg cursor-pointer hover:opacity-80 shrink-0"
+                style={{ color: 'var(--brand-accent-text)' }}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isOnline && showReconnectedBanner && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="px-3 sm:px-4 py-1.5 text-xs border-b shrink-0"
+            style={{
+              backgroundColor: 'rgba(16, 185, 129, 0.14)',
+              borderColor: 'rgba(16, 185, 129, 0.35)',
+              color: 'var(--brand-primary-text)',
+            }}
+          >
+            <div className="max-w-6xl mx-auto flex items-center justify-center sm:justify-start gap-2 font-bold">
+              <Wifi className="w-3.5 h-3.5 shrink-0" />
+              <span>İnternet bağlantısı yeniden kuruldu</span>
             </div>
           </div>
         )}

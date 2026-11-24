@@ -24,6 +24,7 @@ import {
   Type,
   X,
 } from 'lucide-react';
+import { PwaInstallControl } from '../../components/PwaInstallControl';
 import { ARABIC_FONTS } from '../../config/assetsConfig';
 import { Z_LAYERS } from '../../config/zLayers';
 import { useBackButtonGuard } from '../../services/backStackService';
@@ -1151,6 +1152,8 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                 </span>
                 <ChevronRight className="w-4 h-4 opacity-50" />
               </button>
+
+              <PwaInstallControl variant="sidebar" />
             </div>
           </section>
         </div>
