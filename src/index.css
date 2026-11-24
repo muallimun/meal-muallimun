@@ -123,7 +123,7 @@
   --state-danger-bg: rgba(239, 68, 68, 0.08);
   --shadow-card: 0 1px 2px rgba(15, 32, 30, 0.04), 0 4px 16px rgba(15, 32, 30, 0.04);
   --font-turkish: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --font-arabic: "Şeyh Hamdullah Klasik", "Elif Mushaf Hattı", serif;
+  --font-arabic: "Elif Mushaf Hattı", serif;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --bottom-nav-h: calc(3.75rem + max(0.35rem, env(safe-area-inset-bottom, 0px)) + 1px);
 }
@@ -247,7 +247,7 @@
 }
 
 .arabic-text {
-  font-family: var(--font-arabic), "Şeyh Hamdullah Klasik", "Elif Mushaf Hattı", serif;
+  font-family: var(--font-arabic), "Elif Mushaf Hattı", serif;
   direction: rtl;
   unicode-bidi: isolate;
   line-height: 2.05;

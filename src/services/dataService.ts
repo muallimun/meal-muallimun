@@ -472,20 +472,49 @@ export async function getManifest(): Promise<ManifestData> {
 }
 
 /**
- * Standart 604 sayfalık Medine Mushafı sayfa sınırı düzeltmeleri.
- * 358. sayfa Furkân 25:2 ile biter; Furkân 25:3 ayeti 359. sayfanın ilk ayetidir.
- * Yerel/uzak JSON ve Cache API yanıtları okunurken deterministik olarak uygulanır.
+ * Basılı Diyanet Mushafı (604 sayfa) kanonik sayfa sınırı düzeltmeleri.
+ * Yerel/uzak JSON ve çevrimdışı Cache API yanıtları okunurken deterministik olarak uygulanır:
+ * - Âl-i İmrân (3): 73 (181-186), 74 (187-194), 75 (195-200)
+ * - Tevbe (9): 190 (27-31), 191 (32-36), 192 (37-40), 193 (41-47), 194 (48-54)
+ * - Tâhâ (20): 312 (13-37), 313 (38-51), 314 (52-64), 315 (65-76)
+ * - Furkân (25): 358 (1-2), 359 (3-11)
  */
-const CANONICAL_AYAH_PAGE_OVERRIDES: Readonly<Record<string, number>> = {
-  '25:3': 359,
-};
+function resolveCanonicalAyahPage(surahNo: number, ayahNo: number): number | null {
+  if (surahNo === 3) {
+    if (ayahNo >= 181 && ayahNo <= 186) return 73;
+    if (ayahNo >= 187 && ayahNo <= 194) return 74;
+    if (ayahNo >= 195 && ayahNo <= 200) return 75;
+    return null;
+  }
+  if (surahNo === 9) {
+    if (ayahNo >= 27 && ayahNo <= 31) return 190;
+    if (ayahNo >= 32 && ayahNo <= 36) return 191;
+    if (ayahNo >= 37 && ayahNo <= 40) return 192;
+    if (ayahNo >= 41 && ayahNo <= 47) return 193;
+    if (ayahNo >= 48 && ayahNo <= 54) return 194;
+    return null;
+  }
+  if (surahNo === 20) {
+    if (ayahNo >= 13 && ayahNo <= 37) return 312;
+    if (ayahNo >= 38 && ayahNo <= 51) return 313;
+    if (ayahNo >= 52 && ayahNo <= 64) return 314;
+    if (ayahNo >= 65 && ayahNo <= 76) return 315;
+    return null;
+  }
+  if (surahNo === 25) {
+    if (ayahNo >= 1 && ayahNo <= 2) return 358;
+    if (ayahNo >= 3 && ayahNo <= 11) return 359;
+    return null;
+  }
+  return null;
+}
 
 function normalizeMetaPages(meta: MetaData): MetaData {
   let hasChanges = false;
   for (let i = 0; i < meta.verseIndex.length; i += 1) {
     const row = meta.verseIndex[i];
-    const overridePage = CANONICAL_AYAH_PAGE_OVERRIDES[`${row[1]}:${row[2]}`];
-    if (overridePage !== undefined && row[4] !== overridePage) {
+    const overridePage = resolveCanonicalAyahPage(row[1], row[2]);
+    if (overridePage !== null && row[4] !== overridePage) {
       hasChanges = true;
       break;
     }
@@ -493,8 +522,8 @@ function normalizeMetaPages(meta: MetaData): MetaData {
   if (!hasChanges) return meta;
 
   const normalizedVerseIndex = meta.verseIndex.map((row) => {
-    const overridePage = CANONICAL_AYAH_PAGE_OVERRIDES[`${row[1]}:${row[2]}`];
-    if (overridePage !== undefined && row[4] !== overridePage) {
+    const overridePage = resolveCanonicalAyahPage(row[1], row[2]);
+    if (overridePage !== null && row[4] !== overridePage) {
       return [row[0], row[1], row[2], row[3], overridePage, row[5]] as MetaData['verseIndex'][number];
     }
     return row;
@@ -510,8 +539,8 @@ function normalizeArabicSurahPages(file: ArabicSurahFile): ArabicSurahFile {
   let hasChanges = false;
   for (let i = 0; i < file.verses.length; i += 1) {
     const v = file.verses[i];
-    const overridePage = CANONICAL_AYAH_PAGE_OVERRIDES[`${file.s}:${v.a}`];
-    if (overridePage !== undefined && v.p !== overridePage) {
+    const overridePage = resolveCanonicalAyahPage(file.s, v.a);
+    if (overridePage !== null && v.p !== overridePage) {
       hasChanges = true;
       break;
     }
@@ -521,8 +550,8 @@ function normalizeArabicSurahPages(file: ArabicSurahFile): ArabicSurahFile {
   return {
     ...file,
     verses: file.verses.map((v) => {
-      const overridePage = CANONICAL_AYAH_PAGE_OVERRIDES[`${file.s}:${v.a}`];
-      if (overridePage !== undefined && v.p !== overridePage) {
+      const overridePage = resolveCanonicalAyahPage(file.s, v.a);
+      if (overridePage !== null && v.p !== overridePage) {
         return { ...v, p: overridePage };
       }
       return v;
