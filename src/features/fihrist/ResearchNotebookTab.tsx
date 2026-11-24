@@ -4,6 +4,7 @@ import {
   BookOpen,
   Check,
   ChevronRight,
+  ChevronUp,
   ClipboardCopy,
   Download,
   Edit3,
@@ -13,9 +14,12 @@ import {
   ListTree,
   MoreHorizontal,
   NotebookPen,
+  PanelLeft,
+  PanelLeftClose,
   Plus,
   Printer,
   Scale,
+  Search,
   Sparkles,
   StickyNote,
   Trash2,
@@ -74,6 +78,30 @@ const SORT_MODE_OPTIONS: readonly { id: ResearchSortMode; label: string }[] = [
   { id: 'mushaf', label: 'Mushaf' },
   { id: 'nuzul', label: 'Nüzul' },
 ];
+
+const NOTEBOOK_SIDEBAR_STORAGE_KEY = 'muallimun_notebook_sidebar_open';
+type SidebarPreference = 'open' | 'closed' | null;
+
+function readNotebookSidebarPref(): SidebarPreference {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(NOTEBOOK_SIDEBAR_STORAGE_KEY);
+    if (raw === '1' || raw === 'true') return 'open';
+    if (raw === '0' || raw === 'false') return 'closed';
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeNotebookSidebarPref(open: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(NOTEBOOK_SIDEBAR_STORAGE_KEY, open ? '1' : '0');
+  } catch {
+    // Gizli mod / kota kısıtında sessizce devam et
+  }
+}
 
 /**
  * Kayıt listesini akademik referans biçiminde biçimlendirir:
@@ -155,6 +183,29 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   const [viewMode, setViewMode] = useState<FihristViewMode>('ar_meal');
   const [sortMode, setSortMode] = useState<ResearchSortMode>('custom');
 
+  // Akıllı sol başlık paneli (masaüstü) + mobil üst çekmece + arama
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : true,
+  );
+  const [manualSidebarPref, setManualSidebarPref] = useState<SidebarPreference>(() =>
+    readNotebookSidebarPref(),
+  );
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState<boolean>(() => {
+    const pref = readNotebookSidebarPref();
+    if (pref === 'open') return true;
+    if (pref === 'closed') return false;
+    return topics.length >= 2;
+  });
+  const [isMobileTopicsDrawerOpen, setIsMobileTopicsDrawerOpen] = useState(false);
+  const [topicSearchQuery, setTopicSearchQuery] = useState('');
+
+  // Katlanabilir "Ayet / Pasaj / Not Ekleme" alanı
+  const [isAddPanelOpen, setIsAddPanelOpen] = useState<boolean>(() => {
+    const initialTopic = topics[0] ?? null;
+    return initialTopic ? initialTopic.items.length === 0 : false;
+  });
+  const lastTopicIdForAddPanelRef = useRef<string | null>(null);
+
   // Yeni konu oluşturma
   const [isNewTopicFormOpen, setIsNewTopicFormOpen] = useState(false);
   const [newTopicTitle, setNewTopicTitle] = useState('');
@@ -189,6 +240,44 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsDesktopViewport(e.matches);
+    setIsDesktopViewport(mq.matches);
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (manualSidebarPref === null) {
+      setIsDesktopSidebarOpen(topics.length >= 2);
+    }
+  }, [topics.length, manualSidebarPref]);
+
+  useEffect(() => {
+    if (isDesktopViewport && isMobileTopicsDrawerOpen) {
+      setIsMobileTopicsDrawerOpen(false);
+    }
+  }, [isDesktopViewport, isMobileTopicsDrawerOpen]);
+
+  useBackButtonGuard('research_topics_drawer', isMobileTopicsDrawerOpen, () => {
+    setIsMobileTopicsDrawerOpen(false);
+  });
+
+  useEffect(() => {
+    if (!isMobileTopicsDrawerOpen) return;
+    const releaseLock = acquireBodyScrollLock();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileTopicsDrawerOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      releaseLock();
+    };
+  }, [isMobileTopicsDrawerOpen]);
+
   useBackButtonGuard('research_backup_modal', isBackupModalOpen, () => {
     setIsBackupModalOpen(false);
   });
@@ -220,6 +309,63 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     }
     return topics[0] ?? null;
   }, [selectedTopicId, topics]);
+
+  // Akıllı Ekleme Paneli açılış kuralı:
+  // Konu değiştiğinde 0 pasaj varsa otomatik açık, >=1 pasaj varsa kapalı başlar.
+  // Aynı konuda ekleme yapıldıktan sonra kullanıcı kapatana kadar açık kalmaya devam eder.
+  useEffect(() => {
+    if (!activeTopic) {
+      lastTopicIdForAddPanelRef.current = null;
+      return;
+    }
+    if (lastTopicIdForAddPanelRef.current !== activeTopic.id) {
+      lastTopicIdForAddPanelRef.current = activeTopic.id;
+      setIsAddPanelOpen(activeTopic.items.length === 0);
+    } else if (activeTopic.items.length === 0) {
+      setIsAddPanelOpen(true);
+    }
+  }, [activeTopic]);
+
+  const filteredTopics = useMemo(() => {
+    const q = topicSearchQuery.trim().toLocaleLowerCase('tr-TR');
+    if (!q) return topics;
+    return topics.filter((t) => {
+      const titleMatch = t.title.toLocaleLowerCase('tr-TR').includes(q);
+      const descMatch = (t.description ?? '').toLocaleLowerCase('tr-TR').includes(q);
+      return titleMatch || descMatch;
+    });
+  }, [topics, topicSearchQuery]);
+
+  const handleToggleTopicsPanel = () => {
+    sfxService.play('click');
+    if (isDesktopViewport) {
+      setIsDesktopSidebarOpen((prev) => {
+        const next = !prev;
+        setManualSidebarPref(next ? 'open' : 'closed');
+        writeNotebookSidebarPref(next);
+        return next;
+      });
+    } else {
+      setIsMobileTopicsDrawerOpen((prev) => !prev);
+    }
+  };
+
+  const handleCloseDesktopSidebar = () => {
+    sfxService.play('click');
+    setIsDesktopSidebarOpen(false);
+    setManualSidebarPref('closed');
+    writeNotebookSidebarPref(false);
+  };
+
+  const handleSelectTopic = (topicId: string, closeDrawer = false) => {
+    sfxService.play('click');
+    setSelectedTopicId(topicId);
+    setIsEditingMeta(false);
+    setConfirmDeleteId(null);
+    if (closeDrawer) {
+      setIsMobileTopicsDrawerOpen(false);
+    }
+  };
 
   useEffect(() => {
     if (!addToast) return;
@@ -271,9 +417,11 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     sfxService.play('click');
     const created = researchStorage.createTopic(clean, newTopicDesc);
     setSelectedTopicId(created.id);
+    setTopicSearchQuery('');
     setNewTopicTitle('');
     setNewTopicDesc('');
     setIsNewTopicFormOpen(false);
+    setIsMobileTopicsDrawerOpen(false);
     setIsEditingMeta(false);
     setConfirmDeleteId(null);
   };
@@ -540,79 +688,253 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     </form>
   );
 
-  return (
-    <div className="space-y-3.5">
-      {/* Üst 2 Bölmeli Alt Geçiş: Araştırma Konularım | Ayet Notlarım */}
-      <div
-        role="tablist"
-        aria-label="Defterim görünüm seçici"
-        className="grid grid-cols-2 p-1 rounded-2xl border gap-1 max-w-xl"
+  const isTopicsPanelActive =
+    topics.length > 0 && (isDesktopViewport ? isDesktopSidebarOpen : isMobileTopicsDrawerOpen);
+
+  const renderTopicSearchBox = (inputId: string) => (
+    <div className="relative">
+      <Search
+        className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+        style={{ color: 'var(--text-muted)' }}
+      />
+      <input
+        id={inputId}
+        type="text"
+        value={topicSearchQuery}
+        onChange={(e) => setTopicSearchQuery(e.target.value)}
+        placeholder="Başlıklarda ara..."
+        aria-label="Araştırma başlıklarında ara"
+        className="w-full min-h-[34px] pl-8 pr-7 rounded-xl border text-xs font-semibold outline-none focus:border-[var(--brand-primary)]"
         style={{
           backgroundColor: 'var(--bg-surface-soft)',
           borderColor: 'var(--border-subtle)',
+          color: 'var(--text-primary)',
         }}
-      >
+      />
+      {topicSearchQuery && (
         <button
           type="button"
-          role="tab"
-          aria-selected={notebookSubView === 'topics'}
-          onClick={() => {
-            sfxService.play('click');
-            setNotebookSubView('topics');
-          }}
-          className="min-h-[40px] px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-w-0"
-          style={{
-            backgroundColor: notebookSubView === 'topics' ? 'var(--bg-surface)' : 'transparent',
-            color:
-              notebookSubView === 'topics' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-            boxShadow: notebookSubView === 'topics' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-          }}
+          onClick={() => setTopicSearchQuery('')}
+          aria-label="Aramayı temizle"
+          className="w-6 h-6 rounded-md flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+          style={{ color: 'var(--text-muted)' }}
         >
-          <NotebookPen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">Araştırma Konularım</span>
-          <span
-            className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums leading-none shrink-0"
-            style={{
-              backgroundColor:
-                notebookSubView === 'topics' ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
-              color:
-                notebookSubView === 'topics' ? 'var(--brand-primary-text)' : 'var(--text-muted)',
-            }}
-          >
-            {topics.length}
-          </span>
+          <X className="w-3.5 h-3.5" />
         </button>
+      )}
+    </div>
+  );
 
+  const renderTopicListItems = (closeDrawerOnSelect: boolean) => {
+    if (filteredTopics.length === 0) {
+      return (
+        <div className="px-4 py-6 text-center space-y-1.5">
+          <p className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>
+            Eşleşen başlık bulunamadı
+          </p>
+          <button
+            type="button"
+            onClick={() => setTopicSearchQuery('')}
+            className="text-[11px] font-extrabold cursor-pointer underline"
+            style={{ color: 'var(--brand-primary-text)' }}
+          >
+            Aramayı temizle
+          </button>
+        </div>
+      );
+    }
+
+    return filteredTopics.map((topic) => {
+      const isSelected = activeTopic?.id === topic.id;
+      const totalAyahs = countEntriesAyahs(topic.items);
+
+      return (
         <button
+          key={topic.id}
           type="button"
-          role="tab"
-          aria-selected={notebookSubView === 'notes'}
-          onClick={() => {
-            sfxService.play('click');
-            setNotebookSubView('notes');
-          }}
-          className="min-h-[40px] px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-w-0"
+          onClick={() => handleSelectTopic(topic.id, closeDrawerOnSelect)}
+          className="w-full px-3.5 py-2.5 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)]"
           style={{
-            backgroundColor: notebookSubView === 'notes' ? 'var(--bg-surface)' : 'transparent',
-            color:
-              notebookSubView === 'notes' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-            boxShadow: notebookSubView === 'notes' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            backgroundColor: isSelected ? 'var(--brand-primary-soft)' : 'transparent',
           }}
         >
-          <StickyNote className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-          <span className="truncate">Ayet Notlarım</span>
-          <span
-            className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums leading-none shrink-0"
+          <div className="min-w-0">
+            <p
+              className="text-xs sm:text-[13px] font-extrabold truncate"
+              style={{
+                color: isSelected ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+              }}
+            >
+              {topic.title}
+            </p>
+            <p
+              className="text-[11px] tabular-nums mt-0.5 truncate"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {topic.items.length} pasaj · {totalAyahs} ayet
+            </p>
+          </div>
+          <ChevronRight
+            className="w-4 h-4 shrink-0 opacity-60"
             style={{
-              backgroundColor:
-                notebookSubView === 'notes' ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+              color: isSelected ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+            }}
+          />
+        </button>
+      );
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Üst Dengeli Araç Çubuğu: Sol (Araştırma Konularım | Ayet Notlarım) + Sağ (Başlıklar | Yedekle | + Yeni Başlık) */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div
+          role="tablist"
+          aria-label="Defterim görünüm seçici"
+          className="grid grid-cols-2 p-1 rounded-2xl border gap-1 w-full sm:w-auto sm:min-w-[330px]"
+          style={{
+            backgroundColor: 'var(--bg-surface-soft)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={notebookSubView === 'topics'}
+            onClick={() => {
+              sfxService.play('click');
+              setNotebookSubView('topics');
+            }}
+            className="min-h-[38px] px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-w-0"
+            style={{
+              backgroundColor: notebookSubView === 'topics' ? 'var(--bg-surface)' : 'transparent',
               color:
-                notebookSubView === 'notes' ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                notebookSubView === 'topics' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+              boxShadow: notebookSubView === 'topics' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             }}
           >
-            {verseNotes.length}
-          </span>
-        </button>
+            <NotebookPen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">Araştırma Konularım</span>
+            <span
+              className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums leading-none shrink-0"
+              style={{
+                backgroundColor:
+                  notebookSubView === 'topics' ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+                color:
+                  notebookSubView === 'topics' ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+              }}
+            >
+              {topics.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={notebookSubView === 'notes'}
+            onClick={() => {
+              sfxService.play('click');
+              setNotebookSubView('notes');
+            }}
+            className="min-h-[38px] px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer min-w-0"
+            style={{
+              backgroundColor: notebookSubView === 'notes' ? 'var(--bg-surface)' : 'transparent',
+              color:
+                notebookSubView === 'notes' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+              boxShadow: notebookSubView === 'notes' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+            }}
+          >
+            <StickyNote className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">Ayet Notlarım</span>
+            <span
+              className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums leading-none shrink-0"
+              style={{
+                backgroundColor:
+                  notebookSubView === 'notes' ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+                color:
+                  notebookSubView === 'notes' ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+              }}
+            >
+              {verseNotes.length}
+            </span>
+          </button>
+        </div>
+
+        {notebookSubView === 'topics' && (
+          <div className="flex flex-wrap items-center justify-end gap-1.5 w-full sm:w-auto">
+            <button
+              type="button"
+              disabled={topics.length === 0}
+              aria-expanded={isTopicsPanelActive}
+              onClick={handleToggleTopicsPanel}
+              title={isTopicsPanelActive ? 'Başlıklar panelini gizle' : 'Başlıklar panelini aç'}
+              className="min-h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-45 whitespace-nowrap"
+              style={{
+                backgroundColor: isTopicsPanelActive
+                  ? 'var(--brand-primary-soft)'
+                  : 'var(--bg-surface)',
+                borderColor: isTopicsPanelActive
+                  ? 'var(--brand-primary)'
+                  : 'var(--border-subtle)',
+                color: isTopicsPanelActive
+                  ? 'var(--brand-primary-text)'
+                  : 'var(--text-primary)',
+              }}
+            >
+              <PanelLeft className="w-3.5 h-3.5 shrink-0" />
+              <span>Başlıklar</span>
+              <span
+                className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums leading-none"
+                style={{
+                  backgroundColor: isTopicsPanelActive
+                    ? 'var(--bg-surface)'
+                    : 'var(--bg-surface-soft)',
+                  color: isTopicsPanelActive
+                    ? 'var(--brand-primary-text)'
+                    : 'var(--text-muted)',
+                }}
+              >
+                {topics.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setBackupFeedback(null);
+                setIsBackupModalOpen(true);
+              }}
+              title="JSON Yedekle / İçe Aktar"
+              className="min-h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <ArrowUpDown
+                className="w-3.5 h-3.5 shrink-0"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+              <span>Yedekle</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsNewTopicFormOpen((v) => !v);
+              }}
+              className="min-h-[38px] px-3 sm:px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-95 whitespace-nowrap"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span>Yeni Başlık</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {notebookSubView === 'notes' ? (
@@ -683,188 +1005,87 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
             </section>
           ) : (
             <>
-              {/* ====================================================================
-                  MOBİL (< lg) KOMPAKT ÜST KONU SEÇİCİ ŞERİDİ (Ekranı kaplamaz!)
-                  ==================================================================== */}
-              <div className="lg:hidden space-y-2.5">
-                <div className="surface-card rounded-2xl p-2.5 flex items-center gap-1.5">
-                  <select
-                    aria-label="Araştırma konusu seçin"
-                    value={activeTopic?.id ?? ''}
-                    onChange={(e) => {
-                      sfxService.play('click');
-                      setSelectedTopicId(e.target.value);
-                      setIsEditingMeta(false);
-                      setConfirmDeleteId(null);
-                    }}
-                    className="flex-1 min-w-0 min-h-[38px] px-2.5 rounded-xl border text-xs font-extrabold outline-none focus:border-[var(--brand-primary)]"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    {topics.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title} ({t.items.length} pasaj)
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setIsNewTopicFormOpen((v) => !v);
-                    }}
-                    className="min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
-                    style={{ backgroundColor: 'var(--brand-primary)' }}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Yeni</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setBackupFeedback(null);
-                      setIsBackupModalOpen(true);
-                    }}
-                    title="JSON Yedekle / İçe Aktar"
-                    aria-label="JSON Yedekle veya İçe Aktar"
-                    className="w-9 h-[38px] rounded-xl border flex items-center justify-center shrink-0 cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    <ArrowUpDown className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {isNewTopicFormOpen && renderNewTopicForm()}
-              </div>
+              {/* Panel kapalıyken veya mobilde çekmece kapalıyken + Yeni Başlık tıklandıysa doğrudan görünür form */}
+              {isNewTopicFormOpen &&
+                !isMobileTopicsDrawerOpen &&
+                (!isDesktopViewport || !isDesktopSidebarOpen) && (
+                  <div className="max-w-xl">{renderNewTopicForm()}</div>
+                )}
 
               {/* ====================================================================
-                  ANA 2 SÜTUN: MASAÜSTÜ SOL KONU LİSTESİ + SAĞ ÇALIŞMA MASASI
+                  ANA ÇALIŞMA DÜZENİ: AKILLI SOL BAŞLIK PANELİ (lg+) + SAĞ ÇALIŞMA ALANI
                   ==================================================================== */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                {/* MASAÜSTÜ (lg+) SOL SÜTUN: KİŞİSEL KONULARIM */}
-                <aside className="hidden lg:block lg:col-span-4 surface-card rounded-2xl overflow-hidden lg:sticky lg:top-16">
-                  <div
-                    className="px-3.5 py-3 border-b flex items-center justify-between gap-2"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <div className="min-w-0">
-                      <h3 className="text-xs sm:text-sm font-extrabold truncate">
-                        Araştırma Başlıklarım ({topics.length})
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          setBackupFeedback(null);
-                          setIsBackupModalOpen(true);
-                        }}
-                        title="JSON Yedekle / İçe Aktar"
-                        className="min-h-[32px] px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
-                        style={{
-                          backgroundColor: 'var(--bg-surface)',
-                          borderColor: 'var(--border-subtle)',
-                          color: 'var(--text-secondary)',
-                        }}
-                      >
-                        <ArrowUpDown className="w-3.5 h-3.5" />
-                        <span>Yedekle</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          setIsNewTopicFormOpen((v) => !v);
-                        }}
-                        className="min-h-[32px] px-2.5 rounded-lg text-[11px] font-extrabold text-white inline-flex items-center gap-1 cursor-pointer"
-                        style={{ backgroundColor: 'var(--brand-primary)' }}
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Yeni</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {isNewTopicFormOpen && (
-                    <div className="p-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                      {renderNewTopicForm()}
-                    </div>
-                  )}
-
-                  <div
-                    className="divide-y max-h-[65dvh] overflow-y-auto scrollbar-thin"
-                    style={{ borderColor: 'var(--border-subtle)' }}
-                  >
-                    {topics.map((topic) => {
-                      const isSelected = activeTopic?.id === topic.id;
-                      const totalAyahs = countEntriesAyahs(topic.items);
-
-                      return (
-                        <button
-                          key={topic.id}
-                          type="button"
-                          onClick={() => {
-                            sfxService.play('click');
-                            setSelectedTopicId(topic.id);
-                            setIsEditingMeta(false);
-                            setConfirmDeleteId(null);
-                          }}
-                          className="w-full px-3.5 py-3 text-left flex items-center justify-between gap-2.5 transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)]"
+              <div className="flex flex-col lg:flex-row gap-3.5 items-start">
+                {/* MASAÜSTÜ (lg+) AÇILIR-KAPANIR KOMPAKT SOL BAŞLIK PANELİ */}
+                {isDesktopSidebarOpen && (
+                  <aside className="hidden lg:flex w-[270px] xl:w-[290px] shrink-0 surface-card rounded-2xl overflow-hidden lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)] flex-col">
+                    <div
+                      className="px-3.5 py-2.5 border-b flex items-center justify-between gap-2 shrink-0"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h3 className="text-xs font-extrabold truncate">Araştırma Başlıklarım</h3>
+                        <span
+                          className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums leading-none shrink-0"
                           style={{
-                            backgroundColor: isSelected ? 'var(--brand-primary-soft)' : 'transparent',
+                            backgroundColor: 'var(--bg-surface)',
+                            color: 'var(--text-muted)',
                           }}
                         >
-                          <div className="min-w-0">
-                            <p
-                              className="text-xs sm:text-sm font-extrabold truncate"
-                              style={{
-                                color: isSelected
-                                  ? 'var(--brand-primary-text)'
-                                  : 'var(--text-primary)',
-                              }}
-                            >
-                              {topic.title}
-                            </p>
-                            <p
-                              className="text-[11px] tabular-nums mt-0.5 truncate"
-                              style={{ color: 'var(--text-muted)' }}
-                            >
-                              {topic.items.length} pasaj · {totalAyahs} ayet
-                            </p>
-                          </div>
-                          <ChevronRight
-                            className="w-4 h-4 shrink-0 opacity-60"
-                            style={{
-                              color: isSelected ? 'var(--brand-primary-text)' : 'var(--text-muted)',
-                            }}
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </aside>
+                          {topics.length}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCloseDesktopSidebar}
+                        title="Başlık panelini gizle"
+                        aria-label="Başlık panelini gizle"
+                        className="w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 cursor-pointer transition-colors hover:bg-[var(--bg-surface)]"
+                        style={{
+                          borderColor: 'var(--border-subtle)',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <PanelLeftClose className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
 
-                {/* SAĞ SÜTUN: SEÇİLİ ARAŞTIRMA KONUSU */}
-                <section className="lg:col-span-8 space-y-3.5 min-w-0">
+                    {isNewTopicFormOpen && (
+                      <div
+                        className="p-2.5 border-b shrink-0"
+                        style={{ borderColor: 'var(--border-subtle)' }}
+                      >
+                        {renderNewTopicForm()}
+                      </div>
+                    )}
+
+                    {topics.length >= 5 && (
+                      <div
+                        className="px-2.5 py-2 border-b shrink-0"
+                        style={{ borderColor: 'var(--border-subtle)' }}
+                      >
+                        {renderTopicSearchBox('desktop-notebook-topic-search')}
+                      </div>
+                    )}
+
+                    <div
+                      className="divide-y overflow-y-auto scrollbar-thin flex-1 min-h-0"
+                      style={{ borderColor: 'var(--border-subtle)' }}
+                    >
+                      {renderTopicListItems(false)}
+                    </div>
+                  </aside>
+                )}
+
+                {/* SAĞ ÇALIŞMA ALANI (Sol panel kapalıyken tam genişliğe yayılır) */}
+                <section className="flex-1 min-w-0 w-full space-y-3">
                   {activeTopic && (
                     <>
-              {/* Konu Üst Kartı */}
-              <div className="surface-card rounded-2xl p-4 sm:p-5 space-y-3.5">
+              {/* Konu Üst Kartı — Kompakt Dikey Ritim */}
+              <div className="surface-card rounded-2xl p-3.5 sm:p-4 space-y-2.5">
                 {isEditingMeta ? (
                   <form onSubmit={handleSaveEditMeta} className="space-y-2.5">
                     <input
@@ -914,13 +1135,13 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                     </div>
                   </form>
                 ) : (
-                  <div className="flex items-start justify-between gap-2.5">
-                    <div className="min-w-0 space-y-1">
-                      <h3 className="text-base sm:text-xl font-extrabold tracking-tight break-words">
+                  <div className="flex flex-wrap items-start justify-between gap-2.5">
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <h3 className="text-base sm:text-lg font-extrabold tracking-tight break-words">
                         {activeTopic.title}
                       </h3>
                       {activeTopic.description && (
-                        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-xs leading-snug" style={{ color: 'var(--text-secondary)' }}>
                           {activeTopic.description}
                         </p>
                       )}
@@ -929,13 +1150,39 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                       </p>
                     </div>
 
-                    {/* Ana Aksiyonlar: Dinle + Masaüstünde A4 PDF & Referansları Kopyala + Her boyutta '⋯' Menü */}
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Ana Aksiyonlar: + Ayet / Not Ekle + Dinle + Referansları Kopyala + A4 PDF + '⋯' Menü */}
+                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setIsAddPanelOpen((v) => !v);
+                        }}
+                        aria-expanded={isAddPanelOpen}
+                        className="min-h-[36px] px-2.5 sm:px-3 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                        style={{
+                          backgroundColor: isAddPanelOpen
+                            ? 'var(--brand-primary-soft)'
+                            : 'var(--bg-surface-soft)',
+                          borderColor: isAddPanelOpen
+                            ? 'var(--brand-primary)'
+                            : 'var(--border-strong)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        {isAddPanelOpen ? (
+                          <ChevronUp className="w-3.5 h-3.5 shrink-0" />
+                        ) : (
+                          <Plus className="w-3.5 h-3.5 shrink-0" />
+                        )}
+                        <span>Ayet / Not Ekle</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={handleListenTopic}
                         disabled={!manifest || !meta || displayItems.length === 0}
-                        className="min-h-[38px] px-3 sm:px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
+                        className="min-h-[36px] px-3 sm:px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
                         style={{ backgroundColor: 'var(--brand-primary)' }}
                       >
                         <Headphones className="w-3.5 h-3.5 shrink-0" />
@@ -947,7 +1194,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                         onClick={() => void handleCopyReferences()}
                         disabled={displayItems.length === 0}
                         title="Referansları akademik biçimde panoya kopyala (örn. 2/253, 270; 3/13)"
-                        className="hidden sm:inline-flex min-h-[38px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
+                        className="hidden sm:inline-flex min-h-[36px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
                         style={{
                           backgroundColor: 'var(--bg-surface-soft)',
                           borderColor: 'var(--border-subtle)',
@@ -965,7 +1212,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                           setIsPrintOpen(true);
                         }}
                         disabled={displayItems.length === 0}
-                        className="hidden sm:inline-flex min-h-[38px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
+                        className="hidden sm:inline-flex min-h-[36px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
                         style={{
                           backgroundColor: 'var(--bg-surface-soft)',
                           borderColor: 'var(--border-strong)',
@@ -988,7 +1235,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                           }}
                           aria-label="Diğer işlemler"
                           aria-expanded={isActionsMenuOpen}
-                          className="w-9 h-[38px] rounded-xl border flex items-center justify-center cursor-pointer"
+                          className="w-9 h-[36px] rounded-xl border flex items-center justify-center cursor-pointer"
                           style={{
                             backgroundColor: 'var(--bg-surface-soft)',
                             borderColor: 'var(--border-subtle)',
@@ -1088,7 +1335,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
 
                 {/* Görünüm + Sıralama Şeridi */}
                 <div
-                  className="pt-3 border-t flex flex-wrap items-center justify-between gap-2"
+                  className="pt-2.5 border-t flex flex-wrap items-center justify-between gap-2"
                   style={{ borderColor: 'var(--border-subtle)' }}
                 >
                   <div
@@ -1183,19 +1430,47 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
               </div>
 
               {/* ==================================================================
-                  KOMPAKT TEK SATIR HIZLI AYET EKLEME BAR (+ İsteğe Bağlı Not & Toplu Yapıştır)
+                  KATLANABİLİR HIZLI AYET / PASAJ / NOT EKLEME ALANI
                   ================================================================== */}
-              <div className="surface-card rounded-2xl p-3.5 sm:p-4 space-y-2.5">
-                <form onSubmit={handleAddFromPicker} className="space-y-2">
-                  <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
-                    <select
-                      aria-label="Sure seçin"
-                      value={pickerSurah}
-                      onChange={(e) => {
-                        setPickerSurah(Number(e.target.value));
-                        setPickerError(null);
+              {isAddPanelOpen && (
+                <div className="surface-card rounded-2xl p-3 sm:p-3.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="text-[11px] font-extrabold inline-flex items-center gap-1.5"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      <Plus className="w-3.5 h-3.5 shrink-0" />
+                      <span>Ayet, Pasaj veya Not Ekle</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setIsAddPanelOpen(false);
                       }}
-                      className="col-span-12 sm:col-span-5 min-h-[40px] px-2.5 rounded-xl border text-base sm:text-xs font-bold outline-none focus:border-[var(--brand-primary)]"
+                      aria-label="Ekleme panelini gizle"
+                      title="Paneli Gizle"
+                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAddFromPicker} className="space-y-2">
+                    <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
+                      <select
+                        aria-label="Sure seçin"
+                        value={pickerSurah}
+                        onChange={(e) => {
+                          setPickerSurah(Number(e.target.value));
+                          setPickerError(null);
+                        }}
+                        className="col-span-12 sm:col-span-5 min-h-[38px] px-2.5 rounded-xl border text-base sm:text-xs font-bold outline-none focus:border-[var(--brand-primary)]"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
@@ -1383,10 +1658,13 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                     </div>
                   </form>
                 )}
+              </div>
+              )}
 
-                {addToast && (
+              {addToast && (
+                <div className="flex items-center">
                   <p
-                    className="text-xs font-bold px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5"
+                    className="text-xs font-bold px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5"
                     style={{
                       backgroundColor: 'rgba(16, 185, 129, 0.14)',
                       color: '#047857',
@@ -1395,8 +1673,8 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
                     <Check className="w-3.5 h-3.5 shrink-0" />
                     <span className="break-all">{addToast}</span>
                   </p>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Ayet Koleksiyonu (Satır içi Düzenle + Not + Sırala + Sil) */}
               <VerseCollectionRenderer
@@ -1435,6 +1713,88 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
               </div>
             </>
           )}
+
+      {/* ====================================================================
+          MOBİL & TABLET (< lg) ÜSTTEN AÇILAN ARAŞTIRMA BAŞLIKLARI ÇEKMECESİ
+          ==================================================================== */}
+      {isMobileTopicsDrawerOpen && (
+        <div
+          className="fixed inset-0 z-[80] lg:hidden flex items-start justify-center p-2 pt-[calc(0.5rem+env(safe-area-inset-top))] bg-black/55 backdrop-blur-xs"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Araştırma Başlıklarım"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsMobileTopicsDrawerOpen(false);
+          }}
+        >
+          <div
+            className="w-full max-w-lg max-h-[92dvh] rounded-2xl border shadow-2xl overflow-hidden flex flex-col"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-strong)',
+            }}
+          >
+            <div
+              className="sticky top-0 z-10 px-3.5 py-3 border-b flex items-center justify-between gap-2 shrink-0"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <PanelLeft
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                />
+                <h3 className="text-sm font-extrabold truncate">
+                  Araştırma Başlıklarım ({topics.length})
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setIsNewTopicFormOpen((v) => !v);
+                  }}
+                  className="min-h-[34px] px-2.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                  style={{ backgroundColor: 'var(--brand-primary)' }}
+                >
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span>Yeni Başlık</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileTopicsDrawerOpen(false)}
+                  aria-label="Başlıklar çekmecesini kapat"
+                  title="Kapat"
+                  className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3 border-b space-y-2.5 shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+              {renderTopicSearchBox('mobile-notebook-topic-search')}
+              {isNewTopicFormOpen && renderNewTopicForm()}
+            </div>
+
+            <div
+              className="divide-y overflow-y-auto scrollbar-thin flex-1 min-h-0"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              {renderTopicListItems(true)}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ====================================================================
           JSON YEDEKLEME & GERİ YÜKLEME MODALI
