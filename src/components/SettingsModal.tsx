@@ -61,6 +61,10 @@ import { setStorePersistencePaused, useAppStore } from '../store/useAppStore';
 import { setAllPersistencePaused } from '../utils/storageQuotaBus';
 import type { MemorizationBackupPayload } from '../types/memorization';
 import type { ExamSessionState, ThemeMode } from '../types/quran';
+import {
+  ARABIC_LINE_HEIGHT_OPTIONS,
+  ARABIC_TEXT_DENSITY_OPTIONS,
+} from '../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import {
   clearActiveExamSession,
@@ -1180,6 +1184,95 @@ export const SettingsModal: React.FC = () => {
                       aria-label="Türkçe yazı boyutu"
                       className="w-full accent-teal-700 cursor-pointer"
                     />
+                  </div>
+                </div>
+
+                <div
+                  className="pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
+                  <div className="space-y-1.5">
+                    <span
+                      className="block text-[11px] font-bold"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Kelime Sıklığı
+                    </span>
+                    <div
+                      className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                      style={{ backgroundColor: 'var(--bg-surface)' }}
+                      role="group"
+                      aria-label="Arapça kelime sıklığı"
+                    >
+                      {ARABIC_TEXT_DENSITY_OPTIONS.map((opt) => {
+                        const active = (settings.arabicTextDensity ?? 'balanced') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            aria-pressed={active}
+                            title={opt.description}
+                            onClick={() => {
+                              sfxService.play('click');
+                              updateSettings({ arabicTextDensity: opt.id });
+                            }}
+                            className="h-8 px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                            style={{
+                              backgroundColor: active
+                                ? 'var(--brand-primary-soft)'
+                                : 'transparent',
+                              color: active
+                                ? 'var(--brand-primary-text)'
+                                : 'var(--text-secondary)',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span
+                      className="block text-[11px] font-bold"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Satır Aralığı
+                    </span>
+                    <div
+                      className="grid grid-cols-4 gap-1 p-1 rounded-xl"
+                      style={{ backgroundColor: 'var(--bg-surface)' }}
+                      role="group"
+                      aria-label="Arapça satır aralığı"
+                    >
+                      {ARABIC_LINE_HEIGHT_OPTIONS.map((opt) => {
+                        const active = (settings.arabicLineHeight ?? 'balanced') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            aria-pressed={active}
+                            title={opt.description}
+                            onClick={() => {
+                              sfxService.play('click');
+                              updateSettings({ arabicLineHeight: opt.id });
+                            }}
+                            className="h-8 px-1 rounded-lg text-[10.5px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                            style={{
+                              backgroundColor: active
+                                ? 'var(--brand-primary-soft)'
+                                : 'transparent',
+                              color: active
+                                ? 'var(--brand-primary-text)'
+                                : 'var(--text-secondary)',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </section>

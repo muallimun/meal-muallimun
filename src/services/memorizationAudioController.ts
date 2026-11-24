@@ -310,6 +310,22 @@ class MemorizationAudioController {
     return this.activeChannelIdx === 0 ? [a0, a1] : [a1, a0];
   }
 
+  private applyPlaybackRate(audio: HTMLAudioElement, rate: number): void {
+    const pitchAudio = audio as HTMLAudioElement & {
+      preservesPitch?: boolean;
+      mozPreservesPitch?: boolean;
+      webkitPreservesPitch?: boolean;
+    };
+    try {
+      if ('preservesPitch' in pitchAudio) pitchAudio.preservesPitch = true;
+      if ('mozPreservesPitch' in pitchAudio) pitchAudio.mozPreservesPitch = true;
+      if ('webkitPreservesPitch' in pitchAudio) pitchAudio.webkitPreservesPitch = true;
+    } catch {
+      // ignore unsupported pitch preservation errors
+    }
+    audio.playbackRate = rate;
+  }
+
   // ==========================================================================
   // Oynatma Yaşam Döngüsü
   // ==========================================================================
@@ -428,7 +444,7 @@ class MemorizationAudioController {
       () => {
         if (session !== this.sessionId) return;
         this.clearLoadTimer();
-        audio.playbackRate = playbackRate;
+        this.applyPlaybackRate(audio, playbackRate);
         this.emit({ status: 'playing', errorMessage: null });
         this.setMediaPlaybackState('playing');
         // Aktif ayet çalarken sıradaki URL'yi yedek kanalda ön-yükle
@@ -479,7 +495,7 @@ class MemorizationAudioController {
         // ignore
       }
     }
-    audio.playbackRate = playbackRate;
+    this.applyPlaybackRate(audio, playbackRate);
 
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
@@ -608,7 +624,7 @@ class MemorizationAudioController {
       }
       const [audio] = this.getActiveAndStandbyChannels();
       const session = this.sessionId;
-      audio.playbackRate = this.currentParams.playbackRate;
+      this.applyPlaybackRate(audio, this.currentParams.playbackRate);
       const p = audio.play();
       if (p && typeof p.catch === 'function') {
         p.catch(() => {
@@ -635,7 +651,7 @@ class MemorizationAudioController {
     if (patch.playbackRate !== undefined) {
       this.currentParams = { ...this.currentParams, playbackRate: patch.playbackRate };
       const [audio] = this.getActiveAndStandbyChannels();
-      audio.playbackRate = patch.playbackRate;
+      this.applyPlaybackRate(audio, patch.playbackRate);
     }
     if (patch.listenRepeatPauseEnabled !== undefined) {
       this.currentParams = {

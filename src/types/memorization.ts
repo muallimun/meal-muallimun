@@ -1,3 +1,5 @@
+import type { PlaybackRateOption } from './quran';
+
 export type UnitSourceType = 'preset' | 'page' | 'surah' | 'custom';
 
 export type RetentionStage = 'raw' | 'fresh' | 'solid';
@@ -80,7 +82,7 @@ export interface MemorizationPrefs {
   viewMode: ZenViewMode;
   autoProgressiveHide: boolean;
   showVaslHook: boolean;
-  playbackRate: 0.75 | 1 | 1.25 | 1.5;
+  playbackRate: PlaybackRateOption;
 }
 
 export type SessionStepPhase =

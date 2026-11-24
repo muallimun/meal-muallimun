@@ -95,7 +95,7 @@ export const AyahEndMarker: React.FC<AyahEndMarkerProps> = ({
       dir="rtl"
       title={title}
       {...interactiveProps}
-      className={`arabic-text inline-flex items-center justify-center shrink-0 mx-[0.18em] ${sizeClass} font-normal leading-none whitespace-nowrap select-none align-middle rounded-md transition-colors ${
+      className={`arabic-text inline-flex items-center justify-center shrink-0 ms-[0.08em] me-[0.04em] ${sizeClass} font-normal leading-none whitespace-nowrap select-none align-middle rounded-md transition-colors ${
         onClick ? 'cursor-pointer' : ''
       } ${className}`.trim()}
       style={{

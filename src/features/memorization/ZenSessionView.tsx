@@ -69,7 +69,7 @@ import {
   REVIEW_INTERVAL_DAYS,
   TEACHER_RECITER_IDS,
 } from '../../types/memorization';
-import type { CombinedVerse } from '../../types/quran';
+import { PLAYBACK_RATE_OPTIONS, type CombinedVerse } from '../../types/quran';
 
 interface ZenSessionViewProps {
   unit: MemorizationUnit;
@@ -1737,29 +1737,31 @@ export const ZenSessionView: React.FC<ZenSessionViewProps> = ({
             </button>
 
             {/* Hız */}
-            <div className="flex items-center gap-1">
-              <span className="font-bold mr-1" style={{ color: 'var(--text-muted)' }}>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="font-bold mr-0.5" style={{ color: 'var(--text-muted)' }}>
                 Hız:
               </span>
-              {([0.75, 1, 1.25, 1.5] as const).map((rate) => (
-                <button
-                  key={rate}
-                  type="button"
-                  onClick={() => onChangePrefs({ playbackRate: rate })}
-                  className="px-2 py-1 rounded-lg border font-bold tabular-nums cursor-pointer"
-                  style={{
-                    backgroundColor:
-                      prefs.playbackRate === rate ? 'var(--brand-primary)' : 'var(--bg-surface)',
-                    borderColor:
-                      prefs.playbackRate === rate
-                        ? 'var(--brand-primary)'
-                        : 'var(--border-subtle)',
-                    color: prefs.playbackRate === rate ? '#FFFFFF' : 'var(--text-primary)',
-                  }}
-                >
-                  {rate}x
-                </button>
-              ))}
+              <div className="grid grid-cols-4 sm:flex sm:flex-wrap items-center gap-1">
+                {PLAYBACK_RATE_OPTIONS.map((rate) => (
+                  <button
+                    key={rate}
+                    type="button"
+                    onClick={() => onChangePrefs({ playbackRate: rate })}
+                    className="px-2 py-1 rounded-lg border font-bold tabular-nums cursor-pointer text-center"
+                    style={{
+                      backgroundColor:
+                        prefs.playbackRate === rate ? 'var(--brand-primary)' : 'var(--bg-surface)',
+                      borderColor:
+                        prefs.playbackRate === rate
+                          ? 'var(--brand-primary)'
+                          : 'var(--border-subtle)',
+                      color: prefs.playbackRate === rate ? '#FFFFFF' : 'var(--text-primary)',
+                    }}
+                  >
+                    {rate}x
+                  </button>
+                ))}
+              </div>
             </div>
 
             {!isSelfTest && (

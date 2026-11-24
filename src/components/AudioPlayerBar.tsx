@@ -26,14 +26,14 @@ import { findReciterById } from '../config/recitersConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
+import { PLAYBACK_RATE_OPTIONS } from '../types/quran';
 import type {
   AudioPlayMode,
   MealAudioSourceId,
-  PlaybackRateOption,
   RepeatCountOption,
 } from '../types/quran';
 
-const PLAYBACK_RATES: readonly PlaybackRateOption[] = [0.75, 1, 1.25, 1.5];
+const PLAYBACK_RATES = PLAYBACK_RATE_OPTIONS;
 const REPEAT_COUNTS: readonly RepeatCountOption[] = [1, 2, 3, 5, 'infinite'];
 
 const COMPACT_MODE_OPTIONS: { id: AudioPlayMode; label: string }[] = [
@@ -550,15 +550,18 @@ export const AudioPlayerBar: React.FC = () => {
                 ================================================================ */}
             {showDetailsPanel && (
               <div
-                className="p-2.5 sm:p-3.5 space-y-2.5 sm:space-y-3 text-xs max-h-[80dvh] sm:max-h-[68dvh] overflow-y-auto border-b rounded-t-2xl"
+                className="p-2.5 sm:p-3.5 space-y-2.5 sm:space-y-3 text-xs audio-drawer-scroll overflow-y-auto border-b rounded-t-2xl"
                 style={{ borderColor: 'var(--border-subtle)' }}
               >
-                {/* Özel Başlık Çubuğu: Başlık · Sunum Modu · Bağımsız Pencere Kapatma (×) */}
+                {/* Özel Sabit Başlık Çubuğu: Başlık · Sunum Modu · Bağımsız Pencere Kapatma (×) */}
                 <div
-                  className="flex items-center justify-between gap-2 pb-2 sm:pb-2.5 border-b"
-                  style={{ borderColor: 'var(--border-subtle)' }}
+                  className="sticky top-0 z-10 -mx-2.5 sm:-mx-3.5 -mt-2.5 sm:-mt-3.5 px-2.5 sm:px-3.5 py-2 border-b rounded-t-2xl flex items-center justify-between gap-2"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 overflow-hidden">
                     <span
                       className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
                       style={{
@@ -568,16 +571,17 @@ export const AudioPlayerBar: React.FC = () => {
                     >
                       <Headphones className="w-3.5 h-3.5" />
                     </span>
-                    <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                    <div className="min-w-0 flex items-center gap-2 overflow-hidden">
                       <h3
                         className="text-xs sm:text-[13px] font-extrabold tracking-tight truncate"
                         style={{ color: 'var(--text-primary)' }}
                       >
-                        Dinleme ve Tekrar Ayarları
+                        <span className="sm:hidden">Dinleme Ayarları</span>
+                        <span className="hidden sm:inline">Dinleme ve Tekrar Ayarları</span>
                       </h3>
                       {(shortSurahLabel || audioState.currentPage) && (
                         <span
-                          className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-bold tabular-nums"
+                          className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-bold tabular-nums shrink-0"
                           style={{
                             backgroundColor: 'var(--bg-surface-soft)',
                             color: 'var(--text-muted)',
@@ -590,15 +594,15 @@ export const AudioPlayerBar: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={handleOpenPresentation}
                       title="Ses kesilmeden tam ekran Sunum Moduna geç"
-                      className="h-7 px-2.5 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors hover:border-teal-600/50 whitespace-nowrap"
+                      className="h-7 px-2 sm:px-2.5 rounded-lg border text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap shrink-0"
                       style={{
-                        backgroundColor: 'var(--bg-surface)',
-                        borderColor: 'var(--border-subtle)',
+                        backgroundColor: 'var(--brand-primary-soft)',
+                        borderColor: 'var(--brand-primary)',
                         color: 'var(--brand-primary-text)',
                       }}
                     >
@@ -612,7 +616,7 @@ export const AudioPlayerBar: React.FC = () => {
                         onClick={handleHideDrawerOnly}
                         aria-label="Ayar penceresini gizle"
                         title="Ayar penceresini gizle (Ses çalmaya devam eder)"
-                        className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
+                        className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)] shrink-0"
                         style={{
                           backgroundColor: 'var(--bg-surface)',
                           borderColor: 'var(--border-subtle)',
@@ -815,8 +819,8 @@ export const AudioPlayerBar: React.FC = () => {
                   <div
                     className="rounded-xl border p-2 sm:p-2.5"
                     style={{
-                      backgroundColor: 'color-mix(in srgb, var(--bg-canvas) 45%, var(--bg-surface))',
-                      borderColor: 'color-mix(in srgb, var(--border-subtle) 75%, transparent)',
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
                     }}
                   >
                     <span
@@ -826,7 +830,7 @@ export const AudioPlayerBar: React.FC = () => {
                       OKUMA HIZI
                     </span>
                     <div
-                      className="grid grid-cols-4 gap-1 p-0.5 rounded-lg"
+                      className="grid grid-cols-4 gap-1 p-1 rounded-lg"
                       style={{ backgroundColor: 'var(--bg-surface-soft)' }}
                     >
                       {PLAYBACK_RATES.map((rate) => {
@@ -839,7 +843,7 @@ export const AudioPlayerBar: React.FC = () => {
                               sfxService.play('click');
                               updateAudioPrefs({ playbackRate: rate });
                             }}
-                            className="h-7 rounded-md text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                            className="h-7 rounded-md text-[11px] font-bold tabular-nums cursor-pointer transition-colors whitespace-nowrap"
                             style={{
                               backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                               color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
@@ -856,8 +860,8 @@ export const AudioPlayerBar: React.FC = () => {
                   <div
                     className="rounded-xl border p-2 sm:p-2.5"
                     style={{
-                      backgroundColor: 'color-mix(in srgb, var(--bg-canvas) 45%, var(--bg-surface))',
-                      borderColor: 'color-mix(in srgb, var(--border-subtle) 75%, transparent)',
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
                     }}
                   >
                     <span
@@ -1289,6 +1293,27 @@ export const AudioPlayerBar: React.FC = () => {
                         <Repeat className="w-2.5 h-2.5" />
                         <span>{activeLoopBadge}</span>
                       </span>
+                    )}
+
+                    {audioPrefs.playbackRate !== 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setIsAyahPickerOpen(false);
+                          setIsExpanded(!isExpanded);
+                        }}
+                        title={`Aktif okuma hızı: ${audioPrefs.playbackRate}x — Değiştirmek için dokunun`}
+                        aria-label={`Aktif okuma hızı ${audioPrefs.playbackRate}x`}
+                        className="inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-extrabold tabular-nums shrink-0 cursor-pointer transition-opacity hover:opacity-85 whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'var(--brand-primary-soft)',
+                          borderColor: 'var(--brand-primary)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        {audioPrefs.playbackRate}x
+                      </button>
                     )}
                   </div>
 

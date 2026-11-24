@@ -931,7 +931,10 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             const useTajweed =
               settings.tajweedEnabled &&
               Boolean(tajweedWords && tajweedWords.length > 0 && tajweedRules);
-            const arabicDensity = getArabicDensityMetrics(settings.arabicTextDensity);
+            const arabicDensity = getArabicDensityMetrics(
+              settings.arabicTextDensity,
+              settings.arabicLineHeight,
+            );
             return (
               <p
                 className={`${useTajweed ? 'arabic-tajweed' : 'arabic-text'} text-right break-words`}

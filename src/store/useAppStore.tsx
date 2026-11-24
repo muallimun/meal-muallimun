@@ -38,8 +38,10 @@ import type {
   MemorizeLaunchTarget,
   QuickMemorizeSeed,
 } from '../types/memorization';
+import { isValidPlaybackRate } from '../types/quran';
 import type {
   AppSettings,
+  ArabicLineHeightOption,
   AudioPlayMode,
   AudioPlaylist,
   AudioPlaylistItem,
@@ -118,6 +120,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   arabicFontSize: 28,
   turkishFontSize: 16,
   arabicTextDensity: 'balanced',
+  arabicLineHeight: 'balanced',
   sfxEnabled: true,
   sfxVolume: 0.75,
   showOptionLettersInApp: false,
@@ -628,6 +631,20 @@ function hydrateState(): PersistedAppState {
         rawSettings.arabicTextDensity === 'relaxed'
           ? rawSettings.arabicTextDensity
           : DEFAULT_SETTINGS.arabicTextDensity,
+      arabicLineHeight: ((): ArabicLineHeightOption => {
+        const rawLh = rawSettings.arabicLineHeight;
+        if (
+          rawLh === 'tight' ||
+          rawLh === 'compact' ||
+          rawLh === 'balanced' ||
+          rawLh === 'relaxed'
+        ) {
+          return rawLh;
+        }
+        if (rawSettings.arabicTextDensity === 'compact') return 'compact';
+        if (rawSettings.arabicTextDensity === 'relaxed') return 'relaxed';
+        return DEFAULT_SETTINGS.arabicLineHeight ?? 'balanced';
+      })(),
       wordByWordEnabled:
         typeof rawSettings.wordByWordEnabled === 'boolean'
           ? rawSettings.wordByWordEnabled
@@ -934,13 +951,9 @@ function hydrateState(): PersistedAppState {
         typeof rawAudio?.mealAudioSource === 'string' && rawAudio.mealAudioSource.trim()
           ? rawAudio.mealAudioSource.trim()
           : DEFAULT_AUDIO_PREFS.mealAudioSource,
-      playbackRate:
-        rawAudio?.playbackRate === 0.75 ||
-        rawAudio?.playbackRate === 1 ||
-        rawAudio?.playbackRate === 1.25 ||
-        rawAudio?.playbackRate === 1.5
-          ? rawAudio.playbackRate
-          : DEFAULT_AUDIO_PREFS.playbackRate,
+      playbackRate: isValidPlaybackRate(rawAudio?.playbackRate)
+        ? rawAudio.playbackRate
+        : DEFAULT_AUDIO_PREFS.playbackRate,
       repeatCount: isValidRepeatCount(rawAudio?.repeatCount)
         ? rawAudio.repeatCount
         : DEFAULT_AUDIO_PREFS.repeatCount,

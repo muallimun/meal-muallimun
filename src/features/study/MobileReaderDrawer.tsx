@@ -6,11 +6,12 @@ import {
   Bookmark,
   ChevronRight,
   Columns2,
-  Eye,
   Info,
   Languages,
   LayoutList,
   ListMusic,
+  Maximize2,
+  Minimize2,
   Minus,
   MonitorPlay,
   Plus,
@@ -32,9 +33,13 @@ import type {
   MealDefinition,
   ReaderContentMode,
   StudyViewMode,
+  ThemeMode,
   WordMealMode,
 } from '../../types/quran';
-import { ARABIC_TEXT_DENSITY_OPTIONS } from '../../utils/arabicUtils';
+import {
+  ARABIC_LINE_HEIGHT_OPTIONS,
+  ARABIC_TEXT_DENSITY_OPTIONS,
+} from '../../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { TAJWEED_DIACRITIC_NOTE } from './TajweedLegendBar';
 
@@ -741,57 +746,105 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               )}
             </div>
 
-            {/* Arapça Metin Sıklığı (Sıkı | Dengeli | Ferah) */}
+            {/* Arapça Kelime Sıklığı ve Satır Aralığı */}
             {!isMealOnlyContent && (
               <div
-                className="px-3 py-2.5 rounded-xl border space-y-2"
+                className="px-3 py-2.5 rounded-xl border space-y-2.5"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
                 }}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className="text-[11px] font-extrabold"
-                    style={{ color: 'var(--text-secondary)' }}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="text-[11px] font-extrabold"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Kelime Sıklığı
+                    </span>
+                    <span
+                      className="text-[10px] font-semibold"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Kelime aralığı
+                    </span>
+                  </div>
+                  <div
+                    className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                    style={{ backgroundColor: 'var(--bg-surface)' }}
+                    role="group"
+                    aria-label="Arapça kelime sıklığı"
                   >
-                    Metin Sıklığı
-                  </span>
-                  <span
-                    className="text-[10px] font-semibold"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    Kelime ve satır aralığı
-                  </span>
+                    {ARABIC_TEXT_DENSITY_OPTIONS.map((opt) => {
+                      const active = (settings.arabicTextDensity ?? 'balanced') === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          aria-pressed={active}
+                          title={opt.description}
+                          onClick={() => {
+                            sfxService.play('click');
+                            onUpdateSettings({ arabicTextDensity: opt.id });
+                          }}
+                          className="min-h-[36px] px-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
+                            color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div
-                  className="grid grid-cols-3 gap-1 p-1 rounded-xl"
-                  style={{ backgroundColor: 'var(--bg-surface)' }}
-                  role="group"
-                  aria-label="Arapça metin sıklığı"
-                >
-                  {ARABIC_TEXT_DENSITY_OPTIONS.map((opt) => {
-                    const active = (settings.arabicTextDensity ?? 'balanced') === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        aria-pressed={active}
-                        title={opt.description}
-                        onClick={() => {
-                          sfxService.play('click');
-                          onUpdateSettings({ arabicTextDensity: opt.id });
-                        }}
-                        className="min-h-[36px] px-2 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
-                        style={{
-                          backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
-                          color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="text-[11px] font-extrabold"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      Satır Aralığı
+                    </span>
+                    <span
+                      className="text-[10px] font-semibold"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Satır yüksekliği
+                    </span>
+                  </div>
+                  <div
+                    className="grid grid-cols-4 gap-1 p-1 rounded-xl"
+                    style={{ backgroundColor: 'var(--bg-surface)' }}
+                    role="group"
+                    aria-label="Arapça satır aralığı"
+                  >
+                    {ARABIC_LINE_HEIGHT_OPTIONS.map((opt) => {
+                      const active = (settings.arabicLineHeight ?? 'balanced') === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          aria-pressed={active}
+                          title={opt.description}
+                          onClick={() => {
+                            sfxService.play('click');
+                            onUpdateSettings({ arabicLineHeight: opt.id });
+                          }}
+                          className="min-h-[36px] px-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                          style={{
+                            backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
+                            color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
@@ -843,7 +896,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               </div>
             )}
 
-            {/* Saf Sayfa Odak Modu (Mushaf/Kitap) */}
+            {/* Tam Ekran Modu (Mushaf/Kitap) */}
             {(viewMode === 'mushaf' || viewMode === 'book') && (
               <button
                 type="button"
@@ -862,14 +915,84 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                 }}
               >
                 <span className="flex items-center gap-2 text-left min-w-0 leading-snug">
-                  <Eye className="w-4 h-4 shrink-0" />
-                  <span>%100 Saf Sayfa Modu (Üst/Alt Barı Gizle)</span>
+                  {isImmersive ? (
+                    <Minimize2 className="w-4 h-4 shrink-0" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4 shrink-0" />
+                  )}
+                  <span>Tam Ekran</span>
                 </span>
                 <span className="text-[11px] font-extrabold shrink-0">
                   {isImmersive ? 'Açık' : 'Kapalı'}
                 </span>
               </button>
             )}
+
+            {/* Hızlı Tema Seçimi (Açık | Krem Mushaf | Gece) */}
+            <div
+              className="px-3 py-2.5 rounded-xl border space-y-1.5"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+              }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className="text-[11px] font-extrabold"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  Tema
+                </span>
+                <span
+                  className="text-[10px] font-semibold"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Sayfa zemini
+                </span>
+              </div>
+              <div
+                className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-surface)' }}
+                role="group"
+                aria-label="Okuma teması"
+              >
+                {(
+                  [
+                    { id: 'light', label: 'Açık', swatch: '#FFFFFF', border: '#CBD5E1' },
+                    { id: 'cream', label: 'Krem Mushaf', swatch: '#F5EBD6', border: '#C9B182' },
+                    { id: 'dark', label: 'Gece', swatch: '#141B2D', border: '#334155' },
+                  ] as Array<{ id: ThemeMode; label: string; swatch: string; border: string }>
+                ).map((opt) => {
+                  const active = settings.theme === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => {
+                        sfxService.play('click');
+                        onUpdateSettings({ theme: opt.id });
+                      }}
+                      className="min-h-[36px] px-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+                      style={{
+                        backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                      }}
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0 border"
+                        style={{
+                          backgroundColor: opt.swatch,
+                          borderColor: opt.border,
+                        }}
+                        aria-hidden="true"
+                      />
+                      <span>{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             {/* Ekranı Açık Tut (Akıllı Wake Lock) */}
             <button
               type="button"

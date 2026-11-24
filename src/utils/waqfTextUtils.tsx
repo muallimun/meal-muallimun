@@ -64,7 +64,7 @@ export const WaqfMarkSpan: React.FC<WaqfMarkSpanProps> = ({ waqf }) => {
           triggerPopover(e.currentTarget);
         }
       }}
-      className="waqf-mark-color cursor-pointer rounded-[4px] transition-colors hover:bg-teal-600/15 focus-visible:outline-2 focus-visible:outline-teal-600"
+      className="waqf-mark-color inline text-[0.86em] leading-none align-baseline cursor-pointer rounded-[4px] transition-colors hover:bg-teal-600/15 focus-visible:outline-2 focus-visible:outline-teal-600"
       style={{ '--waqf-color': def.color } as React.CSSProperties}
     >
       {'\u00A0'}

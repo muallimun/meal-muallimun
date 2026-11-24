@@ -417,8 +417,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   );
 
   const arabicDensity = useMemo(
-    () => getArabicDensityMetrics(settings.arabicTextDensity),
-    [settings.arabicTextDensity],
+    () => getArabicDensityMetrics(settings.arabicTextDensity, settings.arabicLineHeight),
+    [settings.arabicTextDensity, settings.arabicLineHeight],
   );
 
   useEffect(() => {
@@ -984,6 +984,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     bundle: PageBundle,
     leafPosition: 'single' | 'right' | 'left',
   ) => {
+    const firstSegmentStartsSurah = Boolean(bundle.segments[0]?.startsAtAyah1);
     const surahTitlesTr = bundle.segments.map((s) => s.surahMeta.shortNameTr).join(' · ');
     const surahTitlesAr = bundle.segments
       .map((s) => formatSafeArabicTitle(s.surahMeta.nameAr))
@@ -1118,7 +1119,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                       onOpenLocationPicker?.('surah');
                     }}
                     title="Sure seç"
-                    className="text-right min-w-0 flex items-center gap-1.5 justify-end hover:opacity-80 cursor-pointer"
+                    className={`text-right min-w-0 items-center gap-1.5 justify-end hover:opacity-80 cursor-pointer ${
+                      firstSegmentStartsSurah ? 'hidden sm:flex' : 'flex'
+                    }`}
                   >
                     <span
                       className="text-xs font-bold truncate hidden sm:inline"
@@ -1126,7 +1129,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                     >
                       {surahTitlesTr}
                     </span>
-                    {surahTitlesTr && surahTitlesAr && (
+                    {!firstSegmentStartsSurah && surahTitlesTr && surahTitlesAr && (
                       <span
                         aria-hidden="true"
                         className="hidden sm:inline text-xs font-bold opacity-45 shrink-0"
@@ -1135,12 +1138,14 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         ·
                       </span>
                     )}
-                    <span
-                      className="arabic-title text-base sm:text-lg leading-none truncate"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {surahTitlesAr}
-                    </span>
+                    {!firstSegmentStartsSurah && (
+                      <span
+                        className="arabic-title text-base sm:text-lg leading-none truncate"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {surahTitlesAr}
+                      </span>
+                    )}
                   </button>
                 </div>
               </div>
@@ -1158,12 +1163,12 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                 }`}
               >
                 {/* Sayfa Bölümleri (Sure Başlıkları + Besmele + Kesintisiz Ayet Akışı) */}
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                 {bundle.segments.map((segment) => (
-                  <div key={`seg-${bundle.pageNo}-${segment.surahMeta.no}`} className="space-y-3">
+                  <div key={`seg-${bundle.pageNo}-${segment.surahMeta.no}`} className="space-y-2.5">
                     {segment.startsAtAyah1 && (
                       <div
-                        className="rounded-xl border px-3.5 py-2 relative overflow-hidden"
+                        className="rounded-xl border px-3 py-1.5 relative overflow-hidden"
                         style={{
                           backgroundColor: 'var(--bg-surface-soft)',
                           borderColor: 'rgba(217, 119, 6, 0.36)',
@@ -1323,7 +1328,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                     handleSelectOrToggleVerse(verse, 'arabic');
                                   }
                                 }}
-                                className={`inline rounded-lg px-[0.16em] py-[0.04em] transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
+                                className={`inline rounded-lg px-[0.02em] py-[0.04em] transition-colors cursor-pointer hover:bg-teal-600/10 focus-visible:outline-2 focus-visible:outline-teal-600 ${
                                   highlightSajdah
                                     ? 'underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
                                     : ''
@@ -1398,7 +1403,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               </div>
                 {/* Alt Klasik Sayfa Numarası */}
                 <div
-                  className="mt-4 pt-2 border-t flex items-center justify-center text-xs font-bold tabular-nums shrink-0"
+                  className="mt-4 pt-2 pb-1.5 lg:pb-0 border-t flex items-center justify-center text-xs font-bold tabular-nums shrink-0"
                   style={{
                     borderColor: 'var(--border-subtle)',
                     color: 'var(--text-muted)',

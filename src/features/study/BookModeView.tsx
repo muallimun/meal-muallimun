@@ -585,7 +585,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   };
 
   return (
-    <div className="space-y-3" onClick={handleContainerTap}>
+    <div className="space-y-3 pb-3 lg:pb-0" onClick={handleContainerTap}>
       {/* Kitap Sayfası Çerçevesi (Mükerrer üst filtre kutusu kaldırıldı — doğrudan odak kitap sayfası) */}
       <article
         className={`${
@@ -593,7 +593,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
         } mx-auto surface-card rounded-2xl sm:rounded-3xl border border-[var(--border-strong)]/80 overflow-hidden shadow-md transition-all`}
       >
         {/* Kitap Serlevha Başlığı */}
-        <header className="px-4 py-3.5 sm:px-8 sm:py-5 border-b border-[var(--border-subtle)] bg-gradient-to-b from-[var(--brand-primary-soft)]/70 to-transparent text-center">
+        <header className="book-serlevha-header px-4 py-3.5 sm:px-8 sm:py-5 border-b border-[var(--border-subtle)] text-center">
           <div className="flex items-center justify-between gap-2 mb-2">
             <button
               type="button"
@@ -802,7 +802,10 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                 const hasTajweedInBook =
                   settings.tajweedEnabled &&
                   visibleVerses.some((v) => Boolean(getTjVerseWords(v.surah, v.ayah)?.length));
-                const arabicDensity = getArabicDensityMetrics(settings.arabicTextDensity);
+                const arabicDensity = getArabicDensityMetrics(
+                  settings.arabicTextDensity,
+                  settings.arabicLineHeight,
+                );
                 return (
                   <div
                     dir="rtl"
@@ -859,7 +862,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               handleToggleSelectVerse(verse);
                             }
                           }}
-                          className={`inline rounded-xl px-[0.16em] py-[0.04em] transition-colors cursor-pointer ${
+                          className={`inline rounded-xl px-[0.02em] py-[0.04em] transition-colors cursor-pointer ${
                             isPlaying
                               ? 'text-[var(--text-primary)] ring-1 ring-emerald-500/30'
                               : isSelected
@@ -868,15 +871,17 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                                   ? 'bg-amber-500/12 underline decoration-amber-500/65 decoration-dotted underline-offset-[10px]'
                                   : 'hover:bg-[var(--bg-surface-soft)]'
                           }`}
-                          style={
-                            isPlaying
+                          style={{
+                            ...(isPlaying
                               ? {
                                   backgroundColor: audioState.isWordSyncActive
                                     ? softWordSyncPlayingBg
                                     : softPlayingBg,
                                 }
-                              : undefined
-                          }
+                              : {}),
+                            boxDecorationBreak: 'clone',
+                            WebkitBoxDecorationBreak: 'clone',
+                          }}
                         >
                           <SyncedVerseArabic
                             text={verse.ar.t}
@@ -1360,7 +1365,10 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           ? getTjVerseWords(verse.surah, verse.ayah)
                           : null;
                         const useVerseTajweed = Boolean(tjWords && tjWords.length > 0);
-                        const arabicDensity = getArabicDensityMetrics(settings.arabicTextDensity);
+                        const arabicDensity = getArabicDensityMetrics(
+                          settings.arabicTextDensity,
+                          settings.arabicLineHeight,
+                        );
                         return (
                           <p
                             dir="rtl"

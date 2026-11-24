@@ -53,23 +53,26 @@ import {
 } from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import { useAppStore } from '../../store/useAppStore';
-import type {
-  AudioPlayMode,
-  CombinedVerse,
-  DesktopCombinedLayout,
-  DesktopPageLayout,
-  PageBundle,
-  PlaybackRateOption,
-  ReaderContentMode,
-  RepeatCountOption,
-  StudyViewMode,
-  SurahBundle,
-  SurahMeta,
-  ThemeMode,
-  WordMealMode,
+import {
+  PLAYBACK_RATE_OPTIONS,
+  type AudioPlayMode,
+  type CombinedVerse,
+  type DesktopCombinedLayout,
+  type DesktopPageLayout,
+  type PageBundle,
+  type ReaderContentMode,
+  type RepeatCountOption,
+  type StudyViewMode,
+  type SurahBundle,
+  type SurahMeta,
+  type ThemeMode,
+  type WordMealMode,
 } from '../../types/quran';
 import { useBackButtonGuard } from '../../services/backStackService';
-import { ARABIC_TEXT_DENSITY_OPTIONS } from '../../utils/arabicUtils';
+import {
+  ARABIC_LINE_HEIGHT_OPTIONS,
+  ARABIC_TEXT_DENSITY_OPTIONS,
+} from '../../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { buildSurahQuestionCountMap, getSurahMap } from '../../utils/poolUtils';
 import { useTajweedData } from '../../hooks/useTajweedData';
@@ -1791,42 +1794,83 @@ export const StudyPage: React.FC = () => {
               )}
 
               {!isMealOnlyContent && (
-                <div className="pt-1.5 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold">Metin Sıklığı</span>
-                    <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>
-                      Kelime &amp; satır aralığı
-                    </span>
+                <div className="pt-1.5 space-y-2.5">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold">Kelime Sıklığı</span>
+                      <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                        Kelime aralığı
+                      </span>
+                    </div>
+                    <div
+                      className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                      style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                      role="group"
+                      aria-label="Arapça kelime sıklığı"
+                    >
+                      {ARABIC_TEXT_DENSITY_OPTIONS.map((opt) => {
+                        const active = (settings.arabicTextDensity ?? 'balanced') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            aria-pressed={active}
+                            title={opt.description}
+                            onClick={() => {
+                              sfxService.play('click');
+                              updateSettings({ arabicTextDensity: opt.id });
+                            }}
+                            className="h-8 px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                            style={{
+                              backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                              color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                              boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div
-                    className="grid grid-cols-3 gap-1 p-1 rounded-xl"
-                    style={{ backgroundColor: 'var(--bg-surface-soft)' }}
-                    role="group"
-                    aria-label="Arapça metin sıklığı"
-                  >
-                    {ARABIC_TEXT_DENSITY_OPTIONS.map((opt) => {
-                      const active = (settings.arabicTextDensity ?? 'balanced') === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          aria-pressed={active}
-                          title={opt.description}
-                          onClick={() => {
-                            sfxService.play('click');
-                            updateSettings({ arabicTextDensity: opt.id });
-                          }}
-                          className="h-8 px-2 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
-                          style={{
-                            backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                            color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                            boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold">Satır Aralığı</span>
+                      <span className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                        Satır yüksekliği
+                      </span>
+                    </div>
+                    <div
+                      className="grid grid-cols-4 gap-1 p-1 rounded-xl"
+                      style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                      role="group"
+                      aria-label="Arapça satır aralığı"
+                    >
+                      {ARABIC_LINE_HEIGHT_OPTIONS.map((opt) => {
+                        const active = (settings.arabicLineHeight ?? 'balanced') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            aria-pressed={active}
+                            title={opt.description}
+                            onClick={() => {
+                              sfxService.play('click');
+                              updateSettings({ arabicLineHeight: opt.id });
+                            }}
+                            className="h-8 px-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                            style={{
+                              backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                              color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                              boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -2222,15 +2266,23 @@ export const StudyPage: React.FC = () => {
               className="pt-3 border-t space-y-2.5"
               style={{ borderColor: 'var(--border-subtle)' }}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold" style={{ color: 'var(--text-secondary)' }}>
-                  Hız
-                </span>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+                    Okuma Hızı
+                  </span>
+                  <span
+                    className="text-[11px] font-extrabold tabular-nums"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  >
+                    {audioPrefs.playbackRate}x
+                  </span>
+                </div>
                 <div
-                  className="inline-flex items-center p-0.5 rounded-lg"
+                  className="grid grid-cols-4 gap-1 p-1 rounded-lg"
                   style={{ backgroundColor: 'var(--bg-surface-soft)' }}
                 >
-                  {([0.75, 1, 1.25, 1.5] as PlaybackRateOption[]).map((rate) => {
+                  {PLAYBACK_RATE_OPTIONS.map((rate) => {
                     const active = audioPrefs.playbackRate === rate;
                     return (
                       <button
@@ -2240,10 +2292,11 @@ export const StudyPage: React.FC = () => {
                           sfxService.play('click');
                           updateAudioPrefs({ playbackRate: rate });
                         }}
-                        className="h-7 px-2 rounded-md text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
+                        className="h-7 px-1.5 rounded-md text-[11px] font-bold tabular-nums cursor-pointer transition-colors"
                         style={{
                           backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                           color: active ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+                          boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                         }}
                       >
                         {rate}x
@@ -2379,10 +2432,12 @@ export const StudyPage: React.FC = () => {
     <div
       className={`space-y-2.5 lg:space-y-3 ${
         needsBottomPlayerClearance
-          ? 'pb-32 lg:pb-24'
+          ? 'pb-[calc(var(--bottom-nav-h)+5.5rem)] lg:pb-24'
           : isFullAudioBarDocked
-            ? 'pb-32 lg:pb-0'
-            : 'pb-4'
+            ? 'pb-[calc(var(--bottom-nav-h)+5.5rem)] lg:pb-0'
+            : isMobileReaderImmersive
+              ? 'pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] lg:pb-6'
+              : 'pb-[calc(var(--bottom-nav-h)+1.75rem)] lg:pb-6'
       }`}
     >
       {/* ====================================================================

@@ -1,4 +1,4 @@
-import type { ArabicTextDensity } from '../types/quran';
+import type { ArabicLineHeightOption, ArabicTextDensity } from '../types/quran';
 
 /**
  * Arapça sure başlıklarını her yazı tipinde eksiksiz (kutu/yuvarlak □/◌ glif hatası olmadan)
@@ -60,9 +60,20 @@ export const ARABIC_TEXT_DENSITY_OPTIONS: ReadonlyArray<{
   label: string;
   description: string;
 }> = [
-  { id: 'compact', label: 'Sıkı', description: 'Daha fazla kelime, derli toplu satır' },
-  { id: 'balanced', label: 'Dengeli', description: 'Varsayılan okuma aralığı' },
-  { id: 'relaxed', label: 'Ferah', description: 'Geniş kelime ve satır aralığı' },
+  { id: 'compact', label: 'Sıkı', description: 'Basılı Mushaf gibi derli toplu kelime aralığı' },
+  { id: 'balanced', label: 'Dengeli', description: 'Varsayılan dengeli kelime aralığı' },
+  { id: 'relaxed', label: 'Ferah', description: 'Geniş ve rahat kelime aralığı' },
+];
+
+export const ARABIC_LINE_HEIGHT_OPTIONS: ReadonlyArray<{
+  id: ArabicLineHeightOption;
+  label: string;
+  description: string;
+}> = [
+  { id: 'tight', label: 'Çok Sıkı', description: 'Kompakt Mushaf satır aralığı' },
+  { id: 'compact', label: 'Sıkı', description: 'Sıkı ve toplu satır aralığı' },
+  { id: 'balanced', label: 'Dengeli', description: 'Varsayılan dengeli satır aralığı' },
+  { id: 'relaxed', label: 'Ferah', description: 'Geniş ve rahat satır aralığı' },
 ];
 
 export interface ArabicDensityMetrics {
@@ -72,38 +83,71 @@ export interface ArabicDensityMetrics {
   mushafLineHeight: number;
 }
 
-const DENSITY_METRIC_MAP: Record<ArabicTextDensity, ArabicDensityMetrics> = {
+const WORD_SPACING_MAP: Record<ArabicTextDensity, string> = {
+  compact: '-0.08em',
+  balanced: '-0.01em',
+  relaxed: '0.09em',
+};
+
+const LINE_HEIGHT_MAP: Record<
+  ArabicLineHeightOption,
+  { lineHeight: number; tajweedLineHeight: number; mushafLineHeight: number }
+> = {
+  tight: {
+    lineHeight: 1.66,
+    tajweedLineHeight: 1.76,
+    mushafLineHeight: 1.66,
+  },
   compact: {
-    wordSpacing: '-0.04em',
-    lineHeight: 1.98,
-    tajweedLineHeight: 2.06,
-    mushafLineHeight: 2.04,
+    lineHeight: 1.82,
+    tajweedLineHeight: 1.92,
+    mushafLineHeight: 1.82,
   },
   balanced: {
-    wordSpacing: '0em',
-    lineHeight: 2.18,
-    tajweedLineHeight: 2.26,
-    mushafLineHeight: 2.24,
+    lineHeight: 2.04,
+    tajweedLineHeight: 2.14,
+    mushafLineHeight: 2.04,
   },
   relaxed: {
-    wordSpacing: '0.11em',
-    lineHeight: 2.42,
-    tajweedLineHeight: 2.5,
-    mushafLineHeight: 2.46,
+    lineHeight: 2.32,
+    tajweedLineHeight: 2.42,
+    mushafLineHeight: 2.32,
   },
 };
 
 /**
- * Arapça metin sıklığı ayarına göre hareke, med ve vakıf işaretlerinin üst/alt
- * satırlarla asla çakışmayacağı güvenli satır yüksekliği ve kelime aralığı döner.
+ * Arapça kelime sıklığı (`arabicTextDensity`) ve bağımsız satır aralığı (`arabicLineHeight`)
+ * ayarlarına göre hareke, med ve vakıf işaretlerinin üst/alt satırlarla çakışmayacağı güvenli
+ * metrikleri döner.
  */
 export function getArabicDensityMetrics(
   density: ArabicTextDensity | undefined,
+  lineHeightOption?: ArabicLineHeightOption,
 ): ArabicDensityMetrics {
-  if (density === 'compact' || density === 'relaxed' || density === 'balanced') {
-    return DENSITY_METRIC_MAP[density];
-  }
-  return DENSITY_METRIC_MAP.balanced;
+  const safeDensity: ArabicTextDensity =
+    density === 'compact' || density === 'relaxed' || density === 'balanced'
+      ? density
+      : 'balanced';
+
+  const resolvedLineHeight: ArabicLineHeightOption =
+    lineHeightOption === 'tight' ||
+    lineHeightOption === 'compact' ||
+    lineHeightOption === 'balanced' ||
+    lineHeightOption === 'relaxed'
+      ? lineHeightOption
+      : safeDensity === 'compact'
+        ? 'compact'
+        : safeDensity === 'relaxed'
+          ? 'relaxed'
+          : 'balanced';
+
+  const lh = LINE_HEIGHT_MAP[resolvedLineHeight];
+  return {
+    wordSpacing: WORD_SPACING_MAP[safeDensity],
+    lineHeight: lh.lineHeight,
+    tajweedLineHeight: lh.tajweedLineHeight,
+    mushafLineHeight: lh.mushafLineHeight,
+  };
 }
 
 

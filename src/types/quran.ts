@@ -26,7 +26,14 @@ export type PageLayoutMode = 'single' | 'double_mushaf' | 'double_meal' | 'meal_
 export type WordMealMode = 'off' | 'visible' | 'quiz';
 export type AudioPlayMode = 'ar' | 'meal' | 'ar_then_meal';
 export type MealAudioSourceId = 'tdv' | 'dib' | (string & {});
-export type PlaybackRateOption = 0.75 | 1 | 1.25 | 1.5;
+export type PlaybackRateOption = 0.75 | 1 | 1.25 | 1.5 | 1.75 | 2 | 2.25 | 2.5;
+export const PLAYBACK_RATE_OPTIONS: readonly PlaybackRateOption[] = [
+  0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5,
+] as const;
+
+export function isValidPlaybackRate(value: unknown): value is PlaybackRateOption {
+  return typeof value === 'number' && (PLAYBACK_RATE_OPTIONS as readonly number[]).includes(value);
+}
 export type RepeatCountOption = 1 | 2 | 3 | 5 | 10 | 'infinite';
 export type QueueLoopOption = 1 | 2 | 3 | 5 | 10 | 'infinite';
 
@@ -432,6 +439,7 @@ export interface FeedbackModalSeed {
 }
 
 export type ArabicTextDensity = 'compact' | 'balanced' | 'relaxed';
+export type ArabicLineHeightOption = 'tight' | 'compact' | 'balanced' | 'relaxed';
 
 export interface AppSettings {
   theme: ThemeMode;
@@ -446,6 +454,7 @@ export interface AppSettings {
   arabicFontSize: number; // 20..44
   turkishFontSize: number; // 14..24
   arabicTextDensity: ArabicTextDensity;
+  arabicLineHeight?: ArabicLineHeightOption;
   sfxEnabled: boolean;
   sfxVolume: number; // 0..1
   showOptionLettersInApp: boolean;

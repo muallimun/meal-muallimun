@@ -35,13 +35,13 @@ import { sfxService } from '../services/sfxService';
 import { wordAudioService } from '../services/wordAudioService';
 import { useAppStore } from '../store/useAppStore';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
-import type {
-  AudioPlayMode,
-  BesmeleInfo,
-  CombinedVerse,
-  PlaybackRateOption,
-  SurahMeta,
-  ThemeMode,
+import {
+  PLAYBACK_RATE_OPTIONS,
+  type AudioPlayMode,
+  type BesmeleInfo,
+  type CombinedVerse,
+  type SurahMeta,
+  type ThemeMode,
 } from '../types/quran';
 import { formatSafeArabicTitle, formatSurahTitle } from '../utils/arabicUtils';
 import { splitTrailingWaqf, WaqfMarkSpan } from '../utils/waqfTextUtils';
@@ -95,7 +95,7 @@ interface PresentationModeOverlayProps {
   onStartMealAudioFromActive?: (verse: CombinedVerse) => void;
 }
 
-const RATES: readonly PlaybackRateOption[] = [0.75, 1, 1.25, 1.5];
+const RATES = PLAYBACK_RATE_OPTIONS;
 
 const THEME_PALETTES: Record<
   PresentationTheme,

@@ -131,15 +131,15 @@
 }
 
 [data-theme="cream"] {
-  --bg-canvas: #faf6ee;
-  --bg-surface: #fffdf8;
-  --bg-surface-soft: #f3ece0;
-  --bg-surface-hover: #ebe2d2;
-  --bg-mushaf: #f7f0e2;
-  --bg-nav: rgba(255, 253, 248, 0.94);
-  --border-subtle: #e7decb;
-  --border-strong: #d4c6ab;
-  --text-primary: #1f1b14;
+  --bg-canvas: #F2EBDC;
+  --bg-surface: #FAF5E8;
+  --bg-surface-soft: #EFE6D2;
+  --bg-surface-hover: #E6DAC2;
+  --bg-mushaf: #F9F2E2;
+  --bg-nav: rgba(250, 245, 232, 0.95);
+  --border-subtle: #DFD3BA;
+  --border-strong: #CBB998;
+  --text-primary: #1C1710;
   --text-secondary: #4c4334;
   --text-muted: #5d5240;
   --brand-primary: #0f766e;
@@ -153,7 +153,7 @@
   --state-danger: #ef4444;
   --state-danger-text: #b91c1c;
   --state-danger-bg: rgba(239, 68, 68, 0.08);
-  --shadow-card: 0 1px 2px rgba(56, 42, 20, 0.04), 0 6px 20px rgba(56, 42, 20, 0.05);
+  --shadow-card: 0 1px 2px rgba(56, 42, 20, 0.05), 0 6px 20px rgba(56, 42, 20, 0.06);
 }
 
 [data-theme="dark"],
@@ -497,12 +497,75 @@
   border: 1px solid rgba(217, 119, 6, 0.32);
 }
 
+[data-theme="cream"] .mushaf-cover-frame {
+  background: linear-gradient(
+    180deg,
+    rgba(186, 152, 96, 0.18) 0%,
+    rgba(217, 174, 108, 0.1) 50%,
+    rgba(186, 152, 96, 0.18) 100%
+  );
+  border-color: rgba(186, 152, 96, 0.45);
+  box-shadow:
+    0 14px 36px -14px rgba(58, 42, 18, 0.2),
+    0 2px 8px rgba(58, 42, 18, 0.07);
+}
+
+[data-theme="cream"] .mushaf-paper-single,
+[data-theme="cream"] .mushaf-paper-left,
+[data-theme="cream"] .mushaf-paper-right {
+  background-color: var(--bg-mushaf);
+}
+
+[data-theme="cream"] .mushaf-cetvel-outer {
+  border-color: rgba(186, 152, 96, 0.52);
+}
+
+[data-theme="cream"] .mushaf-cetvel-inner {
+  border-color: rgba(205, 174, 120, 0.42);
+  background-color: var(--bg-mushaf) !important;
+}
+
+.book-serlevha-header {
+  background: linear-gradient(180deg, var(--brand-primary-soft) 0%, transparent 100%);
+}
+
+[data-theme="cream"] .book-serlevha-header {
+  background: linear-gradient(
+    180deg,
+    rgba(217, 174, 108, 0.22) 0%,
+    rgba(250, 245, 232, 0) 100%
+  );
+}
+
 .dark .mushaf-cetvel-outer {
   border-color: rgba(45, 212, 191, 0.32);
 }
 
 .dark .mushaf-cetvel-inner {
   border-color: rgba(251, 191, 36, 0.25);
+}
+
+/* Eski Android WebView/Chrome (vh) + Modern (dvh) uyumlu ses çekmecesi yükseklik sınırı */
+.audio-drawer-scroll {
+  max-height: calc(100vh - 9.75rem);
+}
+
+@supports (height: 100dvh) {
+  .audio-drawer-scroll {
+    max-height: calc(100dvh - 9.75rem);
+  }
+}
+
+@media (min-width: 640px) {
+  .audio-drawer-scroll {
+    max-height: calc(100vh - 7.5rem);
+  }
+
+  @supports (height: 100dvh) {
+    .audio-drawer-scroll {
+      max-height: calc(100dvh - 7.5rem);
+    }
+  }
 }
 
 .mushaf-spine-seam {

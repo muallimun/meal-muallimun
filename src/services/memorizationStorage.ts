@@ -15,6 +15,7 @@ import type {
   ZenSessionMode,
 } from '../types/memorization';
 import { REVIEW_INTERVAL_DAYS } from '../types/memorization';
+import { isValidPlaybackRate } from '../types/quran';
 import { clampAyahRange, isValidVerseKey } from '../utils/quranBounds';
 import { reportStorageQuotaError } from '../utils/storageQuotaBus';
 
@@ -387,13 +388,9 @@ function sanitizePrefs(raw: Partial<MemorizationPrefs> | null): MemorizationPref
       typeof raw.showVaslHook === 'boolean'
         ? raw.showVaslHook
         : DEFAULT_MEMORIZATION_PREFS.showVaslHook,
-    playbackRate:
-      raw.playbackRate === 0.75 ||
-      raw.playbackRate === 1 ||
-      raw.playbackRate === 1.25 ||
-      raw.playbackRate === 1.5
-        ? raw.playbackRate
-        : DEFAULT_MEMORIZATION_PREFS.playbackRate,
+    playbackRate: isValidPlaybackRate(raw.playbackRate)
+      ? raw.playbackRate
+      : DEFAULT_MEMORIZATION_PREFS.playbackRate,
   };
 }
 

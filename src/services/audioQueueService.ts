@@ -1026,6 +1026,22 @@ class AudioQueueService {
     return this.sharedAudio;
   }
 
+  private applyPlaybackRate(audio: HTMLAudioElement, rate: number): void {
+    const pitchAudio = audio as HTMLAudioElement & {
+      preservesPitch?: boolean;
+      mozPreservesPitch?: boolean;
+      webkitPreservesPitch?: boolean;
+    };
+    try {
+      if ('preservesPitch' in pitchAudio) pitchAudio.preservesPitch = true;
+      if ('mozPreservesPitch' in pitchAudio) pitchAudio.mozPreservesPitch = true;
+      if ('webkitPreservesPitch' in pitchAudio) pitchAudio.webkitPreservesPitch = true;
+    } catch {
+      // ignore unsupported pitch preservation errors
+    }
+    audio.playbackRate = rate;
+  }
+
   private teardownAudioElement(preserveWordSyncFlag = false): void {
     this.clearSkipTimer();
     this.clearLoadTimer();
@@ -1179,7 +1195,7 @@ class AudioQueueService {
     // iOS kilit ekranında arka plan ses oturumunu korumak için tek HTMLAudioElement yeniden kullanılır
     const audio = this.getOrCreateAudioElement();
     audio.preload = 'auto';
-    audio.playbackRate = this.prefs.playbackRate;
+    this.applyPlaybackRate(audio, this.prefs.playbackRate);
 
     const controller = new AbortController();
     const { signal } = controller;
@@ -1239,7 +1255,7 @@ class AudioQueueService {
         this.clearLoadTimer();
         this.clearStallTimer();
         this.consecutiveFailures = 0;
-        audio.playbackRate = this.prefs.playbackRate;
+        this.applyPlaybackRate(audio, this.prefs.playbackRate);
         this.emit({ status: 'playing', errorMessage: null });
         this.setMediaPlaybackState('playing');
         this.startWordSyncLoop();
@@ -1889,7 +1905,7 @@ class AudioQueueService {
       this.stopPreview();
       const session = this.playSessionId;
       this.consecutiveFailures = 0;
-      this.audio.playbackRate = this.prefs.playbackRate;
+      this.applyPlaybackRate(this.audio, this.prefs.playbackRate);
       const playPromise = this.audio.play();
       if (playPromise && typeof playPromise.catch === 'function') {
         playPromise.catch((err) => {
@@ -2239,7 +2255,7 @@ class AudioQueueService {
     }
 
     if (this.audio) {
-      this.audio.playbackRate = nextPrefs.playbackRate;
+      this.applyPlaybackRate(this.audio, nextPrefs.playbackRate);
     }
 
     const prevReciterId = prevPrefs.arabicReciterId || prevPrefs.arabicAudioSource;
