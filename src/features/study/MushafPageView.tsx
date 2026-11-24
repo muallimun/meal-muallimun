@@ -1789,8 +1789,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                             >
                               <div className="flex flex-col gap-2 w-full">
                                 {/* Üst Başlık Satırı: Sol (1–5) / (12) ayet rozeti + alt ayet seçiciler, Sağ aksiyon butonları */}
-                                <div className="flex items-start justify-between w-full gap-2">
-                                  <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                                <div className="flex flex-wrap items-center justify-between w-full gap-x-2 gap-y-1.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap min-w-fit max-w-full">
                                     <span
                                       title={
                                         group.mgRange &&
@@ -1945,7 +1945,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                   </div>
 
                                   <div
-                                    className="flex items-center gap-0.5 shrink-0 opacity-85 group-hover:opacity-100"
+                                    className="flex items-center gap-0.5 ml-auto shrink-0 opacity-85 group-hover:opacity-100"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <button
@@ -1959,7 +1959,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayetten dinle`}
                                       aria-label={`${targetVerse.ayah}. ayetten dinle`}
-                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--brand-primary-text)' }}
                                     >
                                       <Play className="w-3.5 h-3.5 fill-current" />
@@ -1995,7 +1995,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayeti döngüde dinle`}
                                       aria-label={`${targetVerse.ayah}. ayeti döngüde dinle`}
-                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--brand-primary-text)' }}
                                     >
                                       <Repeat className="w-3.5 h-3.5" />
@@ -2020,7 +2020,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayeti çalma listesine ekle`}
                                       aria-label={`${targetVerse.ayah}. ayeti çalma listesine ekle`}
-                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--text-muted)' }}
                                     >
                                       <ListPlus className="w-3.5 h-3.5" />
@@ -2033,7 +2033,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayeti ${MEALS_CATALOG.length} meal ve tefsirde karşılaştır`}
                                       aria-label={`${targetVerse.ayah}. ayeti ${MEALS_CATALOG.length} meal ve tefsirde karşılaştır`}
-                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--brand-primary-text)' }}
                                     >
                                       <Scale className="w-3.5 h-3.5" />
@@ -2047,7 +2047,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                           : `${targetVerse.ayah}. ayeti favorile`
                                       }
                                       aria-label={isFav ? 'Favorilerden çıkar' : 'Favorile'}
-                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-amber-500/15 cursor-pointer"
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-amber-500/15 cursor-pointer"
                                       style={{
                                         color: isFav
                                           ? 'var(--brand-accent-text)'
@@ -2071,7 +2071,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                           : `${targetVerse.ayah}. ayete kişisel not ekle`
                                       }
                                       aria-label={`${targetVerse.ayah}. ayet notu`}
-                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{
                                         color: primaryGroupNoteStyle
                                           ? primaryGroupNoteStyle.dot
@@ -2093,7 +2093,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                       }}
                                       title={`${targetVerse.ayah}. ayet detayı, dipnot ve kelime meali`}
                                       aria-label={`${targetVerse.ayah}. ayet detayını aç`}
-                                      className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-teal-600/15 cursor-pointer"
                                       style={{ color: 'var(--text-muted)' }}
                                     >
                                       <Info className="w-3.5 h-3.5" />
