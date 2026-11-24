@@ -103,6 +103,7 @@ export const INTRO_DISMISSED_KEY = 'muallimun_intro_dismissed_v1';
 export const SIDEBAR_COLLAPSED_KEY = 'muallimun_sidebar_collapsed_v1';
 export const READING_DEFAULTS_MIGRATION_KEY = 'muallimun_reading_defaults_v2';
 export const READING_DEFAULTS_MIGRATION_V3_KEY = 'muallimun_reading_defaults_v3';
+export const READING_DEFAULTS_MIGRATION_V4_KEY = 'muallimun_reading_defaults_v4';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'cream',
@@ -112,7 +113,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   mealDisplayMode: 'single',
   favoriteMealIds: [...DEFAULT_FAVORITE_MEAL_IDS],
   compareMealIds: [],
-  arabicFont: DEFAULT_ARABIC_FONT_LABEL, // 'Elif Mushaf Hattı'
+  arabicFont: DEFAULT_ARABIC_FONT_LABEL, // 'Şeyh Hamdullah Klasik'
   turkishFont: TURKISH_FONTS[0].label, // 'Plus Jakarta Sans'
   arabicFontSize: 28,
   turkishFontSize: 16,
@@ -476,24 +477,35 @@ function hydrateState(): PersistedAppState {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     let hasReadingDefaultsMigrationV2 = false;
     let hasReadingDefaultsMigrationV3 = false;
+    let hasReadingDefaultsMigrationV4 = false;
     try {
       hasReadingDefaultsMigrationV2 =
         window.localStorage.getItem(READING_DEFAULTS_MIGRATION_KEY) === '1';
       hasReadingDefaultsMigrationV3 =
         window.localStorage.getItem(READING_DEFAULTS_MIGRATION_V3_KEY) === '1';
+      hasReadingDefaultsMigrationV4 =
+        window.localStorage.getItem(READING_DEFAULTS_MIGRATION_V4_KEY) === '1';
     } catch {
       hasReadingDefaultsMigrationV2 = false;
       hasReadingDefaultsMigrationV3 = false;
+      hasReadingDefaultsMigrationV4 = false;
     }
 
     if (!raw) {
-      if (!hasReadingDefaultsMigrationV2 || !hasReadingDefaultsMigrationV3) {
+      if (
+        !hasReadingDefaultsMigrationV2 ||
+        !hasReadingDefaultsMigrationV3 ||
+        !hasReadingDefaultsMigrationV4
+      ) {
         try {
           if (!hasReadingDefaultsMigrationV2) {
             window.localStorage.setItem(READING_DEFAULTS_MIGRATION_KEY, '1');
           }
           if (!hasReadingDefaultsMigrationV3) {
             window.localStorage.setItem(READING_DEFAULTS_MIGRATION_V3_KEY, '1');
+          }
+          if (!hasReadingDefaultsMigrationV4) {
+            window.localStorage.setItem(READING_DEFAULTS_MIGRATION_V4_KEY, '1');
           }
         } catch {
           // Gizli mod / kota kısıtında sessizce devam et
@@ -668,15 +680,24 @@ function hydrateState(): PersistedAppState {
       }
     }
 
-    // Tek seferlik güvenli varsayılan font migrasyonu (v3):
-    // Önceki varsayılan 'Şeyh Hamdullah Klasik' kullananları bir kez 'Elif Mushaf Hattı'na taşır;
-    // farklı bir font seçenlerin ve sonradan yapılan tüm tercihlerin üzerine yazmaz.
+    // Eski v3 geçiş anahtarını işaretleyip kapat (artık v4 geçerlidir)
     if (!hasReadingDefaultsMigrationV3) {
-      if (settings.arabicFont === 'Şeyh Hamdullah Klasik') {
+      try {
+        window.localStorage.setItem(READING_DEFAULTS_MIGRATION_V3_KEY, '1');
+      } catch {
+        // Gizli mod / kota kısıtında sessizce devam et
+      }
+    }
+
+    // Tek seferlik güvenli varsayılan font migrasyonu (v4):
+    // OpenType düzeltmesi sonrası v3 ile 'Elif Mushaf Hattı'na geçmiş cihazları bir kez
+    // 'Şeyh Hamdullah Klasik' hattına geri taşır; diğer seçimleri ve sonraki tercihleri korur.
+    if (!hasReadingDefaultsMigrationV4) {
+      if (settings.arabicFont === 'Elif Mushaf Hattı') {
         settings.arabicFont = DEFAULT_SETTINGS.arabicFont;
       }
       try {
-        window.localStorage.setItem(READING_DEFAULTS_MIGRATION_V3_KEY, '1');
+        window.localStorage.setItem(READING_DEFAULTS_MIGRATION_V4_KEY, '1');
       } catch {
         // Gizli mod / kota kısıtında sessizce devam et
       }

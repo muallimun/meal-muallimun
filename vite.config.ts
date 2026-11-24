@@ -58,7 +58,7 @@ export default defineConfig({
             urlPattern: /(?:^https:\/\/kuran\.muallimun\.net)?\/(?:fonts|sfx)\/.+/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'muallimun-static-media',
+              cacheName: 'muallimun-static-media-v2',
               expiration: {
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 90,

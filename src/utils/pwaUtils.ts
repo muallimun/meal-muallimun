@@ -206,12 +206,61 @@ export async function checkForPwaUpdate(): Promise<boolean> {
   }
 }
 
+const FONT_CACHE_PURGE_V2_KEY = 'muallimun_shaikh_font_cache_v2';
+const LEGACY_STATIC_MEDIA_CACHE_NAME = 'muallimun-static-media';
+
+/**
+ * Uygulama açılışında eski/bozuk ShaikhHamdullahBasic font önbellek kayıtlarını
+ * ve eski static-media önbelleğini tek seferlik temizler.
+ */
+async function purgeLegacyShaikhFontCaches(): Promise<void> {
+  if (typeof window === 'undefined' || !('caches' in window)) return;
+  try {
+    if (window.localStorage.getItem(FONT_CACHE_PURGE_V2_KEY) === '1') return;
+  } catch {
+    // Gizli modda yine de temizliği dene
+  }
+
+  try {
+    const cacheNames = await window.caches.keys();
+    await Promise.all(
+      cacheNames.map(async (cacheName) => {
+        if (cacheName === LEGACY_STATIC_MEDIA_CACHE_NAME) {
+          await window.caches.delete(cacheName);
+          return;
+        }
+        const cache = await window.caches.open(cacheName);
+        const requests = await cache.keys();
+        await Promise.all(
+          requests.map((req) => {
+            if (
+              /ShaikhHamdullahBasic/i.test(req.url) &&
+              !/[?&]v=2(?:&|$)/.test(req.url)
+            ) {
+              return cache.delete(req);
+            }
+            return Promise.resolve(false);
+          }),
+        );
+      }),
+    );
+    try {
+      window.localStorage.setItem(FONT_CACHE_PURGE_V2_KEY, '1');
+    } catch {
+      // Gizli mod / kota kısıtında sessizce devam et
+    }
+  } catch {
+    // Önbellek erişim hatasında uygulamayı engelleme
+  }
+}
+
 /**
  * Service Worker kaydını güvenli biçimde başlatır (sandbox/iframe engellerinde sessizce devam eder).
  * Yeni sürüm hazır olduğunda sessiz zorunlu yenileme yerine kullanıcı onaylı güncelleme bildirir.
  */
 export function registerPwaServiceWorker(): void {
   if (swRegistered || typeof window === 'undefined') return;
+  void purgeLegacyShaikhFontCaches();
   if (!('serviceWorker' in navigator)) return;
   swRegistered = true;
 
