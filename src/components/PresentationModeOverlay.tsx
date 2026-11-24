@@ -10,10 +10,12 @@ import {
   Loader2,
   Maximize2,
   Minimize2,
+  Minus,
   MonitorPlay,
   Palette,
   Pause,
   Play,
+  Plus,
   SkipBack,
   SkipForward,
   SlidersHorizontal,
@@ -182,6 +184,29 @@ function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, val));
 }
 
+const PRESENTATION_FONT_SCALE_STORAGE_KEY = 'muallimun_presentation_font_scale';
+const PRESENTATION_FONT_SCALE_MIN = 0.85;
+const PRESENTATION_FONT_SCALE_MAX = 1.3;
+const PRESENTATION_FONT_SCALE_STEP = 0.05;
+
+function normalizeFontScale(val: number): number {
+  const clamped = clamp(val, PRESENTATION_FONT_SCALE_MIN, PRESENTATION_FONT_SCALE_MAX);
+  return Math.round(clamped * 20) / 20;
+}
+
+function loadSavedPresentationFontScale(): number {
+  if (typeof window === 'undefined') return 1;
+  try {
+    const raw = window.localStorage.getItem(PRESENTATION_FONT_SCALE_STORAGE_KEY);
+    if (!raw) return 1;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return 1;
+    return normalizeFontScale(parsed);
+  } catch {
+    return 1;
+  }
+}
+
 export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = ({
   isOpen,
   onClose,
@@ -235,11 +260,22 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
   const [contentMode, setContentMode] = useState<PresentationContentMode>('both');
   const [presTheme, setPresThemeState] = useState<PresentationTheme>(loadSavedPresentationTheme);
+  const [presFontScale, setPresFontScaleState] = useState<number>(loadSavedPresentationFontScale);
 
   const setPresTheme = (next: PresentationTheme) => {
     setPresThemeState(next);
     try {
       window.localStorage.setItem(PRESENTATION_THEME_STORAGE_KEY, next);
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const setPresFontScale = (next: number) => {
+    const normalized = normalizeFontScale(next);
+    setPresFontScaleState(normalized);
+    try {
+      window.localStorage.setItem(PRESENTATION_FONT_SCALE_STORAGE_KEY, String(normalized));
     } catch {
       // ignore storage errors
     }
@@ -492,94 +528,124 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       Object.keys(tjRules).length > 0,
   );
 
-  // Deterministik Tek Geçişli Otomatik Punto Hesabı (DOM ölçüm/reflow olmadan)
+  // Deterministik Tek Geçişli Otomatik Punto Hesabı (Akıllı Tahta & Salon Tipografisi)
   const fontMetrics = useMemo(() => {
     const arLen = arabicText.length;
     const trLen = mealText.length;
-    const hFactor = clamp(viewport.h / 820, 0.72, 1.25);
-    const wFactor = clamp(viewport.w / 1280, 0.68, 1.18);
+    const hFactor = clamp(viewport.h / 740, 0.78, 1.32);
+    const wFactor = clamp(viewport.w / 1220, 0.74, 1.28);
     const baseScale = Math.min(hFactor, wFactor);
-    const scale = showBesmele && contentMode === 'both' ? baseScale * 0.91 : baseScale;
+    const scale = showBesmele && contentMode === 'both' ? baseScale * 0.92 : baseScale;
 
-    let arPx = 46;
-    let arLine = 2.02;
-    let trPx = 26;
-    let trLine = 1.62;
+    let arPx = 50;
+    let arLine = 1.94;
+    let trPx = 24;
+    let trLine = 1.54;
 
     if (contentMode === 'ar') {
-      if (arLen > 620) {
-        arPx = 24;
-        arLine = 1.82;
-      } else if (arLen > 400) {
-        arPx = 30;
+      if (arLen <= 90) {
+        arPx = 72;
+        arLine = 1.98;
+      } else if (arLen <= 160) {
+        arPx = 62;
+        arLine = 1.94;
+      } else if (arLen <= 250) {
+        arPx = 54;
         arLine = 1.9;
-      } else if (arLen > 220) {
-        arPx = 38;
-        arLine = 1.96;
-      } else if (arLen > 100) {
-        arPx = 48;
-        arLine = 2.04;
+      } else if (arLen <= 380) {
+        arPx = 44;
+        arLine = 1.86;
+      } else if (arLen <= 560) {
+        arPx = 36;
+        arLine = 1.82;
       } else {
-        arPx = 60;
-        arLine = 2.1;
+        arPx = 29;
+        arLine = 1.76;
       }
     } else if (contentMode === 'meal') {
       if (trLen > 650) {
-        trPx = 20;
-        trLine = 1.5;
+        trPx = 21;
+        trLine = 1.48;
       } else if (trLen > 420) {
-        trPx = 24;
-        trLine = 1.56;
-      } else if (trLen > 220) {
-        trPx = 30;
-        trLine = 1.6;
-      } else if (trLen > 110) {
-        trPx = 36;
-        trLine = 1.58;
-      } else {
-        trPx = 44;
+        trPx = 25;
         trLine = 1.52;
+      } else if (trLen > 220) {
+        trPx = 31;
+        trLine = 1.56;
+      } else if (trLen > 110) {
+        trPx = 38;
+        trLine = 1.54;
+      } else {
+        trPx = 46;
+        trLine = 1.5;
       }
     } else {
-      // 'both' — Arapça + Türkçe birlikte tek ekrana dengeli sığar
-      const total = arLen * 1.15 + trLen;
-      if (total > 820) {
-        arPx = 22;
-        arLine = 1.8;
-        trPx = 16;
-        trLine = 1.46;
-      } else if (total > 560) {
-        arPx = 27;
-        arLine = 1.86;
-        trPx = 18;
-        trLine = 1.52;
-      } else if (total > 360) {
-        arPx = 33;
+      // 'both' — Arapça öncelikli punto kademeleri (uzun mealde yalnızca hafif dikey denge katsayısı)
+      if (arLen <= 90) {
+        arPx = 58;
+        arLine = 1.98;
+      } else if (arLen <= 160) {
+        arPx = 50;
         arLine = 1.94;
-        trPx = 21;
-        trLine = 1.56;
-      } else if (total > 200) {
-        arPx = 40;
-        arLine = 2.0;
-        trPx = 24;
-        trLine = 1.6;
+      } else if (arLen <= 250) {
+        arPx = 44;
+        arLine = 1.9;
+      } else if (arLen <= 380) {
+        arPx = 36;
+        arLine = 1.86;
+      } else if (arLen <= 560) {
+        arPx = 30;
+        arLine = 1.82;
       } else {
-        arPx = 48;
-        arLine = 2.05;
-        trPx = 28;
-        trLine = 1.62;
+        arPx = 25;
+        arLine = 1.76;
+      }
+
+      if (trLen > 560) {
+        arPx *= 0.9;
+      } else if (trLen > 380) {
+        arPx *= 0.94;
+      }
+
+      if (trLen <= 110) {
+        trPx = 27;
+        trLine = 1.56;
+      } else if (trLen <= 220) {
+        trPx = 24;
+        trLine = 1.54;
+      } else if (trLen <= 380) {
+        trPx = 21;
+        trLine = 1.5;
+      } else if (trLen <= 560) {
+        trPx = 19;
+        trLine = 1.46;
+      } else {
+        trPx = 17;
+        trLine = 1.42;
       }
     }
 
+    const arMaxPx = contentMode === 'ar' ? 92 : 80;
+    const effectiveScale = scale * presFontScale;
+    const effectiveBaseScale = baseScale * presFontScale;
+
     return {
-      arSize: `${Math.round(clamp(arPx * scale, 18, 66))}px`,
+      arSize: `${Math.round(clamp(arPx * effectiveScale, 20, arMaxPx))}px`,
       arLine,
-      trSize: `${Math.round(clamp(trPx * scale, 14, 46))}px`,
+      trSize: `${Math.round(clamp(trPx * effectiveScale, 14, 54))}px`,
       trLine,
-      besmeleArSize: `${Math.round(clamp(34 * baseScale, 20, 42))}px`,
-      besmeleTrSize: `${Math.round(clamp(20 * baseScale, 14, 26))}px`,
+      besmeleArSize: `${Math.round(clamp(38 * effectiveBaseScale, 22, 54))}px`,
+      besmeleTrSize: `${Math.round(clamp(20 * effectiveBaseScale, 14, 30))}px`,
     };
-  }, [arabicText.length, mealText.length, contentMode, viewport.w, viewport.h, showBesmele]);
+  }, [
+    arabicText.length,
+    mealText.length,
+    contentMode,
+    viewport.w,
+    viewport.h,
+    showBesmele,
+    presFontScale,
+  ]);
 
   if (!isOpen) return null;
 
@@ -1285,6 +1351,83 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   </div>
                 </div>
 
+                {/* Sunum Yazı Ölçeği (%85 - %130) */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p
+                      className="text-[10px] font-extrabold uppercase tracking-wider"
+                      style={{ color: palette.muted }}
+                    >
+                      Sunum Yazı Ölçeği
+                    </p>
+                    {presFontScale !== 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setPresFontScale(1);
+                        }}
+                        className="text-[10px] font-bold cursor-pointer hover:underline"
+                        style={{ color: palette.accent }}
+                      >
+                        Sıfırla
+                      </button>
+                    )}
+                  </div>
+                  <div
+                    className="grid grid-cols-[40px_1fr_40px] gap-1 p-1 rounded-xl border"
+                    style={{ borderColor: palette.border, backgroundColor: palette.surface }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setPresFontScale(presFontScale - PRESENTATION_FONT_SCALE_STEP);
+                      }}
+                      disabled={presFontScale <= PRESENTATION_FONT_SCALE_MIN}
+                      aria-label="Sunum yazı ölçeğini küçült"
+                      title="Yazıyı küçült"
+                      className="min-h-[34px] rounded-lg flex items-center justify-center cursor-pointer disabled:opacity-35 transition-colors touch-manipulation"
+                      style={{ color: palette.text }}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setPresFontScale(1);
+                      }}
+                      title="Varsayılan ölçeğe (%100) sıfırla"
+                      aria-label={`Sunum yazı ölçeği yüzde ${Math.round(presFontScale * 100)} (sıfırlamak için dokunun)`}
+                      className="min-h-[34px] rounded-lg text-xs font-extrabold tabular-nums flex items-center justify-center cursor-pointer transition-colors touch-manipulation"
+                      style={{
+                        backgroundColor:
+                          presFontScale !== 1 ? palette.accentSoft : 'transparent',
+                        color: presFontScale !== 1 ? palette.accent : palette.text,
+                      }}
+                    >
+                      %{Math.round(presFontScale * 100)}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setPresFontScale(presFontScale + PRESENTATION_FONT_SCALE_STEP);
+                      }}
+                      disabled={presFontScale >= PRESENTATION_FONT_SCALE_MAX}
+                      aria-label="Sunum yazı ölçeğini büyüt"
+                      title="Yazıyı büyüt"
+                      className="min-h-[34px] rounded-lg flex items-center justify-center cursor-pointer disabled:opacity-35 transition-colors touch-manipulation"
+                      style={{ color: palette.text }}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
                 {/* Ses Akışı */}
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: palette.muted }}>
@@ -1435,14 +1578,14 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         </div>
       )}
 
-      {/* Orta Sahne: Kırpışmasız, Deterministik Ölçeklenen Geniş Ayet & Meal Alanı (Yatay Kaydırma Destekli) */}
+      {/* Orta Sahne: Kırpışmasız, Akıllı Tahta & Salon İçin Geniş Ayet & Meal Alanı (Yatay Kaydırma Destekli) */}
       <main
         onTouchStart={handleMainTouchStart}
         onTouchEnd={handleMainTouchEnd}
-        className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-12 lg:px-20 py-4 overflow-y-auto"
+        className="flex-1 min-h-0 flex items-center justify-center px-4 sm:px-8 lg:px-10 xl:px-14 py-3 overflow-y-auto"
       >
         {displayedVerse ? (
-          <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-4 sm:gap-6 text-center transition-opacity duration-200">
+          <div className="w-full max-w-6xl xl:max-w-[88vw] mx-auto flex flex-col items-center justify-center gap-3 sm:gap-4 text-center transition-opacity duration-200">
             {/* Yalnızca Tilâvet Secdesi, Aktif Ses Fazı, Duraklatıldı Bilgisi veya Ses Hata Bildirimi */}
             {(isSajdah || isPlaying || isLoading || isPaused || Boolean(audioState.errorMessage)) && (
               <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -1645,7 +1788,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               <div
                 dir="rtl"
                 lang="ar"
-                className={`${useVerseTajweed ? 'arabic-tajweed' : 'arabic-text'} ${karaokeThemeClass} w-full text-center px-4 py-2 rounded-2xl border transition-all duration-200 ${
+                className={`${useVerseTajweed ? 'arabic-tajweed' : 'arabic-text'} ${karaokeThemeClass} w-full text-center px-2 sm:px-4 py-1.5 rounded-2xl border transition-all duration-200 ${
                   isBesmeleHighlighted ? 'opacity-70' : 'opacity-100'
                 }`}
                 style={{
@@ -1772,7 +1915,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             {/* Türkçe Meal (Tek veya Çift Meal — Yalnızca Sesle Eşleşen Meal Vurgulanır) */}
             {(contentMode === 'both' || contentMode === 'meal') && (
               <div
-                className={`w-full max-w-4xl mx-auto ${
+                className={`w-full max-w-5xl mx-auto ${
                   isDual && secondaryMealText
                     ? 'grid grid-cols-1 md:grid-cols-2 gap-3 text-left'
                     : ''
