@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowRight,
   Check,
   GripVertical,
   ListOrdered,
@@ -19,7 +18,8 @@ import {
   SURAH_GROUP_BY_ID,
   explainWhyNotInGroup,
 } from './surahSpecialGroups';
-import { StagePromptBanner } from './StagePromptBanner';
+import { RoundReviewBanner } from './RoundReviewBanner';
+import { StagePromptBanner, renderArabicHighlightedText } from './StagePromptBanner';
 import { useManagedTimeouts } from './useManagedTimeouts';
 
 interface SequenceRoundData {
@@ -235,10 +235,16 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
     [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
-  // Zamanlayıcı
+  const isTimerPausedRef = useRef<boolean>(false);
+  useEffect(() => {
+    isTimerPausedRef.current = roundCompleted;
+  }, [roundCompleted]);
+
+  // Zamanlayıcı (Tur tamamlanınca incelerken duraklatılır)
   useEffect(() => {
     if (finishedRef.current) return;
     const interval = window.setInterval(() => {
+      if (finishedRef.current || isTimerPausedRef.current) return;
       setElapsedSec((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(interval);
@@ -372,7 +378,7 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
           setActivePlayer((prev) => (prev === 'p1' ? 'p2' : 'p1'));
         }
 
-        scheduleTimeout(() => setWrongCardNo(null), 480);
+        scheduleTimeout(() => setWrongCardNo(null), 900);
       }
     },
     [
@@ -509,7 +515,7 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
       : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4';
 
   return (
-    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-3.5 sm:gap-5 relative">
+    <div className="flex-1 min-h-0 flex flex-col justify-start lg:justify-center gap-2.5 sm:gap-4 pb-1 lg:pb-0 relative">
       {/* Üst Grup Başlık & Soru Banner'ı */}
       <StagePromptBanner
         badgeIcon={<ListOrdered className="w-3.5 h-3.5" />}
@@ -555,7 +561,8 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
                   </div>
                   <div
                     dir="rtl"
-                    className="font-arabic text-lg sm:text-xl lg:text-2xl text-amber-200 leading-snug line-clamp-1 mt-0.5"
+                    lang="ar"
+                    className="font-arabic text-base sm:text-xl lg:text-2xl text-amber-200 leading-snug break-keep mt-0.5"
                   >
                     {placed.nameAr}
                   </div>
@@ -580,23 +587,18 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
 
       {/* Tur Tamamlandı veya İpucu Şeridi */}
       {roundCompleted ? (
-        <div className="shrink-0 rounded-2xl bg-black/25 border border-amber-300/45 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-white">
-          <div className="text-sm sm:text-base font-bold text-center sm:text-left">
-            Tebrikler! {round.group.shortLabel} dizilimi eksiksiz tamamlandı.
-          </div>
-          <button
-            type="button"
-            onClick={handleNextRound}
-            className="w-full sm:w-auto h-10 px-4 rounded-xl font-extrabold text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-            style={{ backgroundColor: '#D97706', color: '#FFFFFF' }}
-          >
-            <span>Sonraki Grup</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
+        <RoundReviewBanner
+          variant="success"
+          message={renderArabicHighlightedText(
+            `Tebrikler! ${round.group.shortLabel} dizilimi eksiksiz tamamlandı.`,
+          )}
+          ctaLabel="Sonraki Grup"
+          onContinue={handleNextRound}
+          timerPausedNote={tempo === 'timed'}
+        />
       ) : inlineHint ? (
         <div className="shrink-0 rounded-xl bg-red-950/80 border border-red-400/55 px-3.5 py-2 text-center text-xs sm:text-sm font-bold text-red-100">
-          {inlineHint}
+          {renderArabicHighlightedText(inlineHint)}
         </div>
       ) : null}
 
@@ -627,35 +629,36 @@ export const GroupSequenceGame: React.FC<GameComponentProps> = ({
                   touchAction: 'none',
                   opacity: isPlaced ? 0.25 : isRevealedDistractor ? 0.45 : isDraggingThis ? 0.45 : 1,
                 }}
-                className={`min-h-[62px] sm:min-h-[70px] rounded-xl px-2.5 py-2 flex items-center justify-between gap-1.5 cursor-pointer select-none transition-opacity ${
+                className={`min-h-[68px] sm:min-h-[76px] rounded-xl px-2 py-1.5 sm:px-2.5 sm:py-2 flex flex-col justify-between gap-1 cursor-pointer select-none transition-opacity ${
                   isWrongNow
                     ? 'bg-red-800 border-2 border-red-400 border-b-4 border-b-red-950 text-white game-shake'
                     : 'game-bevel-parchment hover:brightness-[1.02]'
                 }`}
               >
-                <div className="flex flex-col items-center shrink-0">
+                <div className="flex items-center justify-between w-full">
                   <span
-                    className={`text-[11px] font-black tabular-nums ${
-                      isWrongNow ? 'text-white' : 'text-slate-600'
+                    className={`text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded ${
+                      isWrongNow ? 'bg-white/20 text-white' : 'bg-amber-900/10 text-slate-600'
                     }`}
                   >
                     #{idx + 1}
                   </span>
                   <GripVertical
-                    className={`w-3.5 h-3.5 ${isWrongNow ? 'text-white/70' : 'text-slate-500'}`}
+                    className={`w-3.5 h-3.5 shrink-0 ${isWrongNow ? 'text-white/70' : 'text-slate-500'}`}
                   />
                 </div>
-                <div className="flex-1 min-w-0 text-center">
+                <div className="w-full text-center pb-0.5">
                   <div
                     dir="rtl"
-                    className={`font-arabic text-xl sm:text-2xl lg:text-[26px] leading-snug truncate ${
+                    lang="ar"
+                    className={`font-arabic text-base sm:text-xl lg:text-[24px] leading-snug break-keep ${
                       isWrongNow ? 'text-amber-200' : 'text-teal-900'
                     }`}
                   >
                     {cand.nameAr}
                   </div>
                   <div
-                    className={`text-sm sm:text-base lg:text-[17px] font-bold truncate ${
+                    className={`text-xs sm:text-sm lg:text-[16px] font-bold leading-tight line-clamp-1 ${
                       isWrongNow ? 'text-white' : 'text-slate-900'
                     }`}
                   >

@@ -290,7 +290,7 @@ export const GamesHubTab: React.FC = () => {
                     {tier.title}
                   </div>
                   <p
-                    className="text-[11px] leading-snug line-clamp-1 sm:line-clamp-2"
+                    className="text-[11px] leading-snug line-clamp-2"
                     style={{ color: 'var(--text-secondary)' }}
                   >
                     {tier.subtitle}
@@ -325,10 +325,10 @@ export const GamesHubTab: React.FC = () => {
             2. Oyun Seçin ve Masaya Geçin
           </h3>
 
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-2.5 w-full lg:w-auto">
             {/* İkili Oyuncu Seçici: Tek Oyuncu | 2 Oyuncu */}
             <div
-              className="grid grid-cols-2 sm:inline-flex p-0.5 rounded-xl border gap-0.5 flex-1 sm:flex-initial"
+              className="grid grid-cols-2 lg:inline-flex p-0.5 rounded-xl border gap-0.5 w-full lg:w-auto"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -340,7 +340,7 @@ export const GamesHubTab: React.FC = () => {
                   sfxService.play('click');
                   handleSelectPlayerMode('single');
                 }}
-                className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                className="min-h-[36px] px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                 style={{
                   backgroundColor: playerMode === 'single' ? 'var(--bg-surface)' : 'transparent',
                   color:
@@ -358,7 +358,7 @@ export const GamesHubTab: React.FC = () => {
                   sfxService.play('click');
                   handleSelectPlayerMode('duel');
                 }}
-                className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                className="min-h-[36px] px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                 style={{
                   backgroundColor: playerMode === 'duel' ? 'var(--bg-surface)' : 'transparent',
                   color: playerMode === 'duel' ? 'var(--brand-accent-text)' : 'var(--text-secondary)',
@@ -372,7 +372,7 @@ export const GamesHubTab: React.FC = () => {
 
             {/* Tempo Seçimi: Sakin Mod | Zaman Yarışı */}
             <div
-              className="grid grid-cols-2 sm:inline-flex p-0.5 rounded-xl border gap-0.5 flex-1 sm:flex-initial"
+              className="grid grid-cols-2 lg:inline-flex p-0.5 rounded-xl border gap-0.5 w-full lg:w-auto"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -385,7 +385,7 @@ export const GamesHubTab: React.FC = () => {
                   sfxService.play('click');
                   setTempo('calm');
                 }}
-                className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                className="min-h-[36px] px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                 style={{
                   backgroundColor: tempo === 'calm' ? 'var(--bg-surface)' : 'transparent',
                   color: tempo === 'calm' ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
@@ -403,7 +403,7 @@ export const GamesHubTab: React.FC = () => {
                   sfxService.play('click');
                   setTempo('timed');
                 }}
-                className="min-h-[34px] px-2.5 sm:px-3 rounded-lg text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+                className="min-h-[36px] px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                 style={{
                   backgroundColor: tempo === 'timed' ? 'var(--bg-surface)' : 'transparent',
                   color: tempo === 'timed' ? 'var(--brand-accent-text)' : 'var(--text-secondary)',

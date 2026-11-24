@@ -24,7 +24,7 @@ interface MemoryCardItem {
 
 const PREVIEW_SECONDS = 2;
 const TURN_SECONDS = 15;
-const MISMATCH_FLIP_BACK_MS = 850;
+const MISMATCH_FLIP_BACK_MS = 1800;
 
 function useIsCompactViewport(): boolean {
   const [compact, setCompact] = useState<boolean>(() =>
@@ -263,11 +263,11 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
     [clearAllTimeouts, isDuel, onComplete, playerMode, tempo, tierId, timedLimitSec],
   );
 
-  // Genel süre sayacı (kart kapatma zamanlayıcısından tamamen bağımsız)
+  // Genel süre sayacı (kart kapatma ve inceleme sırasında duraklatılır)
   useEffect(() => {
     if (isPreview) return;
     const interval = window.setInterval(() => {
-      if (phaseRef.current !== 'playing') return;
+      if (phaseRef.current !== 'playing' || isResolvingRef.current) return;
       setElapsedSec((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(interval);
@@ -477,12 +477,12 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
             p1Correct: nextP1Correct,
             p2Correct: nextP2Correct,
           });
-        }, 420);
+        }, 900);
       }
       return;
     }
 
-    // DURUM B: EŞLEŞME YANLIŞ — 850ms koruma ile kapat ve tahtayı temizce aç
+    // DURUM B: EŞLEŞME YANLIŞ — 1.8 sn inceleme süresi ile kapat ve tahtayı temizce aç
     isResolvingRef.current = true;
     mistakenMapRef.current.set(firstCard.surah.no, firstCard.surah);
     mistakenMapRef.current.set(card.surah.no, card.surah);
@@ -516,7 +516,7 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
       : 'grid-cols-3 sm:grid-cols-4 sm:grid-rows-4 gap-2 sm:gap-3';
 
   return (
-    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-2.5 sm:gap-3.5">
+    <div className="flex-1 min-h-0 flex flex-col justify-start lg:justify-center gap-2.5 sm:gap-3.5 pb-1 lg:pb-0">
       {/* Zümrüt Masa Üst Görev Başlığı */}
       <StagePromptBanner
         compact
@@ -623,7 +623,7 @@ export const MemoryMatchGame: React.FC<GameComponentProps> = ({
                           <div
                             dir="rtl"
                             lang="ar"
-                            className="font-arabic text-xl sm:text-2xl lg:text-[26px] leading-tight text-amber-200 truncate"
+                            className="font-arabic text-base sm:text-xl lg:text-[26px] leading-snug break-keep text-amber-200"
                           >
                             {card.surah.nameAr}
                           </div>

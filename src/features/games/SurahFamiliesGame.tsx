@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowRight,
   Check,
   GripVertical,
   Layers,
@@ -21,7 +20,8 @@ import {
   SURAH_GROUP_BY_ID,
   explainWhyNotInGroup,
 } from './surahSpecialGroups';
-import { StagePromptBanner } from './StagePromptBanner';
+import { RoundReviewBanner } from './RoundReviewBanner';
+import { StagePromptBanner, renderArabicHighlightedText } from './StagePromptBanner';
 import { useManagedTimeouts } from './useManagedTimeouts';
 
 type FamilyRoundKind = 'odd_one_out' | 'find_member' | 'chest_sort';
@@ -270,6 +270,8 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
   const [sortedMap, setSortedMap] = useState<Record<number, SurahGroupId>>({});
   const [selectedCardNo, setSelectedCardNo] = useState<number | null>(null);
   const [wrongChestId, setWrongChestId] = useState<SurahGroupId | null>(null);
+  const [chestWrongHint, setChestWrongHint] = useState<string | null>(null);
+  const [chestCompleted, setChestCompleted] = useState<boolean>(false);
   const [dragState, setDragState] = useState<FloatingDrag | null>(null);
   const dragOriginRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
 
@@ -347,10 +349,16 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
     [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
-  // Zamanlayıcı
+  const isTimerPausedRef = useRef<boolean>(false);
+  useEffect(() => {
+    isTimerPausedRef.current = Boolean(quizSolved || chestCompleted);
+  }, [chestCompleted, quizSolved]);
+
+  // Zamanlayıcı (Cevap açıklaması ve tur sonu incelenirken duraklatılır)
   useEffect(() => {
     if (finishedRef.current) return;
     const interval = window.setInterval(() => {
+      if (finishedRef.current || isTimerPausedRef.current) return;
       setElapsedSec((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(interval);
@@ -406,6 +414,8 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
     setSortedMap({});
     setSelectedCardNo(null);
     setWrongChestId(null);
+    setChestWrongHint(null);
+    setChestCompleted(false);
     setDragState(null);
     setFeaturedSurah(null);
     setFeaturedNote(undefined);
@@ -485,6 +495,7 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
         const nextMap = { ...sortedMap, [surahNo]: chestGroupId };
         setSortedMap(nextMap);
         setSelectedCardNo(null);
+        setChestWrongHint(null);
 
         const nextCombo = actor === 'p1' ? combo + 1 : combo;
         if (actor === 'p1') {
@@ -509,9 +520,7 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
         }
 
         if (Object.keys(nextMap).length >= round.items.length) {
-          scheduleTimeout(() => {
-            advanceRound();
-          }, 680);
+          setChestCompleted(true);
         }
       } else {
         setWrongChestId(chestGroupId);
@@ -520,12 +529,14 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
         setMistakeCount((prev) => prev + 1);
         mistakenMapRef.current.set(item.surah.no, item.surah);
         const wrongGroup = SURAH_GROUP_BY_ID[chestGroupId];
+        const reason = explainWhyNotInGroup(item.surah.no, item.surah.shortNameTr, wrongGroup);
         setFeaturedSurah(item.surah);
-        setFeaturedNote(explainWhyNotInGroup(item.surah.no, item.surah.shortNameTr, wrongGroup));
-        scheduleTimeout(() => setWrongChestId(null), 480);
+        setFeaturedNote(reason);
+        setChestWrongHint(reason);
+        scheduleTimeout(() => setWrongChestId(null), 900);
       }
     },
-    [activePlayer, advanceRound, combo, isDuel, round, scheduleTimeout, sortedMap],
+    [activePlayer, combo, isDuel, round, scheduleTimeout, sortedMap],
   );
 
   // Pointer Sürükle-Bırak (Type C)
@@ -647,7 +658,7 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
     tempo === 'calm' ? `Tur ${roundIdx + 1}/${TOTAL_CALM_ROUNDS}` : `Tur ${roundIdx + 1}`;
 
   return (
-    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-3.5 sm:gap-5 relative">
+    <div className="flex-1 min-h-0 flex flex-col justify-start lg:justify-center gap-2.5 sm:gap-4 pb-1 lg:pb-0 relative">
       {/* Üst Görev & Soru Şeridi */}
       {round.kind !== 'chest_sort' ? (
         <StagePromptBanner
@@ -701,9 +712,9 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
                   onClick={() => handleQuizAnswer(opt, !isDuel ? 'p1' : activePlayer)}
                   className={`min-h-[124px] sm:min-h-[154px] rounded-2xl p-3 sm:p-4 flex flex-col justify-between text-center cursor-pointer transition-all select-none ${cardStyle}`}
                 >
-                  <div className="flex items-center justify-between gap-1.5 w-full">
+                  <div className="flex items-center justify-between gap-1 w-full">
                     <span
-                      className={`text-[11px] sm:text-xs font-black tabular-nums px-2 py-0.5 rounded-md ${
+                      className={`whitespace-nowrap text-[11px] sm:text-xs font-black tabular-nums px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 ${
                         isRevealedCorrect
                           ? 'bg-white/15 text-amber-200'
                           : isPickedWrong
@@ -711,11 +722,12 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
                             : 'bg-amber-900/12 text-slate-600'
                       }`}
                     >
-                      #{idx + 1} · {opt.no}. Sure
+                      <span className="sm:hidden">#{idx + 1} · S.{opt.no}</span>
+                      <span className="hidden sm:inline">#{idx + 1} · {opt.no}. Sure</span>
                     </span>
                     {isRevealedCorrect && (
                       <span
-                        className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-black ${
+                        className={`whitespace-nowrap inline-flex items-center gap-0.5 px-1.5 sm:px-2 py-0.5 rounded-md text-[10.5px] sm:text-[11px] font-black shrink-0 ${
                           isDuel && quizSolved?.isCorrect
                             ? quizSolved.actor === 'p2'
                               ? 'bg-amber-400 text-amber-950'
@@ -723,12 +735,15 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
                             : 'bg-emerald-400/25 text-emerald-100'
                         }`}
                       >
-                        <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                        {isDuel && quizSolved?.isCorrect
-                          ? quizSolved.actor === 'p1'
-                            ? 'P1'
-                            : 'P2'
-                          : 'DOĞRU'}
+                        <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" strokeWidth={3} />
+                        {isDuel && quizSolved?.isCorrect ? (
+                          quizSolved.actor === 'p1' ? 'P1' : 'P2'
+                        ) : (
+                          <>
+                            <span className="sm:hidden">Doğru</span>
+                            <span className="hidden sm:inline">DOĞRU</span>
+                          </>
+                        )}
                       </span>
                     )}
                   </div>
@@ -736,14 +751,15 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
                   <div className="my-auto py-1.5 space-y-1">
                     <div
                       dir="rtl"
-                      className={`font-arabic text-2xl sm:text-3xl lg:text-[32px] leading-snug ${
+                      lang="ar"
+                      className={`font-arabic text-lg sm:text-2xl lg:text-[30px] leading-snug break-keep ${
                         isRevealedCorrect || isPickedWrong ? 'text-amber-200' : 'text-teal-900'
                       }`}
                     >
                       {opt.nameAr}
                     </div>
                     <div
-                      className={`text-base sm:text-lg lg:text-xl font-black ${
+                      className={`text-sm sm:text-lg lg:text-xl font-black leading-tight ${
                         isRevealedCorrect || isPickedWrong ? 'text-white' : 'text-slate-900'
                       }`}
                     >
@@ -764,20 +780,13 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
 
           {/* Çözüm Sonrası Açıklama & Devam Şeridi */}
           {quizSolved && (
-            <div className="shrink-0 rounded-2xl bg-black/25 border border-amber-300/45 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-white">
-              <p className="text-sm sm:text-[15px] font-semibold leading-snug">
-                {round.explanation}
-              </p>
-              <button
-                type="button"
-                onClick={advanceRound}
-                className="w-full sm:w-auto min-h-[42px] px-4 rounded-xl font-extrabold text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-                style={{ backgroundColor: '#D97706', color: '#FFFFFF' }}
-              >
-                <span>Sonraki Tur</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+            <RoundReviewBanner
+              variant={quizSolved.isCorrect ? 'success' : 'error'}
+              message={renderArabicHighlightedText(round.explanation)}
+              ctaLabel={quizSolved.isCorrect ? 'Sonraki Tur' : 'Devam Et'}
+              onContinue={advanceRound}
+              timerPausedNote={tempo === 'timed'}
+            />
           )}
         </div>
       ) : (
@@ -892,22 +901,23 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
                       isSelected
                         ? 'game-bevel-amber ring-2 ring-amber-300'
                         : 'game-bevel-parchment hover:brightness-[1.02]'
-                    } min-h-[62px] sm:min-h-[70px] rounded-xl px-2.5 py-2 flex items-center justify-between gap-1.5 cursor-grab active:cursor-grabbing select-none transition-opacity`}
+                    } min-h-[68px] sm:min-h-[76px] rounded-xl px-2 py-1.5 sm:px-2.5 sm:py-2 flex flex-col justify-between gap-1 cursor-grab active:cursor-grabbing select-none transition-opacity`}
                   >
-                    <div className="flex flex-col items-center shrink-0">
-                      <span className="text-[11px] font-black tabular-nums text-slate-600">
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded bg-amber-900/10 text-slate-600">
                         #{idx + 1}
                       </span>
-                      <GripVertical className="w-3.5 h-3.5 text-slate-500" />
+                      <GripVertical className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                     </div>
-                    <div className="flex-1 min-w-0 text-center">
+                    <div className="w-full text-center pb-0.5">
                       <div
                         dir="rtl"
-                        className="font-arabic text-xl sm:text-2xl lg:text-[26px] leading-snug text-teal-900 truncate"
+                        lang="ar"
+                        className="font-arabic text-base sm:text-xl lg:text-[24px] leading-snug break-keep text-teal-900"
                       >
                         {item.surah.nameAr}
                       </div>
-                      <div className="text-sm sm:text-base lg:text-[17px] font-bold text-slate-900 truncate">
+                      <div className="text-xs sm:text-sm lg:text-[16px] font-bold text-slate-900 leading-tight line-clamp-1">
                         {item.surah.shortNameTr}
                       </div>
                     </div>
@@ -915,12 +925,23 @@ export const SurahFamiliesGame: React.FC<GameComponentProps> = ({
                 );
               })}
             </div>
-            {remainingChestItems.length === 0 && (
-              <div className="text-center text-sm font-extrabold text-amber-200 pt-1">
-                Tüm sureler doğru sandıklara yerleşti!
+            {chestWrongHint && !chestCompleted && (
+              <div className="rounded-xl bg-red-950/85 border border-red-400/55 px-3 py-2 text-center text-xs sm:text-sm font-semibold text-red-100">
+                {renderArabicHighlightedText(chestWrongHint)}
               </div>
             )}
           </div>
+
+          {chestCompleted && remainingChestItems.length === 0 && (
+            <RoundReviewBanner
+              variant="success"
+              message="Tüm sureler doğru aile sandıklarına yerleşti!"
+              ctaLabel="Sonraki Tur"
+              autoAdvanceMs={2800}
+              onContinue={advanceRound}
+              timerPausedNote={tempo === 'timed'}
+            />
+          )}
         </div>
       )}
 

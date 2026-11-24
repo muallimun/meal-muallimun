@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ArrowRight,
   Check,
   Eye,
   Lock,
@@ -14,6 +13,7 @@ import {
   formatClock,
   shuffleArray,
 } from './gameTypes';
+import { RoundReviewBanner } from './RoundReviewBanner';
 import { StagePromptBanner, renderArabicHighlightedText } from './StagePromptBanner';
 import { useManagedTimeouts } from './useManagedTimeouts';
 
@@ -73,10 +73,10 @@ function buildDetectiveCase(
   const clue4 = `Surenin Türkçe anlamı “${target.meaningTr}” demektir.`;
 
   const clues: DetectiveClue[] = [
-    { index: 0, points: CLUE_POINTS[0], title: 'Dönem & Ayet', text: clue1 },
-    { index: 1, points: CLUE_POINTS[1], title: 'Komşu Sureler', text: clue2 },
-    { index: 2, points: CLUE_POINTS[2], title: 'Grup & Nüzul', text: clue3 },
-    { index: 3, points: CLUE_POINTS[3], title: 'Sure Anlamı', text: clue4 },
+    { index: 0, points: CLUE_POINTS[0], title: 'Dönem', text: clue1 },
+    { index: 1, points: CLUE_POINTS[1], title: 'Komşu', text: clue2 },
+    { index: 2, points: CLUE_POINTS[2], title: 'Grup', text: clue3 },
+    { index: 3, points: CLUE_POINTS[3], title: 'Anlam', text: clue4 },
   ];
 
   // 5 çeldirici seç (aynı kademeden + mümkünse benzer ayet sayısına yakın)
@@ -194,10 +194,16 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
     [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
-  // Zamanlayıcı
+  const isTimerPausedRef = useRef<boolean>(false);
+  useEffect(() => {
+    isTimerPausedRef.current = Boolean(solvedBy || wrongNo !== null);
+  }, [solvedBy, wrongNo]);
+
+  // Zamanlayıcı (Çözüm veya yanlış tahmini incelerken duraklatılır)
   useEffect(() => {
     if (finishedRef.current) return;
     const interval = window.setInterval(() => {
+      if (finishedRef.current || isTimerPausedRef.current) return;
       setElapsedSec((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(interval);
@@ -283,7 +289,7 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
             gameAudioService.playTurnSwitch();
             setActivePlayer((prev) => (prev === 'p1' ? 'p2' : 'p1'));
           }
-        }, 520);
+        }, 1100);
       }
     },
     [
@@ -389,7 +395,7 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
   };
 
   return (
-    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-3 sm:gap-4">
+    <div className="flex-1 min-h-0 flex flex-col justify-start lg:justify-center gap-2.5 sm:gap-3.5 pb-1 lg:pb-0">
       {/* Üst Dosya Başlığı */}
       <StagePromptBanner
         badgeIcon={<Search className="w-3.5 h-3.5" />}
@@ -461,15 +467,15 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
               key={clue.index}
               className="min-h-[96px] sm:min-h-[118px] game-bevel-emerald rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 flex flex-col justify-between gap-1.5 game-pop"
             >
-              <div className="flex items-center justify-between gap-1.5">
-                <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/15 text-amber-200 truncate">
-                  #{clue.index + 1} · {clue.title}
+              <div className="flex items-center justify-between gap-1">
+                <span className="whitespace-nowrap text-[11px] sm:text-xs font-black tracking-wide px-1.5 sm:px-2 py-0.5 rounded-md bg-white/15 text-amber-200">
+                  #{clue.index + 1} {clue.title}
                 </span>
-                <span className="text-xs font-black tabular-nums px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 shrink-0">
+                <span className="text-[11px] sm:text-xs font-black tabular-nums px-1.5 sm:px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 shrink-0">
                   {clue.points}p
                 </span>
               </div>
-              <p className="text-[13px] sm:text-base lg:text-[17px] font-medium leading-relaxed text-white">
+              <p className="max-h-28 sm:max-h-none overflow-y-auto text-xs sm:text-sm lg:text-[16px] font-medium leading-snug sm:leading-relaxed text-white pr-0.5">
                 {renderArabicHighlightedText(clue.text)}
               </p>
             </div>
@@ -479,23 +485,17 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
 
       {/* ÇÖZÜM SONRASI SONRAKİ DOSYA ŞERİDİ */}
       {solvedBy && (
-        <div className="shrink-0 rounded-2xl bg-black/25 border border-amber-300/45 px-3.5 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-white">
-          <div className="text-sm sm:text-base font-bold leading-snug text-center sm:text-left">
-            {isDuel
+        <RoundReviewBanner
+          variant="success"
+          message={`${
+            isDuel
               ? `${solvedBy.actor === 'p1' ? '1. Oyuncu' : '2. Oyuncu'} buldu`
-              : 'Doğru tahmin'}{' '}
-            (+{solvedBy.points}p) · {activeCase.target.no}. {activeCase.target.nameTr}
-          </div>
-          <button
-            type="button"
-            onClick={handleNextCase}
-            className="w-full sm:w-auto h-10 px-4 rounded-xl font-extrabold text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-            style={{ backgroundColor: '#D97706', color: '#FFFFFF' }}
-          >
-            <span>Sonraki Dosya</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
+              : 'Doğru tahmin'
+          } (+${solvedBy.points}p) · ${activeCase.target.no}. ${activeCase.target.nameTr} (${activeCase.target.meaningTr})`}
+          ctaLabel="Sonraki Dosya"
+          onContinue={handleNextCase}
+          timerPausedNote={tempo === 'timed'}
+        />
       )}
 
       {/* ALT BÖLGE: 6 Adet 3B Parşömen Aday Sure Kartı (#1..#6) */}
@@ -518,43 +518,45 @@ export const SurahDetectiveGame: React.FC<GameComponentProps> = ({
               disabled={Boolean(solvedBy) || isEliminated}
               onClick={() => submitGuess(cand, !isDuel ? 'p1' : activePlayer)}
               style={{ opacity: isEliminated && !isWrongNow ? 0.35 : 1 }}
-              className={`min-h-[62px] sm:min-h-[74px] rounded-xl sm:rounded-2xl px-2.5 py-2 flex items-center justify-between gap-2 text-left cursor-pointer transition-all select-none ${cardClass}`}
+              className={`min-h-[68px] sm:min-h-[78px] rounded-xl sm:rounded-2xl px-2 py-1.5 sm:px-2.5 sm:py-2 flex flex-col justify-between gap-1 text-center cursor-pointer transition-all select-none ${cardClass}`}
             >
-              <span
-                className={`text-[11px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0 ${
-                  isSolvedTarget
-                    ? 'bg-amber-400 text-amber-950'
-                    : isWrongNow
-                      ? 'bg-white/20 text-white'
-                      : 'bg-amber-900/12 text-slate-600'
-                }`}
-              >
-                #{idx + 1}
-              </span>
+              <div className="flex items-center justify-between w-full gap-1">
+                <span
+                  className={`text-[10.5px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0 ${
+                    isSolvedTarget
+                      ? 'bg-amber-400 text-amber-950'
+                      : isWrongNow
+                        ? 'bg-white/20 text-white'
+                        : 'bg-amber-900/12 text-slate-600'
+                  }`}
+                >
+                  #{idx + 1}
+                </span>
+                {isSolvedTarget && (
+                  <span className="w-5 h-5 rounded-full bg-emerald-400/25 text-emerald-200 inline-flex items-center justify-center shrink-0">
+                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                  </span>
+                )}
+              </div>
 
-              <div className="flex-1 min-w-0 text-center">
+              <div className="w-full text-center pb-0.5">
                 <div
                   dir="rtl"
-                  className={`font-arabic text-xl sm:text-2xl lg:text-[26px] leading-snug truncate ${
+                  lang="ar"
+                  className={`font-arabic text-base sm:text-xl lg:text-[24px] leading-snug break-keep ${
                     isSolvedTarget || isWrongNow ? 'text-amber-200' : 'text-teal-900'
                   }`}
                 >
                   {cand.nameAr}
                 </div>
                 <div
-                  className={`text-sm sm:text-base lg:text-[17px] font-bold truncate ${
+                  className={`text-xs sm:text-sm lg:text-[16px] font-bold leading-tight line-clamp-1 ${
                     isSolvedTarget || isWrongNow ? 'text-white' : 'text-slate-900'
                   }`}
                 >
                   {cand.shortNameTr}
                 </div>
               </div>
-
-              {isSolvedTarget && (
-                <span className="w-6 h-6 rounded-full bg-emerald-400/25 text-emerald-200 inline-flex items-center justify-center shrink-0">
-                  <Check className="w-4 h-4" strokeWidth={3} />
-                </span>
-              )}
             </button>
           );
         })}

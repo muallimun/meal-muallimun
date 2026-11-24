@@ -471,9 +471,69 @@ export async function getManifest(): Promise<ManifestData> {
   return manifest;
 }
 
+/**
+ * Standart 604 sayfalık Medine Mushafı sayfa sınırı düzeltmeleri.
+ * 358. sayfa Furkân 25:2 ile biter; Furkân 25:3 ayeti 359. sayfanın ilk ayetidir.
+ * Yerel/uzak JSON ve Cache API yanıtları okunurken deterministik olarak uygulanır.
+ */
+const CANONICAL_AYAH_PAGE_OVERRIDES: Readonly<Record<string, number>> = {
+  '25:3': 359,
+};
+
+function normalizeMetaPages(meta: MetaData): MetaData {
+  let hasChanges = false;
+  for (let i = 0; i < meta.verseIndex.length; i += 1) {
+    const row = meta.verseIndex[i];
+    const overridePage = CANONICAL_AYAH_PAGE_OVERRIDES[`${row[1]}:${row[2]}`];
+    if (overridePage !== undefined && row[4] !== overridePage) {
+      hasChanges = true;
+      break;
+    }
+  }
+  if (!hasChanges) return meta;
+
+  const normalizedVerseIndex = meta.verseIndex.map((row) => {
+    const overridePage = CANONICAL_AYAH_PAGE_OVERRIDES[`${row[1]}:${row[2]}`];
+    if (overridePage !== undefined && row[4] !== overridePage) {
+      return [row[0], row[1], row[2], row[3], overridePage, row[5]] as MetaData['verseIndex'][number];
+    }
+    return row;
+  });
+
+  return {
+    ...meta,
+    verseIndex: normalizedVerseIndex,
+  };
+}
+
+function normalizeArabicSurahPages(file: ArabicSurahFile): ArabicSurahFile {
+  let hasChanges = false;
+  for (let i = 0; i < file.verses.length; i += 1) {
+    const v = file.verses[i];
+    const overridePage = CANONICAL_AYAH_PAGE_OVERRIDES[`${file.s}:${v.a}`];
+    if (overridePage !== undefined && v.p !== overridePage) {
+      hasChanges = true;
+      break;
+    }
+  }
+  if (!hasChanges) return file;
+
+  return {
+    ...file,
+    verses: file.verses.map((v) => {
+      const overridePage = CANONICAL_AYAH_PAGE_OVERRIDES[`${file.s}:${v.a}`];
+      if (overridePage !== undefined && v.p !== overridePage) {
+        return { ...v, p: overridePage };
+      }
+      return v;
+    }),
+  };
+}
+
 export async function getMeta(): Promise<MetaData> {
-  if (demoMode) return DEMO_META;
-  return fetchJsonWithFallback<MetaData>('meta.json');
+  if (demoMode) return normalizeMetaPages(DEMO_META);
+  const raw = await fetchJsonWithFallback<MetaData>('meta.json');
+  return normalizeMetaPages(raw);
 }
 
 export async function getQuestionIndex(): Promise<QuestionIndexFile> {
@@ -483,9 +543,10 @@ export async function getQuestionIndex(): Promise<QuestionIndexFile> {
 
 export async function getArabicSurah(surahNo: number): Promise<ArabicSurahFile> {
   if (demoMode) {
-    return DEMO_ARABIC_SURAHS[surahNo] ?? DEMO_ARABIC_SURAHS[49];
+    return normalizeArabicSurahPages(DEMO_ARABIC_SURAHS[surahNo] ?? DEMO_ARABIC_SURAHS[49]);
   }
-  return fetchJsonWithFallback<ArabicSurahFile>(`ar/s${padSurahNo(surahNo)}.json`);
+  const raw = await fetchJsonWithFallback<ArabicSurahFile>(`ar/s${padSurahNo(surahNo)}.json`);
+  return normalizeArabicSurahPages(raw);
 }
 
 export async function getMealSurah(meal: MealKey, surahNo: number): Promise<MealSurahFile> {

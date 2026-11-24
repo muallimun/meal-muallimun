@@ -1,26 +1,51 @@
 import React from 'react';
 
-const ARABIC_RUN_REGEX =
-  /([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+(?:\s+[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+)*)/g;
+const ARABIC_CHAR =
+  '\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF';
 
-const ARABIC_TEST_REGEX =
-  /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+const ARABIC_SEGMENT_REGEX = new RegExp(
+  `(\\(\\s*[${ARABIC_CHAR}][${ARABIC_CHAR}\\s·/—-]*[${ARABIC_CHAR}]?\\s*\\)|[${ARABIC_CHAR}]+(?:\\s+[${ARABIC_CHAR}]+)*)`,
+  'g',
+);
+
+const ARABIC_TEST_REGEX = new RegExp(`[${ARABIC_CHAR}]`);
 
 export function renderArabicHighlightedText(text: string): React.ReactNode {
   if (!ARABIC_TEST_REGEX.test(text)) return text;
-  const parts = text.split(ARABIC_RUN_REGEX);
+  const parts = text.split(ARABIC_SEGMENT_REGEX);
   return parts.map((part, idx) => {
     if (!part) return null;
     if (ARABIC_TEST_REGEX.test(part)) {
+      if (part.startsWith('(') && part.endsWith(')')) {
+        const inner = part.slice(1, -1).trim();
+        const keepSingleLine = inner.length <= 22;
+        return (
+          <bdi
+            key={idx}
+            className={keepSingleLine ? 'whitespace-nowrap inline-block' : 'inline'}
+          >
+            (
+            <span
+              dir="rtl"
+              lang="ar"
+              className="font-arabic inline-block align-baseline text-[1.25em] leading-none font-bold text-[#FDE68A] px-0.5"
+            >
+              {inner}
+            </span>
+            )
+          </bdi>
+        );
+      }
       return (
-        <span
-          key={idx}
-          dir="rtl"
-          lang="ar"
-          className="font-arabic inline-block align-baseline text-[1.3em] leading-none font-bold text-[#FDE68A] mx-1"
-        >
-          {part}
-        </span>
+        <bdi key={idx} className="inline-block">
+          <span
+            dir="rtl"
+            lang="ar"
+            className="font-arabic inline-block align-baseline text-[1.25em] leading-none font-bold text-[#FDE68A] mx-0.5"
+          >
+            {part}
+          </span>
+        </bdi>
       );
     }
     return <React.Fragment key={idx}>{part}</React.Fragment>;

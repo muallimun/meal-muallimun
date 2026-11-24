@@ -754,7 +754,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
           } p-2 lg:p-3.5 overflow-hidden`}
         >
           {/* SOL SÜTUN — Zümrüt Çuha Oyun Masası (Mobilde yumuşak dikey kaydırma emniyeti) */}
-          <section className="game-emerald-table rounded-2xl p-2.5 sm:p-3 lg:p-4 flex flex-col min-h-0 overflow-y-auto overscroll-contain lg:overflow-hidden relative">
+          <section className="game-emerald-table rounded-2xl p-3 sm:p-5 lg:p-4 flex flex-col min-h-0 overflow-y-auto overscroll-contain lg:overflow-hidden relative">
             {children}
           </section>
 

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ArrowRight,
   Check,
   Compass,
   Lock,
@@ -16,6 +15,7 @@ import {
   formatClock,
   shuffleArray,
 } from './gameTypes';
+import { RoundReviewBanner } from './RoundReviewBanner';
 import { StagePromptBanner } from './StagePromptBanner';
 
 type CompassTaskKind = 'dial' | 'scale';
@@ -200,10 +200,16 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
     [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
-  // Zamanlayıcı
+  const isTimerPausedRef = useRef<boolean>(false);
+  useEffect(() => {
+    isTimerPausedRef.current = Boolean(dialRevealed || scaleRevealed);
+  }, [dialRevealed, scaleRevealed]);
+
+  // Zamanlayıcı (Sonuç incelenirken duraklatılır)
   useEffect(() => {
     if (finishedRef.current) return;
     const interval = window.setInterval(() => {
+      if (finishedRef.current || isTimerPausedRef.current) return;
       setElapsedSec((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(interval);
@@ -459,7 +465,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
   const toPercent = (n: number) => `${((n - 1) / 113) * 100}%`;
 
   return (
-    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-3.5 sm:gap-5">
+    <div className="flex-1 min-h-0 flex flex-col justify-start lg:justify-center gap-2.5 sm:gap-4 pb-1 lg:pb-0">
       {/* Üst Görev Başlığı */}
       <StagePromptBanner
         badgeIcon={
@@ -502,7 +508,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
             <div
               dir="rtl"
               lang="ar"
-              className="font-arabic text-3xl sm:text-4xl text-amber-200 leading-tight"
+              className="font-arabic text-2xl sm:text-3xl lg:text-4xl text-amber-200 leading-snug break-keep"
             >
               {round.targetSurah.nameAr}
             </div>
@@ -627,8 +633,8 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
               </button>
             </div>
 
-            {/* Aksiyon veya Sonuç Şeridi */}
-            {!dialRevealed ? (
+            {/* Aksiyon Butonu */}
+            {!dialRevealed && (
               <button
                 type="button"
                 onClick={handleLockDial}
@@ -642,23 +648,20 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                     : `Konumu Kilitle (${dialValue}. Sure)`}
                 </span>
               </button>
-            ) : (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
-                <div className="text-sm sm:text-base font-extrabold text-teal-900 text-center sm:text-left">
-                  {dialRevealed.headline}
-                </div>
-                <button
-                  type="button"
-                  onClick={advanceToNextRound}
-                  className="w-full sm:w-auto min-h-[44px] px-5 rounded-xl font-extrabold text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                  style={{ backgroundColor: '#D97706', color: '#FFFFFF' }}
-                >
-                  <span>Sonraki Görev</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
             )}
           </div>
+
+          {dialRevealed && (
+            <RoundReviewBanner
+              variant={
+                Math.abs(dialRevealed.p1Guess - dialRevealed.trueNo) <= 6 ? 'success' : 'error'
+              }
+              message={`${dialRevealed.headline} · ${round.targetSurah.no}. ${round.targetSurah.nameTr} (${round.targetSurah.ayahCount} ayet)`}
+              ctaLabel="Sonraki Görev"
+              onContinue={advanceToNextRound}
+              timerPausedNote={tempo === 'timed'}
+            />
+          )}
         </div>
       ) : (
         /* GÖREV B: AYET SAYISI TARTISI (HANGİSİ DAHA UZUN?) */
@@ -716,7 +719,7 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
                         <div
                           dir="rtl"
                           lang="ar"
-                          className={`font-arabic text-3xl sm:text-4xl leading-tight ${
+                          className={`font-arabic text-2xl sm:text-3xl lg:text-4xl leading-snug break-keep ${
                             revealed && (isWinner || isPickedWrong)
                               ? 'text-amber-200'
                               : 'text-teal-900'
@@ -778,22 +781,17 @@ export const MushafCompassGame: React.FC<GameComponentProps> = ({
             </div>
 
             {scaleRevealed && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 rounded-2xl bg-black/25 border border-amber-300/40 px-4 py-3 text-white">
-                <div className="text-sm sm:text-base font-bold text-center sm:text-left">
-                  {scaleRevealed.isCorrect
-                    ? 'Doğru! Ayet tartısında uzun sureyi buldunuz (+50p).'
-                    : 'Diğer sure ayet sayısı bakımından daha uzundur.'}
-                </div>
-                <button
-                  type="button"
-                  onClick={advanceToNextRound}
-                  className="w-full sm:w-auto min-h-[42px] px-5 rounded-xl font-extrabold text-sm inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-                  style={{ backgroundColor: '#D97706', color: '#FFFFFF' }}
-                >
-                  <span>Sonraki Görev</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+              <RoundReviewBanner
+                variant={scaleRevealed.isCorrect ? 'success' : 'error'}
+                message={
+                  scaleRevealed.isCorrect
+                    ? `Doğru! ${round.targetSurah.no}. ${round.targetSurah.shortNameTr} (${round.targetSurah.ayahCount} ayet) daha uzundur (+50p).`
+                    : `Doğru cevap: ${round.targetSurah.no}. ${round.targetSurah.shortNameTr} (${round.targetSurah.ayahCount} ayet) ayet sayısı bakımından daha uzundur.`
+                }
+                ctaLabel={scaleRevealed.isCorrect ? 'Sonraki Görev' : 'Devam Et'}
+                onContinue={advanceToNextRound}
+                timerPausedNote={tempo === 'timed'}
+              />
             )}
           </div>
         )

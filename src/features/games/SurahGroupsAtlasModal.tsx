@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
+  ChevronDown,
+  Info,
   ListOrdered,
   Search,
   Sparkles,
@@ -41,8 +43,19 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategoryFilter>('all');
+  const [showNotes, setShowNotes] = useState<boolean>(false);
   const [infoSurah, setInfoSurah] = useState<SurahMeta | null>(null);
   const [backGuardNonce, setBackGuardNonce] = useState(0);
+
+  const categoryCounts = useMemo(
+    () => ({
+      all: SURAH_GROUP_ATLAS.length,
+      mukattaa: SURAH_GROUP_ATLAS.filter((g) => g.category === 'mukattaa').length,
+      baslangic: SURAH_GROUP_ATLAS.filter((g) => g.category === 'baslangic').length,
+      isim_ve_ozellik: SURAH_GROUP_ATLAS.filter((g) => g.category === 'isim_ve_ozellik').length,
+    }),
+    [],
+  );
 
   useBackButtonGuard(
     'surah_groups_atlas',
@@ -112,11 +125,11 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Ulûmu'l-Kur'ân Sure Grupları Atlası"
-      className="fixed inset-0 z-[80] bg-black/55 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-[80] bg-black/55 backdrop-blur-[2px] flex items-center justify-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-5xl h-[92dvh] max-h-[92dvh] rounded-2xl border flex flex-col overflow-hidden shadow-2xl"
+        className="w-full max-w-5xl h-[100dvh] sm:h-[92dvh] max-h-[100dvh] sm:max-h-[92dvh] rounded-none sm:rounded-2xl border-0 sm:border flex flex-col overflow-hidden shadow-2xl"
         style={{
           backgroundColor: 'var(--bg-canvas)',
           borderColor: 'var(--border-subtle)',
@@ -125,7 +138,7 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
       >
         {/* Üst Başlık */}
         <header
-          className="shrink-0 px-4 sm:px-5 py-3.5 border-b flex items-center justify-between gap-3"
+          className="shrink-0 px-3.5 sm:px-5 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5 sm:py-3.5 border-b flex items-center justify-between gap-2.5"
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderColor: 'var(--border-subtle)',
@@ -133,20 +146,20 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-white"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 text-white"
               style={{ backgroundColor: '#0F766E' }}
             >
-              <BookOpen className="w-5 h-5" />
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
               <h2
-                className="text-base sm:text-lg font-extrabold tracking-tight truncate"
+                className="text-base sm:text-lg font-extrabold tracking-tight leading-snug line-clamp-2"
                 style={{ color: 'var(--text-primary)' }}
               >
                 Sure Grupları Atlası (15 Klasik Aile)
               </h2>
               <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                Önce inceleyin, sure rozetlerine dokunup künyesini görün, ardından doğrudan oyunla pekiştirin.
+                Sure rozetlerine dokunup inceleyin, ardından oyunla pekiştirin.
               </p>
             </div>
           </div>
@@ -166,52 +179,58 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
           </button>
         </header>
 
-        {/* Arama + Kategori Filtreleri + Özel Mushaf Notu */}
+        {/* Arama + 2x2 Kategori Filtreleri (Yatay kaydırmasız) */}
         <div
-          className="shrink-0 px-4 sm:px-5 py-3 border-b space-y-2.5"
+          className="shrink-0 px-3.5 sm:px-5 py-2.5 sm:py-3 border-b space-y-2"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
           }}
         >
-          <div className="flex flex-col sm:flex-row gap-2">
-            {/* Arama Girişi */}
-            <div
-              className="flex-1 flex items-center gap-2 px-3 h-10 rounded-xl border"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Grup veya sure ara (örn. Havâmîm, Kehf, Müsebbihât, 42)..."
-                className="w-full bg-transparent text-xs sm:text-sm outline-none"
-                style={{ color: 'var(--text-primary)' }}
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  className="text-xs font-bold cursor-pointer"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  Temizle
-                </button>
-              )}
-            </div>
+          {/* Arama Girişi */}
+          <div
+            className="flex items-center gap-2 px-3 h-9 sm:h-10 rounded-xl border"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Grup veya sure ara (örn. Havâmîm, Kehf, 42)..."
+              className="w-full bg-transparent text-xs sm:text-sm outline-none"
+              style={{ color: 'var(--text-primary)' }}
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="text-xs font-bold cursor-pointer shrink-0"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Temizle
+              </button>
+            )}
+          </div>
 
-            {/* Kategori Sekmeleri */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-0.5 sm:pb-0">
+          {/* Tasnif Ölçütüne Göre Filtrele */}
+          <div className="space-y-1.5">
+            <div
+              className="text-[10px] font-extrabold uppercase tracking-wider px-0.5"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Tasnif Ölçütüne Göre Filtrele
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
               {(
                 [
-                  { id: 'all', label: 'Tümü (15)' },
-                  { id: 'mukattaa', label: 'Mukattaa (4)' },
-                  { id: 'baslangic', label: 'Başlangıç (8)' },
-                  { id: 'isim_ve_ozellik', label: 'İsim & Secde (3)' },
+                  { id: 'all', label: `Tüm Gruplar (${categoryCounts.all})` },
+                  { id: 'mukattaa', label: `Hurûf-u Mukattaa (${categoryCounts.mukattaa})` },
+                  { id: 'baslangic', label: `Başlangıç İfadesi (${categoryCounts.baslangic})` },
+                  { id: 'isim_ve_ozellik', label: `İsim & Secde (${categoryCounts.isim_ve_ozellik})` },
                 ] as const
               ).map((tab) => {
                 const active = category === tab.id;
@@ -223,7 +242,7 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
                       sfxService.play('click');
                       setCategory(tab.id);
                     }}
-                    className="h-9 px-3 rounded-xl text-xs font-bold whitespace-nowrap border cursor-pointer transition-colors"
+                    className="py-1.5 px-2.5 rounded-lg text-xs font-bold text-center truncate border cursor-pointer transition-colors"
                     style={{
                       backgroundColor: active ? 'var(--brand-primary)' : 'var(--bg-surface)',
                       borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
@@ -236,32 +255,79 @@ export const SurahGroupsAtlasModal: React.FC<SurahGroupsAtlasModalProps> = ({
               })}
             </div>
           </div>
-
-          {/* Kısa Ulûmu'l-Kur'ân Referans Notu */}
-          <div
-            className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <span className="inline-flex items-center gap-1 font-bold" style={{ color: 'var(--brand-primary-text)' }}>
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{MUKATTAA_SURAH_NOS.length} Mukattaa Suresi</span>
-            </span>
-            <span>·</span>
-            <span>
-              <strong style={{ color: 'var(--text-primary)' }}>9. Tevbe:</strong> Besmelesiz tek sure
-            </span>
-            <span>·</span>
-            <span>
-              <strong style={{ color: 'var(--text-primary)' }}>27. Neml:</strong> İki Besmeleli tek sure (başında ve 30. ayette)
-            </span>
-          </div>
-          <p className="text-[11px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-            Bu 15 grup üç pedagojik tasnif ölçütü altında derlenmiştir: <strong style={{ color: 'var(--text-secondary)' }}>Hurûf-u Mukattaa</strong>, <strong style={{ color: 'var(--text-secondary)' }}>Sure Başlangıç İfadeleri</strong> ve <strong style={{ color: 'var(--text-secondary)' }}>Tematik İsim / Secde Özellikleri</strong>.
-          </p>
         </div>
 
-        {/* 15 Grup Kartları Listesi */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-5">
+        {/* 15 Grup Kartları Listesi (Katlanabilir Referans Notu Dahil) */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-5 space-y-3">
+          {/* Katlanabilir Tasnif Ölçütleri ve Özel Notlar */}
+          <div
+            className="rounded-xl border overflow-hidden"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setShowNotes((prev) => !prev);
+              }}
+              aria-expanded={showNotes}
+              className="w-full px-3.5 py-2.5 flex items-center justify-between gap-2 text-left cursor-pointer"
+            >
+              <span
+                className="inline-flex items-center gap-1.5 text-xs font-extrabold"
+                style={{ color: 'var(--brand-primary-text)' }}
+              >
+                <Info className="w-3.5 h-3.5 shrink-0" />
+                <span>Tasnif Ölçütleri ve Özel Notlar</span>
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 shrink-0 transition-transform ${showNotes ? 'rotate-180' : ''}`}
+                style={{ color: 'var(--text-muted)' }}
+              />
+            </button>
+
+            {showNotes && (
+              <div
+                className="px-3.5 pb-3 pt-1 border-t space-y-2 text-[11.5px] leading-relaxed"
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-medium">
+                  <span
+                    className="inline-flex items-center gap-1 font-bold"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                    <span>{MUKATTAA_SURAH_NOS.length} Mukattaa Suresi</span>
+                  </span>
+                  <span>·</span>
+                  <span>
+                    <strong style={{ color: 'var(--text-primary)' }}>9. Tevbe:</strong> Besmelesiz tek sure
+                  </span>
+                  <span>·</span>
+                  <span>
+                    <strong style={{ color: 'var(--text-primary)' }}>27. Neml:</strong> İki Besmeleli tek sure (başında ve 30. ayette)
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-muted)' }}>
+                  Bu 15 grup üç pedagojik tasnif ölçütü altında derlenmiştir:{' '}
+                  <strong style={{ color: 'var(--text-secondary)' }}>Hurûf-u Mukattaa</strong>,{' '}
+                  <strong style={{ color: 'var(--text-secondary)' }}>Sure Başlangıç İfadeleri</strong>{' '}
+                  ve{' '}
+                  <strong style={{ color: 'var(--text-secondary)' }}>
+                    Tematik İsim / Secde Özellikleri
+                  </strong>
+                  .
+                </p>
+              </div>
+            )}
+          </div>
+
           {filteredGroups.length === 0 ? (
             <div
               className="rounded-2xl border p-8 text-center text-sm"

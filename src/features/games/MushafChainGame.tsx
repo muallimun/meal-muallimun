@@ -9,6 +9,7 @@ import {
   shuffleArray,
 } from './gameTypes';
 import { SPECIAL_SURAH_FAMILIES } from './surahSpecialGroups';
+import { RoundReviewBanner } from './RoundReviewBanner';
 import { StagePromptBanner } from './StagePromptBanner';
 import { useManagedTimeouts } from './useManagedTimeouts';
 
@@ -142,7 +143,11 @@ interface ChainBoardProps {
   round: ChainRoundData;
   roundNumber: number;
   totalRoundsLabel: string;
+  tempo: GameComponentProps['tempo'];
+  isDuel?: boolean;
+  allSurahsMap: Map<number, EnrichedGameSurah>;
   isFinished?: boolean;
+  onPauseChange?: (paused: boolean) => void;
   onRoundCleared: (hadMistake: boolean, focusSurah: EnrichedGameSurah) => void;
   onMistakeStep: (surah: EnrichedGameSurah) => void;
 }
@@ -155,7 +160,11 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
   round,
   roundNumber,
   totalRoundsLabel,
+  tempo,
+  isDuel = false,
+  allSurahsMap,
   isFinished,
+  onPauseChange,
   onRoundCleared,
   onMistakeStep,
 }) => {
@@ -166,6 +175,11 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
   const [selectedSurahNo, setSelectedSurahNo] = useState<number | null>(null);
   const [wrongSlots, setWrongSlots] = useState<number[]>([]);
   const [cleared, setCleared] = useState<boolean>(false);
+  const [reviewState, setReviewState] = useState<{
+    kind: 'success' | 'error' | 'revealed';
+    summary: string;
+    hadMistake: boolean;
+  } | null>(null);
   const [dragState, setDragState] = useState<FloatingDragState | null>(null);
 
   const hadMistakeRef = useRef<boolean>(false);
@@ -178,14 +192,63 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
     setSelectedSurahNo(null);
     setWrongSlots([]);
     setCleared(false);
+    setReviewState(null);
     setDragState(null);
     hadMistakeRef.current = false;
-  }, [clearAllTimeouts, round]);
+    onPauseChange?.(false);
+  }, [clearAllTimeouts, onPauseChange, round]);
 
   const placedNos = useMemo(
     () => new Set(slots.filter((s): s is EnrichedGameSurah => Boolean(s)).map((s) => s.no)),
     [slots],
   );
+
+  const buildCorrectSummary = useCallback((): string => {
+    if (round.kind === 'neighbors' && round.centerSurah) {
+      const prev = allSurahsMap.get(round.expectedNos[0]);
+      const next = allSurahsMap.get(round.expectedNos[1]);
+      return [
+        prev ? `${prev.no}. ${prev.shortNameTr}` : '',
+        `${round.centerSurah.no}. ${round.centerSurah.shortNameTr}`,
+        next ? `${next.no}. ${next.shortNameTr}` : '',
+      ]
+        .filter(Boolean)
+        .join(' → ');
+    }
+    return round.expectedNos
+      .map((no) => {
+        const s = allSurahsMap.get(no);
+        return s ? `${s.no}. ${s.shortNameTr}` : `${no}. Sure`;
+      })
+      .join(' → ');
+  }, [allSurahsMap, round]);
+
+  const handleRetryWrongSlots = useCallback(() => {
+    setSlots((prev) => prev.map((item, idx) => (wrongSlots.includes(idx) ? null : item)));
+    setWrongSlots([]);
+    setReviewState(null);
+    onPauseChange?.(false);
+  }, [onPauseChange, wrongSlots]);
+
+  const handleRevealCorrectOrder = useCallback(() => {
+    const solvedSlots = round.expectedNos.map((no) => allSurahsMap.get(no) ?? null);
+    setSlots(solvedSlots);
+    setWrongSlots([]);
+    setSelectedSurahNo(null);
+    setCleared(true);
+    setReviewState({
+      kind: 'revealed',
+      summary: `Doğru Mushaf sırası: ${buildCorrectSummary()}`,
+      hadMistake: true,
+    });
+    onPauseChange?.(true);
+  }, [allSurahsMap, buildCorrectSummary, onPauseChange, round.expectedNos]);
+
+  const handleContinueNext = useCallback(() => {
+    const hadMistake = reviewState?.hadMistake ?? hadMistakeRef.current;
+    onPauseChange?.(false);
+    onRoundCleared(hadMistake, round.focusSurah);
+  }, [onPauseChange, onRoundCleared, reviewState?.hadMistake, round.focusSurah]);
 
   const evaluateFilledSlots = useCallback(
     (nextSlots: (EnrichedGameSurah | null)[]) => {
@@ -203,9 +266,12 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
         setWrongSlots([]);
         setSelectedSurahNo(null);
         gameAudioService.playMatch(hadMistakeRef.current ? 1 : 2);
-        scheduleTimeout(() => {
-          onRoundCleared(hadMistakeRef.current, round.focusSurah);
-        }, 420);
+        onPauseChange?.(true);
+        setReviewState({
+          kind: 'success',
+          summary: `Doğru dizilim: ${buildCorrectSummary()}`,
+          hadMistake: hadMistakeRef.current,
+        });
       } else {
         hadMistakeRef.current = true;
         setWrongSlots(wrongIdx);
@@ -215,21 +281,21 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
           const placed = nextSlots[idx];
           if (placed) onMistakeStep(placed);
         });
-
-        scheduleTimeout(() => {
-          setSlots((prev) =>
-            prev.map((item, idx) => (wrongIdx.includes(idx) ? null : item)),
-          );
-          setWrongSlots([]);
-        }, 560);
+        onPauseChange?.(true);
+        setReviewState({
+          kind: 'error',
+          summary:
+            'Kırmızı yuvalardaki sureler yanlış sırada. Yanlışları temizleyip tekrar deneyebilir veya doğru sırayı görebilirsiniz.',
+          hadMistake: true,
+        });
       }
     },
-    [onMistakeStep, onRoundCleared, round, scheduleTimeout],
+    [buildCorrectSummary, onMistakeStep, onPauseChange, round],
   );
 
   const placeSurahInSlot = useCallback(
     (surah: EnrichedGameSurah, slotIndex: number) => {
-      if (cleared || isFinished) return;
+      if (cleared || isFinished || reviewState?.kind === 'error') return;
       gameAudioService.playSnap();
       setSlots((prev) => {
         const next = prev.map((item) => (item?.no === surah.no ? null : item));
@@ -239,11 +305,11 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
       });
       setSelectedSurahNo(null);
     },
-    [cleared, evaluateFilledSlots, isFinished, scheduleTimeout],
+    [cleared, evaluateFilledSlots, isFinished, reviewState?.kind, scheduleTimeout],
   );
 
   const handleCandidateTap = (surah: EnrichedGameSurah) => {
-    if (cleared || isFinished || placedNos.has(surah.no)) return;
+    if (cleared || isFinished || reviewState?.kind === 'error' || placedNos.has(surah.no)) return;
     gameAudioService.playFlip();
     if (selectedSurahNo === surah.no) {
       const firstEmpty = slots.findIndex((s) => s === null);
@@ -254,7 +320,7 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
   };
 
   const handleSlotTap = (slotIndex: number) => {
-    if (cleared || isFinished) return;
+    if (cleared || isFinished || reviewState?.kind === 'error') return;
     if (selectedSurahNo !== null) {
       const cand = round.candidates.find((c) => c.no === selectedSurahNo);
       if (cand) placeSurahInSlot(cand, slotIndex);
@@ -315,7 +381,7 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
   };
 
   return (
-    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col justify-center gap-3.5 sm:gap-5 relative">
+    <div className="flex-1 min-h-0 flex flex-col justify-start lg:justify-center gap-2.5 sm:gap-4 lg:gap-5 pb-1 lg:pb-0 relative">
       {/* Başlık */}
       <div className="shrink-0 space-y-2">
         {headerLabel && (
@@ -433,6 +499,33 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
         </div>
       )}
 
+      {/* Pedagojik Değerlendirme ve Geçiş Şeridi */}
+      {!isFinished && reviewState && (
+        <RoundReviewBanner
+          variant={reviewState.kind === 'error' ? 'error' : 'success'}
+          message={reviewState.summary}
+          ctaLabel={
+            reviewState.kind === 'error'
+              ? 'Tekrar Dene'
+              : reviewState.kind === 'revealed'
+                ? 'Devam Et'
+                : 'Sonraki Tur'
+          }
+          onContinue={
+            reviewState.kind === 'error' ? handleRetryWrongSlots : handleContinueNext
+          }
+          secondaryAction={
+            reviewState.kind === 'error'
+              ? { label: 'Doğru Sırayı Gör', onClick: handleRevealCorrectOrder }
+              : undefined
+          }
+          autoAdvanceMs={
+            reviewState.kind === 'success' ? (isDuel ? 1800 : 2800) : null
+          }
+          timerPausedNote={tempo === 'timed' && !isDuel}
+        />
+      )}
+
       {/* Alt 3B Parşömen Aday Kartlar Havuzu */}
       {!isFinished && (
         <div className="shrink-0 w-full max-w-4xl mx-auto rounded-2xl bg-black/20 border border-white/15 p-2.5 sm:p-3.5 space-y-2">
@@ -457,7 +550,7 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
                 <button
                   key={cand.no}
                   type="button"
-                  disabled={isUsed || cleared}
+                  disabled={isUsed || cleared || reviewState?.kind === 'error'}
                   onPointerDown={(e) => handlePointerDown(e, cand)}
                   onPointerMove={handlePointerMove}
                   onPointerUp={(e) => handlePointerUp(e, cand)}
@@ -471,23 +564,23 @@ const ChainBoard: React.FC<ChainBoardProps> = ({
                   }}
                   className={`${
                     isSelected ? 'game-bevel-amber ring-2 ring-amber-300' : 'game-bevel-parchment'
-                  } min-h-[62px] sm:min-h-[72px] rounded-xl px-2.5 py-2 flex items-center justify-between gap-1.5 cursor-grab active:cursor-grabbing select-none transition-opacity relative`}
+                  } min-h-[68px] sm:min-h-[76px] rounded-xl px-2 py-1.5 sm:px-2.5 sm:py-2 flex flex-col justify-between gap-1 cursor-grab active:cursor-grabbing select-none transition-opacity relative`}
                 >
-                  <div className="flex flex-col items-center gap-0.5 shrink-0">
-                    <span className="text-[10px] font-black tabular-nums text-slate-600">
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded bg-amber-900/10 text-slate-600">
                       #{cIdx + 1}
                     </span>
-                    <GripVertical className="w-3.5 h-3.5 text-slate-400" />
+                    <GripVertical className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   </div>
-                  <div className="flex-1 min-w-0 text-center">
+                  <div className="w-full text-center pb-0.5">
                     <div
                       dir="rtl"
                       lang="ar"
-                      className="font-arabic text-xl sm:text-2xl lg:text-[26px] leading-tight text-teal-900 truncate"
+                      className="font-arabic text-base sm:text-xl lg:text-[24px] leading-snug break-keep text-teal-900"
                     >
                       {cand.nameAr}
                     </div>
-                    <div className="text-sm sm:text-base lg:text-[17px] font-bold text-slate-900 truncate leading-tight">
+                    <div className="text-xs sm:text-sm lg:text-[16px] font-bold text-slate-900 leading-tight line-clamp-1">
                       {cand.shortNameTr}
                     </div>
                   </div>
@@ -576,7 +669,7 @@ function renderSlotButton(params: {
           <span
             dir="rtl"
             lang="ar"
-            className={`font-arabic text-xl sm:text-2xl lg:text-[26px] leading-tight ${
+            className={`font-arabic text-base sm:text-xl lg:text-[24px] leading-snug break-keep ${
               isCleared ? 'text-amber-200' : isWrong ? 'text-white' : 'text-teal-900'
             }`}
           >
@@ -655,6 +748,11 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
 
   const mistakenMapRef = useRef<Map<number, EnrichedGameSurah>>(new Map());
   const finishedRef = useRef<boolean>(false);
+  const isTimerPausedRef = useRef<boolean>(false);
+
+  const handlePauseChange = useCallback((paused: boolean) => {
+    isTimerPausedRef.current = paused;
+  }, []);
 
   const finishGame = useCallback(
     (payload: {
@@ -712,10 +810,11 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
     [isDuel, onComplete, playerMode, tempo, tierId],
   );
 
-  // Zamanlayıcı
+  // Zamanlayıcı (İnceleme ve geri bildirim ekranlarında duraklatılır)
   useEffect(() => {
     if (finishedRef.current) return;
     const interval = window.setInterval(() => {
+      if (finishedRef.current || isTimerPausedRef.current) return;
       setElapsedSec((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(interval);
@@ -961,7 +1060,7 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   if (isDuel) {
     return (
       <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto md:overflow-hidden">
-        <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/35 bg-black/15 p-2.5 overflow-hidden">
+        <div className="min-h-0 flex flex-col rounded-2xl border border-teal-200/35 bg-black/15 p-2.5 overflow-visible md:overflow-hidden">
           <ChainBoard
             boardId="p1"
             headerLabel={p1Name}
@@ -974,13 +1073,16 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
                 ? `${Math.min(TOTAL_CALM_ROUNDS, p1Idx + 1)}/${TOTAL_CALM_ROUNDS}`
                 : `${p1Correct} Tur`
             }
+            tempo={tempo}
+            isDuel
+            allSurahsMap={allSurahsMap}
             isFinished={p1Done}
             onRoundCleared={(hadMistake, s) => handleDuelCleared('p1', hadMistake, s)}
             onMistakeStep={handleRecordMistake}
           />
         </div>
 
-        <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-hidden">
+        <div className="min-h-0 flex flex-col rounded-2xl border border-amber-300/35 bg-black/15 p-2.5 overflow-visible md:overflow-hidden">
           <ChainBoard
             boardId="p2"
             headerLabel={p2Name}
@@ -993,6 +1095,9 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
                 ? `${Math.min(TOTAL_CALM_ROUNDS, p2Idx + 1)}/${TOTAL_CALM_ROUNDS}`
                 : `${p2Correct} Tur`
             }
+            tempo={tempo}
+            isDuel
+            allSurahsMap={allSurahsMap}
             isFinished={p2Done}
             onRoundCleared={(hadMistake, s) => handleDuelCleared('p2', hadMistake, s)}
             onMistakeStep={handleRecordMistake}
@@ -1003,12 +1108,15 @@ export const MushafChainGame: React.FC<GameComponentProps> = ({
   }
 
   return (
-    <div className="flex-1 min-h-full lg:min-h-0 flex flex-col">
+    <div className="flex-1 min-h-0 flex flex-col">
       <ChainBoard
         boardId="single"
         round={singleRound}
         roundNumber={singleRoundIdx + 1}
         totalRoundsLabel={tempo === 'calm' ? String(TOTAL_CALM_ROUNDS) : ''}
+        tempo={tempo}
+        allSurahsMap={allSurahsMap}
+        onPauseChange={handlePauseChange}
         onRoundCleared={handleSingleCleared}
         onMistakeStep={handleRecordMistake}
       />
