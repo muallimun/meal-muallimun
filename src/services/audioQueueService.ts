@@ -1374,6 +1374,7 @@ class AudioQueueService {
   }
 
   private emitPreparedPausedState(verse: CombinedVerse, step: PlaybackStep): void {
+    this.clearWordSyncState();
     const nav = this.updateNavigationAvailability();
     const segParentIdx =
       this.atomicSegments.length > 0
@@ -1395,7 +1396,7 @@ class AudioQueueService {
       currentAyah: verse.ayah,
       currentPage: verse.page,
       currentAyahId: verse.id,
-      activePhase: step.phase,
+      activePhase: null,
       activeSourceKey: step.sourceKey,
       activeReciterLabel: step.reciterLabel,
       currentRepeat: step.repeatIndex,
@@ -1405,6 +1406,7 @@ class AudioQueueService {
       errorMessage: null,
       infoMessage: this.activeInfoNotice,
       missingMealAudio: false,
+      isWordSyncActive: false,
     });
   }
 
@@ -1412,11 +1414,14 @@ class AudioQueueService {
     segIdx: number,
     session: number,
     startFromLastVerse = false,
+    autoPlay = true,
   ): Promise<boolean> {
     const seg = this.atomicSegments[segIdx];
     if (!seg) return false;
 
-    this.emit({ status: 'loading' });
+    if (autoPlay) {
+      this.emit({ status: 'loading' });
+    }
     try {
       const verses = await this.loadAtomicSegmentVerses(seg);
       if (session !== this.playSessionId) return false;
@@ -1437,7 +1442,8 @@ class AudioQueueService {
           this.currentVerseIndex = i;
           this.steps = built;
           this.currentStepIndex = 0;
-          if (this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+          if (!autoPlay || this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+            this.teardownAudioElement();
             this.emitPreparedPausedState(verses[i], built[0]);
             return true;
           }
@@ -1451,7 +1457,10 @@ class AudioQueueService {
     return false;
   }
 
-  private async advanceToNextVerse(forceSkipInfiniteAyah = false): Promise<void> {
+  private async advanceToNextVerse(
+    forceSkipInfiniteAyah = false,
+    autoPlay = true,
+  ): Promise<void> {
     const session = this.playSessionId;
     const loop = this.getEffectiveQueueLoop();
     const canLoopAgain = loop === 'infinite' || this.currentQueueRound < loop;
@@ -1464,6 +1473,11 @@ class AudioQueueService {
         if (restartSteps.length > 0) {
           this.steps = restartSteps;
           this.currentStepIndex = 0;
+          if (!autoPlay) {
+            this.teardownAudioElement();
+            this.emitPreparedPausedState(this.verses[this.currentVerseIndex], restartSteps[0]);
+            return;
+          }
           this.playCurrentStep(0);
           return;
         }
@@ -1482,6 +1496,11 @@ class AudioQueueService {
         this.currentVerseIndex = nextIdx;
         this.steps = nextSteps;
         this.currentStepIndex = 0;
+        if (!autoPlay) {
+          this.teardownAudioElement();
+          this.emitPreparedPausedState(this.verses[nextIdx], nextSteps[0]);
+          return;
+        }
         this.playCurrentStep(0);
         return;
       }
@@ -1491,7 +1510,7 @@ class AudioQueueService {
     // 3. Segment tabanlı kuyruk (Çalma listesi / Cüz / Sayfa aralığı / Ayet aralığı)
     if (this.atomicSegments.length > 0) {
       for (let segIdx = this.currentAtomicIdx + 1; segIdx < this.atomicSegments.length; segIdx += 1) {
-        const loaded = await this.loadAndPlayAtomicSegment(segIdx, session, false);
+        const loaded = await this.loadAndPlayAtomicSegment(segIdx, session, false, autoPlay);
         if (session !== this.playSessionId) return;
         if (loaded) return;
       }
@@ -1500,7 +1519,7 @@ class AudioQueueService {
       if (canLoopAgain) {
         this.currentQueueRound += 1;
         for (let segIdx = 0; segIdx < this.atomicSegments.length; segIdx += 1) {
-          const loaded = await this.loadAndPlayAtomicSegment(segIdx, session, false);
+          const loaded = await this.loadAndPlayAtomicSegment(segIdx, session, false, autoPlay);
           if (session !== this.playSessionId) return;
           if (loaded) return;
         }
@@ -1521,6 +1540,11 @@ class AudioQueueService {
           this.currentVerseIndex = i;
           this.steps = restartSteps;
           this.currentStepIndex = 0;
+          if (!autoPlay) {
+            this.teardownAudioElement();
+            this.emitPreparedPausedState(this.verses[i], restartSteps[0]);
+            return;
+          }
           this.playCurrentStep(0);
           return;
         }
@@ -1534,7 +1558,9 @@ class AudioQueueService {
       const bounds = getPageBounds(this.meta);
 
       if (nextPageNo <= bounds.maxPage) {
-        this.emit({ status: 'loading' });
+        if (autoPlay) {
+          this.emit({ status: 'loading' });
+        }
         try {
           let nextPageData: { verses: CombinedVerse[]; contextKey: string } | null = null;
           if (this.nextPageProvider) {
@@ -1571,7 +1597,8 @@ class AudioQueueService {
                 this.currentVerseIndex = i;
                 this.steps = nextSteps;
                 this.currentStepIndex = 0;
-                if (this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+                if (!autoPlay || this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+                  this.teardownAudioElement();
                   this.emitPreparedPausedState(this.verses[i], nextSteps[0]);
                   return;
                 }
@@ -1591,7 +1618,9 @@ class AudioQueueService {
       const lastVerse = this.verses[this.verses.length - 1];
       const nextSurahNo = lastVerse.surah + 1;
       if (nextSurahNo <= 114) {
-        this.emit({ status: 'loading' });
+        if (autoPlay) {
+          this.emit({ status: 'loading' });
+        }
         try {
           const nextBundle = await dataService.getSurahBundle(nextSurahNo);
           if (session !== this.playSessionId) return;
@@ -1607,7 +1636,8 @@ class AudioQueueService {
                 this.currentVerseIndex = i;
                 this.steps = nextSteps;
                 this.currentStepIndex = 0;
-                if (this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+                if (!autoPlay || this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+                  this.teardownAudioElement();
                   this.emitPreparedPausedState(this.verses[i], nextSteps[0]);
                   return;
                 }
@@ -1622,6 +1652,7 @@ class AudioQueueService {
       }
     }
 
+    if (!autoPlay) return;
     this.teardownAudioElement();
     this.setMediaPlaybackState('paused');
     this.emit({ status: 'paused', activePhase: null });
@@ -1941,12 +1972,24 @@ class AudioQueueService {
     }
   }
 
+  public getCurrentVerse(): CombinedVerse | null {
+    return this.verses[this.currentVerseIndex] ?? null;
+  }
+
+  public getQueueVerses(): CombinedVerse[] {
+    return this.verses;
+  }
+
   /**
    * Ses duraklatılmış veya hata durumundayken kullanıcı yeni bir ayete tıkladığında
    * oynatıcı göstergesini anında seçili ayete eşitler ve eski ayete ait duraklatılmış
    * audio örneğini temizler.
    */
-  public syncPausedSelection(verse: CombinedVerse, meta?: MetaData | null): void {
+  public syncPausedSelection(
+    verse: CombinedVerse,
+    meta?: MetaData | null,
+    queueVerses?: CombinedVerse[],
+  ): void {
     if (!this.snapshot.isVisible) return;
     if (
       this.snapshot.status === 'playing' ||
@@ -1965,25 +2008,39 @@ class AudioQueueService {
       this.snapshot.currentAyah === verse.ayah;
 
     if (!sameVerse) {
+      this.playSessionId += 1;
       this.teardownAudioElement();
-      const idxInQueue = this.verses.findIndex((v) => v.id === verse.id);
+      this.clearWordSyncState();
+      let idxInQueue = this.verses.findIndex((v) => v.id === verse.id);
+      if (idxInQueue === -1 && queueVerses && queueVerses.length > 0) {
+        const idxInProvided = queueVerses.findIndex((v) => v.id === verse.id);
+        if (idxInProvided !== -1) {
+          this.verses = queueVerses;
+          this.singleAyahOnly = false;
+          idxInQueue = idxInProvided;
+        }
+      }
       if (idxInQueue !== -1) {
         this.currentVerseIndex = idxInQueue;
-        this.steps = this.buildStepsForVerse(idxInQueue, false);
+        this.steps = this.buildStepsForVerse(idxInQueue, true);
         this.currentStepIndex = 0;
       }
       const nav = this.updateNavigationAvailability();
+      this.setMediaPlaybackState('paused');
       this.emit({
+        status: 'paused',
         currentSurah: verse.surah,
         currentSurahName: this.getSurahName(verse.surah),
         currentAyah: verse.ayah,
         currentPage: verse.page,
         currentAyahId: verse.id,
+        activePhase: null,
         currentRepeat: 1,
         canGoPrev: nav.canGoPrev,
         canGoNext: nav.canGoNext,
         errorMessage: null,
         missingMealAudio: false,
+        isWordSyncActive: false,
       });
     }
   }
@@ -2031,26 +2088,37 @@ class AudioQueueService {
     });
   }
 
-  public nextVerse(): void {
+  public nextVerse(autoPlay?: boolean): void {
     if (this.verses.length === 0) return;
+    const shouldAutoPlay = autoPlay ?? this.snapshot.status !== 'paused';
     this.userPausedDuringLoad = false;
-    claimAudioFocus('main_queue');
-    this.pauseExternalAudioEngines();
-    this.stopPreview();
     this.playSessionId += 1;
     this.consecutiveFailures = 0;
-    void this.advanceToNextVerse(true);
-  }
 
-  public prevVerse(): void {
-    if (this.verses.length === 0) return;
-    this.userPausedDuringLoad = false;
+    if (!shouldAutoPlay) {
+      void this.advanceToNextVerse(true, false);
+      return;
+    }
+
     claimAudioFocus('main_queue');
     this.pauseExternalAudioEngines();
     this.stopPreview();
+    void this.advanceToNextVerse(true, true);
+  }
+
+  public prevVerse(autoPlay?: boolean): void {
+    if (this.verses.length === 0) return;
+    const shouldAutoPlay = autoPlay ?? this.snapshot.status !== 'paused';
+    this.userPausedDuringLoad = false;
     this.playSessionId += 1;
     const session = this.playSessionId;
     this.consecutiveFailures = 0;
+
+    if (shouldAutoPlay) {
+      claimAudioFocus('main_queue');
+      this.pauseExternalAudioEngines();
+      this.stopPreview();
+    }
 
     for (let idx = this.currentVerseIndex - 1; idx >= 0; idx -= 1) {
       const prevSteps = this.buildStepsForVerse(idx, true);
@@ -2058,6 +2126,11 @@ class AudioQueueService {
         this.currentVerseIndex = idx;
         this.steps = prevSteps;
         this.currentStepIndex = 0;
+        if (!shouldAutoPlay) {
+          this.teardownAudioElement();
+          this.emitPreparedPausedState(this.verses[idx], prevSteps[0]);
+          return;
+        }
         this.playCurrentStep(0);
         return;
       }
@@ -2067,7 +2140,12 @@ class AudioQueueService {
     if (this.atomicSegments.length > 0 && this.currentAtomicIdx > 0) {
       void (async () => {
         for (let segIdx = this.currentAtomicIdx - 1; segIdx >= 0; segIdx -= 1) {
-          const loaded = await this.loadAndPlayAtomicSegment(segIdx, session, true);
+          const loaded = await this.loadAndPlayAtomicSegment(
+            segIdx,
+            session,
+            true,
+            shouldAutoPlay,
+          );
           if (session !== this.playSessionId) return;
           if (loaded) return;
         }

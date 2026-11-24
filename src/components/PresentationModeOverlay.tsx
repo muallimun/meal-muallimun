@@ -3,6 +3,7 @@ import {
   AlertCircle,
   AudioLines,
   BookOpen,
+  ChevronDown,
   ChevronRight,
   Headphones,
   Info,
@@ -251,11 +252,14 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   };
   const [manualIndex, setManualIndex] = useState<number>(0);
   const [isSettingsPopoverOpen, setIsSettingsPopoverOpen] = useState(false);
+  const [isAyahPickerOpen, setIsAyahPickerOpen] = useState(false);
   const [showDiacriticNote, setShowDiacriticNote] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   );
   const settingsPopoverRef = useRef<HTMLDivElement | null>(null);
+  const ayahPickerRef = useRef<HTMLDivElement | null>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!isSettingsPopoverOpen) return;
@@ -270,6 +274,21 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isSettingsPopoverOpen]);
+
+  useEffect(() => {
+    if (!isAyahPickerOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        ayahPickerRef.current &&
+        !ayahPickerRef.current.contains(e.target as Node)
+      ) {
+        setIsAyahPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isAyahPickerOpen]);
+
   const [viewport, setViewport] = useState<{ w: number; h: number }>(() => ({
     w: typeof window !== 'undefined' ? window.innerWidth : 1280,
     h: typeof window !== 'undefined' ? window.innerHeight : 760,
@@ -282,12 +301,16 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const onCloseRef = useRef(onClose);
   const isReciterSelectorOpenRef = useRef(isReciterSelectorOpen);
   const isMealSelectorOpenRef = useRef(isMealSelectorOpen);
+  const isAyahPickerOpenRef = useRef(isAyahPickerOpen);
+  const isSettingsPopoverOpenRef = useRef(isSettingsPopoverOpen);
 
   audioStatusRef.current = audioState.status;
   versesLenRef.current = verses.length;
   onCloseRef.current = onClose;
   isReciterSelectorOpenRef.current = isReciterSelectorOpen;
   isMealSelectorOpenRef.current = isMealSelectorOpen;
+  isAyahPickerOpenRef.current = isAyahPickerOpen;
+  isSettingsPopoverOpenRef.current = isSettingsPopoverOpen;
 
   // Sunum açıldığında aktif ayet indeksini senkronize et (sadece açılışta)
   useEffect(() => {
@@ -341,22 +364,32 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       if (isReciterSelectorOpenRef.current || isMealSelectorOpenRef.current) return;
 
       if (e.key === 'Escape') {
-        if (document.fullscreenElement) {
+        if (isAyahPickerOpenRef.current) {
+          setIsAyahPickerOpen(false);
+        } else if (isSettingsPopoverOpenRef.current) {
+          setIsSettingsPopoverOpen(false);
+        } else if (document.fullscreenElement) {
           document.exitFullscreen?.().catch(() => {});
         } else {
           onCloseRef.current();
         }
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
-        if (audioStatusRef.current !== 'idle') {
-          audioQueueService.nextVerse();
+        const status = audioStatusRef.current;
+        if (status === 'playing' || status === 'loading') {
+          audioQueueService.nextVerse(true);
+        } else if (status === 'paused' || status === 'error') {
+          audioQueueService.nextVerse(false);
         } else {
           setManualIndex((i) => Math.min(Math.max(0, versesLenRef.current - 1), i + 1));
         }
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        if (audioStatusRef.current !== 'idle') {
-          audioQueueService.prevVerse();
+        const status = audioStatusRef.current;
+        if (status === 'playing' || status === 'loading') {
+          audioQueueService.prevVerse(true);
+        } else if (status === 'paused' || status === 'error') {
+          audioQueueService.prevVerse(false);
         } else {
           setManualIndex((i) => Math.max(0, i - 1));
         }
@@ -377,6 +410,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     if (audioState.status !== 'idle' && audioState.currentAyahId !== null) {
       const byAudio = verses.find((v) => v.id === audioState.currentAyahId);
       if (byAudio) return byAudio;
+      const fromQueue = audioQueueService.getCurrentVerse();
+      if (fromQueue && fromQueue.id === audioState.currentAyahId) return fromQueue;
       // Sayfa henüz yeni yükleniyorsa önceki ayeti tut
       if (lastValidVerseRef.current) return lastValidVerseRef.current;
     }
@@ -389,6 +424,30 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     lastValidVerseRef.current = resolvedVerse;
   }
   const displayedVerse = resolvedVerse ?? lastValidVerseRef.current;
+
+  const pickerVerses = useMemo<CombinedVerse[]>(() => {
+    if (audioState.status !== 'idle' && displayedVerse) {
+      if (verses.some((v) => v.id === displayedVerse.id)) return verses;
+      const qVerses = audioQueueService.getQueueVerses();
+      if (qVerses.length > 0 && qVerses.some((v) => v.id === displayedVerse.id)) {
+        return qVerses;
+      }
+    }
+    return verses;
+  }, [audioState.status, displayedVerse, verses]);
+
+  const pickerSurahGroups = useMemo(() => {
+    const groups: Array<{ surahNo: number; verses: CombinedVerse[] }> = [];
+    for (const v of pickerVerses) {
+      const last = groups[groups.length - 1];
+      if (last && last.surahNo === v.surah) {
+        last.verses.push(v);
+      } else {
+        groups.push({ surahNo: v.surah, verses: [v] });
+      }
+    }
+    return groups;
+  }, [pickerVerses]);
 
   const surahMeta = displayedVerse ? surahMap.get(displayedVerse.surah) : undefined;
   const resolvedPrimaryMealVerse = displayedVerse ? getPrimaryVerse(displayedVerse) : null;
@@ -528,8 +587,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const isAudioRunning = audioState.status !== 'idle';
   const isPlaying = audioState.status === 'playing';
   const isLoading = audioState.status === 'loading';
+  const isPaused = audioState.status === 'paused';
+  const isAudioActive = isPlaying || isLoading;
   const isAudioActiveOnVerse =
-    (isPlaying || isLoading) &&
+    isAudioActive &&
     displayedVerse !== null &&
     audioState.currentAyahId === displayedVerse.id;
   const isBesmelePhase = audioState.activePhase === 'besmele';
@@ -603,8 +664,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
   const handlePrev = () => {
     sfxService.play('click');
-    if (isAudioRunning) {
-      audioQueueService.prevVerse();
+    if (isAudioActive) {
+      audioQueueService.prevVerse(true);
+    } else if (isPaused || audioState.status === 'error') {
+      audioQueueService.prevVerse(false);
     } else if (currentIdx > 0) {
       setManualIndex(currentIdx - 1);
     }
@@ -612,10 +675,67 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
   const handleNext = () => {
     sfxService.play('click');
-    if (isAudioRunning) {
-      audioQueueService.nextVerse();
+    if (isAudioActive) {
+      audioQueueService.nextVerse(true);
+    } else if (isPaused || audioState.status === 'error') {
+      audioQueueService.nextVerse(false);
     } else if (currentIdx >= 0 && currentIdx < verses.length - 1) {
       setManualIndex(currentIdx + 1);
+    }
+  };
+
+  const handleSelectPickerVerse = (verse: CombinedVerse) => {
+    sfxService.play('click');
+    setIsAyahPickerOpen(false);
+    const idxInProps = verses.findIndex((v) => v.id === verse.id);
+    if (idxInProps >= 0) {
+      setManualIndex(idxInProps);
+    }
+
+    if (audioState.status === 'idle') {
+      return;
+    }
+
+    if (audioState.status === 'paused' || audioState.status === 'error') {
+      audioQueueService.syncPausedSelection(verse, meta, pickerVerses);
+      return;
+    }
+
+    if (onStartAudioFromActive) {
+      onStartAudioFromActive(verse);
+    } else if (manifest && meta) {
+      void audioQueueService.jumpToSurahAyah(
+        verse.surah,
+        verse.ayah,
+        manifest,
+        meta,
+        audioPrefs,
+      );
+    }
+  };
+
+  const handleMainTouchStart = (e: React.TouchEvent<HTMLElement>) => {
+    if (e.touches.length !== 1 || isAyahPickerOpen || isSettingsPopoverOpen) {
+      swipeStartRef.current = null;
+      return;
+    }
+    const touch = e.touches[0];
+    swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleMainTouchEnd = (e: React.TouchEvent<HTMLElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    if (!start || e.changedTouches.length !== 1) return;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx < 0 && canNext) {
+        handleNext();
+      } else if (dx > 0 && canPrev) {
+        handlePrev();
+      }
     }
   };
 
@@ -701,20 +821,46 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           borderColor: palette.border,
         }}
       >
-        {/* Sol: Sure & Ayet Başlığı (Tek satır, taşmasız) */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+        {/* Sol: Sure & Ayet Hızlı Seçici Başlığı (Tek satır, taşmasız) */}
+        <div ref={ayahPickerRef} className="relative flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
           <span
-            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-xl hidden sm:flex items-center justify-center shrink-0"
             style={{ backgroundColor: palette.accentSoft, color: palette.accent }}
           >
             <MonitorPlay className="w-4 h-4" />
           </span>
-          <div className="min-w-0 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setIsSettingsPopoverOpen(false);
+              setIsAyahPickerOpen((v) => !v);
+            }}
+            disabled={pickerVerses.length === 0}
+            aria-expanded={isAyahPickerOpen}
+            aria-haspopup="listbox"
+            aria-label="Ayet seçiciyi aç"
+            title="Hızlı ayet geçişi için dokunun"
+            className="min-w-0 max-w-full min-h-[40px] px-2 -ml-1 rounded-xl border flex items-center gap-1.5 sm:gap-2 cursor-pointer transition-colors touch-manipulation disabled:cursor-default"
+            style={{
+              borderColor: isAyahPickerOpen ? palette.accent : 'transparent',
+              backgroundColor: isAyahPickerOpen ? palette.accentSoft : 'transparent',
+              color: palette.text,
+            }}
+          >
             <h2 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
               {displayedVerse
                 ? `${formatSurahTitle(surahMeta?.nameTr, displayedVerse.surah)} · ${displayedVerse.ayah}. Ayet`
                 : 'Sunum Modu'}
             </h2>
+            {pickerVerses.length > 1 && (
+              <ChevronDown
+                className={`w-4 h-4 shrink-0 transition-transform duration-150 ${
+                  isAyahPickerOpen ? 'rotate-180' : ''
+                }`}
+                style={{ color: palette.accent }}
+              />
+            )}
             {surahMeta?.nameAr && (
               <span
                 className="arabic-title text-base hidden md:inline shrink-0"
@@ -724,12 +870,100 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                 {formatSafeArabicTitle(surahMeta.nameAr)}
               </span>
             )}
-          </div>
+          </button>
+
+          {isAyahPickerOpen && pickerVerses.length > 0 && (
+            <>
+              <div
+                aria-hidden="true"
+                onClick={() => setIsAyahPickerOpen(false)}
+                className="fixed inset-0 z-40 bg-black/35 md:bg-transparent"
+              />
+              <div
+                role="dialog"
+                aria-label="Hızlı ayet seçici"
+                className="fixed left-3 right-3 top-16 sm:absolute sm:left-0 sm:right-auto sm:top-12 sm:w-[360px] md:w-[400px] max-h-[60dvh] overflow-y-auto rounded-2xl border p-3.5 shadow-2xl z-50 space-y-3 text-left"
+                style={{
+                  backgroundColor: palette.popoverBg,
+                  borderColor: palette.border,
+                  color: palette.text,
+                }}
+              >
+                <div
+                  className="flex items-center justify-between gap-2 pb-2 border-b"
+                  style={{ borderColor: palette.border }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold truncate">Hızlı Ayet Geçişi</p>
+                    <p className="text-[11px] font-medium truncate" style={{ color: palette.muted }}>
+                      {pickerVerses.length} ayet listeleniyor
+                      {isPaused ? ' · Duraklatılmış konum' : ''}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAyahPickerOpen(false)}
+                    aria-label="Ayet seçiciyi kapat"
+                    className="w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 cursor-pointer"
+                    style={{
+                      borderColor: palette.border,
+                      backgroundColor: palette.surface,
+                      color: palette.muted,
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {pickerSurahGroups.map((group) => {
+                    const groupMeta = surahMap.get(group.surahNo);
+                    return (
+                      <div key={group.surahNo} className="space-y-1.5">
+                        {pickerSurahGroups.length > 1 && (
+                          <p
+                            className="text-[11px] font-extrabold uppercase tracking-wider"
+                            style={{ color: palette.muted }}
+                          >
+                            {formatSurahTitle(groupMeta?.nameTr, group.surahNo)}
+                          </p>
+                        )}
+                        <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
+                          {group.verses.map((v) => {
+                            const isSelected = displayedVerse?.id === v.id;
+                            return (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={() => handleSelectPickerVerse(v)}
+                                aria-current={isSelected ? 'true' : undefined}
+                                aria-label={`${formatSurahTitle(groupMeta?.nameTr, v.surah)} ${v.ayah}. Ayet`}
+                                className="min-h-[38px] rounded-xl border text-xs font-extrabold tabular-nums flex items-center justify-center cursor-pointer transition-all active:scale-95 touch-manipulation"
+                                style={{
+                                  backgroundColor: isSelected
+                                    ? palette.accent
+                                    : palette.surface,
+                                  borderColor: isSelected ? palette.accent : palette.border,
+                                  color: isSelected ? palette.accentText : palette.text,
+                                }}
+                              >
+                                {v.ayah}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Sağ: Renkli Tecvit + Kelime Takibi + ⚙ Görünüm & Ses Popover + Tam Ekran + Çıkış */}
+        {/* Sağ: Renkli Tecvit + Kelime Takibi (md+) + Tema + ⚙ Görünüm & Ses Popover + Tam Ekran + Çıkış */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {/* Hızlı Kontrol 1: Renkli Tecvit */}
+          {/* Hızlı Kontrol 1: Renkli Tecvit (Masaüstü/Tablet üst şerit; mobilde Görünüm & Ses çekmecesinde) */}
           <button
             type="button"
             role="switch"
@@ -742,7 +976,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               updateSettings({ tajweedEnabled: next });
               if (!next) setShowDiacriticNote(false);
             }}
-            className="min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
+            className="hidden md:flex min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
             style={{
               borderColor: settings.tajweedEnabled ? palette.accent : palette.border,
               backgroundColor: settings.tajweedEnabled ? palette.accentSoft : 'transparent',
@@ -764,7 +998,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               aria-expanded={showDiacriticNote}
               aria-label="Medine Mushafı Harekeleme Notu"
               title="Medine Mushafı Harekeleme Notu"
-              className="min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
+              className="hidden md:flex min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
               style={{
                 borderColor: showDiacriticNote ? palette.accent : palette.border,
                 backgroundColor: showDiacriticNote ? palette.accentSoft : 'transparent',
@@ -776,7 +1010,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             </button>
           )}
 
-          {/* Hızlı Kontrol 2: Kelime Takibi (Karaoke) */}
+          {/* Hızlı Kontrol 2: Kelime Takibi (Karaoke) (Masaüstü/Tablet üst şerit; mobilde çekmecede) */}
           <button
             type="button"
             role="switch"
@@ -787,7 +1021,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               sfxService.play('click');
               updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
             }}
-            className="min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
+            className="hidden md:flex min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
             style={{
               borderColor: settings.wordSyncEnabled ? palette.accent : palette.border,
               backgroundColor: settings.wordSyncEnabled ? palette.accentSoft : 'transparent',
@@ -820,6 +1054,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               type="button"
               onClick={() => {
                 sfxService.play('click');
+                setIsAyahPickerOpen(false);
                 setIsSettingsPopoverOpen((v) => !v);
               }}
               aria-expanded={isSettingsPopoverOpen}
@@ -877,6 +1112,83 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                         <X className="w-4 h-4" />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Mobil Hızlı Anahtarlar: Renkli Tecvit & Kelime Takibi */}
+                  <div className="md:hidden space-y-1.5">
+                    <p
+                      className="text-[10px] font-extrabold uppercase tracking-wider"
+                      style={{ color: palette.muted }}
+                    >
+                      Hızlı Kontroller
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={settings.tajweedEnabled}
+                        onClick={() => {
+                          sfxService.play('click');
+                          const next = !settings.tajweedEnabled;
+                          updateSettings({ tajweedEnabled: next });
+                          if (!next) setShowDiacriticNote(false);
+                        }}
+                        className="min-h-[40px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
+                        style={{
+                          borderColor: settings.tajweedEnabled ? palette.accent : palette.border,
+                          backgroundColor: settings.tajweedEnabled
+                            ? palette.accentSoft
+                            : palette.surface,
+                          color: settings.tajweedEnabled ? palette.accent : palette.text,
+                        }}
+                      >
+                        <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">Renkli Tecvit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={settings.wordSyncEnabled}
+                        onClick={() => {
+                          sfxService.play('click');
+                          updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
+                        }}
+                        className="min-h-[40px] px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
+                        style={{
+                          borderColor: settings.wordSyncEnabled ? palette.accent : palette.border,
+                          backgroundColor: settings.wordSyncEnabled
+                            ? palette.accentSoft
+                            : palette.surface,
+                          color: settings.wordSyncEnabled ? palette.accent : palette.text,
+                        }}
+                      >
+                        <AudioLines className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">Kelime Takibi</span>
+                      </button>
+                    </div>
+
+                    {settings.tajweedEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setShowDiacriticNote((v) => !v);
+                          setIsSettingsPopoverOpen(false);
+                        }}
+                        className="w-full min-h-[34px] px-2.5 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                        style={{
+                          borderColor: showDiacriticNote ? palette.accent : palette.border,
+                          backgroundColor: showDiacriticNote
+                            ? palette.accentSoft
+                            : palette.surface,
+                          color: showDiacriticNote ? palette.accent : palette.muted,
+                        }}
+                      >
+                        <Info className="w-3.5 h-3.5 shrink-0" />
+                        <span>Medine Mushafı Harekeleme Notu</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Okuyucu & Meal */}
@@ -1123,12 +1435,16 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         </div>
       )}
 
-      {/* Orta Sahne: Kırpışmasız, Deterministik Ölçeklenen Geniş Ayet & Meal Alanı */}
-      <main className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-12 lg:px-20 py-4 overflow-y-auto">
+      {/* Orta Sahne: Kırpışmasız, Deterministik Ölçeklenen Geniş Ayet & Meal Alanı (Yatay Kaydırma Destekli) */}
+      <main
+        onTouchStart={handleMainTouchStart}
+        onTouchEnd={handleMainTouchEnd}
+        className="flex-1 min-h-0 flex items-center justify-center px-5 sm:px-12 lg:px-20 py-4 overflow-y-auto"
+      >
         {displayedVerse ? (
           <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center gap-4 sm:gap-6 text-center transition-opacity duration-200">
-            {/* Yalnızca Tilâvet Secdesi, Aktif Ses Fazı veya Ses Hata Bildirimi */}
-            {(isSajdah || isPlaying || isLoading || Boolean(audioState.errorMessage)) && (
+            {/* Yalnızca Tilâvet Secdesi, Aktif Ses Fazı, Duraklatıldı Bilgisi veya Ses Hata Bildirimi */}
+            {(isSajdah || isPlaying || isLoading || isPaused || Boolean(audioState.errorMessage)) && (
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {isSajdah && (
                   <span
@@ -1163,6 +1479,20 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                       : audioState.activePhase === 'meal'
                         ? `Ses: ${activeSpokenMeal?.label ?? 'Sesli Meal'}`
                         : 'Arapça Tilavet akıyor'}
+                  </span>
+                )}
+
+                {isPaused && (
+                  <span
+                    className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border"
+                    style={{
+                      borderColor: palette.border,
+                      backgroundColor: palette.surface,
+                      color: palette.muted,
+                    }}
+                  >
+                    <Pause className="w-3.5 h-3.5 shrink-0" style={{ color: palette.accent }} />
+                    <span>Duraklatıldı · Devam etmek için &apos;Devam Et&apos;e basın</span>
                   </span>
                 )}
 
@@ -1600,7 +1930,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           <button
             type="button"
             onClick={handlePlayPause}
-            aria-label={isPlaying ? 'Duraklat' : 'Oynat'}
+            aria-label={isPlaying ? 'Duraklat' : isPaused ? 'Devam Et' : 'Dinle'}
             className="h-10 px-4 sm:px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95"
             style={{
               backgroundColor: palette.accent,
@@ -1614,7 +1944,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             ) : (
               <Play className="w-4 h-4 ml-0.5" />
             )}
-            <span className="text-xs sm:text-sm">{isPlaying ? 'Duraklat' : 'Dinle'}</span>
+            <span className="text-xs sm:text-sm">
+              {isPlaying ? 'Duraklat' : isPaused ? 'Devam Et' : 'Dinle'}
+            </span>
           </button>
 
           <button
