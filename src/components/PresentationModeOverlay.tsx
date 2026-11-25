@@ -994,15 +994,15 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const compactFooterLocationText = (() => {
     if (!displayedVerse) return 'Hazır';
     if (isCustomAudioQueue && activeListIdx >= 0) {
-      return `${activeListIdx + 1}/${activeList.length} · ${displayedVerse.surah}:${displayedVerse.ayah}`;
+      return `${activeListIdx + 1}/${activeList.length}`;
     }
     if (isRukuScope && activeListIdx >= 0) {
-      return `Rükû · ${activeListIdx + 1}/${activeList.length}`;
+      return `${activeListIdx + 1}/${activeList.length}`;
     }
     if (isPageScope && activeListIdx >= 0) {
-      return `S.${displayedVerse.page} · ${activeListIdx + 1}/${activeList.length}`;
+      return `${activeListIdx + 1}/${activeList.length}`;
     }
-    return `${displayedVerse.surah}:${displayedVerse.ayah}/${
+    return `${displayedVerse.ayah}/${
       surahMeta?.ayahCount ?? Math.max(activeList.length, displayedVerse.ayah)
     }`;
   })();
@@ -2331,10 +2331,12 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       {/* Sade Alt Kontrol Barı: Tam Ekranda yalnızca ortalanmış temel oynatma; Normal modda Konum + Kontroller + Hız */}
       <footer
         className={`${
-          isCompactLandscape ? 'min-h-[44px] py-1 px-2.5 sm:px-4' : 'min-h-16 py-2 px-3 sm:px-6'
+          isCompactLandscape
+            ? 'min-h-[44px] py-1 px-2.5 sm:px-4'
+            : 'min-h-14 sm:min-h-16 py-2 px-2.5 sm:px-6'
         } border-t flex items-center ${
           isFullscreen ? 'justify-center' : 'justify-between'
-        } gap-2 shrink-0 backdrop-blur-md`}
+        } gap-1 sm:gap-2 shrink-0 backdrop-blur-md`}
         style={{
           backgroundColor: palette.surface,
           borderColor: palette.border,
@@ -2343,25 +2345,30 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         {/* Sol: Bağlam Duyarlı Konum ve İlerleme Bilgisi (Tam ekranda gizlenir; mobilde kesilmesiz kısa biçim) */}
         {!isFullscreen && (
           <div
-            className="text-[11px] sm:text-xs font-bold tabular-nums shrink-0 sm:shrink sm:min-w-0 sm:truncate whitespace-nowrap"
+            className="text-[11px] sm:text-xs font-bold tabular-nums min-w-0 truncate whitespace-nowrap"
             style={{ color: palette.muted }}
             title={footerLocationText}
           >
-            <span className="sm:hidden">{compactFooterLocationText}</span>
+            <span className="sm:hidden">
+              {isPageScope && displayedVerse && activeListIdx >= 0 && (
+                <span className="hidden min-[360px]:inline">S.{displayedVerse.page} · </span>
+              )}
+              {compactFooterLocationText}
+            </span>
             <span className="hidden sm:inline">{footerLocationText}</span>
           </div>
         )}
 
         {/* Orta: Oynatma Kontrolleri (+ Normal modda Hızlı Sesli Meal) */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <button
             type="button"
             onClick={handlePrev}
             disabled={!canPrev}
             aria-label="Önceki ayet"
             className={`${
-              isCompactLandscape ? 'w-8 h-8' : 'w-10 h-10'
-            } rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer`}
+              isCompactLandscape ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'
+            } rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer shrink-0`}
             style={{ borderColor: palette.border, color: palette.text }}
           >
             <SkipBack className="w-4 h-4" />
@@ -2372,8 +2379,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             onClick={handlePlayPause}
             aria-label={isPlaying ? 'Duraklat' : isPaused ? 'Devam Et' : 'Dinle'}
             className={`${
-              isCompactLandscape ? 'h-8 px-3.5' : 'h-10 px-4 sm:px-5'
-            } rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95`}
+              isCompactLandscape ? 'h-8 px-3' : 'h-9 sm:h-10 px-3 sm:px-5'
+            } rounded-xl font-extrabold flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg cursor-pointer transition-transform active:scale-95 shrink-0`}
             style={{
               backgroundColor: palette.accent,
               color: palette.accentText,
@@ -2400,8 +2407,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               aria-label="Sesli Meal dinle"
               aria-pressed={isMealAudioFlowActive && audioPrefs.mode === 'meal'}
               className={`${
-                isCompactLandscape ? 'h-8 px-2.5' : 'h-10 px-3 sm:px-3.5'
-              } rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-40`}
+                isCompactLandscape
+                  ? 'w-8 h-8 sm:w-auto sm:px-2.5'
+                  : 'w-9 h-9 sm:w-auto sm:h-10 sm:px-3.5'
+              } rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-40 shrink-0`}
               style={{
                 backgroundColor:
                   isMealAudioFlowActive && audioPrefs.mode === 'meal'
@@ -2428,24 +2437,24 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             disabled={!canNext}
             aria-label="Sonraki ayet"
             className={`${
-              isCompactLandscape ? 'w-8 h-8' : 'w-10 h-10'
-            } rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer`}
+              isCompactLandscape ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'
+            } rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer shrink-0`}
             style={{ borderColor: palette.border, color: palette.text }}
           >
             <SkipForward className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Sağ: Oynatma Hızı (Tam ekranda gizlenir) */}
+        {/* Sağ: Oynatma Hızı (Tam ekranda gizlenir; dar mobilde sağ kenardan asla taşmaz) */}
         {!isFullscreen && (
-          <div className="min-w-[44px] sm:min-w-[52px] flex justify-end shrink-0">
+          <div className="flex justify-end shrink-0">
             <button
               type="button"
               onClick={cycleRate}
               title="Oynatma hızı"
               className={`${
-                isCompactLandscape ? 'min-h-[30px] px-2' : 'min-h-[34px] px-2.5'
-              } rounded-xl border text-xs font-bold tabular-nums cursor-pointer`}
+                isCompactLandscape ? 'h-8 px-2' : 'h-9 px-2 sm:px-2.5'
+              } min-w-[38px] sm:min-w-[48px] rounded-xl border text-xs font-bold tabular-nums cursor-pointer shrink-0 whitespace-nowrap`}
               style={{ borderColor: palette.border, color: palette.text }}
             >
               {audioPrefs.playbackRate}x

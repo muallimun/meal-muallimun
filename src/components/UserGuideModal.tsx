@@ -5,6 +5,7 @@ import {
   BookOpenCheck,
   Brain,
   Check,
+  ChevronDown,
   CloudDownload,
   Compass,
   Copy,
@@ -514,6 +515,7 @@ export const UserGuideModal: React.FC = () => {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const timersRef = useRef<number[]>([]);
 
   useBackButtonGuard('user_guide_modal', isUserGuideOpen, closeUserGuide);
@@ -547,6 +549,18 @@ export const UserGuideModal: React.FC = () => {
     if (!isUserGuideOpen) return;
     return acquireBodyScrollLock();
   }, [isUserGuideOpen]);
+
+  // Sekme, kategori, arama veya açılış değişiminde içerik kaydırmasını en başa al
+  useEffect(() => {
+    if (!isUserGuideOpen) return;
+    const el = contentScrollRef.current;
+    if (!el) return;
+    try {
+      el.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    } catch {
+      el.scrollTop = 0;
+    }
+  }, [isUserGuideOpen, activeTab, moduleCategory, searchQuery]);
 
   const handleTabSelect = useCallback(
     (tab: UserGuideTabId) => {
@@ -910,9 +924,9 @@ export const UserGuideModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Arama Çubuğu + 4 Sekme */}
+        {/* Arama Çubuğu + Tek Satırlı 4 Sekme */}
         <div
-          className="px-4 py-3 sm:px-5 border-b space-y-2.5 shrink-0"
+          className="px-3.5 py-2.5 sm:px-5 sm:py-3 border-b space-y-2 sm:space-y-2.5 shrink-0"
           style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div className="relative">
@@ -925,9 +939,9 @@ export const UserGuideModal: React.FC = () => {
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rehberde ara (örn. sunum, tecvit, ezber, A4 sınav, paylaş, çevrimdışı)..."
+              placeholder="Rehberde ara (ezber, tecvit, sınav...)"
               aria-label="Kullanım kılavuzunda ara"
-              className="w-full min-h-[42px] pl-9 pr-9 rounded-xl border text-base sm:text-sm font-medium outline-none transition-colors focus:border-teal-600"
+              className="w-full min-h-[38px] sm:min-h-[42px] pl-9 pr-9 rounded-xl border text-sm font-medium outline-none transition-colors focus:border-teal-600"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
@@ -954,7 +968,7 @@ export const UserGuideModal: React.FC = () => {
 
           {!isSearching && (
             <div
-              className="grid grid-cols-2 sm:grid-cols-4 gap-1.5"
+              className="grid grid-cols-4 gap-1 sm:gap-1.5"
               role="tablist"
               aria-label="Kılavuz bölümleri"
             >
@@ -968,7 +982,7 @@ export const UserGuideModal: React.FC = () => {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => handleTabSelect(tab.id)}
-                    className="min-h-[40px] px-2.5 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap touch-manipulation"
+                    className="min-h-[36px] sm:min-h-[40px] px-1 sm:px-2.5 py-1.5 sm:py-2 rounded-xl border text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-colors cursor-pointer whitespace-nowrap touch-manipulation min-w-0"
                     style={{
                       backgroundColor: isActive
                         ? 'var(--brand-primary-soft)'
@@ -977,7 +991,7 @@ export const UserGuideModal: React.FC = () => {
                       color: isActive ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                     }}
                   >
-                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 hidden min-[380px]:block sm:block" />
                     <span className="truncate hidden sm:inline">{tab.label}</span>
                     <span className="truncate sm:hidden">{tab.shortLabel}</span>
                   </button>
@@ -988,7 +1002,10 @@ export const UserGuideModal: React.FC = () => {
         </div>
 
         {/* Kaydırılabilir İçerik Gövdesi */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4">
+        <div
+          ref={contentScrollRef}
+          className="flex-1 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-4"
+        >
           {isSearching && (
             <div className="flex items-center justify-between gap-2 text-xs">
               <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>
@@ -1036,13 +1053,13 @@ export const UserGuideModal: React.FC = () => {
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="space-y-0.5">
                     <h3 className="text-xs sm:text-sm font-extrabold tracking-tight">
                       3 Adımda Nasıl Başlarım?
                     </h3>
-                    <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
                       Verileriniz cihazınızda güvenle saklanır
-                    </span>
+                    </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     {QUICKSTART_STEPS.map((item) => (
@@ -1425,9 +1442,70 @@ export const UserGuideModal: React.FC = () => {
               ============================================================== */}
           {((!isSearching && activeTab === 'shortcuts') ||
             (isSearching && (filteredShortcuts.length > 0 || filteredDeepLinks.length > 0))) && (
-            <section className="space-y-4">
+            <section className="flex flex-col gap-4">
+              {/* Mobilde en üstte pratik Dokunmatik İpuçları */}
+              {!isSearching && (
+                <div
+                  className="sm:hidden rounded-2xl border p-3.5 space-y-2.5"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Smartphone
+                      className="w-4 h-4 shrink-0"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <h3 className="text-sm font-extrabold">Mobil Dokunmatik İpuçları</h3>
+                  </div>
+                  <ul
+                    className="space-y-1.5 text-xs leading-relaxed"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    <li className="flex items-start gap-2">
+                      <span
+                        className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
+                        style={{ backgroundColor: 'var(--brand-primary)' }}
+                      />
+                      <span>
+                        <strong style={{ color: 'var(--text-primary)' }}>Yatay parmak kaydırma:</strong>{' '}
+                        Mushaf sayfaları ve Sunum Modu ayetleri arasında hızlıca ileri–geri geçin.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span
+                        className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
+                        style={{ backgroundColor: 'var(--brand-primary)' }}
+                      />
+                      <span>
+                        <strong style={{ color: 'var(--text-primary)' }}>Ayete dokunma:</strong>{' '}
+                        Mushaf ve Kitap modunda ayete dokunarak meal, kelime analizi, dinleme ve
+                        not alma menüsünü açın.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span
+                        className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
+                        style={{ backgroundColor: 'var(--brand-primary)' }}
+                      />
+                      <span>
+                        <strong style={{ color: 'var(--text-primary)' }}>Secâvend &amp; tecvit işaretleri:</strong>{' '}
+                        Durak harflerine ve renkli tecvit kısımlarına dokunarak anlık kural
+                        açıklamasını görün.
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {/* Masaüstünde (sm+) doğrudan açık Klavye Kısayolları */}
               {filteredShortcuts.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div
+                  className={`${
+                    isSearching ? 'grid' : 'hidden sm:grid'
+                  } grid-cols-1 sm:grid-cols-2 gap-3`}
+                >
                   {filteredShortcuts.map((group) => (
                     <div
                       key={group.id}
@@ -1475,7 +1553,7 @@ export const UserGuideModal: React.FC = () => {
 
               {filteredDeepLinks.length > 0 && (
                 <div
-                  className="rounded-2xl border p-4 space-y-3"
+                  className="rounded-2xl border p-3.5 sm:p-4 space-y-3"
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
@@ -1558,31 +1636,103 @@ export const UserGuideModal: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Mobilde açılır/kapanır Fiziksel Klavye Kısayolları (< sm) */}
+              {!isSearching && filteredShortcuts.length > 0 && (
+                <details
+                  className="sm:hidden group rounded-2xl border overflow-hidden"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <summary className="list-none [&::-webkit-details-marker]:hidden min-h-[44px] px-3.5 py-2.5 flex items-center justify-between gap-2 cursor-pointer select-none">
+                    <span className="inline-flex items-center gap-2 text-xs font-extrabold">
+                      <Keyboard
+                        className="w-4 h-4 shrink-0"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      />
+                      <span>Klavye Kısayolları (Bilgisayar / Tablet)</span>
+                    </span>
+                    <ChevronDown
+                      className="w-4 h-4 shrink-0 transition-transform group-open:rotate-180"
+                      style={{ color: 'var(--text-muted)' }}
+                    />
+                  </summary>
+                  <div
+                    className="px-3.5 pb-3.5 pt-2.5 border-t space-y-3"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    {filteredShortcuts.map((group) => (
+                      <div
+                        key={`mobile-kb-${group.id}`}
+                        className="rounded-xl border p-3 space-y-2"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <h4 className="text-xs font-extrabold">{group.title}</h4>
+                        <div className="space-y-1.5">
+                          {group.items.map((item, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-start justify-between gap-2 text-[11.5px]"
+                            >
+                              <span
+                                className="leading-snug"
+                                style={{ color: 'var(--text-secondary)' }}
+                              >
+                                {item.label}
+                              </span>
+                              <span className="flex items-center gap-1 shrink-0">
+                                {item.keys.map((k) => (
+                                  <kbd
+                                    key={k}
+                                    className="px-1.5 py-0.5 rounded-md border text-[10.5px] font-extrabold font-mono"
+                                    style={{
+                                      backgroundColor: 'var(--bg-surface-soft)',
+                                      borderColor: 'var(--border-strong)',
+                                      color: 'var(--text-primary)',
+                                    }}
+                                  >
+                                    {k}
+                                  </kbd>
+                                ))}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
             </section>
           )}
         </div>
 
-        {/* Sabit Alt Çubuk — Her Sekmeden Hızlı Paylaşım & Geri Bildirim */}
+        {/* Sabit Alt Çubuk — Mobilde Tek Satır (Paylaş + Tanıtım + Bildir), Masaüstünde Tam Bar */}
         <div
-          className="px-4 py-3 sm:px-5 pb-[max(0.85rem,env(safe-area-inset-bottom,0px))] border-t flex flex-wrap items-center justify-between gap-2 shrink-0"
+          className="px-3 py-2.5 sm:px-5 sm:py-3 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] border-t flex items-center justify-between gap-2 shrink-0"
           style={{
             backgroundColor: 'var(--bg-surface-soft)',
             borderColor: 'var(--border-subtle)',
           }}
         >
           <span
-            className="text-[11px] font-semibold inline-flex items-center gap-1.5"
+            className="hidden sm:inline-flex text-[11px] font-semibold items-center gap-1.5"
             style={{ color: 'var(--text-muted)' }}
           >
             <FileText className="w-3.5 h-3.5 shrink-0" />
             <span>kuran.muallimun.net · Kullanım Rehberi</span>
           </span>
 
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <div className="w-full sm:w-auto flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => void handleNativeOrCopyShare()}
-              className="min-h-[38px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation"
+              className="flex-1 sm:flex-initial min-h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation"
               style={{
                 backgroundColor: shareToast
                   ? 'var(--brand-primary-soft)'
@@ -1594,7 +1744,7 @@ export const UserGuideModal: React.FC = () => {
               {shareToast ? (
                 <>
                   <Check className="w-3.5 h-3.5 shrink-0" />
-                  <span>Bağlantı Kopyalandı</span>
+                  <span>Kopyalandı</span>
                 </>
               ) : (
                 <>
@@ -1611,7 +1761,7 @@ export const UserGuideModal: React.FC = () => {
                 closeUserGuide();
                 openIntroSplash();
               }}
-              className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation"
+              className="min-h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation shrink-0"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
@@ -1632,7 +1782,7 @@ export const UserGuideModal: React.FC = () => {
                 closeUserGuide();
                 openFeedbackModal();
               }}
-              className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation"
+              className="min-h-[38px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation shrink-0"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
@@ -1653,7 +1803,7 @@ export const UserGuideModal: React.FC = () => {
                 sfxService.play('click');
                 closeUserGuide();
               }}
-              className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white cursor-pointer hover:opacity-95 whitespace-nowrap touch-manipulation"
+              className="hidden sm:inline-flex min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white items-center justify-center cursor-pointer hover:opacity-95 whitespace-nowrap touch-manipulation shrink-0"
               style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               Kapat

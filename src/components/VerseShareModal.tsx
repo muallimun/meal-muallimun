@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Check,
+  ChevronUp,
   Copy,
   Download,
   Image as ImageIcon,
@@ -687,7 +688,9 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
   const [iconStage, setIconStage] = useState<'local' | 'cdn' | 'vector'>('local');
 
   const previewCardRef = useRef<HTMLDivElement | null>(null);
+  const mobileCopyMenuRef = useRef<HTMLDivElement | null>(null);
   const [previewWidth, setPreviewWidth] = useState<number>(300);
+  const [isMobileCopyMenuOpen, setIsMobileCopyMenuOpen] = useState(false);
 
   const canCopyImage = useMemo(
     () =>
@@ -704,7 +707,31 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     setCopiedLink(false);
     setCopiedImage(false);
     setStatusMessage(null);
+    setIsMobileCopyMenuOpen(false);
   }, [verse, settings.primaryMealId]);
+
+  useEffect(() => {
+    if (!isMobileCopyMenuOpen) return;
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node | null;
+      if (mobileCopyMenuRef.current && target && !mobileCopyMenuRef.current.contains(target)) {
+        setIsMobileCopyMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileCopyMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown, { passive: true });
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMobileCopyMenuOpen]);
 
   useEffect(() => {
     if (!verse || !isExtraMealId(mealPick)) {
@@ -1312,15 +1339,15 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Başlık */}
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] shrink-0">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[var(--brand-primary-text)]">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-2.5 px-3.5 md:px-6 py-2 md:py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] shrink-0">
+          <div className="min-w-0 flex items-center gap-1.5 md:block">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[var(--brand-primary-text)] shrink-0">
               <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span>Ayet Paylaşım Stüdyosu</span>
+              <span className="hidden md:inline">Ayet Paylaşım Stüdyosu</span>
             </div>
             <h2
               id="verse-share-modal-title"
-              className="text-sm sm:text-base md:text-lg font-extrabold text-[var(--text-primary)] truncate"
+              className="text-sm md:text-lg font-extrabold text-[var(--text-primary)] truncate"
             >
               {surahLabel}
             </h2>
@@ -1330,21 +1357,21 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Paylaşım penceresini kapat"
-            className="inline-flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-soft)] cursor-pointer shrink-0"
+            className="inline-flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-soft)] cursor-pointer shrink-0"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         </div>
 
-        {/* Stüdyo Gövdesi: Masaüstünde Sol Önizleme + Sağ Kontroller; Mobilde Üst Önizleme + Alt Kontroller */}
-        <div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)]">
+        {/* Stüdyo Gövdesi: Masaüstünde Sol Önizleme + Sağ Kontroller; Mobilde Sabit Üst Önizleme + Kaydırılan Alt Kontroller */}
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)]">
           {/* Sol / Üst: Canlı Kart Sahnesi */}
-          <div className="flex flex-col items-center justify-center gap-2 px-4 py-3.5 md:p-5 bg-[var(--bg-surface-soft)] border-b md:border-b-0 md:border-r border-[var(--border-subtle)] shrink-0 md:shrink md:min-h-0 md:overflow-hidden">
+          <div className="relative flex flex-col items-center justify-center gap-2 px-3 py-2 md:p-5 bg-[var(--bg-surface-soft)] border-b md:border-b-0 md:border-r border-[var(--border-subtle)] shrink-0 md:shrink md:min-h-0 md:overflow-hidden">
             <div
               className={`w-full flex items-center justify-center ${
                 layout.isOverflowExpanded
-                  ? 'max-h-[38dvh] md:max-h-[60dvh] overflow-y-auto items-start py-1'
-                  : 'h-[34dvh] max-h-[38dvh] md:h-[58dvh] md:max-h-[60dvh]'
+                  ? 'max-h-[28dvh] sm:max-h-[32dvh] md:max-h-[60dvh] overflow-y-auto items-start py-0.5'
+                  : 'h-[27dvh] sm:h-[31dvh] md:h-[58dvh] md:max-h-[60dvh]'
               }`}
             >
               <div
@@ -1574,8 +1601,27 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
               </div>
             </div>
 
-            {/* Sahne Altı Bilgi Satırı */}
-            <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold text-[var(--text-muted)]">
+            {/* Mobil Sahne Köşe Rozeti (Ekstra dikey satır harcamadan oran & boyut bilgisi) */}
+            <div className="md:hidden pointer-events-none absolute right-2 bottom-1.5 z-[2] flex items-center gap-1">
+              {layout.isOverflowExpanded && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-[var(--brand-primary-soft)] text-[var(--brand-primary-text)] text-[9.5px] font-bold border border-[var(--brand-primary)]/25">
+                  Tam metin
+                </span>
+              )}
+              <span
+                className="inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-bold tabular-nums backdrop-blur-xs"
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--bg-surface) 88%, transparent)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                {activeAspectPreset.ratioLabel} · {layout.width}×{layout.canvasHeight}px
+              </span>
+            </div>
+
+            {/* Masaüstü Sahne Altı Bilgi Satırı */}
+            <div className="hidden md:flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold text-[var(--text-muted)]">
               <span className="tabular-nums">
                 {activeAspectPreset.ratioLabel} {activeAspectPreset.label} · {layout.width}×
                 {layout.canvasHeight}px
@@ -1599,8 +1645,25 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
             </div>
           </div>
 
-          {/* Sağ / Alt: Stüdyo Özelleştirme Kontrolleri */}
-          <div className="p-4 md:p-5 space-y-4 md:overflow-y-auto md:min-h-0">
+          {/* Sağ / Alt: Bağımsız Kaydırılan Stüdyo Özelleştirme Kontrolleri */}
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 md:p-5 space-y-3 md:space-y-4">
+            {/* Mobilde yükleme / yedek eser uyarısı */}
+            {contentMode !== 'ar' && (resolvedMealInfo.isLoading || resolvedMealInfo.isFallback) && (
+              <div className="md:hidden flex flex-wrap items-center gap-1.5 text-[11px]">
+                {resolvedMealInfo.isLoading && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-surface-soft)] text-[var(--text-secondary)] font-bold">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Seçili eser yükleniyor…
+                  </span>
+                )}
+                {resolvedMealInfo.isFallback && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] font-bold">
+                    Seçili eserde kayıt yok · {resolvedMealDef.shortLabel} gösteriliyor
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* 1. İçerik Seçici */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
@@ -1623,7 +1686,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                         sfxService.play('click');
                         setContentMode(item.id);
                       }}
-                      className={`min-h-[40px] px-2 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      className={`min-h-[36px] md:min-h-[40px] px-1.5 md:px-2 py-1.5 md:py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                         active
                           ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-xs'
                           : 'bg-[var(--bg-surface-soft)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]'
@@ -1652,7 +1715,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                         sfxService.play('click');
                         setAspectRatio(preset.id);
                       }}
-                      className={`min-h-[44px] px-2.5 py-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      className={`min-h-[36px] md:min-h-[44px] px-2 md:px-2.5 py-1.5 md:py-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 md:gap-2 ${
                         active
                           ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-xs'
                           : 'bg-[var(--bg-surface-soft)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:text-[var(--text-primary)]'
@@ -1677,8 +1740,8 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
               </div>
             </div>
 
-            {/* 3. Arka Fon (8 Özgün Muallimun Paleti) */}
-            <div className="space-y-2">
+            {/* 3. Arka Fon (8 Özgün Muallimun Paleti — Mobilde Tek Satır 8 Daire) */}
+            <div className="space-y-1.5 md:space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   Arka Fon
@@ -1687,7 +1750,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                   {palette.label}
                 </span>
               </div>
-              <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-4 lg:grid-cols-8 gap-2">
+              <div className="grid grid-cols-8 md:grid-cols-4 lg:grid-cols-8 gap-1.5 md:gap-2">
                 {CARD_PALETTE_ORDER.map((themeKey) => {
                   const p = CARD_PALETTES[themeKey];
                   const active = cardTheme === themeKey;
@@ -1702,7 +1765,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                       title={p.label}
                       aria-label={`Arka fon: ${p.label}`}
                       aria-pressed={active}
-                      className={`group relative mx-auto w-9 h-9 rounded-full flex items-center justify-center transition-transform cursor-pointer ${
+                      className={`group relative mx-auto w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-transform cursor-pointer ${
                         active
                           ? 'ring-2 ring-offset-2 ring-[var(--brand-primary)] ring-offset-[var(--bg-surface)] scale-105'
                           : 'hover:scale-105 opacity-90 hover:opacity-100'
@@ -1714,7 +1777,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                     >
                       {active && (
                         <Check
-                          className="w-4 h-4 stroke-[2.75]"
+                          className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.75]"
                           style={{ color: p.isDark ? '#FFFFFF' : '#0F172A' }}
                         />
                       )}
@@ -1725,7 +1788,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
             </div>
 
             {/* 4. Bağımsız Yazı Boyutlandırma (Âyet + Meal) */}
-            <div className="space-y-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] p-3">
+            <div className="space-y-1.5 md:space-y-2.5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] p-2.5 md:p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                   Yazı Boyutları
@@ -1859,88 +1922,209 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
           </div>
         </div>
 
-        {/* Alt Aksiyon Çubuğu (Mobilde Sabit) */}
-        <div className="sticky bottom-0 z-10 px-4 md:px-6 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3.5 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            type="button"
-            disabled={isRendering}
-            onClick={() => void handleDownloadPng()}
-            className="flex-1 min-w-[155px] min-h-[44px] px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
-          >
-            {isRendering ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            <span>PNG Kart İndir</span>
-          </button>
-
-          {canCopyImage && (
+        {/* Alt Aksiyon Çubuğu — Mobilde Tek Satır (PNG İndir | Paylaş | Kopyala ▴), Masaüstünde Tam Bar */}
+        <div className="sticky bottom-0 z-10 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] shrink-0">
+          {/* Mobil Tek Satır Alt Bar (< md) */}
+          <div className="flex md:hidden items-center gap-1.5 px-3 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))]">
             <button
               type="button"
               disabled={isRendering}
-              onClick={() => void handleCopyImage()}
-              className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--brand-primary)] text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+              onClick={() => void handleDownloadPng()}
+              className="flex-1 min-h-[42px] px-3 py-2 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap"
             >
-              {copiedImage ? (
+              {isRendering ? (
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+              ) : (
+                <Download className="w-4 h-4 shrink-0" />
+              )}
+              <span>PNG İndir</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isRendering}
+              onClick={() => void handleNativeShare()}
+              className="min-h-[42px] px-3.5 py-2 rounded-xl border border-[var(--brand-primary)]/45 bg-[var(--brand-primary-soft)] text-[var(--brand-primary-text)] text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60 whitespace-nowrap shrink-0"
+            >
+              <Share2 className="w-4 h-4 shrink-0" />
+              <span>Paylaş</span>
+            </button>
+
+            <div ref={mobileCopyMenuRef} className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  sfxService.play('click');
+                  setIsMobileCopyMenuOpen((v) => !v);
+                }}
+                aria-expanded={isMobileCopyMenuOpen}
+                aria-haspopup="menu"
+                className="min-h-[42px] px-3 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] text-xs font-bold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                {copied || copiedLink || copiedImage ? (
+                  <Check className="w-3.5 h-3.5 text-[var(--state-success)] shrink-0" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span>Kopyala</span>
+                <ChevronUp
+                  className={`w-3.5 h-3.5 shrink-0 transition-transform ${
+                    isMobileCopyMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {isMobileCopyMenuOpen && (
+                <div
+                  role="menu"
+                  aria-label="Kopyalama seçenekleri"
+                  className="absolute right-0 bottom-[calc(100%+8px)] z-30 w-52 rounded-2xl border p-1.5 shadow-xl space-y-1"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-strong)',
+                  }}
+                >
+                  {canCopyImage && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={isRendering}
+                      onClick={() => {
+                        setIsMobileCopyMenuOpen(false);
+                        void handleCopyImage();
+                      }}
+                      className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] text-[var(--text-primary)] cursor-pointer disabled:opacity-60"
+                    >
+                      {copiedImage ? (
+                        <Check className="w-4 h-4 text-[var(--state-success)] shrink-0" />
+                      ) : (
+                        <ImageIcon className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
+                      )}
+                      <span>{copiedImage ? 'Görsel Kopyalandı' : 'Görseli Kopyala'}</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsMobileCopyMenuOpen(false);
+                      void handleCopyText();
+                    }}
+                    className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] text-[var(--text-primary)] cursor-pointer"
+                  >
+                    {copied ? (
+                      <Check className="w-4 h-4 text-[var(--state-success)] shrink-0" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
+                    )}
+                    <span>{copied ? 'Metin Kopyalandı' : 'Metni Kopyala'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsMobileCopyMenuOpen(false);
+                      void handleCopyLink();
+                    }}
+                    className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold flex items-center gap-2 hover:bg-[var(--bg-surface-soft)] text-[var(--text-primary)] cursor-pointer"
+                  >
+                    {copiedLink ? (
+                      <Check className="w-4 h-4 text-[var(--state-success)] shrink-0" />
+                    ) : (
+                      <Link2 className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
+                    )}
+                    <span>{copiedLink ? 'Link Kopyalandı' : 'Ayet Linkini Kopyala'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Masaüstü Tam Alt Bar (md+) */}
+          <div className="hidden md:flex px-6 py-3.5 flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={isRendering}
+              onClick={() => void handleDownloadPng()}
+              className="flex-1 min-w-[155px] min-h-[44px] px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white text-sm font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
+            >
+              {isRendering ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span>PNG Kart İndir</span>
+            </button>
+
+            {canCopyImage && (
+              <button
+                type="button"
+                disabled={isRendering}
+                onClick={() => void handleCopyImage()}
+                className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--brand-primary)] text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+              >
+                {copiedImage ? (
+                  <>
+                    <Check className="w-4 h-4 text-[var(--state-success)]" />
+                    <span>Görsel Kopyalandı</span>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Görseli Kopyala</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            <button
+              type="button"
+              disabled={isRendering}
+              onClick={() => void handleNativeShare()}
+              className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--brand-primary-text)] hover:border-[var(--brand-primary)] text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Paylaş</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleCopyText()}
+              className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--brand-primary)] text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              {copied ? (
                 <>
                   <Check className="w-4 h-4 text-[var(--state-success)]" />
-                  <span>Görsel Kopyalandı</span>
+                  <span>Kopyalandı</span>
                 </>
               ) : (
                 <>
-                  <ImageIcon className="w-4 h-4" />
-                  <span>Görseli Kopyala</span>
+                  <Copy className="w-4 h-4" />
+                  <span>Metni Kopyala</span>
                 </>
               )}
             </button>
-          )}
 
-          <button
-            type="button"
-            disabled={isRendering}
-            onClick={() => void handleNativeShare()}
-            className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--brand-primary-text)] hover:border-[var(--brand-primary)] text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>Paylaş</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => void handleCopyText()}
-            className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--brand-primary)] text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-[var(--state-success)]" />
-                <span>Kopyalandı</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>Metni Kopyala</span>
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => void handleCopyLink()}
-            className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--brand-primary)] text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            {copiedLink ? (
-              <>
-                <Check className="w-4 h-4 text-[var(--state-success)]" />
-                <span>Link Kopyalandı</span>
-              </>
-            ) : (
-              <>
-                <Link2 className="w-4 h-4" />
-                <span>Ayet Linkini Kopyala</span>
-              </>
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={() => void handleCopyLink()}
+              className="min-h-[44px] px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--brand-primary)] text-sm font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              {copiedLink ? (
+                <>
+                  <Check className="w-4 h-4 text-[var(--state-success)]" />
+                  <span>Link Kopyalandı</span>
+                </>
+              ) : (
+                <>
+                  <Link2 className="w-4 h-4" />
+                  <span>Ayet Linkini Kopyala</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
