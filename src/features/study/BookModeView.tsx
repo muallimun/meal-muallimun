@@ -45,6 +45,7 @@ import {
   hasActiveBackStackEntries,
   useBackButtonGuard,
 } from '../../services/backStackService';
+import { BookScrollRail } from './BookScrollRail';
 import { DraggableVerseInspector } from './DraggableVerseInspector';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
@@ -113,6 +114,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     audioPrefs,
     selectedVerseKey,
     setSelectedVerseKey,
+    isMobileReaderImmersive,
   } = useAppStore();
 
   const { getCount: getMutashabihatCount } = useMutashabihatData(true);
@@ -156,6 +158,8 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   const activeMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const arPopoverRef = useRef<HTMLDivElement | null>(null);
   const arClickPointRef = useRef<{ x: number; y: number } | null>(null);
+  const articleRef = useRef<HTMLElement | null>(null);
+  const [isDesktopRailVisible, setIsDesktopRailVisible] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -747,12 +751,17 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
       className={`space-y-3 ${isAnyAudioVisible ? 'pb-24 lg:pb-0' : 'pb-3 lg:pb-0'}`}
       onClick={handleContainerTap}
     >
-      {/* Kitap Sayfası Çerçevesi (Mükerrer üst filtre kutusu kaldırıldı — doğrudan odak kitap sayfası) */}
-      <article
-        className={`${
-          isDoubleBookLayout ? 'max-w-6xl' : 'max-w-3xl'
-        } mx-auto surface-card rounded-2xl sm:rounded-3xl border border-[var(--border-strong)]/80 overflow-hidden shadow-md transition-all`}
-      >
+      {/* Kitap Sayfası Çerçevesi + Masaüstü Kitap Kenarı Akıllı Kaydırma Rayı */}
+      <div className="flex items-start justify-center gap-3">
+        {isDesktopRailVisible && (
+          <div aria-hidden="true" className="hidden xl:block w-10 shrink-0" />
+        )}
+        <article
+          ref={articleRef}
+          className={`${
+            isDoubleBookLayout ? 'max-w-6xl' : 'max-w-3xl'
+          } w-full flex-1 min-w-0 surface-card rounded-2xl sm:rounded-3xl border border-[var(--border-strong)]/80 overflow-hidden shadow-md transition-all`}
+        >
         {/* Kitap Serlevha Başlığı */}
         <header className="book-serlevha-header px-4 py-3.5 sm:px-8 sm:py-5 border-b border-[var(--border-subtle)] text-center">
           <div className="flex items-center justify-between gap-2 mb-2">
@@ -1599,6 +1608,17 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           </button>
         </footer>
       </article>
+        <BookScrollRail
+          articleRef={articleRef}
+          verses={visibleVerses}
+          totalAyahs={bundle.surahMeta.ayahCount}
+          theme={settings.theme}
+          isAnyAudioVisible={isAnyAudioVisible}
+          isMobileImmersive={isMobileReaderImmersive}
+          layoutKey={`${bundle.surahMeta.no}:${bookMode}:${isDoubleBookLayout ? 'dual' : 'single'}:${settings.arabicFontSize}:${settings.turkishFontSize}:${onlyFavorites ? 'fav' : 'all'}:${visibleVerses.length}`}
+          onDesktopRailVisibilityChange={setIsDesktopRailVisible}
+        />
+      </div>
 
       {/* ====================================================================
           SADECE ARAPÇA (ar_only) BAĞLAMSAL MEAL & HIZLI İŞLEM POPOVER / ALT ÇEKMECE

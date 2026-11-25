@@ -128,6 +128,8 @@
   --font-arabic: "Şeyh Hamdullah Klasik", "Elif Mushaf Hattı", serif;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --bottom-nav-h: calc(3.75rem + max(0.35rem, env(safe-area-inset-bottom, 0px)) + 1px);
+  --scrollbar-thumb: #9ab3b0;
+  --scrollbar-thumb-hover: #0f766e;
 }
 
 [data-theme="cream"] {
@@ -154,6 +156,8 @@
   --state-danger-text: #b91c1c;
   --state-danger-bg: rgba(239, 68, 68, 0.08);
   --shadow-card: 0 1px 2px rgba(56, 42, 20, 0.05), 0 6px 20px rgba(56, 42, 20, 0.06);
+  --scrollbar-thumb: #b59c72;
+  --scrollbar-thumb-hover: #0f766e;
 }
 
 [data-theme="dark"],
@@ -181,6 +185,8 @@
   --state-danger-text: #fca5a5;
   --state-danger-bg: rgba(239, 68, 68, 0.16);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.22);
+  --scrollbar-thumb: #3c5d63;
+  --scrollbar-thumb-hover: #2dd4bf;
 }
 
 @layer base {
@@ -190,6 +196,7 @@
     font-family: var(--font-turkish);
     scroll-behavior: smooth;
     overflow-x: clip;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
 
   body {
@@ -418,20 +425,23 @@
   padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
 }
 
-/* İnce Özel Kaydırma Çubuğu */
+/* Belirgin & Tema Uyumlu Genel Kaydırma Çubuğu */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+  background-color: var(--scrollbar-thumb);
   border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color 150ms ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background-color: var(--scrollbar-thumb-hover);
 }
 
 /* Bağımsız Mushaf / Meal Panelleri İçin Tema Uyumlu İnce Kaydırma Çubuğu */
