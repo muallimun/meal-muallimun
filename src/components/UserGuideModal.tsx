@@ -39,9 +39,8 @@ import { OfflinePackCard } from './OfflinePackCard';
 const APP_SHARE_URL = 'https://kuran.muallimun.net/';
 const APP_SHARE_TITLE = "Muallimun Kur'an, Meal & Araştırma Platformu";
 const APP_SHARE_SHORT_TEXT =
-  "Muallimun Kur'an, Meal & Araştırma Platformu — 604 sayfa Diyanet Mushafı, 27 meal & tefsir karşılaştırma, kelime takipli sesli tilavet, ezber atölyesi ve sınav merkezi ücretsiz ve reklamsız bir arada:";
-const APP_SHARE_MESSAGE =
-  "Muallimun Kur'an, Meal & Araştırma Platformu — 604 sayfa Diyanet Mushafı, 27 meal & tefsir karşılaştırma, kelime takipli sesli tilavet, ezber atölyesi ve sınav merkezi ücretsiz ve reklamsız bir arada: https://kuran.muallimun.net/";
+  "Kur'an-ı Kerim okuma, 27 meal & tefsir, kelime takipli tilavet, ezber atölyesi ve sınav merkezi ücretsiz ve reklamsız bir arada. İncelemenizi tavsiye ederim.";
+const APP_SHARE_FULL_MESSAGE = `${APP_SHARE_SHORT_TEXT}\n\n${APP_SHARE_URL}`;
 
 interface GuideTabMeta {
   id: UserGuideTabId;
@@ -629,7 +628,7 @@ export const UserGuideModal: React.FC = () => {
         // Desteklenmeyen/reddedilen ortamda pano yedeğine düş
       }
     }
-    const ok = await copyTextToClipboard(APP_SHARE_MESSAGE);
+    const ok = await copyTextToClipboard(APP_SHARE_FULL_MESSAGE);
     if (ok) {
       setShareToast('Paylaşım bağlantısı kopyalandı');
       scheduleTimer(() => setShareToast(null), 2600);
@@ -702,7 +701,7 @@ export const UserGuideModal: React.FC = () => {
 
   if (!isUserGuideOpen) return null;
 
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(APP_SHARE_MESSAGE)}`;
+  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(APP_SHARE_FULL_MESSAGE)}`;
   const telegramHref = `https://t.me/share/url?url=${encodeURIComponent(APP_SHARE_URL)}&text=${encodeURIComponent(APP_SHARE_SHORT_TEXT)}`;
 
   const renderAppShareCard = () => (
