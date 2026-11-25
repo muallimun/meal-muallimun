@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowLeftRight,
   BookMarked,
@@ -11,6 +12,7 @@ import {
   FileText,
   Headphones,
   Info,
+  Layers,
   Link2,
   ListPlus,
   MoreHorizontal,
@@ -22,6 +24,7 @@ import {
   Star,
   StickyNote,
   Volume2,
+  X,
 } from 'lucide-react';
 import {
   AyahEndMarker,
@@ -38,7 +41,11 @@ import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReferenceData';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
-import { hasActiveBackStackEntries } from '../../services/backStackService';
+import {
+  hasActiveBackStackEntries,
+  useBackButtonGuard,
+} from '../../services/backStackService';
+import { DraggableVerseInspector } from './DraggableVerseInspector';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import { SAJDAH_AYAH_IDS } from '../../services/dataService';
@@ -55,6 +62,7 @@ import type {
   SurahBundle,
   SurahMeta,
 } from '../../types/quran';
+import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import {
   formatSafeArabicTitle,
   formatSurahTitle,
@@ -90,6 +98,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 }) => {
   const {
     settings,
+    studyPrefs,
     studyProgress,
     toggleBookmarkAyah,
     moveHatimBookmark,
@@ -133,7 +142,20 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   const [openMenuAyahId, setOpenMenuAyahId] = useState<number | null>(null);
   const [openFootnoteAyahId, setOpenFootnoteAyahId] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [inspectorVerse, setInspectorVerse] = useState<CombinedVerse | null>(null);
+  const [isArPopoverOpen, setIsArPopoverOpen] = useState(false);
+  const [isArPopoverMoreOpen, setIsArPopoverMoreOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false,
+  );
+  const [arPopoverPos, setArPopoverPos] = useState<{
+    left: number;
+    top?: number;
+    bottom?: number;
+  } | null>(null);
   const activeMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const arPopoverRef = useRef<HTMLDivElement | null>(null);
+  const arClickPointRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -252,16 +274,155 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     return bundle.verses.find((v) => v.ayah === a) ?? null;
   }, [bundle.surahMeta.no, bundle.verses, selectedVerseKey]);
 
-  const handleToggleSelectVerse = (verse: CombinedVerse) => {
+  const isArPopoverVisible =
+    bookMode === 'ar_only' && Boolean(selectedArabicVerse) && isArPopoverOpen;
+
+  const closeArPopover = useCallback(() => {
+    setIsArPopoverOpen(false);
+    setIsArPopoverMoreOpen(false);
+    setSelectedVerseKey(null);
+  }, [setSelectedVerseKey]);
+
+  // Ekran boyutu (< 640px mobil alt çekmece / >= 640px yüzen popover) takibi
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 639px)');
+    const sync = () => setIsMobileViewport(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  // Mod veya sure değiştiğinde ar_only popover'ı temiz kapat
+  useEffect(() => {
+    if (bookMode !== 'ar_only' || !selectedArabicVerse) {
+      setIsArPopoverOpen(false);
+      setIsArPopoverMoreOpen(false);
+    }
+  }, [bookMode, selectedArabicVerse]);
+
+  useBackButtonGuard('book_ar_popover', isArPopoverVisible, closeArPopover);
+
+  // Masaüstü / Tablet yüzen popover konum hesabı (scroll ve resize ile güncel)
+  const updateArPopoverPosition = useCallback(() => {
+    if (typeof window === 'undefined' || !selectedArabicVerse) return;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    if (vw < 640) {
+      setArPopoverPos(null);
+      return;
+    }
+
+    const popW = Math.min(416, vw - 32);
+    const el = document.getElementById(`book-ayah-${selectedArabicVerse.id}`);
+    const clickPt = arClickPointRef.current;
+
+    if (!el) {
+      setArPopoverPos({
+        left: Math.max(16, Math.round((vw - popW) / 2)),
+        top: Math.max(16, Math.round(vh * 0.25)),
+      });
+      return;
+    }
+
+    const rect = el.getBoundingClientRect();
+    const anchorX = clickPt ? clickPt.x : rect.left + rect.width / 2;
+    const left = Math.round(
+      Math.min(Math.max(16, anchorX - popW / 2), Math.max(16, vw - popW - 16)),
+    );
+
+    const spaceBelow = vh - rect.bottom;
+    const spaceAbove = rect.top;
+
+    if (spaceBelow >= 260) {
+      setArPopoverPos({
+        left,
+        top: Math.max(12, Math.round(rect.bottom + 10)),
+      });
+    } else if (spaceAbove >= 260) {
+      setArPopoverPos({
+        left,
+        bottom: Math.max(12, Math.round(vh - rect.top + 10)),
+      });
+    } else {
+      const refY = clickPt ? clickPt.y : Math.round(vh / 2);
+      if (vh - refY >= 260) {
+        setArPopoverPos({
+          left,
+          top: Math.max(12, Math.min(Math.round(refY + 14), vh - 260)),
+        });
+      } else {
+        setArPopoverPos({
+          left,
+          bottom: Math.max(12, Math.min(Math.round(vh - refY + 14), vh - 260)),
+        });
+      }
+    }
+  }, [selectedArabicVerse]);
+
+  useEffect(() => {
+    if (!isArPopoverVisible) return;
+    updateArPopoverPosition();
+
+    const onScrollOrResize = () => updateArPopoverPosition();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeArPopover();
+      }
+    };
+    const onPointerDown = (e: MouseEvent) => {
+      if (window.innerWidth < 640) return;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (arPopoverRef.current?.contains(target)) return;
+      if (target.closest('[data-book-ar-verse="true"]')) return;
+      closeArPopover();
+    };
+
+    window.addEventListener('scroll', onScrollOrResize, { capture: true, passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
+    window.addEventListener('keydown', onKeyDown);
+    document.addEventListener('mousedown', onPointerDown);
+
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('mousedown', onPointerDown);
+    };
+  }, [isArPopoverVisible, updateArPopoverPosition, closeArPopover]);
+
+  // Mobil alt çekmece açıkken arka plan kaydırmasını kilitle
+  useEffect(() => {
+    if (!isArPopoverVisible || !isMobileViewport) return;
+    return acquireBodyScrollLock();
+  }, [isArPopoverVisible, isMobileViewport]);
+
+  const handleToggleSelectVerse = (
+    verse: CombinedVerse,
+    event?: React.MouseEvent<HTMLElement>,
+  ) => {
     const sel = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : '';
     if (sel) return;
     sfxService.play('click');
     const key = `${verse.surah}:${verse.ayah}`;
-    if (selectedVerseKey === key) {
+    if (selectedVerseKey === key && (bookMode !== 'ar_only' || isArPopoverOpen)) {
       setSelectedVerseKey(null);
+      setIsArPopoverOpen(false);
+      setIsArPopoverMoreOpen(false);
       return;
     }
+    if (event) {
+      arClickPointRef.current = { x: event.clientX, y: event.clientY };
+    } else {
+      arClickPointRef.current = null;
+    }
     setSelectedVerseKey(key);
+    setIsArPopoverMoreOpen(false);
+    if (bookMode === 'ar_only') {
+      setIsArPopoverOpen(true);
+    }
     audioQueueService.syncPausedSelection(verse, meta);
   };
 
@@ -302,7 +463,6 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     const originalIdx = verseIndexMap.get(verse.id) ?? 0;
     const isBookmarked = bookmarkedSet.has(verse.id);
     const isMenuOpen = openMenuAyahId === verse.id;
-    const showLabeledPlayActions = isSelected || isPlaying;
 
     return (
       <div
@@ -317,34 +477,15 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           }}
           title="Bu ayetten itibaren kesintisiz dinle"
           aria-label={`${verse.ayah}. ayetten itibaren dinle`}
-          className={`inline-flex items-center justify-center gap-1 h-8 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-            showLabeledPlayActions
-              ? 'px-2.5 bg-[var(--brand-primary)] text-white shadow-xs hover:opacity-90'
-              : 'w-8 sm:w-auto sm:px-2 text-[var(--text-secondary)] sm:opacity-75 sm:group-hover:opacity-100 hover:bg-[var(--brand-primary-soft)] hover:text-[var(--brand-primary-text)]'
+          className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors cursor-pointer ${
+            isPlaying
+              ? 'bg-[var(--brand-primary)] text-white shadow-xs hover:opacity-90'
+              : isSelected
+                ? 'bg-[var(--brand-primary-soft)] text-[var(--brand-primary-text)] hover:opacity-90'
+                : 'text-[var(--text-muted)] hover:bg-[var(--brand-primary-soft)] hover:text-[var(--brand-primary-text)]'
           }`}
         >
-          <Play className="w-3.5 h-3.5 fill-current shrink-0" />
-          <span className={showLabeledPlayActions ? 'inline' : 'hidden sm:inline'}>
-            Buradan Dinle
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setSelectedVerseKey(`${verse.surah}:${verse.ayah}`);
-            onPlayFromAyah(originalIdx, 'meal');
-          }}
-          title="Bu ayetten itibaren Türkçe sesli mealini dinle"
-          aria-label={`${verse.ayah}. ayetten itibaren sesli meal dinle`}
-          className={`inline-flex items-center justify-center gap-1 h-8 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-            showLabeledPlayActions
-              ? 'px-2.5 bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border border-[var(--brand-accent)]/40 hover:opacity-90'
-              : 'hidden sm:inline-flex sm:px-2 text-[var(--brand-accent-text)] sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 hover:bg-[var(--brand-accent-soft)]'
-          }`}
-        >
-          <Volume2 className="w-3.5 h-3.5 shrink-0" />
-          <span>Sesli Meal</span>
+          <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current shrink-0" />
         </button>
 
         <button
@@ -352,7 +493,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           onClick={() => toggleBookmarkAyah(verse.id)}
           title={isBookmarked ? 'Favorilerden çıkar' : 'Favorilere ekle'}
           aria-label={isBookmarked ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-          className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors cursor-pointer ${
+          className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg transition-colors cursor-pointer ${
             isBookmarked
               ? 'text-[var(--brand-accent-text)] bg-[var(--brand-accent-soft)]'
               : 'text-[var(--text-muted)] hover:bg-[var(--bg-surface-soft)] hover:text-[var(--text-primary)]'
@@ -371,7 +512,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           title="Diğer işlemler"
           aria-label="Ayet işlem menüsü"
           aria-expanded={isMenuOpen}
-          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-surface-soft)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+          className="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-surface-soft)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
         >
           <MoreHorizontal className="w-4 h-4" />
         </button>
@@ -382,6 +523,33 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           title={`${verse.surah}:${verse.ayah} · Ayet İşlemleri`}
           triggerRef={activeMenuTriggerRef}
         >
+            <button
+              type="button"
+              onClick={() => {
+                setOpenMenuAyahId(null);
+                sfxService.play('click');
+                setSelectedVerseKey(`${verse.surah}:${verse.ayah}`);
+                onPlayFromAyah(originalIdx, 'meal');
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
+            >
+              <Headphones className="w-4 h-4 text-[var(--brand-accent-text)]" />
+              <span>Sesli Mealini Dinle</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOpenMenuAyahId(null);
+                sfxService.play('click');
+                setInspectorVerse(verse);
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
+            >
+              <Layers className="w-4 h-4 text-[var(--brand-primary-text)]" />
+              <span>Kelime Analizi &amp; Detay</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -519,18 +687,6 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                 </span>
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={() => {
-                setOpenMenuAyahId(null);
-                onPlayFromAyah(originalIdx, 'meal');
-              }}
-              className="w-full min-h-[40px] px-3 py-2 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 cursor-pointer"
-            >
-              <Headphones className="w-4 h-4 text-[var(--brand-primary-text)]" />
-              <span>Sesli Mealini Dinle</span>
-            </button>
 
             <button
               type="button"
@@ -850,6 +1006,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                         <span
                           key={verse.id}
                           id={`book-ayah-${verse.id}`}
+                          data-book-ar-verse="true"
                           role="button"
                           tabIndex={0}
                           title={
@@ -858,8 +1015,14 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               : `${bundle.surahMeta.nameTr} ${verse.ayah}. Ayet`
                           }
                           onClick={(e) => {
+                            const target = e.target as HTMLElement | null;
+                            if (
+                              target?.closest('[data-tajweed-rule], [data-waqf-sign], [data-ruku-badge]')
+                            ) {
+                              return;
+                            }
                             e.stopPropagation();
-                            handleToggleSelectVerse(verse);
+                            handleToggleSelectVerse(verse, e);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -942,229 +1105,6 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   </div>
                 );
               })()}
-
-              {/* Seçili Arapça Ayet İşlem Çubuğu */}
-              {selectedArabicVerse && (
-                <div className="sticky bottom-24 z-20 rounded-2xl bg-[var(--bg-surface)] border-2 border-[var(--brand-primary)]/40 shadow-xl p-3.5 space-y-2.5">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-extrabold text-[var(--brand-primary-text)]">
-                        {formatSurahTitle(bundle.surahMeta.nameTr, bundle.surahMeta.no)}, {selectedArabicVerse.ayah}. Ayet
-                      </span>
-                      {SAJDAH_AYAH_IDS.has(selectedArabicVerse.id) && settings.highlightSajdah && (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-extrabold whitespace-nowrap"
-                          style={{
-                            backgroundColor: 'var(--brand-accent-soft)',
-                            borderColor: 'rgba(217, 119, 6, 0.5)',
-                            color: 'var(--brand-accent-text)',
-                          }}
-                        >
-                          <span>۩</span>
-                          <span>Tilâvet Secdesi Ayeti</span>
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedVerseKey(null)}
-                      className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)] px-2 py-1 cursor-pointer"
-                    >
-                      Kapat
-                    </button>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onPlayFromAyah(verseIndexMap.get(selectedArabicVerse.id) ?? 0)
-                      }
-                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Buradan Dinle</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onPlayFromAyah(verseIndexMap.get(selectedArabicVerse.id) ?? 0, 'meal')
-                      }
-                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--brand-primary-soft)] text-[var(--brand-primary-text)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Headphones className="w-3.5 h-3.5" />
-                      <span>Sesli Meal</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleBookmarkAyah(selectedArabicVerse.id)}
-                      className={`min-h-[42px] px-3.5 py-2 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer ${
-                        bookmarkedSet.has(selectedArabicVerse.id)
-                          ? 'bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] border-[var(--brand-accent)]'
-                          : 'bg-[var(--bg-surface-soft)] text-[var(--text-primary)] border-[var(--border-subtle)]'
-                      }`}
-                    >
-                      <Star
-                        className={`w-3.5 h-3.5 ${
-                          bookmarkedSet.has(selectedArabicVerse.id) ? 'fill-current' : ''
-                        }`}
-                      />
-                      <span>
-                        {bookmarkedSet.has(selectedArabicVerse.id) ? 'Favoride' : 'Favorile'}
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openVerseNoteModal(
-                          selectedArabicVerse.surah,
-                          selectedArabicVerse.ayah,
-                          selectedArabicVerse.page,
-                        )
-                      }
-                      className="min-h-[42px] px-3.5 py-2 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                      style={(() => {
-                        const existing = verseNotesMap.get(
-                          makeVerseNoteKey(selectedArabicVerse.surah, selectedArabicVerse.ayah),
-                        );
-                        if (!existing) {
-                          return {
-                            backgroundColor: 'var(--bg-surface-soft)',
-                            borderColor: 'var(--border-subtle)',
-                            color: 'var(--text-primary)',
-                          };
-                        }
-                        const st = VERSE_NOTE_COLOR_STYLES[existing.color];
-                        return {
-                          backgroundColor: st.softBg,
-                          borderColor: st.border,
-                          color: st.badgeText,
-                        };
-                      })()}
-                    >
-                      <StickyNote className="w-3.5 h-3.5" />
-                      <span>
-                        {verseNotesMap.has(
-                          makeVerseNoteKey(selectedArabicVerse.surah, selectedArabicVerse.ayah),
-                        )
-                          ? 'Notumu Düzenle'
-                          : 'Ayet Notu'}
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => onShareVerse(selectedArabicVerse, bundle.surahMeta)}
-                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface-soft)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Share2 className="w-3.5 h-3.5 text-[var(--brand-accent-text)]" />
-                      <span>Paylaş Kartı</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        openQuickMemorize(
-                          selectedArabicVerse.surah,
-                          selectedArabicVerse.ayah,
-                          selectedArabicVerse.page,
-                        );
-                      }}
-                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--brand-primary-soft)] border border-[var(--brand-primary)]/40 text-[var(--brand-primary-text)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <BookMarked className="w-3.5 h-3.5" />
-                      <span>Buradan Ezber Başlat</span>
-                    </button>
-
-                    {getMutashabihatCount(selectedArabicVerse.surah, selectedArabicVerse.ayah) >
-                      0 && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openMutashabihat(selectedArabicVerse.surah, selectedArabicVerse.ayah)
-                        }
-                        className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--brand-accent-soft)] border border-[var(--brand-accent)]/40 text-[var(--brand-accent-text)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <ArrowLeftRight className="w-3.5 h-3.5" />
-                        <span>
-                          Benzer Ayetler (
-                          {getMutashabihatCount(selectedArabicVerse.surah, selectedArabicVerse.ayah)}
-                          )
-                        </span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        openMealCompare(selectedArabicVerse.surah, selectedArabicVerse.ayah);
-                      }}
-                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface-soft)] border border-[var(--brand-primary)]/40 text-[var(--brand-primary-text)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Scale className="w-3.5 h-3.5" />
-                      <span>Mealleri Karşılaştır ({MEALS_CATALOG.length})</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        if (manifest && meta) {
-                          void audioQueueService.startSegmentQueue({
-                            items: [
-                              {
-                                id: `loop_${selectedArabicVerse.id}`,
-                                type: 'ayah_range',
-                                label: `${bundle.surahMeta.nameTr} ${selectedArabicVerse.ayah}. Ayet`,
-                                surah: selectedArabicVerse.surah,
-                                startAyah: selectedArabicVerse.ayah,
-                                endAyah: selectedArabicVerse.ayah,
-                              },
-                            ],
-                            title: `${bundle.surahMeta.nameTr} ${selectedArabicVerse.ayah}. Ayet`,
-                            context: 'single',
-                            contextKey: `single:${selectedArabicVerse.id}`,
-                            manifest,
-                            meta,
-                            prefs: audioPrefs,
-                            queueLoopOverride: 'infinite',
-                          });
-                        }
-                      }}
-                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface-soft)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Repeat className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
-                      <span>Döngüde Dinle</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        openListeningDrawer({
-                          initialTab: 'playlists',
-                          pendingAddItem: {
-                            type: 'ayah_range',
-                            label: `${bundle.surahMeta.nameTr} ${selectedArabicVerse.ayah}. Ayet`,
-                            surah: selectedArabicVerse.surah,
-                            startAyah: selectedArabicVerse.ayah,
-                            endAyah: selectedArabicVerse.ayah,
-                          },
-                        });
-                      }}
-                      className="min-h-[42px] px-3.5 py-2 rounded-xl bg-[var(--bg-surface-soft)] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <ListPlus className="w-3.5 h-3.5 text-[var(--brand-primary-text)]" />
-                      <span>Listeye Ekle</span>
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             /* 2. SADECE TÜRKÇE MEAL veya 3. ARAPÇA + MEAL KİTAP AKIŞI */
@@ -1659,6 +1599,528 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           </button>
         </footer>
       </article>
+
+      {/* ====================================================================
+          SADECE ARAPÇA (ar_only) BAĞLAMSAL MEAL & HIZLI İŞLEM POPOVER / ALT ÇEKMECE
+          ==================================================================== */}
+      {isArPopoverVisible &&
+        selectedArabicVerse &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          (() => {
+            const v = selectedArabicVerse;
+            const originalIdx = verseIndexMap.get(v.id) ?? 0;
+            const isPlaying = playingAyahId === v.id && audioState.activePhase !== 'besmele';
+            const isBookmarked = bookmarkedSet.has(v.id);
+            const isSajdah = SAJDAH_AYAH_IDS.has(v.id) && settings.highlightSajdah;
+            const mutashabihatCount = getMutashabihatCount(v.surah, v.ayah);
+            const existingNote = verseNotesMap.get(makeVerseNoteKey(v.surah, v.ayah));
+            const pVerse = getPrimaryVerse(v);
+            const sVerse = isDual ? getSecondaryVerse(v) : null;
+            const pPres = getMealTextPresentation(
+              primaryMeal,
+              Math.max(13, Math.min(settings.turkishFontSize, 16)),
+            );
+            const sPres = isDual
+              ? getMealTextPresentation(
+                  secondaryMeal,
+                  Math.max(13, Math.min(settings.turkishFontSize, 16)),
+                )
+              : null;
+
+            const popoverContent = (
+              <div
+                ref={arPopoverRef}
+                role="dialog"
+                aria-label={`${formatSurahTitle(bundle.surahMeta.nameTr, bundle.surahMeta.no)} ${v.ayah}. Ayet özeti ve hızlı işlemler`}
+                onClick={(e) => e.stopPropagation()}
+                className={
+                  isMobileViewport
+                    ? 'fixed inset-x-0 bottom-0 z-[100] rounded-t-2xl border-t shadow-2xl flex flex-col max-h-[82dvh] overflow-hidden'
+                    : 'fixed z-[100] w-[min(26rem,calc(100vw-2rem))] rounded-2xl border shadow-2xl flex flex-col max-h-[min(78dvh,540px)] overflow-hidden'
+                }
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-strong)',
+                  color: 'var(--text-primary)',
+                  ...(isMobileViewport
+                    ? { paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }
+                    : arPopoverPos
+                      ? {
+                          left: `${arPopoverPos.left}px`,
+                          ...(arPopoverPos.top !== undefined
+                            ? { top: `${arPopoverPos.top}px` }
+                            : {}),
+                          ...(arPopoverPos.bottom !== undefined
+                            ? { bottom: `${arPopoverPos.bottom}px` }
+                            : {}),
+                        }
+                      : { left: '16px', bottom: '16px' }),
+                }}
+              >
+                {/* Mobil Tutamak */}
+                {isMobileViewport && (
+                  <div className="pt-2 pb-0.5 flex justify-center shrink-0">
+                    <span
+                      aria-hidden="true"
+                      className="w-10 h-1 rounded-full opacity-35"
+                      style={{ backgroundColor: 'var(--text-muted)' }}
+                    />
+                  </div>
+                )}
+
+                {/* Üst Başlık Şeridi: Sol Künye + Sağ 4 Yalın İkon Butonu */}
+                <div
+                  className="px-3.5 py-2.5 border-b flex items-center justify-between gap-2 shrink-0"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-soft)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span
+                      className="text-xs font-extrabold truncate tabular-nums"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      {formatSurahTitle(bundle.surahMeta.nameTr, bundle.surahMeta.no)} · {v.ayah}.
+                      Ayet
+                    </span>
+                    {isSajdah && (
+                      <span
+                        title="Tilâvet Secdesi Ayeti"
+                        aria-label="Tilâvet Secdesi Ayeti"
+                        className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md border text-[11px] font-extrabold leading-none shrink-0"
+                        style={{
+                          backgroundColor: 'var(--brand-accent-soft)',
+                          borderColor: 'rgba(217, 119, 6, 0.5)',
+                          color: 'var(--brand-accent-text)',
+                        }}
+                      >
+                        ۩
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onPlayFromAyah(originalIdx, 'ar');
+                      }}
+                      title="Bu ayetten itibaren Arapça tilaveti dinle"
+                      aria-label="Bu ayetten itibaren Arapça tilaveti dinle"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                      style={
+                        isPlaying
+                          ? { backgroundColor: 'var(--brand-primary)', color: '#FFFFFF' }
+                          : {
+                              backgroundColor: 'var(--brand-primary-soft)',
+                              color: 'var(--brand-primary-text)',
+                            }
+                      }
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        toggleBookmarkAyah(v.id);
+                      }}
+                      title={isBookmarked ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                      aria-label={isBookmarked ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                      style={
+                        isBookmarked
+                          ? {
+                              backgroundColor: 'var(--brand-accent-soft)',
+                              color: 'var(--brand-accent-text)',
+                            }
+                          : {
+                              backgroundColor: 'var(--bg-surface)',
+                              color: 'var(--text-muted)',
+                            }
+                      }
+                    >
+                      <Star className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        setIsArPopoverMoreOpen((prev) => !prev);
+                      }}
+                      title="Diğer işlemler"
+                      aria-label="Diğer işlemler menüsünü aç veya kapat"
+                      aria-expanded={isArPopoverMoreOpen}
+                      className="w-8 h-8 rounded-lg border flex items-center justify-center transition-colors cursor-pointer"
+                      style={
+                        isArPopoverMoreOpen
+                          ? {
+                              backgroundColor: 'var(--brand-primary-soft)',
+                              borderColor: 'var(--brand-primary)',
+                              color: 'var(--brand-primary-text)',
+                            }
+                          : {
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-secondary)',
+                            }
+                      }
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        closeArPopover();
+                      }}
+                      title="Kapat"
+                      aria-label="Ayet özetini kapat"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer hover:bg-[var(--bg-surface)]"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Orta Gövde: Anında Meal Önizlemesi + Kelime Analizi & Ayet Detayı */}
+                <div className="px-3.5 py-3 space-y-2.5 overflow-y-auto min-h-0">
+                  <div className="max-h-40 overflow-y-auto pr-0.5 space-y-2.5">
+                    <div className="space-y-1">
+                      <span
+                        className="inline-block text-[10.5px] font-extrabold uppercase tracking-wider"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        {primaryMeal.shortLabel}
+                      </span>
+                      {pVerse?.t ? (
+                        <p
+                          dir={pPres.dir}
+                          lang={pPres.lang}
+                          className={`${
+                            pPres.isRtl ? pPres.className : `${pPres.className} text-left`
+                          } leading-relaxed`}
+                          style={{
+                            fontSize: `${pPres.fontSizePx}px`,
+                            fontFamily: pPres.fontFamily,
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {pVerse.t}
+                        </p>
+                      ) : isLoadingExtra ? (
+                        <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                      ) : (
+                        <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                          Meal metni yüklenemedi.
+                        </p>
+                      )}
+                    </div>
+
+                    {isDual && sPres && (
+                      <div
+                        className="pt-2 border-t border-dashed space-y-1"
+                        style={{ borderColor: 'var(--border-subtle)' }}
+                      >
+                        <span
+                          className="inline-block text-[10.5px] font-extrabold uppercase tracking-wider"
+                          style={{ color: 'var(--brand-accent-text)' }}
+                        >
+                          {secondaryMeal.shortLabel}
+                        </span>
+                        {sVerse?.t ? (
+                          <p
+                            dir={sPres.dir}
+                            lang={sPres.lang}
+                            className={`${
+                              sPres.isRtl ? sPres.className : `${sPres.className} text-left`
+                            } leading-relaxed`}
+                            style={{
+                              fontSize: `${sPres.fontSizePx}px`,
+                              fontFamily: sPres.fontFamily,
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {sVerse.t}
+                          </p>
+                        ) : isLoadingExtra ? (
+                          <div className="h-4 w-3/4 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Zarif Kelime Analizi & Ayet Detayı Satırı */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setInspectorVerse(v);
+                      setIsArPopoverOpen(false);
+                      setIsArPopoverMoreOpen(false);
+                    }}
+                    className="w-full min-h-[38px] px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center justify-between gap-2 transition-colors cursor-pointer hover:opacity-90"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      borderColor: 'var(--brand-primary)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Layers className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Kelime Analizi &amp; Ayet Detayı</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 shrink-0" />
+                  </button>
+
+                  {/* ⋯ Genişleyen İkincil İşlemler Menüsü */}
+                  {isArPopoverMoreOpen && (
+                    <div
+                      className="pt-2 border-t space-y-0.5 max-h-56 overflow-y-auto"
+                      style={{ borderColor: 'var(--border-subtle)' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          closeArPopover();
+                          onPlayFromAyah(originalIdx, 'meal');
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Headphones className="w-4 h-4 text-[var(--brand-accent-text)] shrink-0" />
+                        <span>Sesli Mealini Dinle</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setInspectorVerse(v);
+                          setIsArPopoverOpen(false);
+                          setIsArPopoverMoreOpen(false);
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Layers className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
+                        <span>Kelime Kelime Analiz &amp; Dipnot</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          closeArPopover();
+                          openMealCompare(v.surah, v.ayah);
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Scale className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
+                        <span>Mealleri Karşılaştır ({MEALS_CATALOG.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          closeArPopover();
+                          openQuickMemorize(v.surah, v.ayah, v.page);
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <BookMarked className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
+                        <span>Buradan Ezber Başlat</span>
+                      </button>
+
+                      {mutashabihatCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            closeArPopover();
+                            openMutashabihat(v.surah, v.ayah);
+                          }}
+                          className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                        >
+                          <ArrowLeftRight className="w-4 h-4 text-[var(--brand-accent-text)] shrink-0" />
+                          <span>Benzer Ayetler ({mutashabihatCount})</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          closeArPopover();
+                          openVerseNoteModal(v.surah, v.ayah, v.page);
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center justify-between gap-2 cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <StickyNote className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
+                          <span>{existingNote ? 'Ayet Notunu Düzenle' : 'Ayet Notu Ekle'}</span>
+                        </span>
+                        {existingNote && (
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: VERSE_NOTE_COLOR_STYLES[existingNote.color].dot }}
+                          />
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          closeArPopover();
+                          openQuickResearch(v.surah, v.ayah, v.ayah, v.page);
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Pin className="w-4 h-4 text-[var(--brand-accent-text)] shrink-0" />
+                        <span>Araştırmaya Ekle</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          closeArPopover();
+                          if (manifest && meta) {
+                            void audioQueueService.startSegmentQueue({
+                              items: [
+                                {
+                                  id: `loop_${v.id}`,
+                                  type: 'ayah_range',
+                                  label: `${bundle.surahMeta.nameTr} ${v.ayah}. Ayet`,
+                                  surah: v.surah,
+                                  startAyah: v.ayah,
+                                  endAyah: v.ayah,
+                                },
+                              ],
+                              title: `${bundle.surahMeta.nameTr} ${v.ayah}. Ayet`,
+                              context: 'single',
+                              contextKey: `single:${v.id}`,
+                              manifest,
+                              meta,
+                              prefs: audioPrefs,
+                              queueLoopOverride: 'infinite',
+                            });
+                          }
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Repeat className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
+                        <span>Bu Ayeti Döngüde Dinle</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          closeArPopover();
+                          openListeningDrawer({
+                            initialTab: 'playlists',
+                            pendingAddItem: {
+                              type: 'ayah_range',
+                              label: `${bundle.surahMeta.nameTr} ${v.ayah}. Ayet`,
+                              surah: v.surah,
+                              startAyah: v.ayah,
+                              endAyah: v.ayah,
+                            },
+                          });
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <ListPlus className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
+                        <span>Çalma Listesine Ekle</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          closeArPopover();
+                          onShareVerse(v, bundle.surahMeta);
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Share2 className="w-4 h-4 text-[var(--brand-accent-text)] shrink-0" />
+                        <span>Paylaşım Kartı Oluştur</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleCopyVerse(v);
+                        }}
+                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                      >
+                        {copiedId === v.id ? (
+                          <>
+                            <Check className="w-4 h-4 text-[var(--state-success)] shrink-0" />
+                            <span>Kopyalandı</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                            <span>Metni Kopyala</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+
+            return (
+              <>
+                {isMobileViewport && (
+                  <div
+                    aria-hidden="true"
+                    onClick={closeArPopover}
+                    className="fixed inset-0 z-[99] bg-black/45 backdrop-blur-[1px]"
+                  />
+                )}
+                {popoverContent}
+              </>
+            );
+          })(),
+          document.body,
+        )}
+
+      {/* ====================================================================
+          TAŞINABİLİR KOMPAKT AYET İNCELEME PENCERESİ (Kelime Analizi & Dipnot)
+          ==================================================================== */}
+      <DraggableVerseInspector
+        isOpen={Boolean(inspectorVerse)}
+        verse={inspectorVerse}
+        surahMeta={bundle.surahMeta}
+        settings={settings}
+        wordMode={studyPrefs.wordMode}
+        isBookmarked={Boolean(inspectorVerse && bookmarkedSet.has(inspectorVerse.id))}
+        isPlaying={Boolean(inspectorVerse && playingAyahId === inspectorVerse.id)}
+        onClose={() => setInspectorVerse(null)}
+        onPlayFromVerse={(v) => {
+          setSelectedVerseKey(`${v.surah}:${v.ayah}`);
+          onPlayFromAyah(verseIndexMap.get(v.id) ?? 0, 'ar');
+        }}
+        onPlayMealFromVerse={(v) => {
+          setSelectedVerseKey(`${v.surah}:${v.ayah}`);
+          onPlayFromAyah(verseIndexMap.get(v.id) ?? 0, 'meal');
+        }}
+        onToggleBookmark={toggleBookmarkAyah}
+        onShareVerse={onShareVerse}
+        onOpenSurahInfo={onOpenSurahInfo}
+      />
     </div>
   );
 };

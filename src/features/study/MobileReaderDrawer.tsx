@@ -697,13 +697,13 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                       className="text-[11px] font-semibold leading-tight"
                       style={{ color: 'var(--text-muted)' }}
                     >
-                      Arapça
+                      Arapça Boyutu
                     </span>
                     <span
                       className="text-sm font-extrabold tabular-nums leading-tight shrink-0"
                       style={{ color: 'var(--text-primary)' }}
                     >
-                      {settings.arabicFontSize}
+                      {settings.arabicFontSize}px
                     </span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -758,13 +758,13 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                       className="text-[11px] font-semibold leading-tight"
                       style={{ color: 'var(--text-muted)' }}
                     >
-                      Meal
+                      Meal Boyutu
                     </span>
                     <span
                       className="text-sm font-extrabold tabular-nums leading-tight shrink-0"
                       style={{ color: 'var(--text-primary)' }}
                     >
-                      {settings.turkishFontSize}
+                      {settings.turkishFontSize}px
                     </span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -954,67 +954,6 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                     </option>
                   ))}
                 </select>
-
-                {/* Hızlı Arapça Yazı Boyutu Kontrolü */}
-                <div
-                  className="pt-2 mt-1 border-t flex items-center justify-between gap-2"
-                  style={{ borderColor: 'var(--border-subtle)' }}
-                >
-                  <span
-                    className="text-[11px] font-bold"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    Arapça Yazı Boyutu
-                  </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        onUpdateSettings({
-                          arabicFontSize: Math.max(20, settings.arabicFontSize - 2),
-                        });
-                      }}
-                      disabled={settings.arabicFontSize <= 20}
-                      aria-label="Arapça yazı boyutunu küçült"
-                      title="Küçült"
-                      className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer disabled:opacity-35"
-                      style={{
-                        backgroundColor: 'var(--bg-surface)',
-                        borderColor: 'var(--border-subtle)',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span
-                      className="min-w-[44px] text-center text-xs font-extrabold tabular-nums"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {settings.arabicFontSize}px
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        onUpdateSettings({
-                          arabicFontSize: Math.min(44, settings.arabicFontSize + 2),
-                        });
-                      }}
-                      disabled={settings.arabicFontSize >= 44}
-                      aria-label="Arapça yazı boyutunu büyüt"
-                      title="Büyüt"
-                      className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer disabled:opacity-35"
-                      style={{
-                        backgroundColor: 'var(--bg-surface)',
-                        borderColor: 'var(--border-subtle)',
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
 
