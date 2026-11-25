@@ -1,6 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { createPortal } from 'react-dom';
 import {
+  ArrowLeft,
   ArrowLeftRight,
   BookMarked,
   BookOpen,
@@ -10,6 +19,7 @@ import {
   ChevronRight,
   Copy,
   FileText,
+  GripHorizontal,
   Headphones,
   Info,
   Layers,
@@ -152,12 +162,14 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   );
   const [arPopoverPos, setArPopoverPos] = useState<{
     left: number;
-    top?: number;
-    bottom?: number;
+    top: number;
   } | null>(null);
+  const [isDraggingArPopover, setIsDraggingArPopover] = useState(false);
   const activeMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const arPopoverRef = useRef<HTMLDivElement | null>(null);
   const arClickPointRef = useRef<{ x: number; y: number } | null>(null);
+  const hasManualDragPositionRef = useRef(false);
+  const arDragOffsetRef = useRef<{ x: number; y: number } | null>(null);
   const articleRef = useRef<HTMLElement | null>(null);
   const [isDesktopRailVisible, setIsDesktopRailVisible] = useState(false);
 
@@ -223,6 +235,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     audioQueueService.subscribe,
     audioQueueService.getSnapshot,
   );
+  const isAnyAudioVisible = audioState.isVisible && audioState.status !== 'idle';
   const isMealAudioFlowActive =
     (audioState.status === 'playing' || audioState.status === 'loading') &&
     (audioState.activePhase === 'meal' ||
@@ -282,6 +295,9 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     bookMode === 'ar_only' && Boolean(selectedArabicVerse) && isArPopoverOpen;
 
   const closeArPopover = useCallback(() => {
+    hasManualDragPositionRef.current = false;
+    arDragOffsetRef.current = null;
+    setIsDraggingArPopover(false);
     setIsArPopoverOpen(false);
     setIsArPopoverMoreOpen(false);
     setSelectedVerseKey(null);
@@ -300,6 +316,9 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
   // Mod veya sure değiştiğinde ar_only popover'ı temiz kapat
   useEffect(() => {
     if (bookMode !== 'ar_only' || !selectedArabicVerse) {
+      hasManualDragPositionRef.current = false;
+      arDragOffsetRef.current = null;
+      setIsDraggingArPopover(false);
       setIsArPopoverOpen(false);
       setIsArPopoverMoreOpen(false);
     }
@@ -307,7 +326,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 
   useBackButtonGuard('book_ar_popover', isArPopoverVisible, closeArPopover);
 
-  // Masaüstü / Tablet yüzen popover konum hesabı (scroll ve resize ile güncel)
+  // Masaüstü / Tablet yüzen popover konum hesabı ve kesin viewport clamping
   const updateArPopoverPosition = useCallback(() => {
     if (typeof window === 'undefined' || !selectedArabicVerse) return;
     const vw = window.innerWidth;
@@ -317,56 +336,100 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
       return;
     }
 
-    const popW = Math.min(416, vw - 32);
+    const edgeMargin = 12;
+    const bottomMargin = isAnyAudioVisible ? 88 : 16;
+    const popEl = arPopoverRef.current;
+    const popW =
+      popEl && popEl.offsetWidth > 0
+        ? popEl.offsetWidth
+        : Math.min(416, vw - edgeMargin * 2);
+    const popH = popEl && popEl.offsetHeight > 0 ? popEl.offsetHeight : 300;
+    const maxLeft = Math.max(edgeMargin, vw - popW - edgeMargin);
+    const maxTop = Math.max(edgeMargin, vh - popH - bottomMargin);
+    const clampLeft = (x: number) => Math.round(Math.min(Math.max(edgeMargin, x), maxLeft));
+    const clampTop = (y: number) => Math.round(Math.min(Math.max(edgeMargin, y), maxTop));
+
+    // Kullanıcı pencereyi sürükleyip konumlandırdıysa pozisyonu koru, yalnızca ekran dışına taşmasını engelle
+    if (hasManualDragPositionRef.current) {
+      setArPopoverPos((prev) => {
+        if (!prev) {
+          return {
+            left: clampLeft((vw - popW) / 2),
+            top: clampTop(vh * 0.2),
+          };
+        }
+        const nextLeft = clampLeft(prev.left);
+        const nextTop = clampTop(prev.top);
+        if (nextLeft === prev.left && nextTop === prev.top) return prev;
+        return { left: nextLeft, top: nextTop };
+      });
+      return;
+    }
+
     const el = document.getElementById(`book-ayah-${selectedArabicVerse.id}`);
     const clickPt = arClickPointRef.current;
 
     if (!el) {
-      setArPopoverPos({
-        left: Math.max(16, Math.round((vw - popW) / 2)),
-        top: Math.max(16, Math.round(vh * 0.25)),
-      });
+      const fallback = {
+        left: clampLeft((vw - popW) / 2),
+        top: clampTop(vh * 0.25),
+      };
+      setArPopoverPos((prev) =>
+        prev && prev.left === fallback.left && prev.top === fallback.top ? prev : fallback,
+      );
       return;
     }
 
     const rect = el.getBoundingClientRect();
     const anchorX = clickPt ? clickPt.x : rect.left + rect.width / 2;
-    const left = Math.round(
-      Math.min(Math.max(16, anchorX - popW / 2), Math.max(16, vw - popW - 16)),
-    );
+    const left = clampLeft(anchorX - popW / 2);
 
-    const spaceBelow = vh - rect.bottom;
-    const spaceAbove = rect.top;
+    const belowTop = rect.bottom + 10;
+    const aboveTop = rect.top - popH - 10;
+    let candidateTop: number;
 
-    if (spaceBelow >= 260) {
-      setArPopoverPos({
-        left,
-        top: Math.max(12, Math.round(rect.bottom + 10)),
-      });
-    } else if (spaceAbove >= 260) {
-      setArPopoverPos({
-        left,
-        bottom: Math.max(12, Math.round(vh - rect.top + 10)),
-      });
+    if (belowTop + popH <= vh - bottomMargin) {
+      candidateTop = belowTop;
+    } else if (aboveTop >= edgeMargin && aboveTop + popH <= vh - bottomMargin) {
+      candidateTop = aboveTop;
     } else {
-      const refY = clickPt ? clickPt.y : Math.round(vh / 2);
-      if (vh - refY >= 260) {
-        setArPopoverPos({
-          left,
-          top: Math.max(12, Math.min(Math.round(refY + 14), vh - 260)),
-        });
-      } else {
-        setArPopoverPos({
-          left,
-          bottom: Math.max(12, Math.min(Math.round(vh - refY + 14), vh - 260)),
-        });
-      }
+      const spaceBelow = vh - bottomMargin - rect.bottom;
+      const spaceAbove = rect.top - edgeMargin;
+      candidateTop = spaceAbove > spaceBelow ? aboveTop : belowTop;
     }
-  }, [selectedArabicVerse]);
+
+    const nextPos = {
+      left,
+      top: clampTop(candidateTop),
+    };
+    setArPopoverPos((prev) =>
+      prev && prev.left === nextPos.left && prev.top === nextPos.top ? prev : nextPos,
+    );
+  }, [selectedArabicVerse, isAnyAudioVisible]);
+
+  // Boyama öncesi senkron ölçüm + ResizeObserver ile yükseklik değişiminde anında clamp
+  useLayoutEffect(() => {
+    if (!isArPopoverVisible || isMobileViewport) return;
+    updateArPopoverPosition();
+
+    const popEl = arPopoverRef.current;
+    if (!popEl || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      updateArPopoverPosition();
+    });
+    ro.observe(popEl);
+    return () => ro.disconnect();
+  }, [
+    isArPopoverVisible,
+    isMobileViewport,
+    selectedArabicVerse?.id,
+    isArPopoverMoreOpen,
+    isAnyAudioVisible,
+    updateArPopoverPosition,
+  ]);
 
   useEffect(() => {
     if (!isArPopoverVisible) return;
-    updateArPopoverPosition();
 
     const onScrollOrResize = () => updateArPopoverPosition();
     const onKeyDown = (e: KeyboardEvent) => {
@@ -397,6 +460,64 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     };
   }, [isArPopoverVisible, updateArPopoverPosition, closeArPopover]);
 
+  const handleArHeaderPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (isMobileViewport || e.button !== 0) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('button')) return;
+      const popEl = arPopoverRef.current;
+      if (!popEl) return;
+
+      const rect = popEl.getBoundingClientRect();
+      arDragOffsetRef.current = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+      hasManualDragPositionRef.current = true;
+      setIsDraggingArPopover(true);
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // ignore synthetic pointer capture errors
+      }
+      e.preventDefault();
+    },
+    [isMobileViewport],
+  );
+
+  const handleArHeaderPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const dragOffset = arDragOffsetRef.current;
+      if (!dragOffset || isMobileViewport || typeof window === 'undefined') return;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const edgeMargin = 12;
+      const bottomMargin = isAnyAudioVisible ? 88 : 16;
+      const popEl = arPopoverRef.current;
+      const popW = popEl && popEl.offsetWidth > 0 ? popEl.offsetWidth : Math.min(416, vw - 24);
+      const popH = popEl && popEl.offsetHeight > 0 ? popEl.offsetHeight : 300;
+      const maxLeft = Math.max(edgeMargin, vw - popW - edgeMargin);
+      const maxTop = Math.max(edgeMargin, vh - popH - bottomMargin);
+      const left = Math.round(Math.min(Math.max(edgeMargin, e.clientX - dragOffset.x), maxLeft));
+      const top = Math.round(Math.min(Math.max(edgeMargin, e.clientY - dragOffset.y), maxTop));
+      setArPopoverPos({ left, top });
+    },
+    [isMobileViewport, isAnyAudioVisible],
+  );
+
+  const handleArHeaderPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!arDragOffsetRef.current) return;
+    arDragOffsetRef.current = null;
+    setIsDraggingArPopover(false);
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // ignore synthetic pointer release errors
+    }
+  }, []);
+
   // Mobil alt çekmece açıkken arka plan kaydırmasını kilitle
   useEffect(() => {
     if (!isArPopoverVisible || !isMobileViewport) return;
@@ -412,11 +533,17 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     sfxService.play('click');
     const key = `${verse.surah}:${verse.ayah}`;
     if (selectedVerseKey === key && (bookMode !== 'ar_only' || isArPopoverOpen)) {
+      hasManualDragPositionRef.current = false;
+      arDragOffsetRef.current = null;
+      setIsDraggingArPopover(false);
       setSelectedVerseKey(null);
       setIsArPopoverOpen(false);
       setIsArPopoverMoreOpen(false);
       return;
     }
+    hasManualDragPositionRef.current = false;
+    arDragOffsetRef.current = null;
+    setIsDraggingArPopover(false);
     if (event) {
       arClickPointRef.current = { x: event.clientX, y: event.clientY };
     } else {
@@ -743,8 +870,6 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     }
     onToggleMobileImmersive();
   };
-
-  const isAnyAudioVisible = audioState.isVisible && audioState.status !== 'idle';
 
   return (
     <div
@@ -1657,7 +1782,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                 className={
                   isMobileViewport
                     ? 'fixed inset-x-0 bottom-0 z-[100] rounded-t-2xl border-t shadow-2xl flex flex-col max-h-[82dvh] overflow-hidden'
-                    : 'fixed z-[100] w-[min(26rem,calc(100vw-2rem))] rounded-2xl border shadow-2xl flex flex-col max-h-[min(78dvh,540px)] overflow-hidden'
+                    : 'fixed z-[100] w-[min(26rem,calc(100vw-1.5rem))] rounded-2xl border shadow-2xl flex flex-col max-h-[min(480px,calc(100vh-24px))] overflow-hidden'
                 }
                 style={{
                   backgroundColor: 'var(--bg-surface)',
@@ -1665,17 +1790,12 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   color: 'var(--text-primary)',
                   ...(isMobileViewport
                     ? { paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }
-                    : arPopoverPos
-                      ? {
-                          left: `${arPopoverPos.left}px`,
-                          ...(arPopoverPos.top !== undefined
-                            ? { top: `${arPopoverPos.top}px` }
-                            : {}),
-                          ...(arPopoverPos.bottom !== undefined
-                            ? { bottom: `${arPopoverPos.bottom}px` }
-                            : {}),
-                        }
-                      : { left: '16px', bottom: '16px' }),
+                    : {
+                        maxHeight: 'min(480px, calc(100dvh - 24px))',
+                        left: arPopoverPos ? `${arPopoverPos.left}px` : '12px',
+                        top: arPopoverPos ? `${arPopoverPos.top}px` : '12px',
+                        visibility: arPopoverPos ? 'visible' : 'hidden',
+                      }),
                 }}
               >
                 {/* Mobil Tutamak */}
@@ -1689,15 +1809,35 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   </div>
                 )}
 
-                {/* Üst Başlık Şeridi: Sol Künye + Sağ 4 Yalın İkon Butonu */}
+                {/* Üst Başlık Şeridi: Sol Tutamak + Künye (Masaüstünde Sürüklenebilir) + Sağ 4 Yalın İkon Butonu */}
                 <div
-                  className="px-3.5 py-2.5 border-b flex items-center justify-between gap-2 shrink-0"
+                  onPointerDown={handleArHeaderPointerDown}
+                  onPointerMove={handleArHeaderPointerMove}
+                  onPointerUp={handleArHeaderPointerUp}
+                  onPointerCancel={handleArHeaderPointerUp}
+                  className={`px-3.5 py-2.5 border-b flex items-center justify-between gap-2 shrink-0 select-none ${
+                    isMobileViewport
+                      ? ''
+                      : isDraggingArPopover
+                        ? 'cursor-grabbing touch-none'
+                        : 'sm:cursor-grab sm:active:cursor-grabbing touch-none'
+                  }`}
                   style={{
                     backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  <div className="flex items-center gap-1.5 min-w-0">
+                  <div
+                    className="flex items-center gap-1.5 min-w-0"
+                    title={isMobileViewport ? undefined : 'Taşımak için başlık çubuğundan sürükleyin'}
+                  >
+                    {!isMobileViewport && (
+                      <GripHorizontal
+                        className="hidden sm:block w-3.5 h-3.5 shrink-0 opacity-60"
+                        style={{ color: 'var(--text-muted)' }}
+                        aria-hidden="true"
+                      />
+                    )}
                     <span
                       className="text-xs font-extrabold truncate tabular-nums"
                       style={{ color: 'var(--brand-primary-text)' }}
@@ -1773,8 +1913,12 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                         sfxService.play('click');
                         setIsArPopoverMoreOpen((prev) => !prev);
                       }}
-                      title="Diğer işlemler"
-                      aria-label="Diğer işlemler menüsünü aç veya kapat"
+                      title={isArPopoverMoreOpen ? 'Meal önizlemesine dön' : 'Diğer işlemler'}
+                      aria-label={
+                        isArPopoverMoreOpen
+                          ? 'Meal önizlemesine dön'
+                          : 'Diğer işlemler menüsünü aç'
+                      }
                       aria-expanded={isArPopoverMoreOpen}
                       className="w-8 h-8 rounded-lg border flex items-center justify-center transition-colors cursor-pointer"
                       style={
@@ -1810,115 +1954,76 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                   </div>
                 </div>
 
-                {/* Orta Gövde: Anında Meal Önizlemesi + Kelime Analizi & Ayet Detayı */}
-                <div className="px-3.5 py-3 space-y-2.5 overflow-y-auto min-h-0">
-                  <div className="max-h-40 overflow-y-auto pr-0.5 space-y-2.5">
-                    <div className="space-y-1">
-                      <span
-                        className="inline-block text-[10.5px] font-extrabold uppercase tracking-wider"
-                        style={{ color: 'var(--brand-primary-text)' }}
-                      >
-                        {primaryMeal.shortLabel}
-                      </span>
-                      {pVerse?.t ? (
-                        <p
-                          dir={pPres.dir}
-                          lang={pPres.lang}
-                          className={`${
-                            pPres.isRtl ? pPres.className : `${pPres.className} text-left`
-                          } leading-relaxed`}
-                          style={{
-                            fontSize: `${pPres.fontSizePx}px`,
-                            fontFamily: pPres.fontFamily,
-                            color: 'var(--text-primary)',
-                          }}
-                        >
-                          {pVerse.t}
-                        </p>
-                      ) : isLoadingExtra ? (
-                        <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
-                      ) : (
-                        <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                          Meal metni yüklenemedi.
-                        </p>
-                      )}
-                    </div>
-
-                    {isDual && sPres && (
-                      <div
-                        className="pt-2 border-t border-dashed space-y-1"
-                        style={{ borderColor: 'var(--border-subtle)' }}
-                      >
-                        <span
-                          className="inline-block text-[10.5px] font-extrabold uppercase tracking-wider"
-                          style={{ color: 'var(--brand-accent-text)' }}
-                        >
-                          {secondaryMeal.shortLabel}
-                        </span>
-                        {sVerse?.t ? (
-                          <p
-                            dir={sPres.dir}
-                            lang={sPres.lang}
-                            className={`${
-                              sPres.isRtl ? sPres.className : `${sPres.className} text-left`
-                            } leading-relaxed`}
-                            style={{
-                              fontSize: `${sPres.fontSizePx}px`,
-                              fontFamily: sPres.fontFamily,
-                              color: 'var(--text-primary)',
-                            }}
+                {/* Orta Gövde: Meal Önizlemesi <-> Kompakt 2 Sütunlu Ayet İşlemleri Geçişi */}
+                <div className="flex-1 min-h-0 overflow-y-auto px-3.5 py-3">
+                  {!isArPopoverMoreOpen ? (
+                    <div className="space-y-3">
+                      <div className="space-y-2.5">
+                        <div className="space-y-1">
+                          <span
+                            className="inline-block text-[10.5px] font-extrabold uppercase tracking-wider"
+                            style={{ color: 'var(--brand-primary-text)' }}
                           >
-                            {sVerse.t}
-                          </p>
-                        ) : isLoadingExtra ? (
-                          <div className="h-4 w-3/4 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
-                        ) : null}
+                            {primaryMeal.shortLabel}
+                          </span>
+                          {pVerse?.t ? (
+                            <p
+                              dir={pPres.dir}
+                              lang={pPres.lang}
+                              className={`${
+                                pPres.isRtl ? pPres.className : `${pPres.className} text-left`
+                              } leading-relaxed`}
+                              style={{
+                                fontSize: `${pPres.fontSizePx}px`,
+                                fontFamily: pPres.fontFamily,
+                                color: 'var(--text-primary)',
+                              }}
+                            >
+                              {pVerse.t}
+                            </p>
+                          ) : isLoadingExtra ? (
+                            <div className="h-4 w-4/5 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                          ) : (
+                            <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                              Meal metni yüklenemedi.
+                            </p>
+                          )}
+                        </div>
+
+                        {isDual && sPres && (
+                          <div
+                            className="pt-2 border-t border-dashed space-y-1"
+                            style={{ borderColor: 'var(--border-subtle)' }}
+                          >
+                            <span
+                              className="inline-block text-[10.5px] font-extrabold uppercase tracking-wider"
+                              style={{ color: 'var(--brand-accent-text)' }}
+                            >
+                              {secondaryMeal.shortLabel}
+                            </span>
+                            {sVerse?.t ? (
+                              <p
+                                dir={sPres.dir}
+                                lang={sPres.lang}
+                                className={`${
+                                  sPres.isRtl ? sPres.className : `${sPres.className} text-left`
+                                } leading-relaxed`}
+                                style={{
+                                  fontSize: `${sPres.fontSizePx}px`,
+                                  fontFamily: sPres.fontFamily,
+                                  color: 'var(--text-primary)',
+                                }}
+                              >
+                                {sVerse.t}
+                              </p>
+                            ) : isLoadingExtra ? (
+                              <div className="h-4 w-3/4 rounded bg-[var(--bg-surface-soft)] animate-pulse" />
+                            ) : null}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Zarif Kelime Analizi & Ayet Detayı Satırı */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      setInspectorVerse(v);
-                      setIsArPopoverOpen(false);
-                      setIsArPopoverMoreOpen(false);
-                    }}
-                    className="w-full min-h-[38px] px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center justify-between gap-2 transition-colors cursor-pointer hover:opacity-90"
-                    style={{
-                      backgroundColor: 'var(--brand-primary-soft)',
-                      borderColor: 'var(--brand-primary)',
-                      color: 'var(--brand-primary-text)',
-                    }}
-                  >
-                    <span className="flex items-center gap-2 min-w-0">
-                      <Layers className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">Kelime Analizi &amp; Ayet Detayı</span>
-                    </span>
-                    <ChevronRight className="w-4 h-4 shrink-0" />
-                  </button>
-
-                  {/* ⋯ Genişleyen İkincil İşlemler Menüsü */}
-                  {isArPopoverMoreOpen && (
-                    <div
-                      className="pt-2 border-t space-y-0.5 max-h-56 overflow-y-auto"
-                      style={{ borderColor: 'var(--border-subtle)' }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          closeArPopover();
-                          onPlayFromAyah(originalIdx, 'meal');
-                        }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
-                      >
-                        <Headphones className="w-4 h-4 text-[var(--brand-accent-text)] shrink-0" />
-                        <span>Sesli Mealini Dinle</span>
-                      </button>
-
+                      {/* Zarif Kelime Analizi & Ayet Detayı Satırı */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1927,174 +2032,255 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                           setIsArPopoverOpen(false);
                           setIsArPopoverMoreOpen(false);
                         }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
-                      >
-                        <Layers className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
-                        <span>Kelime Kelime Analiz &amp; Dipnot</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          closeArPopover();
-                          openMealCompare(v.surah, v.ayah);
+                        className="w-full min-h-[38px] px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center justify-between gap-2 transition-colors cursor-pointer hover:opacity-90"
+                        style={{
+                          backgroundColor: 'var(--brand-primary-soft)',
+                          borderColor: 'var(--brand-primary)',
+                          color: 'var(--brand-primary-text)',
                         }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
                       >
-                        <Scale className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
-                        <span>Mealleri Karşılaştır ({MEALS_CATALOG.length})</span>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <Layers className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">Kelime Analizi &amp; Ayet Detayı</span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 shrink-0" />
                       </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {/* Panel Üstü: Ayet İşlemleri + ← Meale Dön */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className="text-[10.5px] font-extrabold uppercase tracking-wider"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          Ayet İşlemleri
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setIsArPopoverMoreOpen(false);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-extrabold transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)]"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        >
+                          <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
+                          <span>Meale Dön</span>
+                        </button>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          closeArPopover();
-                          openQuickMemorize(v.surah, v.ayah, v.page);
-                        }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
-                      >
-                        <BookMarked className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
-                        <span>Buradan Ezber Başlat</span>
-                      </button>
-
-                      {mutashabihatCount > 0 && (
+                      {/* 2 Sütunlu Kompakt Aksiyon Izgarası */}
+                      <div className="grid grid-cols-2 gap-1.5">
                         <button
                           type="button"
                           onClick={() => {
                             sfxService.play('click');
                             closeArPopover();
-                            openMutashabihat(v.surah, v.ayah);
+                            onPlayFromAyah(originalIdx, 'meal');
                           }}
-                          className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
                         >
-                          <ArrowLeftRight className="w-4 h-4 text-[var(--brand-accent-text)] shrink-0" />
-                          <span>Benzer Ayetler ({mutashabihatCount})</span>
+                          <Headphones className="w-3.5 h-3.5 text-[var(--brand-accent-text)] shrink-0" />
+                          <span className="min-w-0 line-clamp-2">Sesli Mealini Dinle</span>
                         </button>
-                      )}
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          closeArPopover();
-                          openVerseNoteModal(v.surah, v.ayah, v.page);
-                        }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center justify-between gap-2 cursor-pointer"
-                      >
-                        <span className="flex items-center gap-2.5">
-                          <StickyNote className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
-                          <span>{existingNote ? 'Ayet Notunu Düzenle' : 'Ayet Notu Ekle'}</span>
-                        </span>
-                        {existingNote && (
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ backgroundColor: VERSE_NOTE_COLOR_STYLES[existingNote.color].dot }}
-                          />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            setInspectorVerse(v);
+                            setIsArPopoverOpen(false);
+                            setIsArPopoverMoreOpen(false);
+                          }}
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          <Layers className="w-3.5 h-3.5 text-[var(--brand-primary-text)] shrink-0" />
+                          <span className="min-w-0 line-clamp-2">Kelime Analizi &amp; Detay</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            closeArPopover();
+                            openMealCompare(v.surah, v.ayah);
+                          }}
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          <Scale className="w-3.5 h-3.5 text-[var(--brand-primary-text)] shrink-0" />
+                          <span className="min-w-0 line-clamp-2">
+                            Mealleri Karşılaştır ({MEALS_CATALOG.length})
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            closeArPopover();
+                            openQuickMemorize(v.surah, v.ayah, v.page);
+                          }}
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          <BookMarked className="w-3.5 h-3.5 text-[var(--brand-primary-text)] shrink-0" />
+                          <span className="min-w-0 line-clamp-2">Buradan Ezber Başlat</span>
+                        </button>
+
+                        {mutashabihatCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              closeArPopover();
+                              openMutashabihat(v.surah, v.ayah);
+                            }}
+                            className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                            style={{ borderColor: 'var(--border-subtle)' }}
+                          >
+                            <ArrowLeftRight className="w-3.5 h-3.5 text-[var(--brand-accent-text)] shrink-0" />
+                            <span className="min-w-0 line-clamp-2">
+                              Benzer Ayetler ({mutashabihatCount})
+                            </span>
+                          </button>
                         )}
-                      </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          closeArPopover();
-                          openQuickResearch(v.surah, v.ayah, v.ayah, v.page);
-                        }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
-                      >
-                        <Pin className="w-4 h-4 text-[var(--brand-accent-text)] shrink-0" />
-                        <span>Araştırmaya Ekle</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            closeArPopover();
+                            openVerseNoteModal(v.surah, v.ayah, v.page);
+                          }}
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center justify-between gap-1.5 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          <span className="flex items-center gap-2 min-w-0">
+                            <StickyNote className="w-3.5 h-3.5 text-[var(--brand-primary-text)] shrink-0" />
+                            <span className="min-w-0 line-clamp-2">
+                              {existingNote ? 'Ayet Notunu Düzenle' : 'Ayet Notu Ekle'}
+                            </span>
+                          </span>
+                          {existingNote && (
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{
+                                backgroundColor: VERSE_NOTE_COLOR_STYLES[existingNote.color].dot,
+                              }}
+                            />
+                          )}
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          closeArPopover();
-                          if (manifest && meta) {
-                            void audioQueueService.startSegmentQueue({
-                              items: [
-                                {
-                                  id: `loop_${v.id}`,
-                                  type: 'ayah_range',
-                                  label: `${bundle.surahMeta.nameTr} ${v.ayah}. Ayet`,
-                                  surah: v.surah,
-                                  startAyah: v.ayah,
-                                  endAyah: v.ayah,
-                                },
-                              ],
-                              title: `${bundle.surahMeta.nameTr} ${v.ayah}. Ayet`,
-                              context: 'single',
-                              contextKey: `single:${v.id}`,
-                              manifest,
-                              meta,
-                              prefs: audioPrefs,
-                              queueLoopOverride: 'infinite',
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            closeArPopover();
+                            openQuickResearch(v.surah, v.ayah, v.ayah, v.page);
+                          }}
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          <Pin className="w-3.5 h-3.5 text-[var(--brand-accent-text)] shrink-0" />
+                          <span className="min-w-0 line-clamp-2">Araştırmaya Ekle</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            closeArPopover();
+                            if (manifest && meta) {
+                              void audioQueueService.startSegmentQueue({
+                                items: [
+                                  {
+                                    id: `loop_${v.id}`,
+                                    type: 'ayah_range',
+                                    label: `${bundle.surahMeta.nameTr} ${v.ayah}. Ayet`,
+                                    surah: v.surah,
+                                    startAyah: v.ayah,
+                                    endAyah: v.ayah,
+                                  },
+                                ],
+                                title: `${bundle.surahMeta.nameTr} ${v.ayah}. Ayet`,
+                                context: 'single',
+                                contextKey: `single:${v.id}`,
+                                manifest,
+                                meta,
+                                prefs: audioPrefs,
+                                queueLoopOverride: 'infinite',
+                              });
+                            }
+                          }}
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          <Repeat className="w-3.5 h-3.5 text-[var(--brand-primary-text)] shrink-0" />
+                          <span className="min-w-0 line-clamp-2">Döngüde Dinle</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            closeArPopover();
+                            openListeningDrawer({
+                              initialTab: 'playlists',
+                              pendingAddItem: {
+                                type: 'ayah_range',
+                                label: `${bundle.surahMeta.nameTr} ${v.ayah}. Ayet`,
+                                surah: v.surah,
+                                startAyah: v.ayah,
+                                endAyah: v.ayah,
+                              },
                             });
-                          }
-                        }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
-                      >
-                        <Repeat className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
-                        <span>Bu Ayeti Döngüde Dinle</span>
-                      </button>
+                          }}
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          <ListPlus className="w-3.5 h-3.5 text-[var(--brand-primary-text)] shrink-0" />
+                          <span className="min-w-0 line-clamp-2">Çalma Listesine Ekle</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          closeArPopover();
-                          openListeningDrawer({
-                            initialTab: 'playlists',
-                            pendingAddItem: {
-                              type: 'ayah_range',
-                              label: `${bundle.surahMeta.nameTr} ${v.ayah}. Ayet`,
-                              surah: v.surah,
-                              startAyah: v.ayah,
-                              endAyah: v.ayah,
-                            },
-                          });
-                        }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
-                      >
-                        <ListPlus className="w-4 h-4 text-[var(--brand-primary-text)] shrink-0" />
-                        <span>Çalma Listesine Ekle</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            closeArPopover();
+                            onShareVerse(v, bundle.surahMeta);
+                          }}
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          <Share2 className="w-3.5 h-3.5 text-[var(--brand-accent-text)] shrink-0" />
+                          <span className="min-w-0 line-clamp-2">Paylaşım Kartı Oluştur</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sfxService.play('click');
-                          closeArPopover();
-                          onShareVerse(v, bundle.surahMeta);
-                        }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
-                      >
-                        <Share2 className="w-4 h-4 text-[var(--brand-accent-text)] shrink-0" />
-                        <span>Paylaşım Kartı Oluştur</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void handleCopyVerse(v);
-                        }}
-                        className="w-full min-h-[38px] px-2.5 py-1.5 rounded-xl text-left text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2.5 cursor-pointer"
-                      >
-                        {copiedId === v.id ? (
-                          <>
-                            <Check className="w-4 h-4 text-[var(--state-success)] shrink-0" />
-                            <span>Kopyalandı</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
-                            <span>Metni Kopyala</span>
-                          </>
-                        )}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleCopyVerse(v);
+                          }}
+                          className="min-h-[40px] px-2.5 py-2 rounded-xl border text-left text-[11.5px] font-bold leading-snug text-[var(--text-primary)] hover:bg-[var(--bg-surface-soft)] flex items-center gap-2 transition-colors cursor-pointer"
+                          style={{ borderColor: 'var(--border-subtle)' }}
+                        >
+                          {copiedId === v.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-[var(--state-success)] shrink-0" />
+                              <span className="min-w-0 line-clamp-2">Kopyalandı</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                              <span className="min-w-0 line-clamp-2">Metni Kopyala</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
