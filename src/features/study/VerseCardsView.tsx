@@ -7,6 +7,7 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
+import { resolveMealBesmelePresentation } from '../../config/mealsConfig';
 import { useActiveMeals } from '../../hooks/useActiveMeals';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
@@ -482,7 +483,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                   sfxService.play('click');
                   onOpenSurahInfo(surahMeta);
                 }}
-                aria-label="Sure tanıtımını aç"
+                aria-label="Sure bilgisini aç"
                 title="Sure hakkında, nüzul bilgisi ve konusu"
                 className="h-9 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors hover:border-teal-600/50 whitespace-nowrap"
                 style={{
@@ -492,7 +493,7 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
                 }}
               >
                 <Info className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden sm:inline">Tanıtım</span>
+                <span className="hidden sm:inline">Sure Bilgisi</span>
               </button>
             )}
           </div>
@@ -633,6 +634,35 @@ export const VerseCardsView: React.FC<VerseCardsViewProps> = ({
             </p>
           </div>
         )}
+
+        {/* Sadece Meal modunda Türkçe / Seçili Meal Besmele Şeridi */}
+        {hasBesmele &&
+          effectiveContentMode === 'meal_only' &&
+          (() => {
+            const mealBesmele = resolveMealBesmelePresentation(primaryMeal, besmele);
+            return (
+              <div
+                className="px-4 py-2 border-t text-center transition-colors"
+                style={{
+                  borderColor: 'var(--border-subtle)',
+                  backgroundColor: isBesmelePlaying ? softPlayingBg : undefined,
+                }}
+              >
+                <p
+                  dir={mealBesmele.dir}
+                  lang={mealBesmele.isArabic ? 'ar' : primaryMeal.lang ?? 'tr'}
+                  className={`${
+                    mealBesmele.isArabic
+                      ? 'arabic-text text-lg sm:text-xl leading-[2.0]'
+                      : 'turkish-reading text-xs sm:text-sm italic font-semibold'
+                  }`}
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  {mealBesmele.text}
+                </p>
+              </div>
+            );
+          })()}
       </div>
 
       {/* 4. Ayet Kartları Listesi + Sayfa Geçiş Ayırıcıları */}

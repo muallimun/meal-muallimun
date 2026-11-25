@@ -242,7 +242,7 @@ const CARD_PALETTE_ORDER: readonly ShareCardTheme[] = [
 ] as const;
 
 const MIN_TEXT_SCALE = 0.7;
-const MAX_TEXT_SCALE = 1.45;
+const MAX_TEXT_SCALE = 1.75;
 const TEXT_SCALE_STEP = 0.05;
 const TURKISH_CANVAS_FONT = '"Plus Jakarta Sans", "Inter", system-ui, sans-serif';
 const RTL_TAFSIR_CANVAS_FONT =

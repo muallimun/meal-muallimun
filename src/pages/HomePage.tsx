@@ -789,7 +789,7 @@ export const HomePage: React.FC = () => {
       {/* ====================================================================
           0. Kaldığın Yerden Devam Et — Hızlı Erişim Şeridi (İlk Bakış Alanı)
           ==================================================================== */}
-      <section aria-label="Kaldığın yerden devam et">
+      <section aria-label="Kaldığın yerden devam et" className="lg:hidden">
         <div
           className="surface-card rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-l-4"
           style={{
@@ -1179,7 +1179,7 @@ export const HomePage: React.FC = () => {
                   </span>
                   <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap truncate">
                     {lastRead
-                      ? `${lastSurahMeta?.shortNameTr ?? ''} · s.${lastRead.page}`.replace(
+                      ? `${lastSurahMeta?.shortNameTr ?? ''} · Sayfa ${lastRead.page}`.replace(
                           /^\s*·\s*/,
                           '',
                         )
@@ -1531,7 +1531,7 @@ export const HomePage: React.FC = () => {
                         style={{ color: 'var(--text-secondary)' }}
                       >
                         · Hatim %{hatimSummary.percent} ({hatimSummary.todayCompletedCount}/
-                        {hatimSummary.todayTargetPages} s.)
+                        {hatimSummary.todayTargetPages} Sayfa)
                       </button>
                     )}
                   </div>
@@ -1546,8 +1546,8 @@ export const HomePage: React.FC = () => {
                   >
                     {lastRead ? (
                       <>
-                        {lastRead.ayah}. Ayet · S.{lastRead.page} · {lastReadModeLabel}
-                        {hatimBookmark ? ` · Hatim S.${hatimBookmark.page}` : ''}
+                        {lastRead.ayah}. Ayet · Sayfa {lastRead.page} · {lastReadModeLabel}
+                        {hatimBookmark ? ` · Hatim Sayfa ${hatimBookmark.page}` : ''}
                       </>
                     ) : (
                       'Kaldığınız yer otomatik olarak burada kaydedilir'
@@ -1635,7 +1635,7 @@ export const HomePage: React.FC = () => {
                           >
                             {hatimSummary.isTodayQuotaMet
                               ? '· Bugün tamam'
-                              : `· ${hatimSummary.todayRemainingPages} s. kaldı`}
+                              : `· ${hatimSummary.todayRemainingPages} Sayfa kaldı`}
                           </span>
                         )}
                       </div>
@@ -1647,7 +1647,7 @@ export const HomePage: React.FC = () => {
                           <>
                             {hatimSummary.completedCount}/604 Sayfa ·{' '}
                             {hatimSummary.completedJuzCount}/30 Cüz · Bugün{' '}
-                            {hatimSummary.todayCompletedCount}/{hatimSummary.todayTargetPages} s.
+                            {hatimSummary.todayCompletedCount}/{hatimSummary.todayTargetPages} Sayfa
                           </>
                         ) : hatimState.history.length > 0 ? (
                           `Tamamlanan hatim: ${hatimState.history.length} · Yeni plan oluşturun`

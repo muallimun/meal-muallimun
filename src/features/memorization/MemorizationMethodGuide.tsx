@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { BookOpen, ChevronDown, ChevronUp, Compass, Lightbulb } from 'lucide-react';
 import { sfxService } from '../../services/sfxService';
 
-const METHOD_GUIDE_COLLAPSED_KEY = 'muallimun_hifz_method_guide_collapsed_v1';
+const METHOD_GUIDE_EXPANDED_KEY_PREFIX = 'muallimun_hifz_method_guide_expanded_v2_';
 
 interface MemorizationMethodGuideProps {
   variant: 'pool' | 'classical';
@@ -10,21 +10,20 @@ interface MemorizationMethodGuideProps {
   hasActiveProgress: boolean;
 }
 
-function readPersistedCollapsedFlag(): boolean {
+function readPersistedExpandedFlag(variant: 'pool' | 'classical'): boolean {
   try {
-    return window.localStorage.getItem(METHOD_GUIDE_COLLAPSED_KEY) === '1';
+    return window.localStorage.getItem(`${METHOD_GUIDE_EXPANDED_KEY_PREFIX}${variant}`) === '1';
   } catch {
     return false;
   }
 }
 
-function persistCollapsedFlag(collapsed: boolean): void {
+function persistExpandedFlag(variant: 'pool' | 'classical', expanded: boolean): void {
   try {
-    if (collapsed) {
-      window.localStorage.setItem(METHOD_GUIDE_COLLAPSED_KEY, '1');
-    } else {
-      window.localStorage.removeItem(METHOD_GUIDE_COLLAPSED_KEY);
-    }
+    window.localStorage.setItem(
+      `${METHOD_GUIDE_EXPANDED_KEY_PREFIX}${variant}`,
+      expanded ? '1' : '0',
+    );
   } catch {
     // localStorage erişilemezse sessizce geç
   }
@@ -93,30 +92,27 @@ export const MemorizationMethodGuide: React.FC<MemorizationMethodGuideProps> = (
   variant,
   hasActiveProgress,
 }) => {
-  const [isExpanded, setIsExpanded] = useState<boolean>(() => {
-    if (hasActiveProgress) return false;
-    return !readPersistedCollapsedFlag();
-  });
+  const [isExpanded, setIsExpanded] = useState<boolean>(() =>
+    readPersistedExpandedFlag(variant),
+  );
 
   const prevHasProgressRef = useRef<boolean>(hasActiveProgress);
 
   // Kullanıcı ilk ezber birimini eklediğinde veya klasik hafızlık planını başlattığında
-  // çalışma alanını ferahlatmak için rehberi otomatik olarak ince şeride kapat
+  // çalışma alanını ferahlatmak için açık ise rehberi ince şeride kapat
   useEffect(() => {
     if (!prevHasProgressRef.current && hasActiveProgress) {
       setIsExpanded(false);
-      persistCollapsedFlag(true);
+      persistExpandedFlag(variant, false);
     }
     prevHasProgressRef.current = hasActiveProgress;
-  }, [hasActiveProgress]);
+  }, [hasActiveProgress, variant]);
 
   const handleToggle = () => {
     sfxService.play('click');
     setIsExpanded((prev) => {
       const next = !prev;
-      if (!next) {
-        persistCollapsedFlag(true);
-      }
+      persistExpandedFlag(variant, next);
       return next;
     });
   };
@@ -171,7 +167,7 @@ export const MemorizationMethodGuide: React.FC<MemorizationMethodGuideProps> = (
             color: isExpanded ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
           }}
         >
-          <span>{isExpanded ? 'Gizle' : 'Yöntem & Kavramlar'}</span>
+          <span>{isExpanded ? 'Gizle' : 'Rehberi Aç'}</span>
           {isExpanded ? (
             <ChevronUp className="w-3.5 h-3.5 shrink-0" />
           ) : (

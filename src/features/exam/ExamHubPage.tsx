@@ -371,19 +371,27 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
               sfxService.play('click');
               setIsAuditModalOpen(true);
             }}
-            className="min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-colors whitespace-nowrap"
+            className={`min-h-[36px] px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-all whitespace-nowrap ${
+              reportedCount === 0 ? 'opacity-75 hover:opacity-100' : ''
+            }`}
             style={{
               backgroundColor:
-                reportedCount > 0 ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-surface)',
+                reportedCount > 0 ? 'rgba(239, 68, 68, 0.10)' : 'var(--bg-surface-soft)',
               borderColor:
-                reportedCount > 0 ? 'rgba(239, 68, 68, 0.30)' : 'var(--border-subtle)',
-              color: reportedCount > 0 ? '#DC2626' : 'var(--text-secondary)',
+                reportedCount > 0 ? 'rgba(239, 68, 68, 0.35)' : 'var(--border-subtle)',
+              color: reportedCount > 0 ? '#DC2626' : 'var(--text-muted)',
             }}
           >
             <Flag className="w-3.5 h-3.5 shrink-0" />
-            <span>
-              Hata Bildirimleri{reportedCount > 0 ? ` (${formatNumberTr(reportedCount)})` : ''}
-            </span>
+            <span>Hata Bildirimleri</span>
+            {reportedCount > 0 && (
+              <span
+                className="min-w-[20px] h-5 px-1.5 rounded-md text-[11px] font-extrabold tabular-nums inline-flex items-center justify-center text-white"
+                style={{ backgroundColor: '#DC2626' }}
+              >
+                {formatNumberTr(reportedCount)}
+              </span>
+            )}
           </button>
         </div>
       </section>
@@ -735,6 +743,30 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
 
         {/* SAĞ SÜTUN: 2. 3 Kompakt Sınav Modu + 3. Tek Satırlı Soru Sayısı & Başlat */}
         <div className="lg:col-span-7 flex flex-col justify-between gap-3">
+          {/* Adım 2 Başlığı (Sol sütundaki 1. Kapsam ve Filtreler ile görsel simetri) */}
+          <div className="flex items-center justify-between gap-2 px-0.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <h3 className="text-sm font-extrabold tracking-tight truncate">
+                2. Sınav Modu
+              </h3>
+            </div>
+            <span
+              className="text-[11px] font-semibold truncate"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Çalışma biçiminizi seçin
+            </span>
+          </div>
+
           {/* 3 Sınav Modu Kartı */}
           <section aria-label="Sınav modu seçimi" className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 flex-1">
             {/* Mod 1: Hızlı Antrenman */}

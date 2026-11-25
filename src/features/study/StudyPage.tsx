@@ -14,6 +14,7 @@ import {
   Bookmark,
   BookOpen,
   BookText,
+  Check,
   ChevronDown,
   ChevronRight,
   Columns2,
@@ -26,6 +27,7 @@ import {
   Minimize2,
   Minus,
   MonitorPlay,
+  Moon,
   Palette,
   Pause,
   Play,
@@ -36,6 +38,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
+  Sun,
   Type,
   Volume2,
   X,
@@ -66,7 +69,6 @@ import {
   type StudyViewMode,
   type SurahBundle,
   type SurahMeta,
-  type ThemeMode,
   type WordMealMode,
 } from '../../types/quran';
 import { useBackButtonGuard } from '../../services/backStackService';
@@ -1927,24 +1929,26 @@ export const StudyPage: React.FC = () => {
                     </button>
                   )}
 
-                  <div
-                    className="w-full max-w-full min-w-0 rounded-lg border px-2.5 py-2 flex items-start gap-2"
-                    style={{
-                      backgroundColor: 'var(--bg-surface-soft)',
-                      borderColor: 'var(--border-subtle)',
-                    }}
-                  >
-                    <Info
-                      className="w-3.5 h-3.5 shrink-0 mt-0.5"
-                      style={{ color: 'var(--brand-primary-text)' }}
-                    />
-                    <p
-                      className="w-full max-w-full min-w-0 flex-1 whitespace-normal break-words text-xs leading-relaxed"
-                      style={{ color: 'var(--text-secondary)' }}
+                  {settings.tajweedEnabled && (
+                    <div
+                      className="w-full max-w-full min-w-0 rounded-lg border px-2.5 py-2 flex items-start gap-2"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
                     >
-                      {TAJWEED_DIACRITIC_NOTE}
-                    </p>
-                  </div>
+                      <Info
+                        className="w-3.5 h-3.5 shrink-0 mt-0.5"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      />
+                      <p
+                        className="w-full max-w-full min-w-0 flex-1 whitespace-normal break-words text-xs leading-relaxed"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        {TAJWEED_DIACRITIC_NOTE}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Kelime Takibi (Karaoke) */}
                   <button
@@ -2321,40 +2325,38 @@ export const StudyPage: React.FC = () => {
                 <span>Tema</span>
               </span>
               <div
-                className="grid grid-cols-3 gap-1 p-1 rounded-xl"
-                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                className="grid grid-cols-3 gap-1.5"
               >
                 {(
                   [
-                    { id: 'light', label: 'Açık', swatch: '#FFFFFF' },
-                    { id: 'cream', label: 'Krem', swatch: '#FAF6EE' },
-                    { id: 'dark', label: 'Gece', swatch: '#0B1314' },
-                  ] as { id: ThemeMode; label: string; swatch: string }[]
+                    { id: 'light', label: 'Açık', icon: Sun },
+                    { id: 'cream', label: 'Krem', icon: BookOpen },
+                    { id: 'dark', label: 'Gece', icon: Moon },
+                  ] as const
                 ).map((opt) => {
                   const active = settings.theme === opt.id;
+                  const Icon = opt.icon;
                   return (
                     <button
                       key={opt.id}
                       type="button"
+                      aria-pressed={active}
                       onClick={() => {
                         sfxService.play('click');
                         updateSettings({ theme: opt.id });
                       }}
-                      className="h-8 px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                      className="h-9 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
                       style={{
-                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                        backgroundColor: active
+                          ? 'var(--brand-primary-soft)'
+                          : 'var(--bg-surface-soft)',
+                        borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
                         color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                       }}
                     >
-                      <span
-                        className="w-3 h-3 rounded-full border shrink-0"
-                        style={{
-                          backgroundColor: opt.swatch,
-                          borderColor: 'var(--border-strong)',
-                        }}
-                      />
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
                       <span>{opt.label}</span>
+                      {active && <Check className="w-3 h-3 shrink-0" />}
                     </button>
                   );
                 })}

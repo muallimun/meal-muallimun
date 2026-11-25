@@ -103,9 +103,9 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     if (!isOpen || !shouldAutoFocusSearchInput()) return;
     const timer = window.setTimeout(() => {
       if (activeTab === 'surah') {
-        searchInputRef.current?.focus();
+        searchInputRef.current?.focus({ preventScroll: true });
       } else if (activeTab === 'page') {
-        pageInputRef.current?.focus();
+        pageInputRef.current?.focus({ preventScroll: true });
         pageInputRef.current?.select();
       }
     }, 50);
@@ -116,19 +116,32 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     if (activeTab === 'ruku' && isLoadingRukus) return;
-    const rafId = window.requestAnimationFrame(() => {
+
+    const centerActiveItem = () => {
       const container = listContainerRef.current;
       if (!container) return;
       const activeEl = container.querySelector<HTMLElement>('[data-active-location="true"]');
       if (!activeEl) return;
-      try {
-        activeEl.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
-      } catch {
-        activeEl.scrollIntoView({ block: 'center', behavior: 'auto' });
-      }
+      const containerRect = container.getBoundingClientRect();
+      const activeRect = activeEl.getBoundingClientRect();
+      const relativeTop = activeRect.top - containerRect.top + container.scrollTop;
+      const targetTop = Math.max(
+        0,
+        relativeTop - container.clientHeight / 2 + activeEl.offsetHeight / 2,
+      );
+      container.scrollTo({ top: targetTop, behavior: 'auto' });
+    };
+
+    const rafId = window.requestAnimationFrame(() => {
+      centerActiveItem();
     });
-    return () => window.cancelAnimationFrame(rafId);
-  }, [isOpen, activeTab, rukuScope, isLoadingRukus]);
+    const postFocusTimer = window.setTimeout(centerActiveItem, 80);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(postFocusTimer);
+    };
+  }, [isOpen, activeTab, rukuScope, isLoadingRukus, currentSurahNo, currentPageNo, currentAyahNo]);
 
   const activeSurahMeta: SurahMeta | null = useMemo(() => {
     if (!meta) return null;

@@ -429,6 +429,11 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
   const [isDesktopLg, setIsDesktopLg] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
   );
+  const [paneHasMoreBelow, setPaneHasMoreBelow] = useState<{ left: boolean; right: boolean }>({
+    left: false,
+    right: false,
+  });
+  const leafFadeBg = settings.theme === 'cream' ? 'var(--bg-mushaf)' : 'var(--bg-surface)';
 
   const arabicDensity = useMemo(
     () => getArabicDensityMetrics(settings.arabicTextDensity, settings.arabicLineHeight),
@@ -616,8 +621,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     [playingAyahId, isBookSpread],
   );
 
+  const syncPaneScrollFade = useCallback((side: 'left' | 'right') => {
+    const paneEl = side === 'left' ? leftPaneRef.current : rightPaneRef.current;
+    const hasMore = Boolean(
+      paneEl && paneEl.scrollHeight - paneEl.clientHeight - paneEl.scrollTop > 12,
+    );
+    setPaneHasMoreBelow((prev) => (prev[side] === hasMore ? prev : { ...prev, [side]: hasMore }));
+  }, []);
+
   const handlePaneScroll = useCallback(
     (side: 'left' | 'right') => {
+      syncPaneScrollFade(side);
       if (!playingAyahId || !isBookSpread) return;
       if (Date.now() <= programmaticScrollUntilRef.current[side]) return;
       const paneEl = side === 'left' ? leftPaneRef.current : rightPaneRef.current;
@@ -625,8 +639,51 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       manualOverrideVerseRef.current[side] = playingAyahId;
       setDetachedPanes((prev) => (prev[side] ? prev : { ...prev, [side]: true }));
     },
-    [playingAyahId, isBookSpread],
+    [playingAyahId, isBookSpread, syncPaneScrollFade],
   );
+
+  // Masaüstü çift yaprakta her iki panelde altta kalan içerik varsa zarif kaydırma gölgesini senkron tut
+  useEffect(() => {
+    if (!isBookSpread || !isDesktopLg) {
+      setPaneHasMoreBelow((prev) =>
+        prev.left || prev.right ? { left: false, right: false } : prev,
+      );
+      return;
+    }
+
+    const syncBoth = () => {
+      syncPaneScrollFade('left');
+      syncPaneScrollFade('right');
+    };
+
+    const rafId = window.requestAnimationFrame(syncBoth);
+    const settleTimer = window.setTimeout(syncBoth, 160);
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(syncBoth);
+      if (leftPaneRef.current) ro.observe(leftPaneRef.current);
+      if (rightPaneRef.current) ro.observe(rightPaneRef.current);
+    }
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(settleTimer);
+      ro?.disconnect();
+    };
+  }, [
+    isBookSpread,
+    isDesktopLg,
+    pageBundle.pageNo,
+    secondPageBundle?.pageNo,
+    effectiveLayout,
+    settings.arabicFontSize,
+    settings.turkishFontSize,
+    settings.readerContentMode,
+    isDual,
+    openFootnoteKey,
+    syncPaneScrollFade,
+  ]);
 
   const handleJumpToActiveVerse = useCallback(() => {
     if (!playingAyahId || !isBookSpread) return;
@@ -1247,17 +1304,18 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               </div>
 
               {/* Bağımsız Kaydırılabilir Mushaf Gövdesi (lg+ ikili görünümde) */}
-              <div
-                ref={paneSide === 'left' ? leftPaneRef : paneSide === 'right' ? rightPaneRef : undefined}
-                onWheel={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
-                onTouchMove={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
-                onScroll={paneSide ? () => handlePaneScroll(paneSide) : undefined}
-                className={`flex-1 flex flex-col justify-between ${
-                  isDualPane
-                    ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain mushaf-leaf-scroll lg:pr-1.5 ${paneScrollPadding}`
-                    : ''
-                }`}
-              >
+              <div className={`relative flex-1 flex flex-col ${isDualPane ? 'lg:min-h-0' : ''}`}>
+                <div
+                  ref={paneSide === 'left' ? leftPaneRef : paneSide === 'right' ? rightPaneRef : undefined}
+                  onWheel={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
+                  onTouchMove={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
+                  onScroll={paneSide ? () => handlePaneScroll(paneSide) : undefined}
+                  className={`flex-1 flex flex-col justify-between ${
+                    isDualPane
+                      ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain mushaf-leaf-scroll lg:pr-1.5 ${paneScrollPadding}`
+                      : ''
+                  }`}
+                >
                 {/* Sayfa Bölümleri (Sure Başlıkları + Besmele + Kesintisiz Ayet Akışı) */}
                 <div className="space-y-3.5">
                 {bundle.segments.map((segment) => (
@@ -1513,6 +1571,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                     — {bundle.pageNo} / {bundle.maxPage} —
                   </span>
                 </div>
+                </div>
+                {isDualPane && paneSide && paneHasMoreBelow[paneSide] && (
+                  <div
+                    aria-hidden="true"
+                    className="hidden lg:block pointer-events-none absolute inset-x-0 bottom-0 h-10 z-[5] transition-opacity duration-200"
+                    style={{
+                      background: `linear-gradient(to bottom, transparent 0%, ${leafFadeBg} 92%)`,
+                    }}
+                  />
+                )}
               </div>
           </div>
         </div>
@@ -1727,16 +1795,17 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                         sfxService.play('click');
                         updateSettings({ readerContentMode: 'ar_only' });
                       }}
-                      title="Meal sayfasını kapat (Sadece Arapça)"
-                      aria-label="Meal sayfasını kapat"
-                      className="w-7 h-7 rounded-lg border flex items-center justify-center cursor-pointer transition-colors hover:opacity-85"
+                      title="Meal sayfasını gizle (Sadece Arapça)"
+                      aria-label="Meal sayfasını gizle (Sadece Arapça)"
+                      className="h-7 px-2 rounded-lg border text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors hover:opacity-85 whitespace-nowrap shrink-0"
                       style={{
                         backgroundColor: 'var(--bg-surface-soft)',
                         borderColor: 'var(--border-subtle)',
                         color: 'var(--text-secondary)',
                       }}
                     >
-                      <PanelRightClose className="w-3.5 h-3.5" />
+                      <PanelRightClose className="w-3.5 h-3.5 shrink-0" />
+                      <span className="hidden xl:inline">Gizle</span>
                     </button>
                   )}
                 </div>
@@ -1744,17 +1813,18 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
             )}
 
             {/* Bağımsız Kaydırılabilir Meal Gövdesi (lg+ ikili görünümde) */}
-            <div
-              ref={paneSide === 'left' ? leftPaneRef : paneSide === 'right' ? rightPaneRef : undefined}
-              onWheel={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
-              onTouchMove={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
-              onScroll={paneSide ? () => handlePaneScroll(paneSide) : undefined}
-              className={`flex-1 flex flex-col justify-between ${
-                isDualPane
-                  ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain mushaf-leaf-scroll lg:pr-1.5 ${paneScrollPadding}`
-                  : ''
-              }`}
-            >
+            <div className={`relative flex-1 flex flex-col ${isDualPane ? 'lg:min-h-0' : ''}`}>
+              <div
+                ref={paneSide === 'left' ? leftPaneRef : paneSide === 'right' ? rightPaneRef : undefined}
+                onWheel={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
+                onTouchMove={paneSide ? () => handlePaneUserScrollGesture(paneSide) : undefined}
+                onScroll={paneSide ? () => handlePaneScroll(paneSide) : undefined}
+                className={`flex-1 flex flex-col justify-between ${
+                  isDualPane
+                    ? `lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain mushaf-leaf-scroll lg:pr-1.5 ${paneScrollPadding}`
+                    : ''
+                }`}
+              >
               {/* Kitap Düzeninde Süslü Numaralı Meal Akışı (Birleşik Ayet Gruplaması + Tam Genişlik Metin) */}
               <div className="space-y-3.5">
                 {bundle.segments.map((segment) => {
@@ -1777,12 +1847,32 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                             borderColor: 'var(--border-subtle)',
                           }}
                         >
-                          <span className="text-xs font-extrabold truncate">
-                            {segment.surahMeta.no}. {formatSurahTitle(segment.surahMeta.nameTr, segment.surahMeta.no)}
-                          </span>
-                          <span className="text-[11px] font-semibold shrink-0" style={{ color: 'var(--text-muted)' }}>
-                            {segment.surahMeta.ayahCount} Ayet
-                          </span>
+                          <div className="min-w-0">
+                            <span className="text-xs font-extrabold truncate block">
+                              {segment.surahMeta.no}. {formatSurahTitle(segment.surahMeta.nameTr, segment.surahMeta.no)}
+                            </span>
+                            <span className="text-[11px] font-semibold tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                              {segment.surahMeta.type} · {segment.surahMeta.ayahCount} Ayet
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              onOpenSurahInfo(segment.surahMeta);
+                            }}
+                            title="Sure hakkında, nüzul bilgisi ve konusu"
+                            aria-label={`${segment.surahMeta.nameTr} sure bilgisini aç`}
+                            className="min-h-[30px] px-2.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0 transition-colors hover:border-teal-600/50"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--brand-primary-text)',
+                            }}
+                          >
+                            <Info className="w-3.5 h-3.5 shrink-0" />
+                            <span>Bilgi</span>
+                          </button>
                         </div>
                       )}
 
@@ -2476,6 +2566,16 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   </>
                 )}
               </div>
+              </div>
+              {isDualPane && paneSide && paneHasMoreBelow[paneSide] && (
+                <div
+                  aria-hidden="true"
+                  className="hidden lg:block pointer-events-none absolute inset-x-0 bottom-0 h-10 z-[5] transition-opacity duration-200"
+                  style={{
+                    background: `linear-gradient(to bottom, transparent 0%, ${leafFadeBg} 92%)`,
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>

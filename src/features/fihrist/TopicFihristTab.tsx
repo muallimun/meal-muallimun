@@ -68,6 +68,7 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
     audioPrefs,
     navigateToStudy,
     openQuickMemorize,
+    openMealSelector,
   } = useAppStore();
 
   const audioState = useSyncExternalStore(
@@ -911,16 +912,29 @@ export const TopicFihristTab: React.FC<TopicFihristTabProps> = ({
                     })}
                   </div>
 
-                  <span
-                    className="text-[11px] font-semibold truncate"
-                    style={{ color: 'var(--text-muted)' }}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      openMealSelector('primary');
+                    }}
+                    title="Aktif meali değiştir"
+                    className="min-h-[30px] px-2.5 py-1 rounded-lg border text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors hover:border-[var(--brand-primary)] max-w-full"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                      color: 'var(--brand-primary-text)',
+                    }}
                   >
-                    Meal: {primaryMeal.shortLabel}
-                    {isDual && secondaryMeal.id !== primaryMeal.id
-                      ? ` + ${secondaryMeal.shortLabel}`
-                      : ''}
-                    {isLoadingExtra ? ' (yükleniyor...)' : ''}
-                  </span>
+                    <span className="truncate">
+                      Meal: {primaryMeal.shortLabel}
+                      {isDual && secondaryMeal.id !== primaryMeal.id
+                        ? ` + ${secondaryMeal.shortLabel}`
+                        : ''}
+                      {isLoadingExtra ? ' (yükleniyor...)' : ''}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                  </button>
                 </div>
               </div>
 

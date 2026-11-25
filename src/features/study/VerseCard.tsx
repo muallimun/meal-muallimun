@@ -614,7 +614,9 @@ export const VerseCard: React.FC<VerseCardProps> = ({
             <span className="whitespace-nowrap">Sesli Meal</span>
           </button>
 
-          {settings.wordByWordEnabled && verse.words.length > 0 && (
+          {settings.wordByWordEnabled &&
+            effectiveContentMode !== 'meal_only' &&
+            verse.words.length > 0 && (
             <button
               type="button"
               onClick={() => {
@@ -705,7 +707,9 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                   <span>Sesli Meal Dinle</span>
                 </button>
 
-                {settings.wordByWordEnabled && verse.words.length > 0 && (
+                {settings.wordByWordEnabled &&
+                  effectiveContentMode !== 'meal_only' &&
+                  verse.words.length > 0 && (
                   <button
                     type="button"
                     onClick={() => {
