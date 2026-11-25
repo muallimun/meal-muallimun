@@ -476,8 +476,9 @@ function hydrateState(): PersistedAppState {
     return createDefaultState(today);
   }
 
+  let raw: string | null = null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    raw = window.localStorage.getItem(STORAGE_KEY);
     let hasReadingDefaultsMigrationV2 = false;
     let hasReadingDefaultsMigrationV3 = false;
     let hasReadingDefaultsMigrationV4 = false;
@@ -1197,6 +1198,13 @@ function hydrateState(): PersistedAppState {
       questionAudit,
     };
   } catch {
+    if (raw) {
+      try {
+        window.localStorage.setItem('muallimun_corrupted_backup_v1', raw);
+      } catch {
+        // Kota veya gizli mod kısıtında sessizce devam et
+      }
+    }
     return createDefaultState(today);
   }
 }

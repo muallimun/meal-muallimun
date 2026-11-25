@@ -7,9 +7,9 @@
  * Bu simgeler ayrı bir "kelime" sayılmamalı; önceki kelimeyle (baştaysa sonrakiyle)
  * birleştirilerek zamanlama indeksinin kayması önlenir.
  */
-const STANDALONE_WAQF_OR_MARKER_RE = /^[\u06D6-\u06ED\u06DD\u06DE\u06E9۞۩﴿﴾٠-٩0-9]+$/;
+export const STANDALONE_WAQF_OR_MARKER_RE = /^[\u06D6-\u06ED\u06DD\u06DE\u06E9۞۩﴿﴾٠-٩0-9]+$/;
 
-const STANDALONE_WAQF_SIGN_RE = /^[\u06D6-\u06DC]+$/;
+export const STANDALONE_WAQF_SIGN_RE = /^[\u06D6-\u06DC]+$/;
 
 /**
  * Normal Türk Mushaf hattı Arapça metnini (`verse.ar.t`) karaoke vurgulaması için
@@ -57,14 +57,20 @@ export function tokenizeArabicWithWaqf(text: string): string[] {
 
 /**
  * QUL 1-tabanlı kelime indeksini ekrandaki kelime dizisine (1..displayTotal) eşler.
- * Kelime sayıları eşitse birebir indeks döner; farklıysa güvenli orantısal eşleştirme yapar.
+ * Kelime sayıları eşitse birebir indeks döner; 1–2 kelimelik küçük farklarda güvenli
+ * orantısal eşleştirme yapar. Fark 2 kelimeden büyükse yanlış kelime vurgusunu önlemek
+ * için `null` döner (ekran ayet düzeyi vurguya geçer).
  */
 export function mapQulWordIndexToDisplay(
   qulWordIndex1Based: number,
   qulTotalWords: number | null | undefined,
   displayTotalWords: number,
-): number {
-  if (displayTotalWords <= 1) return 1;
+): number | null {
+  if (displayTotalWords <= 0) return null;
+  if (qulTotalWords && qulTotalWords > 0 && Math.abs(qulTotalWords - displayTotalWords) > 2) {
+    return null;
+  }
+  if (displayTotalWords === 1) return 1;
   if (!qulTotalWords || qulTotalWords <= 0 || qulTotalWords === displayTotalWords) {
     return Math.max(1, Math.min(displayTotalWords, qulWordIndex1Based));
   }

@@ -41,7 +41,11 @@ import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReference
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
 import { useBackButtonGuard } from '../../services/backStackService';
-import { SAJDAH_AYAH_IDS } from '../../services/dataService';
+import {
+  SAJDAH_AYAH_IDS,
+  SAJDAH_DIFFERENCE_NOTES,
+  getSajdahTooltip,
+} from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import {
   VERSE_NOTE_COLOR_STYLES,
@@ -538,20 +542,28 @@ export const DraggableVerseInspector: React.FC<DraggableVerseInspectorProps> = (
         {/* Tilâvet Secdesi Uyarısı */}
         {isSajdah && settings.highlightSajdah && (
           <div
-            className="px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs font-extrabold"
+            title={getSajdahTooltip(verse.id)}
+            className="px-3 py-2 rounded-xl border space-y-1 text-xs font-extrabold"
             style={{
               backgroundColor: 'var(--brand-accent-soft)',
               borderColor: 'rgba(217, 119, 6, 0.45)',
               color: 'var(--brand-accent-text)',
             }}
           >
-            <span className="flex items-center gap-1.5">
-              <span className="text-base leading-none">۩</span>
-              <span>Tilâvet Secdesi Ayeti</span>
-            </span>
-            <span className="text-[11px] font-semibold opacity-85 tabular-nums">
-              {verse.surah}:{verse.ayah}
-            </span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5">
+                <span className="text-base leading-none">۩</span>
+                <span>Tilâvet Secdesi Ayeti</span>
+              </span>
+              <span className="text-[11px] font-semibold opacity-85 tabular-nums">
+                {verse.surah}:{verse.ayah}
+              </span>
+            </div>
+            {SAJDAH_DIFFERENCE_NOTES[verse.id] && (
+              <p className="text-[11px] font-medium leading-snug opacity-90">
+                {SAJDAH_DIFFERENCE_NOTES[verse.id].note}
+              </p>
+            )}
           </div>
         )}
 

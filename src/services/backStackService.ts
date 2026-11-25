@@ -62,14 +62,21 @@ function isElementVisible(el: HTMLElement): boolean {
 function getVisibleModalDialogs(): HTMLElement[] {
   if (typeof document === 'undefined') return [];
   const nodes = document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]');
-  const visible: HTMLElement[] = [];
+  const visible: Array<{ el: HTMLElement; zIndex: number; domOrder: number }> = [];
   for (let i = 0; i < nodes.length; i += 1) {
     const el = nodes[i];
     if (isElementVisible(el)) {
-      visible.push(el);
+      const rawZ = typeof window !== 'undefined' ? window.getComputedStyle(el).zIndex : '0';
+      const parsedZ = Number.parseInt(rawZ, 10);
+      visible.push({
+        el,
+        zIndex: Number.isFinite(parsedZ) ? parsedZ : 0,
+        domOrder: i,
+      });
     }
   }
-  return visible;
+  visible.sort((a, b) => (a.zIndex !== b.zIndex ? a.zIndex - b.zIndex : a.domOrder - b.domOrder));
+  return visible.map((entry) => entry.el);
 }
 
 function getFocusableElements(container: HTMLElement): HTMLElement[] {

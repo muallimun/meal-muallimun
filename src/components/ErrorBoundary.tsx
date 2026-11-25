@@ -9,6 +9,7 @@ export interface ErrorBoundaryProps {
   scope?: 'page' | 'modals';
   resetKey?: string;
   onNavigateHome?: () => void;
+  onReset?: () => void;
 }
 
 interface ErrorBoundaryState {
@@ -49,6 +50,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   private handleReset = (): void => {
+    this.props.onReset?.();
     this.setState({ hasError: false, errorMessage: '', backupFeedback: null });
   };
 

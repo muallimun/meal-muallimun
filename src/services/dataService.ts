@@ -53,6 +53,66 @@ export const SAJDAH_AYAH_IDS = new Set<number>([
   7206, 13015, 16050, 17109, 19058, 22018, 25060, 27026, 32015, 38024, 41038, 53062, 84021, 96019,
 ]);
 
+export interface SajdahDifferenceNote {
+  wordAyah: number;
+  stopAyah: number;
+  note: string;
+}
+
+/**
+ * Secde lafzının geçtiği ayet ile Diyanet/Hanefî usulünde anlam bütünlüğüyle secde
+ * durağının işaretlendiği ayetin farklı olduğu 4 özel sure kaydı.
+ */
+export const SAJDAH_DIFFERENCE_NOTES: Record<number, SajdahDifferenceNote> = {
+  16050: {
+    wordAyah: 49,
+    stopAyah: 50,
+    note: 'Secde lafzı 49. ayette geçer; Diyanet/Hanefî usulünde tilâvet secdesi anlam bütünlüğüyle 50. ayet sonunda yapılır.',
+  },
+  17109: {
+    wordAyah: 107,
+    stopAyah: 109,
+    note: 'Secde lafzı 107. ayette geçer; Diyanet/Hanefî usulünde tilâvet secdesi anlam bütünlüğüyle 109. ayet sonunda yapılır.',
+  },
+  27026: {
+    wordAyah: 25,
+    stopAyah: 26,
+    note: 'Secde lafzı 25. ayette geçer; Diyanet/Hanefî usulünde tilâvet secdesi anlam bütünlüğüyle 26. ayet sonunda yapılır.',
+  },
+  41038: {
+    wordAyah: 37,
+    stopAyah: 38,
+    note: 'Secde lafzı 37. ayette geçer; Diyanet/Hanefî usulünde tilâvet secdesi anlam bütünlüğüyle 38. ayet sonunda yapılır.',
+  },
+};
+
+export function getSajdahTooltip(surahOrVerseId: number, ayahNo?: number): string {
+  const id = ayahNo !== undefined ? surahOrVerseId * 1000 + ayahNo : surahOrVerseId;
+  const diff = SAJDAH_DIFFERENCE_NOTES[id];
+  if (diff) {
+    return `Tilâvet Secdesi Ayeti — ${diff.note}`;
+  }
+  return 'Diyanet / Hanefî standardına göre Tilâvet Secdesi ayeti';
+}
+
+export function hasEmbeddedSajdahGlyph(
+  arabicText?: string | null,
+  tajweedWords?: ReadonlyArray<ReadonlyArray<string | [string, string]>> | null,
+): boolean {
+  if (tajweedWords && tajweedWords.length > 0) {
+    for (let i = 0; i < tajweedWords.length; i += 1) {
+      const word = tajweedWords[i];
+      for (let j = 0; j < word.length; j += 1) {
+        const seg = word[j];
+        const text = typeof seg === 'string' ? seg : seg[0];
+        if (text.includes('\u06E9')) return true;
+      }
+    }
+    return false;
+  }
+  return Boolean(arabicText && arabicText.includes('\u06E9'));
+}
+
 const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'] as const;
 
 export function toArabicIndicDigits(value: number | string): string {
@@ -326,13 +386,18 @@ export async function prefetchJsonForOffline(
   }
 
   const candidates = getCandidateBaseUrls();
+  const versionParam = expectedDataVersion ?? activeManifestDataVersion;
   for (const base of candidates) {
     if (signal?.aborted) {
       const err = new Error('Çevrimdışı indirme iptal edildi.');
       err.name = 'AbortError';
       throw err;
     }
-    const url = `${base.replace(/\/+$/, '')}/${cleanPath}`;
+    const baseUrl = `${base.replace(/\/+$/, '')}/${cleanPath}`;
+    const url =
+      versionParam && !NETWORK_FIRST_META_PATHS.has(cleanPath)
+        ? `${baseUrl}?v=${encodeURIComponent(versionParam)}`
+        : baseUrl;
     try {
       const res = await fetchTextWithTimeout(url, 12000, signal);
       if (!res.ok) continue;
@@ -405,7 +470,11 @@ async function fetchJsonWithFallback<T>(relativePath: string): Promise<T> {
     let lastError: Error | null = null;
 
     for (const base of candidates) {
-      const url = `${base.replace(/\/+$/, '')}/${cleanPath}`;
+      const baseUrl = `${base.replace(/\/+$/, '')}/${cleanPath}`;
+      const url =
+        activeManifestDataVersion && !NETWORK_FIRST_META_PATHS.has(cleanPath)
+          ? `${baseUrl}?v=${encodeURIComponent(activeManifestDataVersion)}`
+          : baseUrl;
       try {
         const res = await fetchTextWithTimeout(url, 9000);
         if (!res.ok) {

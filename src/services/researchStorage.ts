@@ -461,10 +461,22 @@ function extractRawTopicsFromBackup(parsed: unknown): unknown[] | null {
   return null;
 }
 
+export const MAX_RESEARCH_IMPORT_BYTES = 5 * 1024 * 1024;
+
 export function importResearchBackupPayload(
   rawJson: string,
   mode: 'merge' | 'replace',
 ): { importedTopics: number; totalTopics: number } {
+  if (typeof rawJson !== 'string') {
+    throw new Error('Geçersiz yedek dosyası içeriği.');
+  }
+  const byteSize =
+    typeof Blob !== 'undefined' ? new Blob([rawJson]).size : rawJson.length * 2;
+  if (byteSize > MAX_RESEARCH_IMPORT_BYTES) {
+    throw new Error(
+      'Yedek dosyası 5 MB sınırını aşıyor. Lütfen geçerli bir Araştırma Defteri JSON dosyası seçin.',
+    );
+  }
   const parsed = JSON.parse(rawJson) as unknown;
   const rawTopics = extractRawTopicsFromBackup(parsed);
 

@@ -34,7 +34,11 @@ import {
 } from '../../config/mealsConfig';
 import { useMutashabihatData, useRukusData } from '../../hooks/useStudyReferenceData';
 import { audioQueueService } from '../../services/audioQueueService';
-import { SAJDAH_AYAH_IDS } from '../../services/dataService';
+import {
+  SAJDAH_AYAH_IDS,
+  getSajdahTooltip,
+  hasEmbeddedSajdahGlyph,
+} from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import {
   VERSE_NOTE_COLOR_STYLES,
@@ -483,7 +487,7 @@ export const VerseCard: React.FC<VerseCardProps> = ({
           )}
           {highlightSajdah && (
             <span
-              title="Diyanet / Hanefî standardına göre Tilâvet Secdesi ayeti"
+              title={getSajdahTooltip(verse.id)}
               className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-lg border whitespace-nowrap"
               style={{
                 backgroundColor: 'var(--brand-accent-soft)',
@@ -960,20 +964,24 @@ export const VerseCard: React.FC<VerseCardProps> = ({
                     theme={settings.theme}
                   />
                 }
-                {highlightSajdah && (
-                  <span
-                    title="Tilâvet Secdesi Ayeti"
-                    aria-label="Tilâvet Secdesi Ayeti"
-                    className="inline-flex items-center justify-center mx-[0.16em] px-[0.22em] py-0.5 rounded-md border text-[0.62em] font-extrabold align-middle leading-none select-none"
-                    style={{
-                      backgroundColor: 'var(--brand-accent-soft)',
-                      borderColor: 'rgba(217, 119, 6, 0.5)',
-                      color: 'var(--brand-accent-text)',
-                    }}
-                  >
-                    ۩
-                  </span>
-                )}
+                {highlightSajdah &&
+                  !hasEmbeddedSajdahGlyph(
+                    useTajweed ? null : verse.ar.t,
+                    useTajweed ? tajweedWords : null,
+                  ) && (
+                    <span
+                      title={getSajdahTooltip(verse.id)}
+                      aria-label={getSajdahTooltip(verse.id)}
+                      className="inline-flex items-center justify-center mx-[0.16em] px-[0.22em] py-0.5 rounded-md border text-[0.62em] font-extrabold align-middle leading-none select-none"
+                      style={{
+                        backgroundColor: 'var(--brand-accent-soft)',
+                        borderColor: 'rgba(217, 119, 6, 0.5)',
+                        color: 'var(--brand-accent-text)',
+                      }}
+                    >
+                      ۩
+                    </span>
+                  )}
                 {(useTajweed || !ENDS_WITH_ARABIC_AYAH_MARKER.test(verse.ar.t)) && (
                   <AyahEndMarker
                     ayahNo={verse.ayah}

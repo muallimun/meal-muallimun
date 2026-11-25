@@ -42,7 +42,11 @@ import { hasActiveBackStackEntries } from '../../services/backStackService';
 import { hatimStorage } from '../../services/hatimStorage';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
-import { SAJDAH_AYAH_IDS } from '../../services/dataService';
+import {
+  SAJDAH_AYAH_IDS,
+  getSajdahTooltip,
+  hasEmbeddedSajdahGlyph,
+} from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import {
   VERSE_NOTE_COLOR_STYLES,
@@ -1443,20 +1447,24 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                   tajweedRules={tjRules}
                                   theme={settings.theme}
                                 />
-                                {highlightSajdah && (
-                                  <span
-                                    title="Tilâvet Secdesi Ayeti"
-                                    aria-label="Tilâvet Secdesi Ayeti"
-                                    className="inline-flex items-center justify-center mx-[0.14em] px-[0.22em] py-0.5 rounded-md border text-[0.64em] font-extrabold align-middle leading-none select-none"
-                                    style={{
-                                      backgroundColor: 'var(--brand-accent-soft)',
-                                      borderColor: 'rgba(217, 119, 6, 0.5)',
-                                      color: 'var(--brand-accent-text)',
-                                    }}
-                                  >
-                                    ۩
-                                  </span>
-                                )}
+                                {highlightSajdah &&
+                                  !hasEmbeddedSajdahGlyph(
+                                    useVerseTajweed ? null : verse.ar.t,
+                                    useVerseTajweed ? tjWords : null,
+                                  ) && (
+                                    <span
+                                      title={getSajdahTooltip(verse.id)}
+                                      aria-label={getSajdahTooltip(verse.id)}
+                                      className="inline-flex items-center justify-center mx-[0.14em] px-[0.22em] py-0.5 rounded-md border text-[0.64em] font-extrabold align-middle leading-none select-none"
+                                      style={{
+                                        backgroundColor: 'var(--brand-accent-soft)',
+                                        borderColor: 'rgba(217, 119, 6, 0.5)',
+                                        color: 'var(--brand-accent-text)',
+                                      }}
+                                    >
+                                      ۩
+                                    </span>
+                                  )}
                                 {(useVerseTajweed || !hasDigitsAtEnd) && (
                                   <AyahEndMarker
                                     ayahNo={verse.ayah}
@@ -1467,7 +1475,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                                     size="mushaf"
                                     title={
                                       highlightSajdah
-                                        ? `Tilâvet Secdesi · ${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
+                                        ? `${getSajdahTooltip(verse.id)} · ${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
                                         : `${segment.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
                                     }
                                   />
@@ -1968,6 +1976,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
                                     {isSajdah && (
                                       <span
+                                        title={getSajdahTooltip(
+                                          group.verses.find((v) => SAJDAH_AYAH_IDS.has(v.id))?.id ??
+                                            group.verses[0].id,
+                                        )}
                                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-extrabold whitespace-nowrap"
                                         style={{
                                           backgroundColor: 'var(--brand-accent-soft)',

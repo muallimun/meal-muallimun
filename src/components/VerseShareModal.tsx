@@ -30,7 +30,7 @@ import { useBackButtonGuard } from '../services/backStackService';
 import { dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
-import type { CombinedVerse, SurahMeta } from '../types/quran';
+import type { CombinedVerse, MealVerse, SurahMeta } from '../types/quran';
 import { formatSafeArabicTitle, formatSurahTitle } from '../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { buildVerseShareUrl, PUBLIC_SITE_HOST } from '../utils/urlDeepLink';
@@ -681,6 +681,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedImage, setCopiedImage] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
+  const [isLoadingExtraMeal, setIsLoadingExtraMeal] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [fontsReadyTick, setFontsReadyTick] = useState(0);
   const [iconStage, setIconStage] = useState<'local' | 'cdn' | 'vector'>('local');
@@ -706,10 +707,27 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
   }, [verse, settings.primaryMealId]);
 
   useEffect(() => {
-    if (!verse || !isExtraMealId(mealPick)) return;
-    if (!dataService.hasExtraMealsLoaded(verse.surah)) {
-      dataService.loadExtraMealsForSurah(verse.surah).catch(() => {});
+    if (!verse || !isExtraMealId(mealPick)) {
+      setIsLoadingExtraMeal(false);
+      return;
     }
+    if (dataService.hasExtraMealsLoaded(verse.surah)) {
+      setIsLoadingExtraMeal(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingExtraMeal(true);
+    dataService
+      .loadExtraMealsForSurah(verse.surah)
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingExtraMeal(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [verse, mealPick]);
 
   useEffect(() => {
@@ -739,16 +757,74 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     [mealPick, manifest],
   );
 
-  const activeMealText = useMemo(() => {
+  const resolvedMealInfo = useMemo(() => {
     void extraVersion;
-    if (!verse) return '';
-    const resolved = dataService.getMealVerse(verse.surah, verse.ayah, mealPick, verse);
-    return resolved?.t || verse.m1?.t || verse.m2?.t || '';
-  }, [verse, mealPick, extraVersion]);
+    if (!verse) {
+      return {
+        mealDef: selectedMealDef,
+        mealVerse: null as MealVerse | null,
+        text: '',
+        isFallback: false,
+        isLoading: false,
+      };
+    }
+
+    const picked = dataService.getMealVerse(verse.surah, verse.ayah, mealPick, verse);
+    if (picked && picked.t.trim()) {
+      return {
+        mealDef: selectedMealDef,
+        mealVerse: picked,
+        text: picked.t.trim(),
+        isFallback: false,
+        isLoading: false,
+      };
+    }
+
+    if (isExtraMealId(mealPick) && isLoadingExtraMeal) {
+      return {
+        mealDef: selectedMealDef,
+        mealVerse: null as MealVerse | null,
+        text: '',
+        isFallback: false,
+        isLoading: true,
+      };
+    }
+
+    // Seçili eserde bu ayet için kayıt yoksa yedek mealin KENDİ adını ve yönünü kullan (yanlış atfı önle)
+    if (verse.m1?.t?.trim()) {
+      return {
+        mealDef: findMealById('m1', manifest),
+        mealVerse: verse.m1,
+        text: verse.m1.t.trim(),
+        isFallback: mealPick !== 'm1',
+        isLoading: false,
+      };
+    }
+    if (verse.m2?.t?.trim()) {
+      return {
+        mealDef: findMealById('m2', manifest),
+        mealVerse: verse.m2,
+        text: verse.m2.t.trim(),
+        isFallback: mealPick !== 'm2',
+        isLoading: false,
+      };
+    }
+
+    return {
+      mealDef: selectedMealDef,
+      mealVerse: null as MealVerse | null,
+      text: '',
+      isFallback: false,
+      isLoading: false,
+    };
+  }, [verse, mealPick, selectedMealDef, extraVersion, isLoadingExtraMeal, manifest]);
+
+  const activeMealText = resolvedMealInfo.text;
+  const resolvedMealDef = resolvedMealInfo.mealDef;
 
   const mealPres = useMemo(
-    () => getMealTextPresentation(selectedMealDef, 16),
-    [selectedMealDef],
+    () => getMealTextPresentation(resolvedMealDef, 16),
+    [resolvedMealDef],
   );
 
   const arabicFontStack = useMemo(
@@ -756,12 +832,25 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     [settings.arabicFont],
   );
 
-  const activeMealLabel = selectedMealDef.label;
-  const surahLabel = surahMeta
-    ? `${formatSurahTitle(surahMeta.nameTr, surahMeta.no)}, ${verse?.ayah ?? ''}. Ayet`
+  const activeMealLabel = resolvedMealDef.label;
+  const combinedRange =
+    contentMode !== 'ar' &&
+    resolvedMealInfo.mealVerse?.mg &&
+    resolvedMealInfo.mealVerse.mg[0] !== resolvedMealInfo.mealVerse.mg[1]
+      ? resolvedMealInfo.mealVerse.mg
+      : null;
+
+  const baseSurahTitle = surahMeta
+    ? formatSurahTitle(surahMeta.nameTr, surahMeta.no)
     : verse
-      ? `${verse.surah}. Sure, ${verse.ayah}. Ayet`
+      ? `${verse.surah}. Sure`
       : '';
+
+  const surahLabel = verse
+    ? combinedRange
+      ? `${baseSurahTitle}, ${combinedRange[0]}–${combinedRange[1]}. Ayetler (Birleşik Meal)`
+      : `${baseSurahTitle}, ${verse.ayah}. Ayet`
+    : '';
   const safeArabicSurah = surahMeta ? formatSafeArabicTitle(surahMeta.nameAr) : '';
 
   const verseShareUrl = useMemo(
@@ -780,11 +869,11 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
         parts.push(mealPres.isRtl ? activeMealText : `"${activeMealText}"`);
       }
     }
-    const mealSuffix = contentMode === 'ar' ? '' : ` • ${selectedMealDef.label}`;
+    const mealSuffix = contentMode === 'ar' ? '' : ` • ${resolvedMealDef.label}`;
     parts.push(`— ${surahLabel}${mealSuffix}`);
     parts.push(verseShareUrl);
     return parts.join('\n\n');
-  }, [verse, contentMode, activeMealText, mealPres.isRtl, surahLabel, selectedMealDef.label, verseShareUrl]);
+  }, [verse, contentMode, activeMealText, mealPres.isRtl, surahLabel, resolvedMealDef.label, verseShareUrl]);
 
   const layout = useMemo(() => {
     void fontsReadyTick;
@@ -865,8 +954,21 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
   };
 
   const renderCardBlob = async (forceVectorIcon = false): Promise<Blob | null> => {
-    if (document.fonts?.ready) {
+    if (typeof document !== 'undefined' && document.fonts) {
       try {
+        const fontLoads: Promise<unknown>[] = [];
+        if (typeof document.fonts.load === 'function') {
+          fontLoads.push(document.fonts.load(`400 48px ${arabicFontStack}`));
+          fontLoads.push(document.fonts.load('400 32px "Arakom Nesih"'));
+          fontLoads.push(document.fonts.load(`700 22px ${TURKISH_CANVAS_FONT}`));
+          fontLoads.push(document.fonts.load(`500 32px ${TURKISH_CANVAS_FONT}`));
+          if (mealPres.isRtl) {
+            fontLoads.push(document.fonts.load(`400 36px ${RTL_TAFSIR_CANVAS_FONT}`));
+          }
+        }
+        if (fontLoads.length > 0) {
+          await Promise.allSettled(fontLoads);
+        }
         await document.fonts.ready;
       } catch {
         // ignore font readiness error
@@ -1370,7 +1472,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                       </div>
                     )}
 
-                    {showMealBlock && (
+                    {showMealBlock ? (
                       <div
                         className="flex flex-col items-center w-full"
                         style={{ gap: px(14) }}
@@ -1402,6 +1504,17 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                           — {activeMealLabel}
                         </p>
                       </div>
+                    ) : (
+                      contentMode !== 'ar' &&
+                      resolvedMealInfo.isLoading && (
+                        <div
+                          className="inline-flex items-center gap-1.5 font-semibold"
+                          style={{ color: palette.mutedColor, fontSize: px(22) }}
+                        >
+                          <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                          <span>Seçili eser yükleniyor…</span>
+                        </div>
+                      )
                     )}
                   </div>
 
@@ -1470,6 +1583,17 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
               {layout.isOverflowExpanded && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--brand-primary-soft)] text-[var(--brand-primary-text)] font-bold">
                   Uzun ayet: tam metin sığdırıldı
+                </span>
+              )}
+              {contentMode !== 'ar' && resolvedMealInfo.isLoading && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-surface)] text-[var(--text-secondary)] font-bold">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Seçili eser yükleniyor…
+                </span>
+              )}
+              {contentMode !== 'ar' && resolvedMealInfo.isFallback && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--brand-accent-soft)] text-[var(--brand-accent-text)] font-bold">
+                  Seçili eserde kayıt yok · {resolvedMealDef.shortLabel} gösteriliyor
                 </span>
               )}
             </div>

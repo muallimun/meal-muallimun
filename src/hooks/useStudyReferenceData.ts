@@ -21,20 +21,44 @@ const EMPTY_RUKUS: readonly RukuItem[] = [];
 // ============================================================================
 
 let mutashabihatCache: MutashabihatFile | null = null;
-let mutashabihatPromise: Promise<MutashabihatFile> | null = null;
+let mutashabihatPromise: Promise<MutashabihatFile | null> | null = null;
+let mutashabihatLoadFailed = false;
 const mutashabihatSubscribers = new Set<() => void>();
+
+function notifyMutashabihatSubscribers(): void {
+  for (const listener of mutashabihatSubscribers) listener();
+}
+
+function isNonEmptyMutashabihat(file: MutashabihatFile | null | undefined): file is MutashabihatFile {
+  return Boolean(
+    file &&
+      file.verses &&
+      typeof file.verses === 'object' &&
+      Object.keys(file.verses).length > 0,
+  );
+}
 
 function ensureMutashabihatLoaded(): void {
   if (mutashabihatCache || mutashabihatPromise) return;
+  mutashabihatLoadFailed = false;
   mutashabihatPromise = dataService
     .getMutashabihatData()
     .then((file) => {
-      mutashabihatCache = file;
-      for (const listener of mutashabihatSubscribers) listener();
-      return file;
+      if (isNonEmptyMutashabihat(file)) {
+        mutashabihatCache = file;
+        mutashabihatLoadFailed = false;
+        return file;
+      }
+      mutashabihatLoadFailed = true;
+      return null;
+    })
+    .catch(() => {
+      mutashabihatLoadFailed = true;
+      return null;
     })
     .finally(() => {
       mutashabihatPromise = null;
+      notifyMutashabihatSubscribers();
     });
 }
 
@@ -43,6 +67,7 @@ export function useMutashabihatData(enabled = true) {
 
   useEffect(() => {
     if (!enabled) return;
+    ensureOnlineRetryListener();
     const onUpdate = () => setTick((t) => t + 1);
     mutashabihatSubscribers.add(onUpdate);
     if (!mutashabihatCache) {
@@ -68,7 +93,7 @@ export function useMutashabihatData(enabled = true) {
 
   return {
     data: mutashabihatCache,
-    isLoading: enabled && !mutashabihatCache,
+    isLoading: enabled && !mutashabihatCache && !mutashabihatLoadFailed,
     totalVersesWithSimilar: mutashabihatCache?.totalVersesWithSimilar ?? 0,
     totalLinks: mutashabihatCache?.totalLinks ?? 0,
     getLinks,
@@ -87,8 +112,17 @@ interface IndexedRukus {
 }
 
 let rukusCache: IndexedRukus | null = null;
-let rukusPromise: Promise<IndexedRukus> | null = null;
+let rukusPromise: Promise<IndexedRukus | null> | null = null;
+let rukusLoadFailed = false;
 const rukusSubscribers = new Set<() => void>();
+
+function notifyRukusSubscribers(): void {
+  for (const listener of rukusSubscribers) listener();
+}
+
+function isNonEmptyRukus(file: RukusFile | null | undefined): file is RukusFile {
+  return Boolean(file && Array.isArray(file.rukus) && file.rukus.length > 0);
+}
 
 function indexRukusFile(file: RukusFile): IndexedRukus {
   const byEndKey = new Map<string, RukuItem>();
@@ -113,16 +147,40 @@ function indexRukusFile(file: RukusFile): IndexedRukus {
 
 function ensureRukusLoaded(): void {
   if (rukusCache || rukusPromise) return;
+  rukusLoadFailed = false;
   rukusPromise = dataService
     .getRukusData()
     .then((file) => {
-      rukusCache = indexRukusFile(file);
-      for (const listener of rukusSubscribers) listener();
-      return rukusCache;
+      if (isNonEmptyRukus(file)) {
+        rukusCache = indexRukusFile(file);
+        rukusLoadFailed = false;
+        return rukusCache;
+      }
+      rukusLoadFailed = true;
+      return null;
+    })
+    .catch(() => {
+      rukusLoadFailed = true;
+      return null;
     })
     .finally(() => {
       rukusPromise = null;
+      notifyRukusSubscribers();
     });
+}
+
+let onlineRetryBound = false;
+function ensureOnlineRetryListener(): void {
+  if (onlineRetryBound || typeof window === 'undefined') return;
+  onlineRetryBound = true;
+  window.addEventListener('online', () => {
+    if (!mutashabihatCache && mutashabihatSubscribers.size > 0) {
+      ensureMutashabihatLoaded();
+    }
+    if (!rukusCache && rukusSubscribers.size > 0) {
+      ensureRukusLoaded();
+    }
+  });
 }
 
 export function useRukusData(enabled = true) {
@@ -130,6 +188,7 @@ export function useRukusData(enabled = true) {
 
   useEffect(() => {
     if (!enabled) return;
+    ensureOnlineRetryListener();
     const onUpdate = () => setTick((t) => t + 1);
     rukusSubscribers.add(onUpdate);
     if (!rukusCache) {
@@ -168,7 +227,7 @@ export function useRukusData(enabled = true) {
     allRukus: rukusCache?.file.rukus ?? EMPTY_RUKUS,
     totalRukus: rukusCache?.file.totalRukus ?? 0,
     waqfSigns,
-    isLoading: enabled && !rukusCache,
+    isLoading: enabled && !rukusCache && !rukusLoadFailed,
     getRukuEndingAt,
     getRukusForSurah,
     getRukuForVerse,

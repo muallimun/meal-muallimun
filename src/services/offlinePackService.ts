@@ -268,7 +268,7 @@ export async function downloadOfflineTextPack(
     'fihrist/rukus.json',
     'tj/meta.json',
     'seg/meta.json',
-    'fihrist/surah_info_extras.json',
+    'fihrist/surah_info.json',
     'fihrist/bazergan_timeline.json',
   ];
   const optionalCoreResults = await Promise.all(

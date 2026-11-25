@@ -101,6 +101,7 @@ export interface StartQueueOptions {
   queueTitle?: string;
   queueLoopOverride?: QueueLoopOption;
   repeatCountOverride?: RepeatCountOption;
+  autoPlay?: boolean;
 }
 
 export interface StartSegmentQueueOptions {
@@ -259,6 +260,28 @@ class AudioQueueService {
   private nextPageProvider: NextPageProvider | null = null;
   private externalAudioPausers = new Set<() => void>();
 
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        for (const [key, val] of this.segSurahCache.entries()) {
+          if (val === null) {
+            this.segSurahCache.delete(key);
+          }
+        }
+        const activeStep = this.steps[this.currentStepIndex];
+        const activeVerse = activeStep ? this.verses[activeStep.verseIndex] : null;
+        if (
+          activeStep &&
+          activeVerse &&
+          !this.activeStepSegments &&
+          (this.snapshot.status === 'playing' || this.snapshot.status === 'loading')
+        ) {
+          this.prepareWordSyncForStep(activeVerse, activeStep, this.playSessionId);
+        }
+      });
+    }
+  }
+
   public subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
     return () => {
@@ -308,8 +331,9 @@ class AudioQueueService {
 
   private ensureSegSurahLoaded(reciterKey: string, surahNo: number): Promise<SegSurahFile | null> {
     const cacheKey = `${reciterKey}:${surahNo}`;
-    if (this.segSurahCache.has(cacheKey)) {
-      return Promise.resolve(this.segSurahCache.get(cacheKey) ?? null);
+    const cached = this.segSurahCache.get(cacheKey);
+    if (cached) {
+      return Promise.resolve(cached);
     }
     const existing = this.segSurahInflight.get(cacheKey);
     if (existing) return existing;
@@ -318,13 +342,12 @@ class AudioQueueService {
       .getSegSurah(reciterKey, surahNo)
       .then((file) => {
         const valid = file && typeof file === 'object' && file.v ? file : null;
-        this.segSurahCache.set(cacheKey, valid);
+        if (valid) {
+          this.segSurahCache.set(cacheKey, valid);
+        }
         return valid;
       })
-      .catch(() => {
-        this.segSurahCache.set(cacheKey, null);
-        return null;
-      })
+      .catch(() => null)
       .finally(() => {
         this.segSurahInflight.delete(cacheKey);
       });
@@ -1101,9 +1124,17 @@ class AudioQueueService {
     const loop = this.getEffectiveQueueLoop();
     const hasMoreLoopRounds = loop === 'infinite' || this.currentQueueRound < loop;
 
-    const canGoPrev =
+    let canGoPrev =
       this.currentVerseIndex > 0 ||
       (this.atomicSegments.length > 0 && this.currentAtomicIdx > 0);
+    if (!canGoPrev && !this.singleAyahOnly && this.meta && this.atomicSegments.length === 0) {
+      const firstVerse = this.verses[0];
+      if (this.context === 'page' && firstVerse) {
+        canGoPrev = firstVerse.page > getPageBounds(this.meta).minPage;
+      } else if (this.context === 'surah' && firstVerse) {
+        canGoPrev = firstVerse.surah > 1;
+      }
+    }
 
     let canGoNext = this.currentVerseIndex < this.verses.length - 1;
     if (!canGoNext) {
@@ -1218,6 +1249,21 @@ class AudioQueueService {
       this.handleStepExhausted(session);
     };
 
+    let lastProgressTime = 0;
+
+    const recoverPlayingState = () => {
+      if (session !== this.playSessionId) return;
+      this.clearStallTimer();
+      if (!audio.paused && this.snapshot.status === 'loading') {
+        this.clearLoadTimer();
+        this.consecutiveFailures = 0;
+        this.applyPlaybackRate(audio, this.prefs.playbackRate);
+        this.emit({ status: 'playing', errorMessage: null });
+        this.setMediaPlaybackState('playing');
+        this.startWordSyncLoop();
+      }
+    };
+
     const scheduleStallWatchdog = () => {
       if (session !== this.playSessionId) return;
       this.stopWordSyncLoop();
@@ -1239,11 +1285,16 @@ class AudioQueueService {
       handleFailure();
     }, LOAD_TIMEOUT_MS);
 
+    audio.addEventListener('canplay', recoverPlayingState, { signal });
+
     audio.addEventListener(
-      'canplay',
+      'timeupdate',
       () => {
         if (session !== this.playSessionId) return;
-        this.clearStallTimer();
+        if (!audio.paused && this.snapshot.status === 'loading' && audio.currentTime > lastProgressTime) {
+          recoverPlayingState();
+        }
+        lastProgressTime = audio.currentTime;
       },
       { signal },
     );
@@ -1255,6 +1306,7 @@ class AudioQueueService {
         this.clearLoadTimer();
         this.clearStallTimer();
         this.consecutiveFailures = 0;
+        lastProgressTime = audio.currentTime;
         this.applyPlaybackRate(audio, this.prefs.playbackRate);
         this.emit({ status: 'playing', errorMessage: null });
         this.setMediaPlaybackState('playing');
@@ -1265,7 +1317,15 @@ class AudioQueueService {
     );
 
     audio.addEventListener('waiting', scheduleStallWatchdog, { signal });
-    audio.addEventListener('stalled', scheduleStallWatchdog, { signal });
+    audio.addEventListener(
+      'stalled',
+      () => {
+        if (audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+          scheduleStallWatchdog();
+        }
+      },
+      { signal },
+    );
 
     audio.addEventListener(
       'ended',
@@ -1776,6 +1836,11 @@ class AudioQueueService {
     this.currentVerseIndex = targetIndex;
     this.steps = builtSteps;
     this.currentStepIndex = 0;
+    if (options.autoPlay === false) {
+      this.teardownAudioElement();
+      this.emitPreparedPausedState(this.verses[targetIndex], builtSteps[0]);
+      return;
+    }
     this.playCurrentStep(0);
   }
 
@@ -2114,6 +2179,8 @@ class AudioQueueService {
 
   /**
    * Oynatıcı içindeki hızlı ayet seçicisinden seçilen sure ve ayetten kesintisiz kuyruğu başlatır.
+   * Hedef ayet zaten aktif kuyrukta ise mevcut kapsamı ve duraklatma durumunu koruyarak atlar;
+   * sure yüklenirken gelen daha yeni bir işlem varsa eski isteği iptal eder.
    */
   public async jumpToSurahAyah(
     surahNo: number,
@@ -2122,8 +2189,23 @@ class AudioQueueService {
     meta: MetaData,
     prefs: AudioPrefs,
   ): Promise<void> {
+    const existingVerse = this.verses.find((v) => v.surah === surahNo && v.ayah === ayahNo);
+    if (existingVerse) {
+      this.manifest = manifest;
+      this.meta = meta;
+      this.prefs = { ...prefs };
+      if (this.jumpToQueueVerse(existingVerse.id)) {
+        return;
+      }
+    }
+
+    const shouldAutoPlay = this.snapshot.status !== 'paused';
+    this.playSessionId += 1;
+    const session = this.playSessionId;
     const bundle = await dataService.getSurahBundle(surahNo);
+    if (session !== this.playSessionId) return;
     if (!bundle.verses.length) return;
+
     const idx = Math.max(
       0,
       bundle.verses.findIndex((v) => v.ayah === ayahNo),
@@ -2138,6 +2220,7 @@ class AudioQueueService {
       meta,
       prefs,
       singleAyahOnly: false,
+      autoPlay: shouldAutoPlay,
     });
   }
 
@@ -2203,6 +2286,85 @@ class AudioQueueService {
           if (loaded) return;
         }
       })();
+      return;
+    }
+
+    // Önceki Mushaf sayfasına geri dön (son ayetten devam ederek)
+    if (!this.singleAyahOnly && this.context === 'page' && this.meta && this.verses.length > 0) {
+      const firstVerse = this.verses[0];
+      const prevPageNo = firstVerse.page - 1;
+      const bounds = getPageBounds(this.meta);
+      if (prevPageNo >= bounds.minPage) {
+        if (shouldAutoPlay) {
+          this.emit({ status: 'loading' });
+        }
+        void (async () => {
+          try {
+            const bundle = await dataService.getPageBundle(prevPageNo);
+            if (session !== this.playSessionId || bundle.verses.length === 0) return;
+            this.verses = bundle.verses;
+            this.contextKey = `page:${bundle.pageNo}`;
+            this.queueBaseTitle = `Sayfa ${bundle.pageNo}`;
+
+            for (let i = this.verses.length - 1; i >= 0; i -= 1) {
+              const prevSteps = this.buildStepsForVerse(i, true);
+              if (prevSteps.length > 0) {
+                this.currentVerseIndex = i;
+                this.steps = prevSteps;
+                this.currentStepIndex = 0;
+                if (!shouldAutoPlay || this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+                  this.teardownAudioElement();
+                  this.emitPreparedPausedState(this.verses[i], prevSteps[0]);
+                  return;
+                }
+                this.playCurrentStep(0);
+                return;
+              }
+            }
+          } catch {
+            // Önceki sayfa yüklenemezse sessizce bırak
+          }
+        })();
+        return;
+      }
+    }
+
+    // Önceki sureye geri dön (son ayetten devam ederek)
+    if (!this.singleAyahOnly && this.context === 'surah' && this.meta && this.verses.length > 0) {
+      const firstVerse = this.verses[0];
+      const prevSurahNo = firstVerse.surah - 1;
+      if (prevSurahNo >= 1) {
+        if (shouldAutoPlay) {
+          this.emit({ status: 'loading' });
+        }
+        void (async () => {
+          try {
+            const bundle = await dataService.getSurahBundle(prevSurahNo);
+            if (session !== this.playSessionId || bundle.verses.length === 0) return;
+            this.verses = bundle.verses;
+            this.contextKey = `surah:${prevSurahNo}`;
+            this.queueBaseTitle = bundle.surahMeta.nameTr;
+
+            for (let i = this.verses.length - 1; i >= 0; i -= 1) {
+              const prevSteps = this.buildStepsForVerse(i, true);
+              if (prevSteps.length > 0) {
+                this.currentVerseIndex = i;
+                this.steps = prevSteps;
+                this.currentStepIndex = 0;
+                if (!shouldAutoPlay || this.userPausedDuringLoad || this.snapshot.status === 'paused') {
+                  this.teardownAudioElement();
+                  this.emitPreparedPausedState(this.verses[i], prevSteps[0]);
+                  return;
+                }
+                this.playCurrentStep(0);
+                return;
+              }
+            }
+          } catch {
+            // Önceki sure yüklenemezse sessizce bırak
+          }
+        })();
+      }
     }
   }
 

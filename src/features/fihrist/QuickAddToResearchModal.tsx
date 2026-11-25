@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Check, FolderPlus, Pin, Plus, StickyNote, X } from 'lucide-react';
+import { Z_LAYERS } from '../../config/zLayers';
 import { useBackButtonGuard } from '../../services/backStackService';
 import { researchStorage } from '../../services/researchStorage';
 import { sfxService } from '../../services/sfxService';
@@ -89,7 +90,7 @@ export const QuickAddToResearchModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[82] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs"
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs`}
       role="dialog"
       aria-modal="true"
       aria-label="Araştırma Defterine Ekle"

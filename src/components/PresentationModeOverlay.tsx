@@ -35,7 +35,12 @@ import { useActiveMeals } from '../hooks/useActiveMeals';
 import { useTajweedData } from '../hooks/useTajweedData';
 import { audioQueueService } from '../services/audioQueueService';
 import { useBackButtonGuard } from '../services/backStackService';
-import { SAJDAH_AYAH_IDS, toArabicIndicDigits } from '../services/dataService';
+import {
+  SAJDAH_AYAH_IDS,
+  getSajdahTooltip,
+  hasEmbeddedSajdahGlyph,
+  toArabicIndicDigits,
+} from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { wordAudioService } from '../services/wordAudioService';
 import { useAppStore } from '../store/useAppStore';
@@ -758,8 +763,22 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const isWordSyncActive = settings.wordSyncEnabled && audioState.isWordSyncActive;
   const isBesmeleHighlighted = isAudioActiveOnVerse && isBesmelePhase;
   const isArabicHighlighted = isAudioActiveOnVerse && audioState.activePhase === 'ar';
-  const suppressBesmeleFill = isBesmeleHighlighted && isWordSyncActive;
-  const suppressArabicFill = isArabicHighlighted && isWordSyncActive;
+  const besmeleDisplayWordCount =
+    useBesmeleTajweed && tjBesmele ? tjBesmele.length : besmelePlainTokens.length;
+  const verseDisplayWordCount =
+    useVerseTajweed && displayedTjWords ? displayedTjWords.length : versePlainTokens.length;
+  const isBesmeleWordCountCompatible =
+    !wordSync.qulWordCount ||
+    wordSync.qulWordCount <= 0 ||
+    Math.abs(wordSync.qulWordCount - besmeleDisplayWordCount) <= 2;
+  const isVerseWordCountCompatible =
+    !wordSync.qulWordCount ||
+    wordSync.qulWordCount <= 0 ||
+    Math.abs(wordSync.qulWordCount - verseDisplayWordCount) <= 2;
+  const suppressBesmeleFill =
+    isBesmeleHighlighted && isWordSyncActive && isBesmeleWordCountCompatible;
+  const suppressArabicFill =
+    isArabicHighlighted && isWordSyncActive && isVerseWordCountCompatible;
   const isLightTheme = presTheme === 'cream' || presTheme === 'light';
   const presTajweedTheme: ThemeMode =
     presTheme === 'cream' ? 'cream' : presTheme === 'light' ? 'light' : 'dark';
@@ -1829,6 +1848,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                 {isSajdah && (
                   <span
+                    title={getSajdahTooltip(displayedVerse.id)}
                     className={`${
                       isCompactLandscape ? 'px-2.5 py-0.5 text-[11px]' : 'px-3.5 py-1 text-xs sm:text-sm'
                     } rounded-full font-extrabold flex items-center gap-1.5 border shadow-sm`}
@@ -2132,24 +2152,28 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     });
                   })()
                 )}
-                {isSajdah && (
-                  <span
-                    title="Tilâvet Secdesi Ayeti"
-                    className="inline-flex items-center justify-center mx-1.5 text-[0.62em] font-extrabold px-2 py-0.5 rounded-lg align-middle border"
-                    style={{
-                      backgroundColor: isLightTheme
-                        ? 'rgba(217, 119, 6, 0.16)'
-                        : 'rgba(251, 191, 36, 0.22)',
-                      borderColor: isLightTheme
-                        ? 'rgba(180, 83, 9, 0.45)'
-                        : 'rgba(251, 191, 36, 0.55)',
-                      color: isLightTheme ? '#92400E' : '#FDE68A',
-                      fontFamily: 'var(--font-turkish)',
-                    }}
-                  >
-                    ۩
-                  </span>
-                )}
+                {isSajdah &&
+                  !hasEmbeddedSajdahGlyph(
+                    useVerseTajweed ? null : displayedVerse.ar.t,
+                    useVerseTajweed ? displayedTjWords : null,
+                  ) && (
+                    <span
+                      title={getSajdahTooltip(displayedVerse.id)}
+                      className="inline-flex items-center justify-center mx-1.5 text-[0.62em] font-extrabold px-2 py-0.5 rounded-lg align-middle border"
+                      style={{
+                        backgroundColor: isLightTheme
+                          ? 'rgba(217, 119, 6, 0.16)'
+                          : 'rgba(251, 191, 36, 0.22)',
+                        borderColor: isLightTheme
+                          ? 'rgba(180, 83, 9, 0.45)'
+                          : 'rgba(251, 191, 36, 0.55)',
+                        color: isLightTheme ? '#92400E' : '#FDE68A',
+                        fontFamily: 'var(--font-turkish)',
+                      }}
+                    >
+                      ۩
+                    </span>
+                  )}
                 <span
                   className="arabic-text inline-block mx-2.5 text-[0.82em] align-middle select-none font-normal"
                   style={{

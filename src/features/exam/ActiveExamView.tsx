@@ -91,6 +91,15 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   const isCompletingRef = useRef(false);
   const sessionStartedAtRef = useRef<number>(Date.now());
   const initialElapsedSecRef = useRef<number>(session.elapsedSec);
+  const lastWallClockAtRef = useRef<number>(Date.now());
+  const subSecondCarryMsRef = useRef<number>(0);
+  const playedTimeoutSfxUidsRef = useRef<Set<string>>(
+    new Set(
+      Object.values(session.answers)
+        .filter((a) => a.timedOut)
+        .map((a) => a.questionUid),
+    ),
+  );
   const feedbackSectionRef = useRef<HTMLDivElement | null>(null);
   const mobileStripRef = useRef<HTMLDivElement | null>(null);
   // Yarışma Arenası'nda aktif sorudan geri dönülüp tekrar gelindiğinde sürenin sıfırlanmasını engeller
@@ -107,6 +116,13 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     isCompletingRef.current = false;
     sessionStartedAtRef.current = Date.now();
     initialElapsedSecRef.current = session.elapsedSec;
+    lastWallClockAtRef.current = Date.now();
+    subSecondCarryMsRef.current = 0;
+    playedTimeoutSfxUidsRef.current = new Set(
+      Object.values(session.answers)
+        .filter((a) => a.timedOut)
+        .map((a) => a.questionUid),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.sessionId]);
 
@@ -247,10 +263,29 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
     [onCompleteExam],
   );
 
-  useEffect(() => {
-    if (showExitModal || showFinishModal || showReportModal) return;
+  const isTimerPaused =
+    showExitModal || showFinishModal || showReportModal || (isArena && isAnswered);
 
-    const timer = window.setInterval(() => {
+  useEffect(() => {
+    if (isTimerPaused) return;
+
+    // Duraklama sonrası veya soru değişiminde duvar saati referansını tazele
+    lastWallClockAtRef.current = Date.now();
+    subSecondCarryMsRef.current = 0;
+
+    const syncFromWallClock = () => {
+      const now = Date.now();
+      const deltaMs = Math.max(0, now - lastWallClockAtRef.current);
+      lastWallClockAtRef.current = now;
+
+      const totalMs = subSecondCarryMsRef.current + deltaMs;
+      const wholeSec = Math.floor(totalMs / 1000);
+      if (wholeSec <= 0) {
+        subSecondCarryMsRef.current = totalMs;
+        return;
+      }
+      subSecondCarryMsRef.current = totalMs - wholeSec * 1000;
+
       onUpdateSession((prev) => {
         const q = prev.questions[prev.currentIndex];
         if (!q) return prev;
@@ -261,12 +296,11 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
           return prev;
         }
 
-        const nextElapsed = prev.elapsedSec + 1;
+        const nextElapsed = prev.elapsedSec + wholeSec;
 
         if (prev.config.mode === 'arena') {
-          const nextQSec = Math.max(0, prev.questionRemainingSec - 1);
+          const nextQSec = Math.max(0, prev.questionRemainingSec - wholeSec);
           if (nextQSec === 0 && !alreadyAnswered) {
-            sfxService.play('wrong');
             const timeoutRecord: ExamAnswerRecord = {
               questionUid: q.uid,
               selectedIndex: null,
@@ -294,16 +328,12 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
         }
 
         if (prev.config.mode === 'mock') {
-          const nextTotalSec = Math.max(0, prev.totalRemainingSec - 1);
-          const updated = {
+          const nextTotalSec = Math.max(0, prev.totalRemainingSec - wholeSec);
+          return {
             ...prev,
             elapsedSec: nextElapsed,
             totalRemainingSec: nextTotalSec,
           };
-          if (nextTotalSec === 0) {
-            window.setTimeout(() => triggerComplete(updated, false), 0);
-          }
-          return updated;
         }
 
         return {
@@ -311,10 +341,38 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
           elapsedSec: nextElapsed,
         };
       });
-    }, 1000);
+    };
 
-    return () => window.clearInterval(timer);
-  }, [onUpdateSession, showExitModal, showFinishModal, showReportModal, triggerComplete]);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromWallClock();
+      }
+    };
+
+    const timer = window.setInterval(syncFromWallClock, 250);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isTimerPaused, onUpdateSession, session.currentIndex, session.sessionId]);
+
+  // Yan etki izolasyonu: Arena soru süresi dolduğunda uyarı sesini state güncelleyici dışında çal
+  const currentQuestionUid = currentQuestion?.uid ?? null;
+  const isCurrentTimedOut = Boolean(currentAnswer?.timedOut);
+  useEffect(() => {
+    if (!isArena || !currentQuestionUid || !isCurrentTimedOut) return;
+    if (playedTimeoutSfxUidsRef.current.has(currentQuestionUid)) return;
+    playedTimeoutSfxUidsRef.current.add(currentQuestionUid);
+    sfxService.play('wrong');
+  }, [isArena, currentQuestionUid, isCurrentTimedOut]);
+
+  // Yan etki izolasyonu: Deneme sınavı toplam süresi sıfırlandığında sınavı state güncelleyici dışında tamamla
+  useEffect(() => {
+    if (!isMock || session.totalRemainingSec > 0) return;
+    triggerComplete(session, false);
+  }, [isMock, session, triggerComplete]);
 
   // Şık seçimi
   const handleSelectOption = useCallback(

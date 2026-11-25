@@ -1,12 +1,72 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { dataService } from '../services/dataService';
 import type { TajweedMetaFile, TajweedRuleDef, TajweedWord } from '../types/tajweed';
+import {
+  STANDALONE_WAQF_OR_MARKER_RE,
+  STANDALONE_WAQF_SIGN_RE,
+} from '../utils/wordSyncUtils';
 
 const EMPTY_RULES: Record<string, TajweedRuleDef> = {};
 
 // Modül düzeyi senkron bellek önbelleği (sure geçişlerinde sıfır titreme)
 let cachedMeta: TajweedMetaFile | null = null;
 const cachedSurahMaps = new Map<number, Map<number, TajweedWord[]>>();
+
+function getTajweedWordText(word: TajweedWord): string {
+  let out = '';
+  for (let i = 0; i < word.length; i += 1) {
+    const seg = word[i];
+    out += typeof seg === 'string' ? seg : seg[0];
+  }
+  return out.trim();
+}
+
+/**
+ * Tek başına duran vakıf/secâvend/hizb/secde işaretlerini ayrı kelime olarak bırakmak
+ * çift boşluğa ve karaoke indeks kaymasına yol açar; bunları bitişik kelimeye birleştirir.
+ */
+function normalizeTajweedWords(words: TajweedWord[]): TajweedWord[] {
+  if (!Array.isArray(words) || words.length === 0) return words;
+
+  const normalized: TajweedWord[] = [];
+  let pendingPrefix: TajweedWord | null = null;
+
+  for (let i = 0; i < words.length; i += 1) {
+    const word = words[i];
+    if (!Array.isArray(word) || word.length === 0) continue;
+
+    const text = getTajweedWordText(word);
+    if (text && STANDALONE_WAQF_OR_MARKER_RE.test(text)) {
+      if (normalized.length > 0) {
+        const prev = normalized[normalized.length - 1];
+        normalized[normalized.length - 1] = STANDALONE_WAQF_SIGN_RE.test(text)
+          ? [...prev, ...word]
+          : [...prev, ' ', ...word];
+      } else {
+        pendingPrefix = pendingPrefix ? [...pendingPrefix, ' ', ...word] : [...word];
+      }
+    } else if (pendingPrefix) {
+      normalized.push([...pendingPrefix, ' ', ...word]);
+      pendingPrefix = null;
+    } else {
+      normalized.push(word);
+    }
+  }
+
+  if (pendingPrefix) {
+    if (normalized.length > 0) {
+      const prev = normalized[normalized.length - 1];
+      const prefixText = getTajweedWordText(pendingPrefix);
+      normalized[normalized.length - 1] = STANDALONE_WAQF_SIGN_RE.test(prefixText)
+        ? [...prev, ...pendingPrefix]
+        : [...prev, ' ', ...pendingPrefix];
+    } else {
+      normalized.push(pendingPrefix);
+    }
+  }
+
+  return normalized;
+}
 
 export interface UseTajweedDataResult {
   meta: TajweedMetaFile | null;
@@ -67,8 +127,12 @@ export function useTajweedData(
           .getTajweedMeta()
           .then((loadedMeta) => {
             if (loadedMeta && typeof loadedMeta === 'object' && loadedMeta.rules) {
-              cachedMeta = loadedMeta;
-              if (!cancelled) setMeta(loadedMeta);
+              const normalizedMeta: TajweedMetaFile =
+                Array.isArray(loadedMeta.besmele) && loadedMeta.besmele.length > 0
+                  ? { ...loadedMeta, besmele: normalizeTajweedWords(loadedMeta.besmele) }
+                  : loadedMeta;
+              cachedMeta = normalizedMeta;
+              if (!cancelled) setMeta(normalizedMeta);
             }
           })
           .catch(() => {
@@ -88,7 +152,7 @@ export function useTajweedData(
             const ayahMap = new Map<number, TajweedWord[]>();
             for (const v of file.verses) {
               if (typeof v?.a === 'number' && Array.isArray(v.w)) {
-                ayahMap.set(v.a, v.w);
+                ayahMap.set(v.a, normalizeTajweedWords(v.w));
               }
             }
             cachedSurahMaps.set(sNo, ayahMap);

@@ -27,6 +27,7 @@ import {
   X,
 } from 'lucide-react';
 import { ResponsiveActionMenu } from '../../components/ResponsiveActionMenu';
+import { Z_LAYERS } from '../../config/zLayers';
 import { audioQueueService } from '../../services/audioQueueService';
 import { useBackButtonGuard } from '../../services/backStackService';
 import {
@@ -34,7 +35,7 @@ import {
   countEntriesAyahs,
   parseBulkVerseReferences,
 } from '../../services/fihristService';
-import { researchStorage } from '../../services/researchStorage';
+import { MAX_RESEARCH_IMPORT_BYTES, researchStorage } from '../../services/researchStorage';
 import { sfxService } from '../../services/sfxService';
 import { verseNotesStorage } from '../../services/verseNotesStorage';
 import { useAppStore } from '../../store/useAppStore';
@@ -589,7 +590,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
     e.target.value = '';
     if (!file) return;
     try {
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > MAX_RESEARCH_IMPORT_BYTES) {
         throw new Error(
           'Yedek dosyası 5 MB sınırını aşıyor. Lütfen geçerli bir Araştırma Defteri JSON dosyası seçin.',
         );
@@ -1801,7 +1802,7 @@ export const ResearchNotebookTab: React.FC<ResearchNotebookTabProps> = ({
           ==================================================================== */}
       {isBackupModalOpen && (
         <div
-          className="fixed inset-0 z-[82] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs"
+          className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs`}
           role="dialog"
           aria-modal="true"
           aria-label="Araştırma Defteri JSON Yedekleme"

@@ -92,7 +92,9 @@ class MemorizationAudioController {
   private preloadedUrl: string | null = null;
 
   private sessionId = 0;
+  private playAttemptId = 0;
   private loadTimer: number | null = null;
+  private stallTimer: number | null = null;
   private pauseInterval: number | null = null;
   private pauseEndAt = 0;
   private pauseTotalMs = 0;
@@ -137,6 +139,13 @@ class MemorizationAudioController {
     if (this.loadTimer !== null) {
       window.clearTimeout(this.loadTimer);
       this.loadTimer = null;
+    }
+  }
+
+  private clearStallTimer(): void {
+    if (this.stallTimer !== null) {
+      window.clearTimeout(this.stallTimer);
+      this.stallTimer = null;
     }
   }
 
@@ -335,8 +344,10 @@ class MemorizationAudioController {
     claimAudioFocus('memorization');
 
     this.sessionId += 1;
+    this.playAttemptId += 1;
     const mySession = this.sessionId;
     this.clearLoadTimer();
+    this.clearStallTimer();
     this.clearPauseTimer();
     this.detachActiveListeners();
     this.pauseBothChannels();
@@ -395,6 +406,9 @@ class MemorizationAudioController {
     audio.onerror = null;
     this.detachActiveListeners();
     this.clearLoadTimer();
+    this.clearStallTimer();
+    this.playAttemptId += 1;
+    const attemptId = this.playAttemptId;
 
     const controller = new AbortController();
     const { signal } = controller;
@@ -422,10 +436,13 @@ class MemorizationAudioController {
     this.updateMediaSession(track);
 
     let failed = false;
+    let lastProgressTime = 0;
+
     const handleFailure = () => {
-      if (failed || session !== this.sessionId) return;
+      if (failed || session !== this.sessionId || attemptId !== this.playAttemptId) return;
       failed = true;
       this.clearLoadTimer();
+      this.clearStallTimer();
       if (urlIdx + 1 < track.urls.length) {
         this.playTrackAt(trackIdx, urlIdx + 1, session);
         return;
@@ -439,16 +456,69 @@ class MemorizationAudioController {
       void this.releaseWakeLock();
     };
 
+    const recoverPlayingState = () => {
+      if (session !== this.sessionId || attemptId !== this.playAttemptId) return;
+      this.clearStallTimer();
+      if (!audio.paused && this.snapshot.status === 'loading') {
+        this.clearLoadTimer();
+        this.applyPlaybackRate(audio, playbackRate);
+        this.emit({ status: 'playing', errorMessage: null });
+        this.setMediaPlaybackState('playing');
+      }
+    };
+
+    const scheduleStallWatchdog = () => {
+      if (session !== this.sessionId || attemptId !== this.playAttemptId) return;
+      if (this.snapshot.status === 'playing') {
+        this.emit({ status: 'loading' });
+      }
+      this.clearStallTimer();
+      const timeAtStall = audio.currentTime;
+      this.stallTimer = window.setTimeout(() => {
+        if (session !== this.sessionId || attemptId !== this.playAttemptId || audio.paused) return;
+        if (Math.abs(audio.currentTime - timeAtStall) < 0.05) {
+          handleFailure();
+        }
+      }, LOAD_TIMEOUT_MS);
+    };
+
+    audio.addEventListener('canplay', recoverPlayingState, { signal });
+
+    audio.addEventListener(
+      'timeupdate',
+      () => {
+        if (session !== this.sessionId || attemptId !== this.playAttemptId) return;
+        if (!audio.paused && this.snapshot.status === 'loading' && audio.currentTime > lastProgressTime) {
+          recoverPlayingState();
+        }
+        lastProgressTime = audio.currentTime;
+      },
+      { signal },
+    );
+
     audio.addEventListener(
       'playing',
       () => {
         if (session !== this.sessionId) return;
         this.clearLoadTimer();
+        this.clearStallTimer();
+        lastProgressTime = audio.currentTime;
         this.applyPlaybackRate(audio, playbackRate);
         this.emit({ status: 'playing', errorMessage: null });
         this.setMediaPlaybackState('playing');
         // Aktif ayet çalarken sıradaki URL'yi yedek kanalda ön-yükle
         this.preloadNextUrl();
+      },
+      { signal },
+    );
+
+    audio.addEventListener('waiting', scheduleStallWatchdog, { signal });
+    audio.addEventListener(
+      'stalled',
+      () => {
+        if (audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+          scheduleStallWatchdog();
+        }
       },
       { signal },
     );
@@ -469,6 +539,7 @@ class MemorizationAudioController {
       () => {
         if (session !== this.sessionId) return;
         this.clearLoadTimer();
+        this.clearStallTimer();
         if (Number.isFinite(audio.duration) && audio.duration > 0.3) {
           this.lastMeasuredDurationMs = (audio.duration * 1000) / Math.max(0.5, playbackRate);
         }
@@ -480,7 +551,11 @@ class MemorizationAudioController {
     audio.addEventListener('error', handleFailure, { signal });
 
     this.loadTimer = window.setTimeout(() => {
-      if (session === this.sessionId && this.snapshot.status === 'loading') {
+      if (
+        session === this.sessionId &&
+        attemptId === this.playAttemptId &&
+        this.snapshot.status === 'loading'
+      ) {
         handleFailure();
       }
     }, LOAD_TIMEOUT_MS);
@@ -500,7 +575,7 @@ class MemorizationAudioController {
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch((err) => {
-        if (session !== this.sessionId) return;
+        if (session !== this.sessionId || attemptId !== this.playAttemptId) return;
         const name = err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
         if (name === 'AbortError') return;
         handleFailure();
@@ -590,7 +665,9 @@ class MemorizationAudioController {
   }
 
   public pause(): void {
+    this.playAttemptId += 1;
     this.clearLoadTimer();
+    this.clearStallTimer();
     if (this.snapshot.status === 'waiting_pause') {
       this.clearPauseTimer();
       this.emit({ status: 'paused' });
@@ -624,11 +701,13 @@ class MemorizationAudioController {
       }
       const [audio] = this.getActiveAndStandbyChannels();
       const session = this.sessionId;
+      this.playAttemptId += 1;
+      const attemptId = this.playAttemptId;
       this.applyPlaybackRate(audio, this.currentParams.playbackRate);
       const p = audio.play();
       if (p && typeof p.catch === 'function') {
         p.catch(() => {
-          if (session !== this.sessionId) return;
+          if (session !== this.sessionId || attemptId !== this.playAttemptId) return;
           this.playTrackAt(this.currentTrackIdx, 0, session);
         });
       }
@@ -669,7 +748,9 @@ class MemorizationAudioController {
 
   public stop(): void {
     this.sessionId += 1;
+    this.playAttemptId += 1;
     this.clearLoadTimer();
+    this.clearStallTimer();
     this.clearPauseTimer();
     this.detachActiveListeners();
     this.pauseBothChannels();

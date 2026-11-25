@@ -59,7 +59,11 @@ import { BookScrollRail } from './BookScrollRail';
 import { DraggableVerseInspector } from './DraggableVerseInspector';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
-import { SAJDAH_AYAH_IDS } from '../../services/dataService';
+import {
+  SAJDAH_AYAH_IDS,
+  getSajdahTooltip,
+  hasEmbeddedSajdahGlyph,
+} from '../../services/dataService';
 import { sfxService } from '../../services/sfxService';
 import {
   VERSE_NOTE_COLOR_STYLES,
@@ -1196,20 +1200,24 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                             tajweedRules={tjRules}
                             theme={settings.theme}
                           />
-                          {isSajdah && (
-                            <span
-                              title="Tilâvet Secdesi Ayeti"
-                              aria-label="Tilâvet Secdesi Ayeti"
-                              className="inline-flex items-center justify-center mx-[0.14em] px-[0.22em] py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
-                              style={{
-                                backgroundColor: 'var(--brand-accent-soft)',
-                                borderColor: 'rgba(217, 119, 6, 0.5)',
-                                color: 'var(--brand-accent-text)',
-                              }}
-                            >
-                              ۩
-                            </span>
-                          )}
+                          {isSajdah &&
+                            !hasEmbeddedSajdahGlyph(
+                              useVerseTajweed ? null : verse.ar.t,
+                              useVerseTajweed ? tjWords : null,
+                            ) && (
+                              <span
+                                title={getSajdahTooltip(verse.id)}
+                                aria-label={getSajdahTooltip(verse.id)}
+                                className="inline-flex items-center justify-center mx-[0.14em] px-[0.22em] py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
+                                style={{
+                                  backgroundColor: 'var(--brand-accent-soft)',
+                                  borderColor: 'rgba(217, 119, 6, 0.5)',
+                                  color: 'var(--brand-accent-text)',
+                                }}
+                              >
+                                ۩
+                              </span>
+                            )}
                           {(useVerseTajweed || !ENDS_WITH_ARABIC_AYAH_MARKER.test(verse.ar.t)) && (
                             <AyahEndMarker
                               ayahNo={verse.ayah}
@@ -1220,7 +1228,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               size="mushaf"
                               title={
                                 isSajdah
-                                  ? `Tilâvet Secdesi · ${bundle.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
+                                  ? `${getSajdahTooltip(verse.id)} · ${bundle.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
                                   : `${bundle.surahMeta.shortNameTr} ${verse.ayah}. Ayet`
                               }
                             />
@@ -1360,7 +1368,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
 
                         {isSajdah && (
                           <span
-                            title="Diyanet / Hanefî standardına göre Tilâvet Secdesi ayeti"
+                            title={getSajdahTooltip(verse.id)}
                             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg border text-[11px] font-extrabold whitespace-nowrap"
                             style={{
                               backgroundColor: 'var(--brand-accent-soft)',
@@ -1471,20 +1479,24 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                               tajweedRules={tjRules}
                               theme={settings.theme}
                             />
-                            {isSajdah && (
-                              <span
-                                title="Tilâvet Secdesi Ayeti"
-                                aria-label="Tilâvet Secdesi Ayeti"
-                                className="inline-flex items-center justify-center mx-[0.16em] px-[0.22em] py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
-                                style={{
-                                  backgroundColor: 'var(--brand-accent-soft)',
-                                  borderColor: 'rgba(217, 119, 6, 0.5)',
-                                  color: 'var(--brand-accent-text)',
-                                }}
-                              >
-                                ۩
-                              </span>
-                            )}
+                            {isSajdah &&
+                              !hasEmbeddedSajdahGlyph(
+                                useVerseTajweed ? null : verse.ar.t,
+                                useVerseTajweed ? tjWords : null,
+                              ) && (
+                                <span
+                                  title={getSajdahTooltip(verse.id)}
+                                  aria-label={getSajdahTooltip(verse.id)}
+                                  className="inline-flex items-center justify-center mx-[0.16em] px-[0.22em] py-0.5 rounded-md border text-[0.6em] font-sans font-extrabold align-middle leading-none"
+                                  style={{
+                                    backgroundColor: 'var(--brand-accent-soft)',
+                                    borderColor: 'rgba(217, 119, 6, 0.5)',
+                                    color: 'var(--brand-accent-text)',
+                                  }}
+                                >
+                                  ۩
+                                </span>
+                              )}
                             {(useVerseTajweed || !ENDS_WITH_ARABIC_AYAH_MARKER.test(verse.ar.t)) && (
                               <AyahEndMarker
                                 ayahNo={verse.ayah}
@@ -1847,8 +1859,8 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
                     </span>
                     {isSajdah && (
                       <span
-                        title="Tilâvet Secdesi Ayeti"
-                        aria-label="Tilâvet Secdesi Ayeti"
+                        title={getSajdahTooltip(v.id)}
+                        aria-label={getSajdahTooltip(v.id)}
                         className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md border text-[11px] font-extrabold leading-none shrink-0"
                         style={{
                           backgroundColor: 'var(--brand-accent-soft)',

@@ -844,16 +844,6 @@ export const StudyPage: React.FC = () => {
     ? (questionCountBySurah.get(activeSurahMeta.no) ?? 0)
     : 0;
 
-  const activeJuzNo = useMemo(() => {
-    if (viewMode === 'mushaf' && pageBundle && pageBundle.cuzs.length > 0) {
-      return pageBundle.cuzs[0];
-    }
-    if (activeSurahMeta && activeSurahMeta.cuzs.length > 0) {
-      return activeSurahMeta.cuzs[0];
-    }
-    return 1;
-  }, [viewMode, pageBundle, activeSurahMeta]);
-
   const activeViewVerses = useMemo<CombinedVerse[]>(() => {
     if (viewMode === 'mushaf' && pageBundle) {
       return secondPageBundle
@@ -866,6 +856,34 @@ export const StudyPage: React.FC = () => {
   const activeSelectedVerse = useMemo<CombinedVerse | null>(() => {
     return activeViewVerses.find((v) => v.id === selectedAyahId) ?? activeViewVerses[0] ?? null;
   }, [activeViewVerses, selectedAyahId]);
+
+  const activeJuzNo = useMemo(() => {
+    if (activeSelectedVerse) {
+      if (
+        typeof activeSelectedVerse.cuz === 'number' &&
+        activeSelectedVerse.cuz >= 1 &&
+        activeSelectedVerse.cuz <= 30
+      ) {
+        return activeSelectedVerse.cuz;
+      }
+      if (meta?.juzs && meta.juzs.length > 0) {
+        const key = activeSelectedVerse.surah * 1000 + activeSelectedVerse.ayah;
+        const matched = meta.juzs.find((j) => {
+          const startKey = j.start.s * 1000 + j.start.a;
+          const endKey = j.end.s * 1000 + j.end.a;
+          return key >= startKey && key <= endKey;
+        });
+        if (matched) return matched.no;
+      }
+    }
+    if (viewMode === 'mushaf' && pageBundle && pageBundle.cuzs.length > 0) {
+      return pageBundle.cuzs[0];
+    }
+    if (activeSurahMeta && activeSurahMeta.cuzs.length > 0) {
+      return activeSurahMeta.cuzs[0];
+    }
+    return 1;
+  }, [activeSelectedVerse, meta, viewMode, pageBundle, activeSurahMeta]);
 
   const activeAyahNumber = activeSelectedVerse?.ayah ?? 1;
   const hasActiveRukuScope = activeSelectionScope.kind === 'ruku' && activeRukuVerses.length > 0;

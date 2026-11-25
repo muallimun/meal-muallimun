@@ -55,10 +55,24 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /(?:^https:\/\/kuran\.muallimun\.net)?\/(?:fonts|sfx)\/.+/i,
+            urlPattern: /(?:^https:\/\/kuran\.muallimun\.net)?\/fonts\/.+/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'muallimun-static-media-v2',
+              cacheName: 'muallimun-fonts-cache',
+              expiration: {
+                maxEntries: 40,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+          {
+            urlPattern: /(?:^https:\/\/kuran\.muallimun\.net)?\/sfx\/.+/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'muallimun-sfx-cache',
               expiration: {
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 90,

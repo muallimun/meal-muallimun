@@ -78,7 +78,62 @@ const MainRouter: React.FC = () => {
     isListeningDrawerOpen,
     compareTarget,
     mutashabihatTarget,
+    closeListeningDrawer,
+    closePoolModal,
+    closeSettingsModal,
+    closeReciterSelector,
+    closeMealSelector,
+    closeMealCompare,
+    closeMutashabihat,
+    closeWaqfGuide,
+    closeQuickMemorize,
+    closeQuickResearch,
+    closeBookmarksDrawer,
+    closeHatimModal,
+    closeVerseNoteModal,
+    closeSearchModal,
+    closeUserGuide,
+    closeFeedbackModal,
+    closeIntroSplash,
   } = useAppStore();
+
+  const handleResetModals = React.useCallback(() => {
+    closeListeningDrawer();
+    closePoolModal();
+    closeSettingsModal();
+    closeReciterSelector();
+    closeMealSelector();
+    closeMealCompare();
+    closeMutashabihat();
+    closeWaqfGuide();
+    closeQuickMemorize();
+    closeQuickResearch();
+    closeBookmarksDrawer();
+    closeHatimModal();
+    closeVerseNoteModal();
+    closeSearchModal();
+    closeUserGuide();
+    closeFeedbackModal();
+    closeIntroSplash(false);
+  }, [
+    closeBookmarksDrawer,
+    closeFeedbackModal,
+    closeHatimModal,
+    closeIntroSplash,
+    closeListeningDrawer,
+    closeMealCompare,
+    closeMealSelector,
+    closeMutashabihat,
+    closePoolModal,
+    closeQuickMemorize,
+    closeQuickResearch,
+    closeReciterSelector,
+    closeSearchModal,
+    closeSettingsModal,
+    closeUserGuide,
+    closeVerseNoteModal,
+    closeWaqfGuide,
+  ]);
 
   return (
     <AppShell>
@@ -106,6 +161,12 @@ const MainRouter: React.FC = () => {
 
       <ErrorBoundary scope="modals">
         <AudioPlayerBar />
+        <WaqfPopoverHost />
+        <RukuPopoverHost />
+        <TajweedRulePopoverHost theme={settings.theme} enabled={settings.tajweedEnabled} />
+      </ErrorBoundary>
+
+      <ErrorBoundary scope="modals" onReset={handleResetModals}>
         {isListeningDrawerOpen && (
           <Suspense fallback={null}>
             <ListeningDrawerModal />
@@ -130,9 +191,6 @@ const MainRouter: React.FC = () => {
           </Suspense>
         )}
         <WaqfGuideModal />
-        <WaqfPopoverHost />
-        <RukuPopoverHost />
-        <TajweedRulePopoverHost theme={settings.theme} enabled={settings.tajweedEnabled} />
         <QuickMemorizeFromVerseModal />
         <QuickAddToResearchModal />
         <PageBookmarksDrawer />
