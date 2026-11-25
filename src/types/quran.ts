@@ -531,6 +531,7 @@ export interface AudioPrefs {
 export type ExamMode = 'practice' | 'arena' | 'mock';
 export type ExamDifficultyFilter = 'all' | 1 | 2 | 3;
 export type ExamMealBasisFilter = 'all' | 'tdv' | 'dib' | 'common';
+export type ExamQuestionOrder = 'mushaf' | 'shuffled';
 export type ArenaTimeLimit = 45 | 60;
 
 export interface ExamConfig {
@@ -541,6 +542,7 @@ export interface ExamConfig {
   questionCount: number; // 0 = tümü
   prioritizeUnsolved: boolean;
   arenaTimePerQuestion: ArenaTimeLimit;
+  questionOrder?: ExamQuestionOrder;
   isMistakeCamp?: boolean;
   customQuestionUids?: string[];
   title?: string;

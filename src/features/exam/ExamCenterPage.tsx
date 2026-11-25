@@ -20,6 +20,7 @@ import {
   saveActiveExamSession,
   selectAndPrepareExamQuestions,
   shuffleArray,
+  sortQuestionsByMushafOrder,
 } from '../../utils/examUtils';
 import { formatNumberTr } from '../../utils/poolUtils';
 import { GamesHubTab } from '../games/GamesHubTab';
@@ -88,15 +89,22 @@ export const ExamCenterPage: React.FC = () => {
             })
           : rawQuestions;
 
+        const effectiveQuestionOrder = config.questionOrder ?? 'mushaf';
+        const normalizedConfig: ExamConfig = {
+          ...config,
+          questionOrder: effectiveQuestionOrder,
+        };
+
         const prepared = selectAndPrepareExamQuestions({
           allQuestions: eligibleQuestions,
-          surahs: config.surahs,
-          difficulty: config.difficulty,
-          mealBasis: config.mealBasis,
-          questionCount: config.questionCount,
-          prioritizeUnsolved: config.prioritizeUnsolved,
+          surahs: normalizedConfig.surahs,
+          difficulty: normalizedConfig.difficulty,
+          mealBasis: normalizedConfig.mealBasis,
+          questionCount: normalizedConfig.questionCount,
+          prioritizeUnsolved: normalizedConfig.prioritizeUnsolved,
           solvedQuestionUids: gamification.solvedQuestionUids,
-          customQuestionUids: config.customQuestionUids,
+          customQuestionUids: normalizedConfig.customQuestionUids,
+          questionOrder: effectiveQuestionOrder,
         });
 
         if (prepared.length === 0) {
@@ -115,7 +123,7 @@ export const ExamCenterPage: React.FC = () => {
         const mockTotalSec = Math.max(60, Math.round(prepared.length * 90));
         const newSession: ExamSessionState = {
           sessionId: `exam_${Date.now()}`,
-          config,
+          config: normalizedConfig,
           questions: prepared,
           currentIndex: 0,
           answers: {},
@@ -176,6 +184,7 @@ export const ExamCenterPage: React.FC = () => {
         questionCount: limit,
         prioritizeUnsolved: false,
         arenaTimePerQuestion: 45,
+        questionOrder: 'mushaf',
         isMistakeCamp: true,
         customQuestionUids: gamification.wrongQuestionIds,
         title: 'Hata Kampı Telafi Sınavı',
@@ -324,9 +333,12 @@ export const ExamCenterPage: React.FC = () => {
     (retryQuestions: PreparedQuestion[], surahs: number[]) => {
       if (retryQuestions.length === 0) return;
 
-      const freshPrepared = shuffleArray(retryQuestions).map((pq) =>
-        prepareQuestionOptions(pq.question),
-      );
+      const preferredOrder = resultSummary?.config.questionOrder ?? 'mushaf';
+      const orderedQuestions =
+        preferredOrder === 'shuffled'
+          ? shuffleArray(retryQuestions.map((pq) => pq.question))
+          : sortQuestionsByMushafOrder(retryQuestions.map((pq) => pq.question));
+      const freshPrepared = orderedQuestions.map((q) => prepareQuestionOptions(q));
       const retrySurahs =
         surahs.length > 0
           ? surahs
@@ -340,6 +352,7 @@ export const ExamCenterPage: React.FC = () => {
         questionCount: freshPrepared.length,
         prioritizeUnsolved: false,
         arenaTimePerQuestion: 45,
+        questionOrder: preferredOrder,
         isMistakeCamp: true,
         customQuestionUids: freshPrepared.map((q) => q.uid),
         title: 'Yanlış / Boş Sorular Tekrarı',
@@ -379,7 +392,7 @@ export const ExamCenterPage: React.FC = () => {
       setPhase('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [],
+    [resultSummary?.config.questionOrder],
   );
 
   if (phase === 'active' && activeSession) {

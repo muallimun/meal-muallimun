@@ -9,6 +9,7 @@ import {
   Columns2,
   FileText,
   KeyRound,
+  ListOrdered,
   Loader2,
   Printer,
   Search,
@@ -21,7 +22,7 @@ import { useBackButtonGuard } from '../services/backStackService';
 import { dataService } from '../services/dataService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
-import type { PreparedQuestion, QuestionItem, SurahMeta } from '../types/quran';
+import type { ExamQuestionOrder, PreparedQuestion, QuestionItem, SurahMeta } from '../types/quran';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import {
   OPTION_LETTERS,
@@ -30,6 +31,7 @@ import {
   getQuestionUid,
   prepareQuestionOptions,
   shuffleArray,
+  sortQuestionsByMushafOrder,
 } from '../utils/examUtils';
 import { buildSurahQuestionCountMap, formatNumberTr, getSurahMap } from '../utils/poolUtils';
 import { normalizeTurkish } from '../utils/textNormalize';
@@ -38,6 +40,7 @@ interface PrintableExamModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialSurahNo?: number | null;
+  initialQuestionOrder?: ExamQuestionOrder;
 }
 
 type PrintScopeMode = 'pool' | 'surah_range' | 'juz_range' | 'multi_surah';
@@ -46,42 +49,52 @@ const PRINT_COUNT_OPTIONS = [10, 15, 20, 30, 50, 100, 0] as const;
 const DEFAULT_EXAM_TITLE = "Muallimun Kur'an & Meal — Yarışma Deneme Sınavı";
 
 /**
- * Birden fazla sure seçiliyse her sureden dengeli (round-robin) ve karışık seçim yapar.
+ * Aşama 1: Birden fazla sure seçiliyse her sureden dengeli (round-robin) soru seçer.
+ * Aşama 2: Seçilen soruları varsayılan olarak Mushaf & ayet sırasına dizer veya isteğe göre karıştırır.
  */
 function pickBalancedPrintableQuestions(
   allQuestions: QuestionItem[],
   targetCount: number,
+  questionOrder: ExamQuestionOrder = 'mushaf',
 ): PreparedQuestion[] {
   if (allQuestions.length === 0) return [];
 
-  const bySurah = new Map<number, QuestionItem[]>();
-  for (const q of allQuestions) {
-    const list = bySurah.get(q.surah) ?? [];
-    list.push(q);
-    bySurah.set(q.surah, list);
-  }
-
-  const surahBuckets = shuffleArray(Array.from(bySurah.values())).map((bucket) =>
-    shuffleArray(bucket),
-  );
-
-  const picked: QuestionItem[] = [];
   const maxTake = Math.min(targetCount, allQuestions.length);
+  let picked: QuestionItem[];
 
-  let round = 0;
-  while (picked.length < maxTake) {
-    let addedInRound = false;
-    for (const bucket of surahBuckets) {
-      if (round < bucket.length && picked.length < maxTake) {
-        picked.push(bucket[round]);
-        addedInRound = true;
-      }
+  if (maxTake >= allQuestions.length) {
+    picked = [...allQuestions];
+  } else {
+    const bySurah = new Map<number, QuestionItem[]>();
+    for (const q of allQuestions) {
+      const list = bySurah.get(q.surah) ?? [];
+      list.push(q);
+      bySurah.set(q.surah, list);
     }
-    if (!addedInRound) break;
-    round += 1;
+
+    const surahBuckets = shuffleArray(Array.from(bySurah.values())).map((bucket) =>
+      shuffleArray(bucket),
+    );
+
+    picked = [];
+    let round = 0;
+    while (picked.length < maxTake) {
+      let addedInRound = false;
+      for (const bucket of surahBuckets) {
+        if (round < bucket.length && picked.length < maxTake) {
+          picked.push(bucket[round]);
+          addedInRound = true;
+        }
+      }
+      if (!addedInRound) break;
+      round += 1;
+    }
   }
 
-  return shuffleArray(picked).map((q) => prepareQuestionOptions(q));
+  const ordered =
+    questionOrder === 'shuffled' ? shuffleArray(picked) : sortQuestionsByMushafOrder(picked);
+
+  return ordered.map((q) => prepareQuestionOptions(q));
 }
 
 interface PrintableExamSheetProps {
@@ -402,6 +415,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   isOpen,
   onClose,
   initialSurahNo = null,
+  initialQuestionOrder = 'mushaf',
 }) => {
   const { meta, questionIndex, poolStats, questionAudit } = useAppStore();
 
@@ -475,6 +489,9 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   const [includeAnswerKey, setIncludeAnswerKey] = useState<boolean>(true);
   const [showSourcePerQuestion, setShowSourcePerQuestion] = useState<boolean>(false);
   const [layoutColumns, setLayoutColumns] = useState<1 | 2>(1);
+  const [questionOrder, setQuestionOrder] = useState<ExamQuestionOrder>(
+    initialQuestionOrder ?? 'mushaf',
+  );
   const [shuffleNonce, setShuffleNonce] = useState<number>(0);
 
   const [rawPoolQuestions, setRawPoolQuestions] = useState<QuestionItem[]>([]);
@@ -482,9 +499,10 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState<boolean>(false);
 
-  // Modal açıldığında başlangıç kapsamını senkronize et
+  // Modal açıldığında başlangıç kapsamını ve sıralamayı senkronize et
   useEffect(() => {
     if (isOpen) {
+      setQuestionOrder(initialQuestionOrder ?? 'mushaf');
       if (initialSurahNo !== null) {
         setScopeMode('multi_surah');
         setMultiSelectedSurahs([initialSurahNo]);
@@ -504,7 +522,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialSurahNo]);
+  }, [isOpen, initialSurahNo, initialQuestionOrder]);
 
   const [backGuardNonce, setBackGuardNonce] = useState(0);
 
@@ -708,13 +726,13 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
     }
   }, [eligiblePoolQuestions.length, questionCount]);
 
-  // Dengeli/karışık soru seti (questionCount === 0 => kapsamdaki TÜM sorular)
+  // Dengeli soru seçimi + Mushaf/Karışık sıralama (questionCount === 0 => kapsamdaki TÜM sorular)
   const preparedQuestions = useMemo(() => {
     void shuffleNonce;
     const effectiveTarget =
       questionCount === 0 ? eligiblePoolQuestions.length : questionCount;
-    return pickBalancedPrintableQuestions(eligiblePoolQuestions, effectiveTarget);
-  }, [eligiblePoolQuestions, questionCount, shuffleNonce]);
+    return pickBalancedPrintableQuestions(eligiblePoolQuestions, effectiveTarget, questionOrder);
+  }, [eligiblePoolQuestions, questionCount, questionOrder, shuffleNonce]);
 
   const scopeSummary = useMemo(() => {
     if (scopeMode === 'surah_range') {
@@ -800,7 +818,16 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
 
   const summaryPillLabel = `${preparedQuestions.length} Soru · ${
     layoutColumns === 2 ? 'İki Sütun' : 'Tek Sütun'
-  }`;
+  } · ${questionOrder === 'mushaf' ? 'Mushaf Sıralı' : 'Karışık'}`;
+
+  const isPartialSelection =
+    questionCount !== 0 && questionCount < eligiblePoolQuestions.length;
+  const reshuffleTitle =
+    questionOrder === 'shuffled'
+      ? 'Soruları yeniden seç ve karıştır'
+      : isPartialSelection
+        ? 'Kapsamdan yeni soru seti seçip Mushaf sırasına diz'
+        : 'Şık sırasını yeniden düzenle';
 
   // Masaüstü sol kenar çubuğu & mobil alt çekmecede paylaşılan temiz, gruplanmış ayar kartları
   const settingsPanelContent = (
@@ -1313,6 +1340,64 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
           </button>
         </div>
 
+        {/* Soru Sırası Segmenti (Varsayılan: Mushaf Sıralı / Karışık) */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
+              Soru Sırası
+            </span>
+            <span
+              className="text-[10.5px] font-semibold truncate"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {questionOrder === 'mushaf' ? 'Sure & ayet sırasıyla' : 'Rastgele karışık'}
+            </span>
+          </div>
+          <div
+            className="grid grid-cols-2 p-1 rounded-xl border gap-1"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+            role="group"
+            aria-label="Sınav kâğıdı soru sırası"
+          >
+            <button
+              type="button"
+              aria-pressed={questionOrder === 'mushaf'}
+              onClick={() => {
+                sfxService.play('click');
+                setQuestionOrder('mushaf');
+              }}
+              className="min-h-[32px] px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+              style={{
+                backgroundColor: questionOrder === 'mushaf' ? 'var(--brand-primary)' : 'transparent',
+                color: questionOrder === 'mushaf' ? '#FFFFFF' : 'var(--text-secondary)',
+              }}
+            >
+              <ListOrdered className="w-3.5 h-3.5 shrink-0" />
+              <span>Mushaf Sıralı</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={questionOrder === 'shuffled'}
+              onClick={() => {
+                sfxService.play('click');
+                setQuestionOrder('shuffled');
+              }}
+              className="min-h-[32px] px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
+              style={{
+                backgroundColor:
+                  questionOrder === 'shuffled' ? 'var(--brand-primary)' : 'transparent',
+                color: questionOrder === 'shuffled' ? '#FFFFFF' : 'var(--text-secondary)',
+              }}
+            >
+              <Shuffle className="w-3.5 h-3.5 shrink-0" />
+              <span>Karışık</span>
+            </button>
+          </div>
+        </div>
+
         {/* Cevap Anahtarı Ekle */}
         <button
           type="button"
@@ -1458,6 +1543,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
                 type="button"
                 onClick={handleReshuffle}
                 disabled={isLoading || eligiblePoolQuestions.length === 0}
+                title={reshuffleTitle}
                 className="hidden lg:inline-flex min-h-[36px] px-3 rounded-xl border text-xs font-bold items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-45 whitespace-nowrap"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
@@ -1616,6 +1702,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
               type="button"
               onClick={handleReshuffle}
               disabled={isLoading || eligiblePoolQuestions.length === 0}
+              title={reshuffleTitle}
               className="min-h-[42px] px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-45 whitespace-nowrap"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
@@ -1624,7 +1711,7 @@ export const PrintableExamModal: React.FC<PrintableExamModalProps> = ({
               }}
             >
               <Shuffle className="w-4 h-4 shrink-0" />
-              <span>Karıştır</span>
+              <span>{questionOrder === 'shuffled' ? 'Karıştır' : 'Yeniden Seç'}</span>
             </button>
 
             <button

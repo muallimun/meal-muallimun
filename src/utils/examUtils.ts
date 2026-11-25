@@ -1,6 +1,7 @@
 import type {
   ExamDifficultyFilter,
   ExamMealBasisFilter,
+  ExamQuestionOrder,
   ExamSessionState,
   PreparedQuestion,
   QuestionItem,
@@ -220,6 +221,80 @@ export function shuffleArray<T>(items: T[]): T[] {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+/**
+ * Bir sorunun Mushaf sure sırası (1→114) ve sure içi ayet sırasına göre deterministik anahtarını döndürür.
+ * Sure genel bilgisi soruları (`scope === 'surah_info'` veya ayet referansı boş) ilgili surenin 1. ayetinden hemen önce gelir.
+ */
+export function getQuestionMushafSortKey(q: QuestionItem): {
+  surah: number;
+  firstAyah: number;
+  lastAyah: number;
+  uid: string;
+} {
+  const refs = parseVerseRefs(q.refs, q.surah);
+  const isSurahIntro = q.scope === 'surah_info' || refs.length === 0;
+  return {
+    surah: q.surah,
+    firstAyah: isSurahIntro ? 0 : refs[0],
+    lastAyah: isSurahIntro ? 0 : refs[refs.length - 1],
+    uid: getQuestionUid(q),
+  };
+}
+
+/**
+ * İki soruyu Mushaf sure sırası -> başlangıç ayeti -> bitiş ayeti -> soru kimliği (numeric tr) sırasıyla karşılaştırır.
+ */
+export function compareQuestionsByMushafOrder(a: QuestionItem, b: QuestionItem): number {
+  const keyA = getQuestionMushafSortKey(a);
+  const keyB = getQuestionMushafSortKey(b);
+  if (keyA.surah !== keyB.surah) return keyA.surah - keyB.surah;
+  if (keyA.firstAyah !== keyB.firstAyah) return keyA.firstAyah - keyB.firstAyah;
+  if (keyA.lastAyah !== keyB.lastAyah) return keyA.lastAyah - keyB.lastAyah;
+  return keyA.uid.localeCompare(keyB.uid, 'tr', { numeric: true });
+}
+
+/**
+ * Orijinal diziyi bozmadan soruları Mushaf sure sırası ve sure içi baştan sona ayet sırasına göre sıralar.
+ */
+export function sortQuestionsByMushafOrder<T extends QuestionItem>(items: T[]): T[] {
+  return [...items].sort(compareQuestionsByMushafOrder);
+}
+
+/**
+ * Birden fazla sure içeren havuzdan tek sureye yığılma olmadan dengeli (round-robin) alt küme seçer.
+ */
+function pickBalancedSubsetBySurah(pool: QuestionItem[], takeCount: number): QuestionItem[] {
+  if (takeCount <= 0 || pool.length === 0) return [];
+  if (pool.length <= takeCount) return [...pool];
+
+  const bySurah = new Map<number, QuestionItem[]>();
+  for (const q of pool) {
+    const bucket = bySurah.get(q.surah) ?? [];
+    bucket.push(q);
+    bySurah.set(q.surah, bucket);
+  }
+
+  const surahBuckets = shuffleArray(Array.from(bySurah.values())).map((bucket) =>
+    shuffleArray(bucket),
+  );
+
+  const picked: QuestionItem[] = [];
+  let round = 0;
+  while (picked.length < takeCount) {
+    let addedInRound = false;
+    for (const bucket of surahBuckets) {
+      if (round < bucket.length && picked.length < takeCount) {
+        picked.push(bucket[round]);
+        addedInRound = true;
+      }
+    }
+    if (!addedInRound) break;
+    round += 1;
+  }
+
+  return picked;
 }
 
 /**
@@ -451,6 +526,7 @@ export function selectAndPrepareExamQuestions(params: {
   prioritizeUnsolved: boolean;
   solvedQuestionUids: string[];
   customQuestionUids?: string[];
+  questionOrder?: ExamQuestionOrder;
 }): PreparedQuestion[] {
   const {
     allQuestions,
@@ -461,6 +537,7 @@ export function selectAndPrepareExamQuestions(params: {
     prioritizeUnsolved,
     solvedQuestionUids,
     customQuestionUids,
+    questionOrder = 'mushaf',
   } = params;
 
   let filtered: QuestionItem[];
@@ -480,18 +557,33 @@ export function selectAndPrepareExamQuestions(params: {
 
   if (filtered.length === 0) return [];
 
-  let ordered: QuestionItem[];
-  if (prioritizeUnsolved && (!customQuestionUids || customQuestionUids.length === 0)) {
+  const limit = questionCount > 0 ? Math.min(questionCount, filtered.length) : filtered.length;
+
+  // Aşama 1: Havuzdan hedef `limit` kadar soruyu sureler arası dengeli seç
+  let selected: QuestionItem[];
+  if (questionCount === 0 || filtered.length <= limit) {
+    selected = [...filtered];
+  } else if (prioritizeUnsolved && (!customQuestionUids || customQuestionUids.length === 0)) {
     const solvedSet = new Set(solvedQuestionUids);
-    const unsolved = shuffleArray(filtered.filter((q) => !matchesStoredQuestionIds(q, solvedSet)));
-    const solved = shuffleArray(filtered.filter((q) => matchesStoredQuestionIds(q, solvedSet)));
-    ordered = [...unsolved, ...solved];
+    const unsolved = filtered.filter((q) => !matchesStoredQuestionIds(q, solvedSet));
+    const solved = filtered.filter((q) => matchesStoredQuestionIds(q, solvedSet));
+
+    if (unsolved.length >= limit) {
+      selected = pickBalancedSubsetBySurah(unsolved, limit);
+    } else {
+      const remaining = limit - unsolved.length;
+      selected = [...unsolved, ...pickBalancedSubsetBySurah(solved, remaining)];
+    }
   } else {
-    ordered = shuffleArray(filtered);
+    selected = pickBalancedSubsetBySurah(filtered, limit);
   }
 
-  const limit = questionCount > 0 ? Math.min(questionCount, ordered.length) : ordered.length;
-  return ordered.slice(0, limit).map((q) => prepareQuestionOptions(q));
+  // Aşama 2: Final Sıralama (Varsayılan: Mushaf & Ayet Sırası, İsteğe bağlı: Karışık)
+  const finalOrdered =
+    questionOrder === 'shuffled' ? shuffleArray(selected) : sortQuestionsByMushafOrder(selected);
+
+  // Aşama 3: Akıllı şık hazırlama (`lockOrder` koruması dahil)
+  return finalOrdered.map((q) => prepareQuestionOptions(q));
 }
 
 // ============================================================================

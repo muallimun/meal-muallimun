@@ -9,11 +9,13 @@ import {
   Flame,
   History,
   Layers,
+  ListOrdered,
   Loader2,
   Play,
   Printer,
   RotateCcw,
   Search,
+  Shuffle,
   SlidersHorizontal,
   Sparkles,
   Trash2,
@@ -34,6 +36,7 @@ import type {
   ExamConfig,
   ExamDifficultyFilter,
   ExamMode,
+  ExamQuestionOrder,
   ExamSessionState,
 } from '../../types/quran';
 import { formatDurationTr } from '../../utils/examUtils';
@@ -90,6 +93,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
   const [selectedSingleSurah, setSelectedSingleSurah] = useState<number | null>(initialSurahFilter);
   const [mode, setMode] = useState<ExamMode>('practice');
   const [difficulty, setDifficulty] = useState<ExamDifficultyFilter>('all');
+  const [questionOrder, setQuestionOrder] = useState<ExamQuestionOrder>('mushaf');
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [prioritizeUnsolved, setPrioritizeUnsolved] = useState<boolean>(true);
   const [arenaTimePerQuestion, setArenaTimePerQuestion] = useState<ArenaTimeLimit>(45);
@@ -203,6 +207,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
       questionCount,
       prioritizeUnsolved,
       arenaTimePerQuestion,
+      questionOrder,
     });
   };
 
@@ -582,6 +587,75 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Soru Sırası (Varsayılan: Mushaf & Ayet Sıralı / Karışık) */}
+            <div
+              className="pt-2.5 border-t space-y-1.5"
+              style={{ borderColor: 'var(--border-subtle)' }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                  Soru Sırası
+                </span>
+                <span
+                  className="text-[10.5px] font-semibold truncate"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {questionOrder === 'mushaf' ? 'Sure & ayet sırasıyla' : 'Rastgele karışık'}
+                </span>
+              </div>
+              <div
+                className="grid grid-cols-2 gap-1 p-1 rounded-xl"
+                style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+                role="group"
+                aria-label="Soru sıralama tercihi"
+              >
+                <button
+                  type="button"
+                  aria-pressed={questionOrder === 'mushaf'}
+                  onClick={() => {
+                    sfxService.play('click');
+                    setQuestionOrder('mushaf');
+                  }}
+                  className="min-h-[34px] px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor:
+                      questionOrder === 'mushaf' ? 'var(--bg-surface)' : 'transparent',
+                    color:
+                      questionOrder === 'mushaf'
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-secondary)',
+                    boxShadow:
+                      questionOrder === 'mushaf' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  }}
+                >
+                  <ListOrdered className="w-3.5 h-3.5 shrink-0" />
+                  <span>Mushaf Sıralı</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={questionOrder === 'shuffled'}
+                  onClick={() => {
+                    sfxService.play('click');
+                    setQuestionOrder('shuffled');
+                  }}
+                  className="min-h-[34px] px-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+                  style={{
+                    backgroundColor:
+                      questionOrder === 'shuffled' ? 'var(--bg-surface)' : 'transparent',
+                    color:
+                      questionOrder === 'shuffled'
+                        ? 'var(--brand-primary-text)'
+                        : 'var(--text-secondary)',
+                    boxShadow:
+                      questionOrder === 'shuffled' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  }}
+                >
+                  <Shuffle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Karışık</span>
+                </button>
               </div>
             </div>
 
@@ -1232,6 +1306,7 @@ export const ExamHubPage: React.FC<ExamHubPageProps> = ({
             isOpen={isPrintModalOpen}
             onClose={() => setIsPrintModalOpen(false)}
             initialSurahNo={selectedSingleSurah}
+            initialQuestionOrder={questionOrder}
           />
         </Suspense>
       )}
