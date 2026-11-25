@@ -1,11 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   AudioLines,
+  BookMarked,
   BookOpen,
   BookText,
   Bookmark,
+  Check,
   ChevronRight,
   Columns2,
+  Compass,
+  Home,
   Info,
   Languages,
   LayoutList,
@@ -14,6 +18,7 @@ import {
   Minimize2,
   Minus,
   MonitorPlay,
+  Moon,
   Plus,
   Search,
   Settings,
@@ -73,6 +78,7 @@ interface MobileReaderDrawerProps {
   onOpenListeningDrawer: () => void;
   onOpenWaqfGuide: () => void;
   onOpenSettings: () => void;
+  onNavigateTab?: (tab: 'home' | 'fihrist' | 'memorize' | 'exam') => void;
 }
 
 export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
@@ -104,14 +110,19 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
   onOpenListeningDrawer,
   onOpenWaqfGuide,
   onOpenSettings,
+  onNavigateTab,
 }) => {
   const isMealOnlyContent = readerContentMode === 'meal_only';
   const isArOnlyContent = readerContentMode === 'ar_only';
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useBackButtonGuard('mobile_reader_drawer', isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
     return acquireBodyScrollLock();
   }, [isOpen]);
 
@@ -164,7 +175,56 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
         </div>
 
         {/* Kaydırılabilir İçerik */}
-        <div className="flex-1 overflow-y-auto px-4 pt-3.5 pb-[max(1.75rem,calc(env(safe-area-inset-bottom,0px)+1.25rem))] space-y-4">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 overflow-y-auto px-4 pt-3.5 pb-[max(1.75rem,calc(env(safe-area-inset-bottom,0px)+1.25rem))] space-y-4"
+        >
+          {/* 0. Modüller / Hızlı Sayfa Geçişi (Tam Ekran açıkken dahi tek dokunuşla diğer sekmelere geçer) */}
+          {onNavigateTab && (
+            <section className="space-y-1.5">
+              <p
+                className="text-[11px] font-extrabold uppercase tracking-wider"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Modüller / Sayfa Geçişi
+              </p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {(
+                  [
+                    { id: 'home', label: 'Ana Sayfa', icon: Home },
+                    { id: 'fihrist', label: 'Fihrist', icon: Compass },
+                    { id: 'memorize', label: 'Ezber', icon: BookMarked },
+                    { id: 'exam', label: 'Sınav', icon: Trophy },
+                  ] as const
+                ).map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onNavigateTab(item.id);
+                      }}
+                      className="min-h-[52px] px-1.5 py-2 rounded-xl border flex flex-col items-center justify-center gap-1 text-[11px] font-bold cursor-pointer transition-colors active:scale-95"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <Icon
+                        className="w-4 h-4 shrink-0"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      />
+                      <span className="truncate max-w-full">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           {/* 1. Okuma Modu */}
           <section className="space-y-1.5">
             <p
@@ -894,6 +954,67 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                     </option>
                   ))}
                 </select>
+
+                {/* Hızlı Arapça Yazı Boyutu Kontrolü */}
+                <div
+                  className="pt-2 mt-1 border-t flex items-center justify-between gap-2"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                >
+                  <span
+                    className="text-[11px] font-bold"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Arapça Yazı Boyutu
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onUpdateSettings({
+                          arabicFontSize: Math.max(20, settings.arabicFontSize - 2),
+                        });
+                      }}
+                      disabled={settings.arabicFontSize <= 20}
+                      aria-label="Arapça yazı boyutunu küçült"
+                      title="Küçült"
+                      className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer disabled:opacity-35"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span
+                      className="min-w-[44px] text-center text-xs font-extrabold tabular-nums"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {settings.arabicFontSize}px
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onUpdateSettings({
+                          arabicFontSize: Math.min(44, settings.arabicFontSize + 2),
+                        });
+                      }}
+                      disabled={settings.arabicFontSize >= 44}
+                      aria-label="Arapça yazı boyutunu büyüt"
+                      title="Büyüt"
+                      className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer disabled:opacity-35"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -959,12 +1080,13 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               >
                 {(
                   [
-                    { id: 'light', label: 'Açık', swatch: '#FFFFFF', border: '#CBD5E1' },
-                    { id: 'cream', label: 'Krem Mushaf', swatch: '#F5EBD6', border: '#C9B182' },
-                    { id: 'dark', label: 'Gece', swatch: '#141B2D', border: '#334155' },
-                  ] as Array<{ id: ThemeMode; label: string; swatch: string; border: string }>
+                    { id: 'light', label: 'Açık', icon: Sun },
+                    { id: 'cream', label: 'Krem Mushaf', icon: BookOpen },
+                    { id: 'dark', label: 'Gece', icon: Moon },
+                  ] as Array<{ id: ThemeMode; label: string; icon: React.ComponentType<{ className?: string }> }>
                 ).map((opt) => {
                   const active = settings.theme === opt.id;
+                  const Icon = opt.icon;
                   return (
                     <button
                       key={opt.id}
@@ -974,20 +1096,18 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                         sfxService.play('click');
                         onUpdateSettings({ theme: opt.id });
                       }}
-                      className="min-h-[36px] px-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+                      className="min-h-[36px] px-1.5 rounded-lg border text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center justify-center gap-1 whitespace-nowrap"
                       style={{
                         backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
+                        borderColor: active ? 'var(--brand-primary)' : 'transparent',
                         color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                       }}
                     >
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0 border"
-                        style={{
-                          backgroundColor: opt.swatch,
-                          borderColor: opt.border,
-                        }}
-                        aria-hidden="true"
-                      />
+                      {active ? (
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                      ) : (
+                        <Icon className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                      )}
                       <span>{opt.label}</span>
                     </button>
                   );

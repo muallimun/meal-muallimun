@@ -270,6 +270,55 @@
   text-rendering: optimizeLegibility;
 }
 
+/* İki yana yaslı Arapça paragraflarda son satırın zorla gerilmesini önle (RTL uyumlu) */
+.arabic-text.text-justify,
+.arabic-tajweed.text-justify {
+  text-align-last: right;
+}
+
+/* Secâvend Vakıf İşaretleri — Sıfır Taban Genişlikli Üst Simge + Görünmez Dokunma Alanı */
+.waqf-mark-anchor {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  position: relative;
+  vertical-align: baseline;
+  line-height: 0;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 4px;
+}
+
+.waqf-mark-anchor::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  top: -1.15em;
+  bottom: -0.25em;
+  left: -0.6em;
+  right: -0.35em;
+}
+
+.waqf-mark-glyph {
+  position: relative;
+  display: inline-block;
+  left: -0.14em;
+  font-size: 0.86em;
+  line-height: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+.waqf-mark-anchor[data-waqf-end="1"] .waqf-mark-glyph {
+  left: -0.06em;
+}
+
+.waqf-mark-anchor:hover .waqf-mark-glyph {
+  opacity: 0.8;
+}
+
 /* Secâvend Vakıf İşaretleri — Koyu Temada WCAG AA Kontrast Güçlendirmesi */
 .waqf-mark-color {
   color: var(--waqf-color);

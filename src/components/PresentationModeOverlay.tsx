@@ -339,6 +339,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const isMealSelectorOpenRef = useRef(isMealSelectorOpen);
   const isAyahPickerOpenRef = useRef(isAyahPickerOpen);
   const isSettingsPopoverOpenRef = useRef(isSettingsPopoverOpen);
+  const isFullscreenRef = useRef(isFullscreen);
 
   audioStatusRef.current = audioState.status;
   versesLenRef.current = verses.length;
@@ -347,6 +348,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   isMealSelectorOpenRef.current = isMealSelectorOpen;
   isAyahPickerOpenRef.current = isAyahPickerOpen;
   isSettingsPopoverOpenRef.current = isSettingsPopoverOpen;
+  isFullscreenRef.current = isFullscreen;
 
   // Sunum açıldığında aktif ayet indeksini senkronize et (sadece açılışta)
   useEffect(() => {
@@ -406,6 +408,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           setIsSettingsPopoverOpen(false);
         } else if (document.fullscreenElement) {
           document.exitFullscreen?.().catch(() => {});
+        } else if (isFullscreenRef.current) {
+          setIsFullscreen(false);
         } else {
           onCloseRef.current();
         }
@@ -528,14 +532,24 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       Object.keys(tjRules).length > 0,
   );
 
-  // Deterministik Tek Geçişli Otomatik Punto Hesabı (Akıllı Tahta & Salon Tipografisi)
+  const isCompactLandscape = viewport.h <= 500;
+
+  // Deterministik Tek Geçişli Otomatik Punto Hesabı (Akıllı Tahta, Salon ve Yatay Mobil Tipografisi)
   const fontMetrics = useMemo(() => {
     const arLen = arabicText.length;
     const trLen = mealText.length;
-    const hFactor = clamp(viewport.h / 740, 0.78, 1.32);
-    const wFactor = clamp(viewport.w / 1220, 0.74, 1.28);
+    const compactLandscape = viewport.h <= 500;
+    const hFactor = compactLandscape
+      ? clamp(viewport.h / 650, 0.48, 0.78)
+      : clamp(viewport.h / 740, 0.78, 1.32);
+    const wFactor = compactLandscape
+      ? clamp(viewport.w / 1180, 0.62, 1.2)
+      : clamp(viewport.w / 1220, 0.74, 1.28);
     const baseScale = Math.min(hFactor, wFactor);
-    const scale = showBesmele && contentMode === 'both' ? baseScale * 0.92 : baseScale;
+    const scale =
+      showBesmele && contentMode === 'both'
+        ? baseScale * (compactLandscape ? 0.84 : 0.92)
+        : baseScale;
 
     let arPx = 50;
     let arLine = 1.94;
@@ -625,17 +639,26 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       }
     }
 
+    if (compactLandscape) {
+      arLine = Number((arLine * 0.88).toFixed(2));
+      trLine = Number((trLine * 0.9).toFixed(2));
+    }
+
     const arMaxPx = contentMode === 'ar' ? 92 : 80;
     const effectiveScale = scale * presFontScale;
     const effectiveBaseScale = baseScale * presFontScale;
 
     return {
-      arSize: `${Math.round(clamp(arPx * effectiveScale, 20, arMaxPx))}px`,
+      arSize: `${Math.round(clamp(arPx * effectiveScale, compactLandscape ? 18 : 20, arMaxPx))}px`,
       arLine,
-      trSize: `${Math.round(clamp(trPx * effectiveScale, 14, 54))}px`,
+      trSize: `${Math.round(clamp(trPx * effectiveScale, compactLandscape ? 12 : 14, 54))}px`,
       trLine,
-      besmeleArSize: `${Math.round(clamp(38 * effectiveBaseScale, 22, 54))}px`,
-      besmeleTrSize: `${Math.round(clamp(20 * effectiveBaseScale, 14, 30))}px`,
+      besmeleArSize: `${Math.round(
+        clamp((compactLandscape ? 30 : 38) * effectiveBaseScale, compactLandscape ? 18 : 22, compactLandscape ? 36 : 54),
+      )}px`,
+      besmeleTrSize: `${Math.round(
+        clamp((compactLandscape ? 16 : 20) * effectiveBaseScale, compactLandscape ? 12 : 14, compactLandscape ? 22 : 30),
+      )}px`,
     };
   }, [
     arabicText.length,
@@ -844,16 +867,30 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           }. Ayet`
       : 'Hazır';
 
+  const compactFooterLocationText =
+    displayedVerse && currentIdx >= 0
+      ? isPageScope
+        ? `S.${displayedVerse.page} · ${currentIdx + 1}/${verses.length}`
+        : `${displayedVerse.surah}:${displayedVerse.ayah}/${surahMeta?.ayahCount ?? verses.length}`
+      : 'Hazır';
+
   const handleToggleFullscreen = async () => {
     sfxService.play('click');
     try {
       if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen?.();
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+          setIsFullscreen(true);
+        } else {
+          setIsFullscreen((v) => !v);
+        }
       } else {
         await document.exitFullscreen?.();
+        setIsFullscreen(false);
       }
     } catch {
-      // iFrame/tarayıcı tam ekran kısıtlamasını sessizce geç
+      // iFrame / iOS Safari tam ekran kısıtlamasında odak tam ekran görünümünü aç/kapat
+      setIsFullscreen((v) => !v);
     }
   };
 
@@ -881,20 +918,26 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     >
       {/* Tek İnce Üst Şerit */}
       <header
-        className="h-14 px-3 sm:px-6 border-b flex items-center justify-between gap-2 shrink-0 backdrop-blur-md relative z-20"
+        className={`${
+          isCompactLandscape ? 'h-11 px-2.5 sm:px-4' : 'h-14 px-3 sm:px-6'
+        } border-b flex items-center justify-between gap-2 shrink-0 backdrop-blur-md relative z-20`}
         style={{
           backgroundColor: palette.surface,
           borderColor: palette.border,
         }}
       >
-        {/* Sol: Sure & Ayet Hızlı Seçici Başlığı (Tek satır, taşmasız) */}
+        {/* Sol: Sure & Ayet Hızlı Seçici Başlığı (Sure No ve Ayet No asla kesilmez) */}
         <div ref={ayahPickerRef} className="relative flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-          <span
-            className="w-8 h-8 rounded-xl hidden sm:flex items-center justify-center shrink-0"
-            style={{ backgroundColor: palette.accentSoft, color: palette.accent }}
-          >
-            <MonitorPlay className="w-4 h-4" />
-          </span>
+          {!isFullscreen && (
+            <span
+              className={`${
+                isCompactLandscape ? 'w-7 h-7' : 'w-8 h-8'
+              } rounded-xl hidden sm:flex items-center justify-center shrink-0`}
+              style={{ backgroundColor: palette.accentSoft, color: palette.accent }}
+            >
+              <MonitorPlay className="w-4 h-4" />
+            </span>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -907,27 +950,46 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             aria-haspopup="listbox"
             aria-label="Ayet seçiciyi aç"
             title="Hızlı ayet geçişi için dokunun"
-            className="min-w-0 max-w-full min-h-[40px] px-2 -ml-1 rounded-xl border flex items-center gap-1.5 sm:gap-2 cursor-pointer transition-colors touch-manipulation disabled:cursor-default"
+            className={`min-w-0 max-w-full ${
+              isCompactLandscape ? 'min-h-[34px] px-1.5' : 'min-h-[40px] px-2'
+            } -ml-1 rounded-xl border flex items-center gap-1.5 sm:gap-2 cursor-pointer transition-colors touch-manipulation disabled:cursor-default`}
             style={{
               borderColor: isAyahPickerOpen ? palette.accent : 'transparent',
               backgroundColor: isAyahPickerOpen ? palette.accentSoft : 'transparent',
               color: palette.text,
             }}
           >
-            <h2 className="text-sm sm:text-base font-extrabold tracking-tight truncate">
-              {displayedVerse
-                ? `${formatSurahTitle(surahMeta?.nameTr, displayedVerse.surah)} · ${displayedVerse.ayah}. Ayet`
-                : 'Sunum Modu'}
+            <h2 className="flex items-center gap-1 min-w-0 text-xs sm:text-base font-extrabold tracking-tight tabular-nums">
+              {displayedVerse ? (
+                <>
+                  <span className="shrink-0 whitespace-nowrap">{displayedVerse.surah}.</span>
+                  <span className="truncate min-w-0 sm:hidden">
+                    {surahMeta?.shortNameTr || surahMeta?.nameTr || 'Sure'}
+                  </span>
+                  <span className="truncate min-w-0 hidden sm:inline">
+                    {surahMeta?.nameTr
+                      ? surahMeta.nameTr.toLowerCase().includes('suresi')
+                        ? surahMeta.nameTr
+                        : `${surahMeta.nameTr} Suresi`
+                      : 'Sure'}
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap">
+                    · {displayedVerse.ayah}. Ayet
+                  </span>
+                </>
+              ) : (
+                <span className="truncate">Sunum Modu</span>
+              )}
             </h2>
             {pickerVerses.length > 1 && (
               <ChevronDown
-                className={`w-4 h-4 shrink-0 transition-transform duration-150 ${
+                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform duration-150 ${
                   isAyahPickerOpen ? 'rotate-180' : ''
                 }`}
                 style={{ color: palette.accent }}
               />
             )}
-            {surahMeta?.nameAr && (
+            {!isFullscreen && surahMeta?.nameAr && (
               <span
                 className="arabic-title text-base hidden md:inline shrink-0"
                 style={{ color: palette.accent }}
@@ -1027,93 +1089,105 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           )}
         </div>
 
-        {/* Sağ: Renkli Tecvit + Kelime Takibi (md+) + Tema + ⚙ Görünüm & Ses Popover + Tam Ekran + Çıkış */}
+        {/* Sağ: Normal modda tam araçlar; Tam Ekran odak modunda yalnızca Ayarlar + Tam Ekrandan Çık + Çıkış */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {/* Hızlı Kontrol 1: Renkli Tecvit (Masaüstü/Tablet üst şerit; mobilde Görünüm & Ses çekmecesinde) */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={settings.tajweedEnabled}
-            aria-label="Renkli Tecvit"
-            title={settings.tajweedEnabled ? 'Renkli Tecvit: Açık' : 'Renkli Tecvit: Kapalı'}
-            onClick={() => {
-              sfxService.play('click');
-              const next = !settings.tajweedEnabled;
-              updateSettings({ tajweedEnabled: next });
-              if (!next) setShowDiacriticNote(false);
-            }}
-            className="hidden md:flex min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
-            style={{
-              borderColor: settings.tajweedEnabled ? palette.accent : palette.border,
-              backgroundColor: settings.tajweedEnabled ? palette.accentSoft : 'transparent',
-              color: settings.tajweedEnabled ? palette.accent : palette.muted,
-            }}
-          >
-            <Sparkles className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden lg:inline whitespace-nowrap">Tecvit</span>
-          </button>
+          {!isFullscreen && (
+            <>
+              {/* Hızlı Kontrol 1: Renkli Tecvit (Masaüstü/Tablet üst şerit; mobilde Görünüm & Ses çekmecesinde) */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.tajweedEnabled}
+                aria-label="Renkli Tecvit"
+                title={settings.tajweedEnabled ? 'Renkli Tecvit: Açık' : 'Renkli Tecvit: Kapalı'}
+                onClick={() => {
+                  sfxService.play('click');
+                  const next = !settings.tajweedEnabled;
+                  updateSettings({ tajweedEnabled: next });
+                  if (!next) setShowDiacriticNote(false);
+                }}
+                className={`hidden md:flex ${
+                  isCompactLandscape ? 'min-w-[34px] min-h-[34px]' : 'min-w-[40px] min-h-[40px]'
+                } px-2 sm:px-2.5 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation`}
+                style={{
+                  borderColor: settings.tajweedEnabled ? palette.accent : palette.border,
+                  backgroundColor: settings.tajweedEnabled ? palette.accentSoft : 'transparent',
+                  color: settings.tajweedEnabled ? palette.accent : palette.muted,
+                }}
+              >
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden lg:inline whitespace-nowrap">Tecvit</span>
+              </button>
 
-          {/* Renkli Tecvit Harekeleme Bilgi Notu Aç/Kapa */}
-          {settings.tajweedEnabled && (
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                setShowDiacriticNote((v) => !v);
-              }}
-              aria-expanded={showDiacriticNote}
-              aria-label="Medine Mushafı Harekeleme Notu"
-              title="Medine Mushafı Harekeleme Notu"
-              className="hidden md:flex min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
-              style={{
-                borderColor: showDiacriticNote ? palette.accent : palette.border,
-                backgroundColor: showDiacriticNote ? palette.accentSoft : 'transparent',
-                color: showDiacriticNote ? palette.accent : palette.muted,
-              }}
-            >
-              <Info className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden xl:inline whitespace-nowrap">Harekeleme Notu</span>
-            </button>
+              {/* Renkli Tecvit Harekeleme Bilgi Notu Aç/Kapa */}
+              {settings.tajweedEnabled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setShowDiacriticNote((v) => !v);
+                  }}
+                  aria-expanded={showDiacriticNote}
+                  aria-label="Medine Mushafı Harekeleme Notu"
+                  title="Medine Mushafı Harekeleme Notu"
+                  className={`hidden md:flex ${
+                    isCompactLandscape ? 'min-w-[34px] min-h-[34px]' : 'min-w-[40px] min-h-[40px]'
+                  } px-2 sm:px-2.5 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation`}
+                  style={{
+                    borderColor: showDiacriticNote ? palette.accent : palette.border,
+                    backgroundColor: showDiacriticNote ? palette.accentSoft : 'transparent',
+                    color: showDiacriticNote ? palette.accent : palette.muted,
+                  }}
+                >
+                  <Info className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden xl:inline whitespace-nowrap">Harekeleme Notu</span>
+                </button>
+              )}
+
+              {/* Hızlı Kontrol 2: Kelime Takibi (Karaoke) (Masaüstü/Tablet üst şerit; mobilde çekmecede) */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.wordSyncEnabled}
+                aria-label="Kelime Takibi"
+                title={settings.wordSyncEnabled ? 'Kelime Takibi: Açık' : 'Kelime Takibi: Kapalı'}
+                onClick={() => {
+                  sfxService.play('click');
+                  updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
+                }}
+                className={`hidden md:flex ${
+                  isCompactLandscape ? 'min-w-[34px] min-h-[34px]' : 'min-w-[40px] min-h-[40px]'
+                } px-2 sm:px-2.5 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation`}
+                style={{
+                  borderColor: settings.wordSyncEnabled ? palette.accent : palette.border,
+                  backgroundColor: settings.wordSyncEnabled ? palette.accentSoft : 'transparent',
+                  color: settings.wordSyncEnabled ? palette.accent : palette.muted,
+                }}
+              >
+                <AudioLines className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden lg:inline whitespace-nowrap">Kelime Takibi</span>
+              </button>
+
+              {/* Hızlı Kontrol 3: Sunum Teması Değiştirici */}
+              <button
+                type="button"
+                onClick={cyclePresTheme}
+                title={`Sunum Teması: ${palette.label} (Değiştirmek için dokunun)`}
+                aria-label={`Sunum temasını değiştir (${palette.label})`}
+                className={`${
+                  isCompactLandscape ? 'min-w-[34px] min-h-[34px]' : 'min-w-[40px] min-h-[40px]'
+                } px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation`}
+                style={{
+                  borderColor: palette.border,
+                  backgroundColor: 'transparent',
+                  color: palette.text,
+                }}
+              >
+                <Palette className="w-3.5 h-3.5 shrink-0" style={{ color: palette.accent }} />
+                <span className="hidden xl:inline whitespace-nowrap">{palette.label}</span>
+              </button>
+            </>
           )}
-
-          {/* Hızlı Kontrol 2: Kelime Takibi (Karaoke) (Masaüstü/Tablet üst şerit; mobilde çekmecede) */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={settings.wordSyncEnabled}
-            aria-label="Kelime Takibi"
-            title={settings.wordSyncEnabled ? 'Kelime Takibi: Açık' : 'Kelime Takibi: Kapalı'}
-            onClick={() => {
-              sfxService.play('click');
-              updateSettings({ wordSyncEnabled: !settings.wordSyncEnabled });
-            }}
-            className="hidden md:flex min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
-            style={{
-              borderColor: settings.wordSyncEnabled ? palette.accent : palette.border,
-              backgroundColor: settings.wordSyncEnabled ? palette.accentSoft : 'transparent',
-              color: settings.wordSyncEnabled ? palette.accent : palette.muted,
-            }}
-          >
-            <AudioLines className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden lg:inline whitespace-nowrap">Kelime Takibi</span>
-          </button>
-
-          {/* Hızlı Kontrol 3: Sunum Teması Değiştirici */}
-          <button
-            type="button"
-            onClick={cyclePresTheme}
-            title={`Sunum Teması: ${palette.label} (Değiştirmek için dokunun)`}
-            aria-label={`Sunum temasını değiştir (${palette.label})`}
-            className="min-w-[40px] min-h-[40px] px-2 sm:px-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
-            style={{
-              borderColor: palette.border,
-              backgroundColor: 'transparent',
-              color: palette.text,
-            }}
-          >
-            <Palette className="w-3.5 h-3.5 shrink-0" style={{ color: palette.accent }} />
-            <span className="hidden xl:inline whitespace-nowrap">{palette.label}</span>
-          </button>
 
           <div ref={settingsPopoverRef} className="relative">
             <button
@@ -1125,7 +1199,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               }}
               aria-expanded={isSettingsPopoverOpen}
               aria-label="Görünüm ve ses ayarları"
-              className="min-w-[40px] min-h-[40px] px-2.5 sm:px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation"
+              title="Görünüm ve ses ayarları"
+              className={`${
+                isCompactLandscape ? 'min-w-[34px] min-h-[34px]' : 'min-w-[40px] min-h-[40px]'
+              } ${isFullscreen ? 'px-2' : 'px-2.5 sm:px-3'} rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors touch-manipulation`}
               style={{
                 borderColor: isSettingsPopoverOpen ? palette.accent : palette.border,
                 backgroundColor: isSettingsPopoverOpen
@@ -1137,7 +1214,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               }}
             >
               <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline whitespace-nowrap">Görünüm &amp; Ses</span>
+              {!isFullscreen && (
+                <span className="hidden sm:inline whitespace-nowrap">Görünüm &amp; Ses</span>
+              )}
             </button>
 
             {isSettingsPopoverOpen && (
@@ -1506,20 +1585,31 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             )}
           </div>
 
-          {/* Tam Ekran Butonu */}
+          {/* Tam Ekran / Tam Ekrandan Çık Butonu */}
           <button
             type="button"
             onClick={handleToggleFullscreen}
-            title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
-            aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
-            className="min-w-[40px] min-h-[40px] rounded-xl border flex items-center justify-center cursor-pointer touch-manipulation"
+            title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran odak modu'}
+            aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran odak modu'}
+            className={`${
+              isCompactLandscape ? 'min-w-[34px] min-h-[34px]' : 'min-w-[40px] min-h-[40px]'
+            } ${
+              isFullscreen ? 'px-2.5 sm:px-3 gap-1.5' : ''
+            } rounded-xl border text-xs font-bold flex items-center justify-center cursor-pointer touch-manipulation transition-colors`}
             style={{
               borderColor: isFullscreen ? palette.accent : palette.border,
               backgroundColor: isFullscreen ? palette.accentSoft : 'transparent',
               color: isFullscreen ? palette.accent : palette.text,
             }}
           >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="whitespace-nowrap text-[11px] sm:text-xs">Tam Ekrandan Çık</span>
+              </>
+            ) : (
+              <Maximize2 className="w-4 h-4" />
+            )}
           </button>
 
           {/* Kapat / Çıkış */}
@@ -1527,17 +1617,25 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             type="button"
             onClick={() => {
               sfxService.play('click');
+              if (document.fullscreenElement) {
+                document.exitFullscreen?.().catch(() => {});
+              }
+              setIsFullscreen(false);
               onClose();
             }}
-            className="min-w-[40px] min-h-[40px] px-2.5 sm:px-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation"
+            aria-label="Sunum modundan çık"
+            title="Sunum modundan çık"
+            className={`${
+              isCompactLandscape ? 'min-w-[34px] min-h-[34px] px-2 sm:px-2.5' : 'min-w-[40px] min-h-[40px] px-2.5 sm:px-3'
+            } rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation`}
             style={{
               borderColor: palette.border,
               backgroundColor: 'rgba(239, 68, 68, 0.14)',
               color: isLightTheme ? '#B91C1C' : '#FCA5A5',
             }}
           >
-            <X className="w-4 h-4" />
-            <span className="hidden xs:inline sm:inline">Çıkış</span>
+            <X className="w-4 h-4 shrink-0" />
+            {!isFullscreen && <span className="hidden sm:inline">Çıkış</span>}
           </button>
         </div>
       </header>
@@ -1578,20 +1676,30 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         </div>
       )}
 
-      {/* Orta Sahne: Kırpışmasız, Akıllı Tahta & Salon İçin Geniş Ayet & Meal Alanı (Yatay Kaydırma Destekli) */}
+      {/* Orta Sahne: Kırpışmasız, Akıllı Tahta, Salon & Yatay Mobil İçin Geniş Ayet & Meal Alanı */}
       <main
         onTouchStart={handleMainTouchStart}
         onTouchEnd={handleMainTouchEnd}
-        className="flex-1 min-h-0 flex items-center justify-center px-4 sm:px-8 lg:px-10 xl:px-14 py-3 overflow-y-auto"
+        className={`flex-1 min-h-0 flex items-center justify-center ${
+          isCompactLandscape
+            ? 'px-3 sm:px-6 py-1.5'
+            : 'px-4 sm:px-8 lg:px-10 xl:px-14 py-3'
+        } overflow-y-auto`}
       >
         {displayedVerse ? (
-          <div className="w-full max-w-6xl xl:max-w-[88vw] mx-auto flex flex-col items-center justify-center gap-3 sm:gap-4 text-center transition-opacity duration-200">
+          <div
+            className={`w-full max-w-6xl xl:max-w-[88vw] mx-auto flex flex-col items-center justify-center ${
+              isCompactLandscape ? 'gap-1.5' : 'gap-3 sm:gap-4'
+            } text-center transition-opacity duration-200`}
+          >
             {/* Yalnızca Tilâvet Secdesi, Aktif Ses Fazı, Duraklatıldı Bilgisi veya Ses Hata Bildirimi */}
             {(isSajdah || isPlaying || isLoading || isPaused || Boolean(audioState.errorMessage)) && (
-              <div className="flex items-center justify-center gap-2 flex-wrap">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                 {isSajdah && (
                   <span
-                    className="px-3.5 py-1 rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 border shadow-sm"
+                    className={`${
+                      isCompactLandscape ? 'px-2.5 py-0.5 text-[11px]' : 'px-3.5 py-1 text-xs sm:text-sm'
+                    } rounded-full font-extrabold flex items-center gap-1.5 border shadow-sm`}
                     style={{
                       backgroundColor: isLightTheme
                         ? 'rgba(217, 119, 6, 0.16)'
@@ -1607,7 +1715,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                   </span>
                 )}
 
-                {(isPlaying || isLoading) && (
+                {(isPlaying || isLoading) && !isCompactLandscape && (
                   <span
                     className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border"
                     style={{
@@ -1627,7 +1735,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
                 {isPaused && (
                   <span
-                    className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border"
+                    className={`${
+                      isCompactLandscape ? 'px-2.5 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
+                    } rounded-full font-bold flex items-center gap-1.5 border`}
                     style={{
                       borderColor: palette.border,
                       backgroundColor: palette.surface,
@@ -1635,7 +1745,11 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     }}
                   >
                     <Pause className="w-3.5 h-3.5 shrink-0" style={{ color: palette.accent }} />
-                    <span>Duraklatıldı · Devam etmek için &apos;Devam Et&apos;e basın</span>
+                    <span>
+                      {isCompactLandscape
+                        ? 'Duraklatıldı'
+                        : "Duraklatıldı · Devam etmek için 'Devam Et'e basın"}
+                    </span>
                   </span>
                 )}
 
@@ -1667,7 +1781,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             {/* Sure Başı Besmelesi (1. Ayette — Fâtiha ve Tevbe hariç) */}
             {showBesmele && (contentMode === 'both' || contentMode === 'ar') && (
               <div
-                className={`w-fit max-w-full mx-auto rounded-2xl px-8 sm:px-12 py-2.5 border transition-all duration-200 ${karaokeThemeClass}`}
+                className={`w-fit max-w-full mx-auto rounded-2xl ${
+                  isCompactLandscape ? 'px-5 py-1' : 'px-8 sm:px-12 py-2.5'
+                } border transition-all duration-200 ${karaokeThemeClass}`}
                 style={{
                   backgroundColor:
                     isBesmeleHighlighted && !suppressBesmeleFill
@@ -1752,7 +1868,12 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                             >
                               {body}
                             </span>
-                            {waqf && <WaqfMarkSpan waqf={waqf} />}
+                            {waqf && (
+                              <WaqfMarkSpan
+                                waqf={waqf}
+                                isEndOfAyah={idx === besmelePlainTokens.length - 1}
+                              />
+                            )}
                             {idx < besmelePlainTokens.length - 1 ? ' ' : null}
                           </React.Fragment>
                         );
@@ -1788,7 +1909,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               <div
                 dir="rtl"
                 lang="ar"
-                className={`${useVerseTajweed ? 'arabic-tajweed' : 'arabic-text'} ${karaokeThemeClass} w-full text-center px-2 sm:px-4 py-1.5 rounded-2xl border transition-all duration-200 ${
+                className={`${useVerseTajweed ? 'arabic-tajweed' : 'arabic-text'} ${karaokeThemeClass} w-full text-center px-2 sm:px-4 ${
+                  isCompactLandscape ? 'py-0.5' : 'py-1.5'
+                } rounded-2xl border transition-all duration-200 ${
                   isBesmeleHighlighted ? 'opacity-70' : 'opacity-100'
                 }`}
                 style={{
@@ -1865,7 +1988,12 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                           >
                             {body}
                           </span>
-                          {waqf && <WaqfMarkSpan waqf={waqf} />}
+                          {waqf && (
+                            <WaqfMarkSpan
+                              waqf={waqf}
+                              isEndOfAyah={idx === versePlainTokens.length - 1}
+                            />
+                          )}
                           {idx < versePlainTokens.length - 1 ? ' ' : null}
                         </React.Fragment>
                       );
@@ -1907,7 +2035,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             {/* İnce Ayırıcı (AR+Meal modunda) */}
             {contentMode === 'both' && (
               <div
-                className="w-24 h-0.5 rounded-full opacity-45"
+                className={`${isCompactLandscape ? 'w-16 h-px' : 'w-24 h-0.5'} rounded-full opacity-45`}
                 style={{ backgroundColor: palette.accent }}
               />
             )}
@@ -1924,12 +2052,14 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                 {(() => {
                   const basePrimarySize =
                     isDual && secondaryMealText
-                      ? Math.max(14, Math.round(parseInt(fontMetrics.trSize, 10) * 0.84))
+                      ? Math.max(12, Math.round(parseInt(fontMetrics.trSize, 10) * 0.84))
                       : parseInt(fontMetrics.trSize, 10);
                   const primaryPres = getMealTextPresentation(primaryMeal, basePrimarySize);
                   return (
                     <div
-                      className="px-4 py-2.5 rounded-2xl border transition-all duration-200"
+                      className={`${
+                        isCompactLandscape ? 'px-3 py-1' : 'px-4 py-2.5'
+                      } rounded-2xl border transition-all duration-200`}
                       style={{
                         backgroundColor: isPrimaryMealHighlighted ? palette.accentSoft : 'transparent',
                         borderColor: isPrimaryMealHighlighted
@@ -1959,7 +2089,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                         {mealText}
                       </p>
                       <p
-                        className={`mt-2.5 text-xs sm:text-sm font-semibold ${
+                        className={`${
+                          isCompactLandscape ? 'mt-1 text-[10.5px] sm:text-xs' : 'mt-2.5 text-xs sm:text-sm'
+                        } font-semibold ${
                           isDual && secondaryMealText
                             ? primaryPres.isRtl
                               ? 'text-right'
@@ -2040,31 +2172,40 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
         )}
       </main>
 
-      {/* Sade Alt Kontrol Barı: Konum, ⏮ ▶/⏸ Sesli Meal ⏭ ve Hız (1x) */}
+      {/* Sade Alt Kontrol Barı: Tam Ekranda yalnızca ortalanmış temel oynatma; Normal modda Konum + Kontroller + Hız */}
       <footer
-        className="min-h-16 py-2 px-3 sm:px-6 border-t flex items-center justify-between gap-2 shrink-0 backdrop-blur-md"
+        className={`${
+          isCompactLandscape ? 'min-h-[44px] py-1 px-2.5 sm:px-4' : 'min-h-16 py-2 px-3 sm:px-6'
+        } border-t flex items-center ${
+          isFullscreen ? 'justify-center' : 'justify-between'
+        } gap-2 shrink-0 backdrop-blur-md`}
         style={{
           backgroundColor: palette.surface,
           borderColor: palette.border,
         }}
       >
-        {/* Sol: Bağlam Duyarlı Konum ve İlerleme Bilgisi */}
-        <div
-          className="text-[11px] sm:text-xs font-bold tabular-nums min-w-0 max-w-[38%] sm:max-w-none truncate"
-          style={{ color: palette.muted }}
-          title={footerLocationText}
-        >
-          {footerLocationText}
-        </div>
+        {/* Sol: Bağlam Duyarlı Konum ve İlerleme Bilgisi (Tam ekranda gizlenir; mobilde kesilmesiz kısa biçim) */}
+        {!isFullscreen && (
+          <div
+            className="text-[11px] sm:text-xs font-bold tabular-nums shrink-0 sm:shrink sm:min-w-0 sm:truncate whitespace-nowrap"
+            style={{ color: palette.muted }}
+            title={footerLocationText}
+          >
+            <span className="sm:hidden">{compactFooterLocationText}</span>
+            <span className="hidden sm:inline">{footerLocationText}</span>
+          </div>
+        )}
 
-        {/* Orta: Oynatma Kontrolleri + Hızlı Sesli Meal */}
+        {/* Orta: Oynatma Kontrolleri (+ Normal modda Hızlı Sesli Meal) */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             type="button"
             onClick={handlePrev}
             disabled={!canPrev}
             aria-label="Önceki ayet"
-            className="w-10 h-10 rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
+            className={`${
+              isCompactLandscape ? 'w-8 h-8' : 'w-10 h-10'
+            } rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer`}
             style={{ borderColor: palette.border, color: palette.text }}
           >
             <SkipBack className="w-4 h-4" />
@@ -2074,7 +2215,9 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             type="button"
             onClick={handlePlayPause}
             aria-label={isPlaying ? 'Duraklat' : isPaused ? 'Devam Et' : 'Dinle'}
-            className="h-10 px-4 sm:px-5 rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95"
+            className={`${
+              isCompactLandscape ? 'h-8 px-3.5' : 'h-10 px-4 sm:px-5'
+            } rounded-xl font-extrabold flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-transform active:scale-95`}
             style={{
               backgroundColor: palette.accent,
               color: palette.accentText,
@@ -2087,62 +2230,72 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             ) : (
               <Play className="w-4 h-4 ml-0.5" />
             )}
-            <span className="text-xs sm:text-sm">
+            <span className="text-xs sm:text-sm whitespace-nowrap">
               {isPlaying ? 'Duraklat' : isPaused ? 'Devam Et' : 'Dinle'}
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={handlePlayMealQuick}
-            disabled={!displayedVerse}
-            title="Türkçe Sesli Meal ile dinle"
-            aria-label="Sesli Meal dinle"
-            aria-pressed={isMealAudioFlowActive && audioPrefs.mode === 'meal'}
-            className="h-10 px-3 sm:px-3.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-40"
-            style={{
-              backgroundColor:
-                isMealAudioFlowActive && audioPrefs.mode === 'meal'
-                  ? palette.accentSoft
-                  : 'transparent',
-              borderColor:
-                isMealAudioFlowActive && audioPrefs.mode === 'meal'
-                  ? palette.accent
-                  : palette.border,
-              color:
-                isMealAudioFlowActive && audioPrefs.mode === 'meal'
-                  ? palette.accent
-                  : palette.text,
-            }}
-          >
-            <Headphones className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline whitespace-nowrap">Sesli Meal</span>
-          </button>
+          {!isFullscreen && (
+            <button
+              type="button"
+              onClick={handlePlayMealQuick}
+              disabled={!displayedVerse}
+              title="Türkçe Sesli Meal ile dinle"
+              aria-label="Sesli Meal dinle"
+              aria-pressed={isMealAudioFlowActive && audioPrefs.mode === 'meal'}
+              className={`${
+                isCompactLandscape ? 'h-8 px-2.5' : 'h-10 px-3 sm:px-3.5'
+              } rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-40`}
+              style={{
+                backgroundColor:
+                  isMealAudioFlowActive && audioPrefs.mode === 'meal'
+                    ? palette.accentSoft
+                    : 'transparent',
+                borderColor:
+                  isMealAudioFlowActive && audioPrefs.mode === 'meal'
+                    ? palette.accent
+                    : palette.border,
+                color:
+                  isMealAudioFlowActive && audioPrefs.mode === 'meal'
+                    ? palette.accent
+                    : palette.text,
+              }}
+            >
+              <Headphones className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline whitespace-nowrap">Sesli Meal</span>
+            </button>
+          )}
 
           <button
             type="button"
             onClick={handleNext}
             disabled={!canNext}
             aria-label="Sonraki ayet"
-            className="w-10 h-10 rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer"
+            className={`${
+              isCompactLandscape ? 'w-8 h-8' : 'w-10 h-10'
+            } rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer`}
             style={{ borderColor: palette.border, color: palette.text }}
           >
             <SkipForward className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Sağ: Oynatma Hızı */}
-        <div className="min-w-[52px] flex justify-end shrink-0">
-          <button
-            type="button"
-            onClick={cycleRate}
-            title="Oynatma hızı"
-            className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold tabular-nums cursor-pointer"
-            style={{ borderColor: palette.border, color: palette.text }}
-          >
-            {audioPrefs.playbackRate}x
-          </button>
-        </div>
+        {/* Sağ: Oynatma Hızı (Tam ekranda gizlenir) */}
+        {!isFullscreen && (
+          <div className="min-w-[44px] sm:min-w-[52px] flex justify-end shrink-0">
+            <button
+              type="button"
+              onClick={cycleRate}
+              title="Oynatma hızı"
+              className={`${
+                isCompactLandscape ? 'min-h-[30px] px-2' : 'min-h-[34px] px-2.5'
+              } rounded-xl border text-xs font-bold tabular-nums cursor-pointer`}
+              style={{ borderColor: palette.border, color: palette.text }}
+            >
+              {audioPrefs.playbackRate}x
+            </button>
+          </div>
+        )}
       </footer>
     </div>
   );

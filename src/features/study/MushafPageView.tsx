@@ -1362,7 +1362,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                               : arabicDensity.mushafLineHeight,
                             wordSpacing: arabicDensity.wordSpacing,
                             textAlign: 'justify',
-                            textAlignLast: 'center',
+                            textAlignLast: 'right',
                           }}
                         >
                           {segment.verses.map((verse) => {
@@ -2498,7 +2498,9 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       <div
         className={
           isBookSpread
-            ? `space-y-2.5 lg:flex lg:flex-col lg:gap-0 lg:space-y-0 lg:overflow-visible ${desktopSpreadHeightClass}`
+            ? `space-y-2.5 lg:flex lg:flex-col lg:gap-0 lg:space-y-0 lg:overflow-visible ${desktopSpreadHeightClass} ${
+                isAudioBarVisible ? 'pb-28 lg:pb-0' : ''
+              }`
             : `max-w-[54rem] mx-auto w-full space-y-2 ${isAudioBarVisible ? 'pb-32 lg:pb-24' : ''}`
         }
         onTouchStart={handleTouchStart}

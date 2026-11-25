@@ -3,7 +3,11 @@ import { audioQueueService, type WordSyncSnapshot } from '../../services/audioQu
 import type { ThemeMode } from '../../types/quran';
 import type { TajweedRuleDef, TajweedWord } from '../../types/tajweed';
 import { mapQulWordIndexToDisplay, tokenizeArabicWithWaqf } from '../../utils/wordSyncUtils';
-import { splitTrailingWaqf, WaqfMarkSpan } from '../../utils/waqfTextUtils';
+import {
+  normalizeArabicWaqfSpacing,
+  splitTrailingWaqf,
+  WaqfMarkSpan,
+} from '../../utils/waqfTextUtils';
 import { TajweedText } from './TajweedText';
 
 const WAQF_CHAR_DETECT_REGEX = /[\u06d6-\u06dc]/;
@@ -73,14 +77,18 @@ export const SyncedVerseArabic: React.FC<SyncedVerseArabicProps> = ({
       : sync.phase === 'ar' && sync.surah === surahNo && sync.ayah === ayahNo);
 
   const rawQulWordIdx = isMatched ? sync.activeWordIndex : null;
-  const hasWaqfMarks = useMemo(() => !useTajweed && WAQF_CHAR_DETECT_REGEX.test(text), [text, useTajweed]);
+  const cleanText = useMemo(() => normalizeArabicWaqfSpacing(text), [text]);
+  const hasWaqfMarks = useMemo(
+    () => !useTajweed && WAQF_CHAR_DETECT_REGEX.test(cleanText),
+    [cleanText, useTajweed],
+  );
 
   // Normal (Tecvitsiz) modda yalnızca karaoke aktifse veya ayette Secâvend durak işareti varsa tokenize et
   const plainTokens = useMemo(() => {
     if (useTajweed) return null;
     if (!shouldTrack && !hasWaqfMarks) return null;
-    return tokenizeArabicWithWaqf(text);
-  }, [text, useTajweed, shouldTrack, hasWaqfMarks]);
+    return tokenizeArabicWithWaqf(cleanText);
+  }, [cleanText, useTajweed, shouldTrack, hasWaqfMarks]);
 
   // 1. Renkli Tecvit Aktif
   if (useTajweed && tajweedWords && tajweedWords.length > 0 && tajweedRules) {
@@ -103,11 +111,11 @@ export const SyncedVerseArabic: React.FC<SyncedVerseArabicProps> = ({
 
   // 2. Normal Türk Mushaf Hattı — Aktif kelime yoksa ve durak işareti yoksa düz metin (0 ekstra DOM düğümü)
   if ((!shouldTrack || rawQulWordIdx === null) && !hasWaqfMarks) {
-    return <>{text}</>;
+    return <>{cleanText}</>;
   }
 
   if (!plainTokens || plainTokens.length === 0) {
-    return <>{text}</>;
+    return <>{cleanText}</>;
   }
 
   const mappedPlainIdx =
@@ -119,6 +127,7 @@ export const SyncedVerseArabic: React.FC<SyncedVerseArabicProps> = ({
     <>
       {plainTokens.map((token, idx) => {
         const { body, waqf } = splitTrailingWaqf(token);
+        const isLastToken = idx === plainTokens.length - 1;
         const isActiveWord = mappedPlainIdx !== null && idx + 1 === mappedPlainIdx;
         return (
           <React.Fragment key={idx}>
@@ -127,8 +136,8 @@ export const SyncedVerseArabic: React.FC<SyncedVerseArabicProps> = ({
             ) : (
               body
             )}
-            {waqf && <WaqfMarkSpan waqf={waqf} />}
-            {idx < plainTokens.length - 1 ? ' ' : null}
+            {waqf && <WaqfMarkSpan waqf={waqf} isEndOfAyah={isLastToken} />}
+            {!isLastToken ? ' ' : null}
           </React.Fragment>
         );
       })}

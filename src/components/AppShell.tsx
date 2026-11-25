@@ -917,7 +917,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           className={`flex-1 w-full ${contentWidthClass} mx-auto ${
             isMobilePureReader
               ? isMobileReaderImmersive
-                ? `px-1.5 pt-12 sm:px-3 lg:px-6 ${isDesktopMushaf ? 'lg:pt-2' : 'lg:pt-3.5'}`
+                ? `px-1.5 pt-[calc(2.85rem+env(safe-area-inset-top,0px))] sm:px-3 lg:px-6 ${isDesktopMushaf ? 'lg:pt-2' : 'lg:pt-3.5'}`
                 : `px-1.5 pt-0 sm:px-3 lg:px-6 ${isDesktopMushaf ? 'lg:pt-2' : 'lg:pt-3.5'}`
               : isReaderTab
                 ? 'px-2.5 pt-0 sm:px-4 lg:px-6 lg:pt-3.5'
@@ -926,14 +926,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             isMobileReaderImmersive
               ? isFullAudioBarDocked
                 ? `pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
-                : `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                : isAudioBarVisible
+                  ? `pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                  : `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
               : activeTab !== 'home'
                 ? isExamActive || isMemorizationZenActive
                   ? `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
                   : isFullAudioBarDocked
                     ? `pb-[calc(var(--bottom-nav-h)+6.25rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
                     : isAudioBarVisible
-                      ? `pb-[calc(var(--bottom-nav-h)+4rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                      ? `pb-[calc(var(--bottom-nav-h)+4.5rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
                       : `pb-[calc(var(--bottom-nav-h)+1rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
                 : isFullAudioBarDocked
                   ? `pb-10 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`

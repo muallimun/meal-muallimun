@@ -9,9 +9,12 @@
  */
 const STANDALONE_WAQF_OR_MARKER_RE = /^[\u06D6-\u06ED\u06DD\u06DE\u06E9۞۩﴿﴾٠-٩0-9]+$/;
 
+const STANDALONE_WAQF_SIGN_RE = /^[\u06D6-\u06DC]+$/;
+
 /**
  * Normal Türk Mushaf hattı Arapça metnini (`verse.ar.t`) karaoke vurgulaması için
- * kelimelere ayırır; tek başına duran vakıf/secâvend işaretlerini bitişik kelimeyle birleştirir.
+ * kelimelere ayırır; tek başına duran vakıf/secâvend işaretlerini ekstra boşluk
+ * oluşturmadan bitişik kelimeyle birleştirir (QUL kelime indeks sayısını korur).
  */
 export function tokenizeArabicWithWaqf(text: string): string[] {
   const rawParts = text.trim().split(/\s+/).filter(Boolean);
@@ -23,7 +26,11 @@ export function tokenizeArabicWithWaqf(text: string): string[] {
   for (const part of rawParts) {
     if (STANDALONE_WAQF_OR_MARKER_RE.test(part)) {
       if (tokens.length > 0) {
-        tokens[tokens.length - 1] = `${tokens[tokens.length - 1]} ${part}`;
+        if (STANDALONE_WAQF_SIGN_RE.test(part)) {
+          tokens[tokens.length - 1] = `${tokens[tokens.length - 1]}${part}`;
+        } else {
+          tokens[tokens.length - 1] = `${tokens[tokens.length - 1]} ${part}`;
+        }
       } else {
         pendingPrefix = pendingPrefix ? `${pendingPrefix} ${part}` : part;
       }
@@ -37,7 +44,9 @@ export function tokenizeArabicWithWaqf(text: string): string[] {
 
   if (pendingPrefix) {
     if (tokens.length > 0) {
-      tokens[tokens.length - 1] = `${tokens[tokens.length - 1]} ${pendingPrefix}`;
+      tokens[tokens.length - 1] = STANDALONE_WAQF_SIGN_RE.test(pendingPrefix)
+        ? `${tokens[tokens.length - 1]}${pendingPrefix}`
+        : `${tokens[tokens.length - 1]} ${pendingPrefix}`;
     } else {
       tokens.push(pendingPrefix);
     }

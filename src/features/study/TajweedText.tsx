@@ -187,11 +187,19 @@ export const TajweedText: React.FC<TajweedTextProps> = ({
             </span>
             {trailingWaqf &&
               (interactive ? (
-                <WaqfMarkSpan waqf={trailingWaqf} />
+                <WaqfMarkSpan waqf={trailingWaqf} isEndOfAyah={wordIdx === words.length - 1} />
               ) : (
                 <>
-                  {'\u00A0'}
-                  {trailingWaqf}
+                  {'\u2060'}
+                  <span
+                    className="waqf-mark-anchor"
+                    data-waqf-end={wordIdx === words.length - 1 ? '1' : undefined}
+                  >
+                    <span className="waqf-mark-glyph" aria-hidden="true">
+                      {'\u00A0'}
+                      {trailingWaqf}
+                    </span>
+                  </span>
                 </>
               ))}
             {wordIdx < words.length - 1 ? ' ' : null}

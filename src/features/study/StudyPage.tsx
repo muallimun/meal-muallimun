@@ -23,6 +23,7 @@ import {
   LayoutList,
   ListMusic,
   Menu,
+  Minimize2,
   Minus,
   MonitorPlay,
   Palette,
@@ -177,6 +178,7 @@ export const StudyPage: React.FC = () => {
     openWaqfGuide,
     isMobileReaderImmersive,
     setIsMobileReaderImmersive,
+    setActiveTab,
     isAudioBarExpanded,
     isAudioBarMinimized,
     selectedVerseKey,
@@ -269,6 +271,15 @@ export const StudyPage: React.FC = () => {
   useBackButtonGuard('favorites_drawer', isFavoritesDrawerOpen, () => {
     setIsFavoritesDrawerOpen(false);
   });
+
+  useBackButtonGuard(
+    'mobile_reader_immersive',
+    (studyPrefs.viewMode === 'mushaf' || studyPrefs.viewMode === 'book') &&
+      isMobileReaderImmersive,
+    () => {
+      setIsMobileReaderImmersive(false);
+    },
+  );
 
   useEffect(() => {
     if (!isFavoritesDrawerOpen) return;
@@ -367,12 +378,17 @@ export const StudyPage: React.FC = () => {
     };
   }, [isListenPopoverOpen]);
 
-  // Mobilde Kartlar & Kitap modlarında aşağı kaydırırken üst şeridi akıllıca gizle, yukarıda göster
+  // Mobilde Kartlar, Kitap ve Tam Ekran modlarında aşağı kaydırırken üst şeridi akıllıca gizle, yukarıda göster
   useEffect(() => {
     setIsMobileBarHidden(false);
     lastScrollYRef.current = typeof window !== 'undefined' ? window.scrollY : 0;
 
-    if (viewMode !== 'cards' && viewMode !== 'book') return;
+    const shouldAutoHideOnScroll =
+      viewMode === 'cards' ||
+      viewMode === 'book' ||
+      ((viewMode === 'mushaf' || viewMode === 'book') && isMobileReaderImmersive);
+
+    if (!shouldAutoHideOnScroll) return;
 
     const handleScroll = () => {
       if (window.innerWidth >= 1024) {
@@ -394,7 +410,7 @@ export const StudyPage: React.FC = () => {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [viewMode, currentSurahNo]);
+  }, [viewMode, currentSurahNo, currentPageNo, isMobileReaderImmersive]);
 
   useEffect(() => {
     if (isMobileDrawerOpen || isLocationPickerOpen) {
@@ -2416,8 +2432,8 @@ export const StudyPage: React.FC = () => {
     </div>
   );
 
-  const isFullAudioBarDocked =
-    audioState.isVisible && audioState.status !== 'idle' && !isAudioBarMinimized;
+  const isAnyAudioBarActive = audioState.isVisible && audioState.status !== 'idle';
+  const isFullAudioBarDocked = isAnyAudioBarActive && !isAudioBarMinimized;
   const isTajweedLegendVisible = Boolean(
     settings.tajweedEnabled &&
       settings.showTajweedLegend &&
@@ -2435,9 +2451,13 @@ export const StudyPage: React.FC = () => {
           ? 'pb-[calc(var(--bottom-nav-h)+5.5rem)] lg:pb-24'
           : isFullAudioBarDocked
             ? 'pb-[calc(var(--bottom-nav-h)+5.5rem)] lg:pb-0'
-            : isMobileReaderImmersive
-              ? 'pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] lg:pb-6'
-              : 'pb-[calc(var(--bottom-nav-h)+1.75rem)] lg:pb-6'
+            : isAnyAudioBarActive
+              ? isMobileReaderImmersive
+                ? 'pb-24 lg:pb-6'
+                : 'pb-[calc(var(--bottom-nav-h)+4.5rem)] lg:pb-6'
+              : isMobileReaderImmersive
+                ? 'pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] lg:pb-6'
+                : 'pb-[calc(var(--bottom-nav-h)+1.75rem)] lg:pb-6'
       }`}
     >
       {/* ====================================================================
@@ -2449,24 +2469,67 @@ export const StudyPage: React.FC = () => {
           A2. MOBİL (< 1024px) — TÜM 3 MOD İÇİN TEK İNCE h-12 (48px) OKUMA BAR
           ==================================================================== */}
       {isPureMobileView && isMobileReaderImmersive ? (
-        /* %100 Saf Sayfa Modu (Mushaf / Kitap dokunmatik odak): Sol üstte zarif yarı saydam buton */
-        <button
-          type="button"
-          onClick={() => {
-            sfxService.play('click');
-            setIsMobileDrawerOpen(true);
-          }}
-          aria-label="Okuma menüsünü aç"
-          title="Menüyü aç"
-          className="lg:hidden fixed top-2.5 left-2.5 z-40 w-9 h-9 rounded-xl border backdrop-blur-md shadow-md flex items-center justify-center opacity-80 hover:opacity-100 active:scale-95 transition-all cursor-pointer"
+        /* Tam Ekran Odak Yüzen Üst Kontrol Şeridi (Metni örtmez; aşağı kaydırmada yumuşakça gizlenir) */
+        <div
+          role="region"
+          aria-label="Tam ekran okuma kontrolleri"
+          className={`lg:hidden fixed top-0 inset-x-0 z-40 px-2 pt-[max(0.375rem,env(safe-area-inset-top,0px))] pb-1.5 border-b backdrop-blur-md flex items-center justify-between gap-2 transition-all duration-200 ${
+            isMobileBarHidden
+              ? 'opacity-0 pointer-events-none -translate-y-2'
+              : 'opacity-100 translate-y-0'
+          }`}
           style={{
             backgroundColor: 'var(--bg-nav)',
-            borderColor: 'var(--border-strong)',
-            color: 'var(--text-primary)',
+            borderColor: 'var(--border-subtle)',
           }}
         >
-          <Menu className="w-4 h-4" />
-        </button>
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsMobileDrawerOpen(true);
+              }}
+              aria-label="Okuma menüsünü aç"
+              title="Okuma menüsünü aç"
+              className="h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-extrabold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-strong)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Menu className="w-3.5 h-3.5 shrink-0" />
+              <span>Menü</span>
+            </button>
+            <span
+              className="text-[11px] font-bold truncate tabular-nums min-w-0"
+              style={{ color: 'var(--text-secondary)' }}
+              title={mobileLocationLabel}
+            >
+              {mobileLocationLabel}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              sfxService.play('click');
+              setIsMobileReaderImmersive(false);
+            }}
+            aria-label="Tam ekrandan çık"
+            title="Tam ekrandan çık ve navigasyonu göster"
+            className="h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-[11px] font-extrabold cursor-pointer shrink-0 active:scale-95 transition-transform whitespace-nowrap"
+            style={{
+              backgroundColor: 'var(--brand-primary-soft)',
+              borderColor: 'var(--brand-primary)',
+              color: 'var(--brand-primary-text)',
+            }}
+          >
+            <Minimize2 className="w-3.5 h-3.5 shrink-0" />
+            <span>Tam Ekrandan Çık</span>
+          </button>
+        </div>
       ) : (
         /* Birleşik Mobil Okuma Şeridi — Mushaf, Kartlar ve Kitap'ta ortak; Kartlar & Kitap'ta aşağı kaydırmada gizlenir */
         <header
@@ -2993,6 +3056,11 @@ export const StudyPage: React.FC = () => {
         }
         onOpenWaqfGuide={openWaqfGuide}
         onOpenSettings={openSettingsModal}
+        onNavigateTab={(tab) => {
+          setIsMobileReaderImmersive(false);
+          setIsMobileDrawerOpen(false);
+          setActiveTab(tab);
+        }}
       />
 
       <SurahInfoModal surah={infoModalSurah} onClose={() => setInfoModalSurah(null)} />

@@ -584,8 +584,13 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     onToggleMobileImmersive();
   };
 
+  const isAnyAudioVisible = audioState.isVisible && audioState.status !== 'idle';
+
   return (
-    <div className="space-y-3 pb-3 lg:pb-0" onClick={handleContainerTap}>
+    <div
+      className={`space-y-3 ${isAnyAudioVisible ? 'pb-24 lg:pb-0' : 'pb-3 lg:pb-0'}`}
+      onClick={handleContainerTap}
+    >
       {/* Kitap Sayfası Çerçevesi (Mükerrer üst filtre kutusu kaldırıldı — doğrudan odak kitap sayfası) */}
       <article
         className={`${

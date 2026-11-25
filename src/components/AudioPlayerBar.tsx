@@ -1157,7 +1157,7 @@ export const AudioPlayerBar: React.FC = () => {
                   }}
                   title={isExpanded ? 'Dinleme ayarlarını gizle' : 'Dinleme ayarlarını aç'}
                   aria-label={isExpanded ? 'Dinleme ayarlarını gizle' : 'Dinleme ayarlarını aç'}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-85"
+                  className="hidden sm:flex w-8 h-8 rounded-xl items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-85"
                   style={{
                     backgroundColor: audioState.missingMealAudio
                       ? 'var(--brand-accent-soft)'
@@ -1175,9 +1175,9 @@ export const AudioPlayerBar: React.FC = () => {
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {/* Tıklanabilir Sure · Ayet ▾ Hızlı Atlayıcı (Masaüstünde tam sure adı, mobilde kesilmesiz kısa ad) */}
-                    <div ref={ayahPickerRef} className="relative min-w-0">
+                  <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                    {/* Tıklanabilir Sure · Ayet ▾ Hızlı Atlayıcı (Masaüstünde tam sure adı, mobilde çakışmasız kısa ad) */}
+                    <div ref={ayahPickerRef} className="relative min-w-0 max-w-full flex-1 sm:flex-initial">
                       <button
                         type="button"
                         onClick={() => {
@@ -1187,11 +1187,11 @@ export const AudioPlayerBar: React.FC = () => {
                         }}
                         aria-expanded={isAyahPickerOpen}
                         title="Bu sure içinde başka bir ayete atla"
-                        className="inline-flex items-center gap-1 max-w-full px-1.5 py-0.5 -ml-1.5 rounded-lg text-xs sm:text-[13px] font-extrabold tabular-nums leading-tight cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
+                        className="inline-flex items-center gap-1 min-w-0 max-w-full overflow-hidden px-1 sm:px-1.5 py-0.5 sm:-ml-1.5 rounded-lg text-xs sm:text-[13px] font-extrabold tabular-nums leading-tight cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
                         style={{ color: 'var(--text-primary)' }}
                       >
-                        <span className="truncate sm:hidden">{shortSurahLabel}</span>
-                        <span className="hidden sm:inline whitespace-nowrap">
+                        <span className="truncate min-w-0 sm:hidden">{shortSurahLabel}</span>
+                        <span className="hidden sm:inline truncate">
                           {audioState.currentSurah ? `${audioState.currentSurah}. ` : ''}
                           {fullSurahLabel}
                         </span>
@@ -1283,7 +1283,7 @@ export const AudioPlayerBar: React.FC = () => {
 
                     {activeLoopBadge && (
                       <span
-                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums shrink-0"
+                        className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums shrink-0"
                         style={{
                           backgroundColor: 'var(--brand-accent-soft)',
                           color: 'var(--brand-accent-text)',
@@ -1305,7 +1305,7 @@ export const AudioPlayerBar: React.FC = () => {
                         }}
                         title={`Aktif okuma hızı: ${audioPrefs.playbackRate}x — Değiştirmek için dokunun`}
                         aria-label={`Aktif okuma hızı ${audioPrefs.playbackRate}x`}
-                        className="inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-extrabold tabular-nums shrink-0 cursor-pointer transition-opacity hover:opacity-85 whitespace-nowrap"
+                        className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-extrabold tabular-nums shrink-0 cursor-pointer transition-opacity hover:opacity-85 whitespace-nowrap"
                         style={{
                           backgroundColor: 'var(--brand-primary-soft)',
                           borderColor: 'var(--brand-primary)',
@@ -1317,18 +1317,55 @@ export const AudioPlayerBar: React.FC = () => {
                     )}
                   </div>
 
-                  <p
-                    className="text-[11px] font-medium truncate leading-tight mt-0.5"
-                    style={{
-                      color: audioState.errorMessage
-                        ? audioState.missingMealAudio
-                          ? 'var(--brand-accent-text)'
-                          : '#EF4444'
-                        : 'var(--text-muted)',
-                    }}
-                  >
-                    {compactSubtitle}
-                  </p>
+                  <div className="flex items-center gap-1 min-w-0 mt-0.5 overflow-hidden px-1 sm:px-0">
+                    {activeLoopBadge && (
+                      <span
+                        className="inline-flex sm:hidden items-center gap-0.5 px-1 py-0.5 rounded text-[9.5px] font-extrabold tabular-nums shrink-0"
+                        style={{
+                          backgroundColor: 'var(--brand-accent-soft)',
+                          color: 'var(--brand-accent-text)',
+                        }}
+                        title="Aktif döngü veya ayet tekrarı"
+                      >
+                        <Repeat className="w-2.5 h-2.5" />
+                        <span>{activeLoopBadge}</span>
+                      </span>
+                    )}
+
+                    {audioPrefs.playbackRate !== 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          setIsAyahPickerOpen(false);
+                          setIsExpanded(!isExpanded);
+                        }}
+                        title={`Aktif okuma hızı: ${audioPrefs.playbackRate}x — Değiştirmek için dokunun`}
+                        aria-label={`Aktif okuma hızı ${audioPrefs.playbackRate}x`}
+                        className="inline-flex sm:hidden items-center px-1 py-0.5 rounded border text-[9.5px] font-extrabold tabular-nums shrink-0 cursor-pointer whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'var(--brand-primary-soft)',
+                          borderColor: 'var(--brand-primary)',
+                          color: 'var(--brand-primary-text)',
+                        }}
+                      >
+                        {audioPrefs.playbackRate}x
+                      </button>
+                    )}
+
+                    <p
+                      className="text-[11px] font-medium truncate leading-tight min-w-0 flex-1"
+                      style={{
+                        color: audioState.errorMessage
+                          ? audioState.missingMealAudio
+                            ? 'var(--brand-accent-text)'
+                            : '#EF4444'
+                          : 'var(--text-muted)',
+                      }}
+                    >
+                      {compactSubtitle}
+                    </p>
+                  </div>
                 </div>
               </div>
 
