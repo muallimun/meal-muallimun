@@ -15,11 +15,20 @@ import { useBackButtonGuard } from '../../services/backStackService';
 import { sfxService } from '../../services/sfxService';
 import type { MetaData, SurahMeta } from '../../types/quran';
 import { formatSafeArabicTitle, formatSurahTitle } from '../../utils/arabicUtils';
+import { Z_LAYERS } from '../../config/zLayers';
 import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { shouldAutoFocusSearchInput } from '../../utils/deviceUtils';
 import { normalizeTurkish } from '../../utils/poolUtils';
 
 export type LocationPickerTab = 'surah' | 'page' | 'juz' | 'ruku' | 'ayah';
+
+export interface SelectedRukuInfo {
+  no: number;
+  surah: number;
+  surahRuku: number;
+  startAyah: number;
+  endAyah: number;
+}
 
 interface LocationPickerModalProps {
   isOpen: boolean;
@@ -34,8 +43,9 @@ interface LocationPickerModalProps {
   onSelectSurah: (surahNo: number) => void;
   onSelectPage: (pageNo: number) => void;
   onSelectJuz: (juzNo: number) => void;
-  onSelectRuku?: (surahNo: number, startAyah: number) => void;
+  onSelectRuku?: (ruku: SelectedRukuInfo) => void;
   onSelectAyah: (ayahNo: number) => void;
+  onTabChange?: (tab: LocationPickerTab) => void;
   onClose: () => void;
 }
 
@@ -56,6 +66,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   onSelectJuz,
   onSelectRuku,
   onSelectAyah,
+  onTabChange,
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<LocationPickerTab>(initialTab);
@@ -195,7 +206,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Hızlı Konum Seçici"
-      className="fixed inset-0 z-[95] flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs"
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -271,6 +282,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                   onClick={() => {
                     sfxService.play('click');
                     setActiveTab(tab.id);
+                    onTabChange?.(tab.id);
                   }}
                   className="min-h-[36px] px-1 sm:px-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
                   style={{
@@ -647,7 +659,13 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                         onClick={() => {
                           sfxService.play('click');
                           if (onSelectRuku) {
-                            onSelectRuku(r.surah, r.startAyah);
+                            onSelectRuku({
+                              no: r.no,
+                              surah: r.surah,
+                              surahRuku: r.surahRuku,
+                              startAyah: r.startAyah,
+                              endAyah: r.endAyah,
+                            });
                           } else {
                             onSelectSurah(r.surah);
                           }

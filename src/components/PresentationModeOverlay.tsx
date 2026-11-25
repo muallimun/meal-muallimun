@@ -5,6 +5,7 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
+  Compass,
   Headphones,
   Info,
   Loader2,
@@ -29,6 +30,7 @@ import {
   resolveSpokenMealInfo,
 } from '../config/mealsConfig';
 import { findReciterById } from '../config/recitersConfig';
+import { Z_LAYERS } from '../config/zLayers';
 import { useActiveMeals } from '../hooks/useActiveMeals';
 import { useTajweedData } from '../hooks/useTajweedData';
 import { audioQueueService } from '../services/audioQueueService';
@@ -93,7 +95,14 @@ interface PresentationModeOverlayProps {
   activeVerse: CombinedVerse | null;
   surahMap: Map<number, SurahMeta>;
   besmele?: BesmeleInfo;
-  scopeMode?: 'page' | 'surah';
+  scopeMode?: 'page' | 'surah' | 'ruku';
+  scopeLabel?: string;
+  canGoNextPage?: boolean;
+  canGoPrevPage?: boolean;
+  onRequestNextPage?: () => void;
+  onRequestPrevPage?: () => void;
+  onOpenLocationPicker?: () => void;
+  isLocationPickerOpen?: boolean;
   onStartAudioFromActive?: (verse: CombinedVerse) => void;
   onStartMealAudioFromActive?: (verse: CombinedVerse) => void;
 }
@@ -215,6 +224,13 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   surahMap,
   besmele = DEFAULT_BESMELE,
   scopeMode,
+  scopeLabel,
+  canGoNextPage = false,
+  canGoPrevPage = false,
+  onRequestNextPage,
+  onRequestPrevPage,
+  onOpenLocationPicker,
+  isLocationPickerOpen = false,
   onStartAudioFromActive,
   onStartMealAudioFromActive,
 }) => {
@@ -241,10 +257,15 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       (audioState.status === 'playing' || audioState.status === 'loading'),
   );
 
-  const visibleSurahNos = useMemo(
-    () => (isOpen ? Array.from(new Set(verses.map((v) => v.surah))) : []),
-    [isOpen, verses],
-  );
+  const visibleSurahNos = useMemo(() => {
+    if (!isOpen) return [];
+    const set = new Set<number>(verses.map((v) => v.surah));
+    if (activeVerse) set.add(activeVerse.surah);
+    if (audioState.status !== 'idle' && audioState.currentSurah !== null) {
+      set.add(audioState.currentSurah);
+    }
+    return Array.from(set);
+  }, [isOpen, verses, activeVerse, audioState.status, audioState.currentSurah]);
   const { primaryMeal, secondaryMeal, isDual, getPrimaryVerse, getSecondaryVerse } =
     useActiveMeals(visibleSurahNos);
   const {
@@ -332,33 +353,71 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
   // Keep previous valid verse rendered across page/audio transitions (zero flicker / zero blank frame)
   const lastValidVerseRef = useRef<CombinedVerse | null>(null);
+  const prevIsOpenRef = useRef(isOpen);
+  if (isOpen && !prevIsOpenRef.current) {
+    // Yeni oturum açılışında önceki oturumdan kalan ayeti temizle ve doğrudan güncel activeVerse ile başla
+    lastValidVerseRef.current = activeVerse ?? null;
+  } else if (!isOpen && prevIsOpenRef.current) {
+    lastValidVerseRef.current = null;
+  }
+  prevIsOpenRef.current = isOpen;
+
   const audioStatusRef = useRef(audioState.status);
   const versesLenRef = useRef(verses.length);
+  const manualIndexRef = useRef(manualIndex);
+  const canGoNextPageRef = useRef(canGoNextPage);
+  const canGoPrevPageRef = useRef(canGoPrevPage);
+  const onRequestNextPageRef = useRef(onRequestNextPage);
+  const onRequestPrevPageRef = useRef(onRequestPrevPage);
   const onCloseRef = useRef(onClose);
   const isReciterSelectorOpenRef = useRef(isReciterSelectorOpen);
   const isMealSelectorOpenRef = useRef(isMealSelectorOpen);
+  const isLocationPickerOpenRef = useRef(isLocationPickerOpen);
   const isAyahPickerOpenRef = useRef(isAyahPickerOpen);
   const isSettingsPopoverOpenRef = useRef(isSettingsPopoverOpen);
   const isFullscreenRef = useRef(isFullscreen);
 
   audioStatusRef.current = audioState.status;
   versesLenRef.current = verses.length;
+  manualIndexRef.current = manualIndex;
+  canGoNextPageRef.current = canGoNextPage;
+  canGoPrevPageRef.current = canGoPrevPage;
+  onRequestNextPageRef.current = onRequestNextPage;
+  onRequestPrevPageRef.current = onRequestPrevPage;
   onCloseRef.current = onClose;
   isReciterSelectorOpenRef.current = isReciterSelectorOpen;
   isMealSelectorOpenRef.current = isMealSelectorOpen;
+  isLocationPickerOpenRef.current = isLocationPickerOpen;
   isAyahPickerOpenRef.current = isAyahPickerOpen;
   isSettingsPopoverOpenRef.current = isSettingsPopoverOpen;
   isFullscreenRef.current = isFullscreen;
 
-  // Sunum açıldığında aktif ayet indeksini senkronize et (sadece açılışta)
+  // Sunum kapandığında alt popover ve bilgi notu durumlarını sıfırla
+  useEffect(() => {
+    if (isOpen) return;
+    lastValidVerseRef.current = null;
+    setIsAyahPickerOpen(false);
+    setIsSettingsPopoverOpen(false);
+    setShowDiacriticNote(false);
+  }, [isOpen]);
+
+  // Sunum açıkken (ve ses idle iken) veri/activeVerse güncellendiğinde manualIndex'i tam eşitle
   useEffect(() => {
     if (!isOpen) return;
+    if (audioState.status !== 'idle') return;
     if (activeVerse) {
       const idx = verses.findIndex((v) => v.id === activeVerse.id);
-      if (idx >= 0) setManualIndex(idx);
+      if (idx >= 0) {
+        setManualIndex(idx);
+        return;
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+    if (verses.length > 0) {
+      setManualIndex((prev) => Math.min(prev, verses.length - 1));
+    } else {
+      setManualIndex(0);
+    }
+  }, [isOpen, audioState.status, activeVerse, verses]);
 
   useBackButtonGuard('presentation_mode', isOpen, () => {
     if (document.fullscreenElement) {
@@ -398,8 +457,14 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      // Okuyucu veya meal seçici modalı açıkken Sunum klavye kısayollarını duraklat (tam ekrandan çıkma!)
-      if (isReciterSelectorOpenRef.current || isMealSelectorOpenRef.current) return;
+      // Okuyucu, meal veya konum seçici modalı açıkken Sunum klavye kısayollarını duraklat (tam ekrandan çıkma!)
+      if (
+        isReciterSelectorOpenRef.current ||
+        isMealSelectorOpenRef.current ||
+        isLocationPickerOpenRef.current
+      ) {
+        return;
+      }
 
       if (e.key === 'Escape') {
         if (isAyahPickerOpenRef.current) {
@@ -420,8 +485,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           audioQueueService.nextVerse(true);
         } else if (status === 'paused' || status === 'error') {
           audioQueueService.nextVerse(false);
-        } else {
+        } else if (manualIndexRef.current < versesLenRef.current - 1) {
           setManualIndex((i) => Math.min(Math.max(0, versesLenRef.current - 1), i + 1));
+        } else if (canGoNextPageRef.current && onRequestNextPageRef.current) {
+          onRequestNextPageRef.current();
         }
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
@@ -430,8 +497,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
           audioQueueService.prevVerse(true);
         } else if (status === 'paused' || status === 'error') {
           audioQueueService.prevVerse(false);
-        } else {
+        } else if (manualIndexRef.current > 0) {
           setManualIndex((i) => Math.max(0, i - 1));
+        } else if (canGoPrevPageRef.current && onRequestPrevPageRef.current) {
+          onRequestPrevPageRef.current();
         }
       } else if (e.key === ' ') {
         e.preventDefault();
@@ -448,10 +517,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   // Canlı çalan ayeti bul; yükleme/geçiş anında önceki geçerli ayeti koru (ıpıl ıpıl sıfır kırpışma)
   const resolvedVerse = useMemo<CombinedVerse | null>(() => {
     if (audioState.status !== 'idle' && audioState.currentAyahId !== null) {
-      const byAudio = verses.find((v) => v.id === audioState.currentAyahId);
-      if (byAudio) return byAudio;
       const fromQueue = audioQueueService.getCurrentVerse();
       if (fromQueue && fromQueue.id === audioState.currentAyahId) return fromQueue;
+      const byAudio = verses.find((v) => v.id === audioState.currentAyahId);
+      if (byAudio) return byAudio;
       // Sayfa henüz yeni yükleniyorsa önceki ayeti tut
       if (lastValidVerseRef.current) return lastValidVerseRef.current;
     }
@@ -460,21 +529,24 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     return verses[0] ?? lastValidVerseRef.current ?? null;
   }, [audioState.status, audioState.currentAyahId, verses, manualIndex, activeVerse]);
 
-  if (resolvedVerse) {
+  if (isOpen && resolvedVerse) {
     lastValidVerseRef.current = resolvedVerse;
   }
   const displayedVerse = resolvedVerse ?? lastValidVerseRef.current;
 
+  const activeQueueVerses =
+    audioState.status !== 'idle' ? audioQueueService.getQueueVerses() : null;
+
   const pickerVerses = useMemo<CombinedVerse[]>(() => {
-    if (audioState.status !== 'idle' && displayedVerse) {
-      if (verses.some((v) => v.id === displayedVerse.id)) return verses;
-      const qVerses = audioQueueService.getQueueVerses();
-      if (qVerses.length > 0 && qVerses.some((v) => v.id === displayedVerse.id)) {
-        return qVerses;
-      }
+    if (
+      activeQueueVerses &&
+      activeQueueVerses.length > 0 &&
+      (!displayedVerse || activeQueueVerses.some((v) => v.id === displayedVerse.id))
+    ) {
+      return activeQueueVerses;
     }
     return verses;
-  }, [audioState.status, displayedVerse, verses]);
+  }, [activeQueueVerses, displayedVerse, verses]);
 
   const pickerSurahGroups = useMemo(() => {
     const groups: Array<{ surahNo: number; verses: CombinedVerse[] }> = [];
@@ -745,11 +817,18 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     });
   const besmeleTrText = primaryMeal.id === 'm2' ? besmele.dib : besmele.tdv;
 
+  const activeList = isAudioRunning && pickerVerses.length > 0 ? pickerVerses : verses;
   const currentIdx = displayedVerse ? verses.findIndex((v) => v.id === displayedVerse.id) : -1;
-  const canPrev = isAudioRunning ? audioState.canGoPrev : currentIdx > 0;
+  const activeListIdx = displayedVerse
+    ? activeList.findIndex((v) => v.id === displayedVerse.id)
+    : -1;
+  const canPrev = isAudioRunning
+    ? audioState.canGoPrev
+    : currentIdx > 0 || Boolean(canGoPrevPage && onRequestPrevPage);
   const canNext = isAudioRunning
     ? audioState.canGoNext
-    : currentIdx >= 0 && currentIdx < verses.length - 1;
+    : (currentIdx >= 0 && currentIdx < verses.length - 1) ||
+      Boolean(canGoNextPage && onRequestNextPage);
 
   const handlePrev = () => {
     sfxService.play('click');
@@ -759,6 +838,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       audioQueueService.prevVerse(false);
     } else if (currentIdx > 0) {
       setManualIndex(currentIdx - 1);
+    } else if (canGoPrevPage && onRequestPrevPage) {
+      onRequestPrevPage();
     }
   };
 
@@ -770,6 +851,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       audioQueueService.nextVerse(false);
     } else if (currentIdx >= 0 && currentIdx < verses.length - 1) {
       setManualIndex(currentIdx + 1);
+    } else if (canGoNextPage && onRequestNextPage) {
+      onRequestNextPage();
     }
   };
 
@@ -787,6 +870,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
     if (audioState.status === 'paused' || audioState.status === 'error') {
       audioQueueService.syncPausedSelection(verse, meta, pickerVerses);
+      return;
+    }
+
+    if (audioQueueService.jumpToQueueVerse(verse.id, true)) {
       return;
     }
 
@@ -853,26 +940,53 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     }
   };
 
+  const isRukuScope = scopeMode === 'ruku';
   const isPageScope =
-    scopeMode === 'page' ||
-    (scopeMode !== 'surah' && Boolean(surahMeta && verses.length < surahMeta.ayahCount));
-  const footerLocationText =
-    displayedVerse && currentIdx >= 0
-      ? isPageScope
-        ? `Sayfa ${displayedVerse.page} · ${currentIdx + 1}/${verses.length}${
-            surahMeta ? ` (${surahMeta.shortNameTr} ${displayedVerse.ayah}/${surahMeta.ayahCount})` : ''
-          }`
-        : `${surahMeta?.shortNameTr ?? `${displayedVerse.surah}. Sure`} · ${displayedVerse.ayah} / ${
-            surahMeta?.ayahCount ?? verses.length
-          }. Ayet`
-      : 'Hazır';
+    !isRukuScope &&
+    (scopeMode === 'page' ||
+      (scopeMode !== 'surah' && Boolean(surahMeta && activeList.length < surahMeta.ayahCount)));
+  const isCustomAudioQueue =
+    isAudioRunning &&
+    (audioState.context === 'playlist' ||
+      audioState.context === 'custom' ||
+      Boolean(audioState.queueTitle && audioState.context !== 'surah'));
 
-  const compactFooterLocationText =
-    displayedVerse && currentIdx >= 0
-      ? isPageScope
-        ? `S.${displayedVerse.page} · ${currentIdx + 1}/${verses.length}`
-        : `${displayedVerse.surah}:${displayedVerse.ayah}/${surahMeta?.ayahCount ?? verses.length}`
-      : 'Hazır';
+  const footerLocationText = (() => {
+    if (!displayedVerse) return 'Hazır';
+    const shortSurah = surahMeta?.shortNameTr ?? `${displayedVerse.surah}. Sure`;
+    if (isCustomAudioQueue && activeListIdx >= 0) {
+      const prefix = audioState.queueTitle || 'Kuyruk';
+      return `${prefix} · ${activeListIdx + 1}/${activeList.length} (${shortSurah} ${displayedVerse.ayah}. Ayet)`;
+    }
+    if (isRukuScope && activeListIdx >= 0) {
+      const prefix = scopeLabel || `${shortSurah} · Rükû`;
+      return `${prefix} · ${activeListIdx + 1}/${activeList.length}`;
+    }
+    if (isPageScope && activeListIdx >= 0) {
+      return `Sayfa ${displayedVerse.page} · ${activeListIdx + 1}/${activeList.length}${
+        surahMeta ? ` (${surahMeta.shortNameTr} ${displayedVerse.ayah}/${surahMeta.ayahCount})` : ''
+      }`;
+    }
+    return `${shortSurah} · ${displayedVerse.ayah} / ${
+      surahMeta?.ayahCount ?? Math.max(activeList.length, displayedVerse.ayah)
+    }. Ayet`;
+  })();
+
+  const compactFooterLocationText = (() => {
+    if (!displayedVerse) return 'Hazır';
+    if (isCustomAudioQueue && activeListIdx >= 0) {
+      return `${activeListIdx + 1}/${activeList.length} · ${displayedVerse.surah}:${displayedVerse.ayah}`;
+    }
+    if (isRukuScope && activeListIdx >= 0) {
+      return `Rükû · ${activeListIdx + 1}/${activeList.length}`;
+    }
+    if (isPageScope && activeListIdx >= 0) {
+      return `S.${displayedVerse.page} · ${activeListIdx + 1}/${activeList.length}`;
+    }
+    return `${displayedVerse.surah}:${displayedVerse.ayah}/${
+      surahMeta?.ayahCount ?? Math.max(activeList.length, displayedVerse.ayah)
+    }`;
+  })();
 
   const handleToggleFullscreen = async () => {
     sfxService.play('click');
@@ -910,7 +1024,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       role="dialog"
       aria-modal="true"
       aria-label="Hatim ve Dinleme Sunum Modu"
-      className="fixed inset-0 z-[85] flex flex-col justify-between overflow-hidden select-none"
+      className={`fixed inset-0 ${Z_LAYERS.PRESENTATION} flex flex-col justify-between overflow-hidden select-none`}
       style={{
         background: palette.bg,
         color: palette.text,
@@ -945,11 +1059,11 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               setIsSettingsPopoverOpen(false);
               setIsAyahPickerOpen((v) => !v);
             }}
-            disabled={pickerVerses.length === 0}
+            disabled={pickerVerses.length === 0 && !onOpenLocationPicker}
             aria-expanded={isAyahPickerOpen}
             aria-haspopup="listbox"
-            aria-label="Ayet seçiciyi aç"
-            title="Hızlı ayet geçişi için dokunun"
+            aria-label="Ayet ve konum seçiciyi aç"
+            title="Hızlı ayet geçişi veya konum değişikliği için dokunun"
             className={`min-w-0 max-w-full ${
               isCompactLandscape ? 'min-h-[34px] px-1.5' : 'min-h-[40px] px-2'
             } -ml-1 rounded-xl border flex items-center gap-1.5 sm:gap-2 cursor-pointer transition-colors touch-manipulation disabled:cursor-default`}
@@ -981,7 +1095,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                 <span className="truncate">Sunum Modu</span>
               )}
             </h2>
-            {pickerVerses.length > 1 && (
+            {(pickerVerses.length > 1 || Boolean(onOpenLocationPicker)) && (
               <ChevronDown
                 className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform duration-150 ${
                   isAyahPickerOpen ? 'rotate-180' : ''
@@ -1000,7 +1114,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             )}
           </button>
 
-          {isAyahPickerOpen && pickerVerses.length > 0 && (
+          {isAyahPickerOpen && (pickerVerses.length > 0 || Boolean(onOpenLocationPicker)) && (
             <>
               <div
                 aria-hidden="true"
@@ -1042,6 +1156,29 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+
+                {onOpenLocationPicker && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsAyahPickerOpen(false);
+                      onOpenLocationPicker();
+                    }}
+                    className="w-full min-h-[38px] px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center justify-between gap-2 cursor-pointer transition-opacity hover:opacity-90 touch-manipulation"
+                    style={{
+                      backgroundColor: palette.accentSoft,
+                      borderColor: palette.accent,
+                      color: palette.accent,
+                    }}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Compass className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Sure / Cüz / Sayfa / Rükû Seç</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 shrink-0" />
+                  </button>
+                )}
 
                 <div className="space-y-3">
                   {pickerSurahGroups.map((group) => {
@@ -1585,17 +1722,15 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             )}
           </div>
 
-          {/* Tam Ekran / Tam Ekrandan Çık Butonu */}
+          {/* Tam Ekran / Tam Ekrandan Çık Butonu (Yalın Kare İkon) */}
           <button
             type="button"
             onClick={handleToggleFullscreen}
             title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran odak modu'}
             aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran odak modu'}
             className={`${
-              isCompactLandscape ? 'min-w-[34px] min-h-[34px]' : 'min-w-[40px] min-h-[40px]'
-            } ${
-              isFullscreen ? 'px-2.5 sm:px-3 gap-1.5' : ''
-            } rounded-xl border text-xs font-bold flex items-center justify-center cursor-pointer touch-manipulation transition-colors`}
+              isCompactLandscape ? 'w-[34px] h-[34px]' : 'w-10 h-10'
+            } rounded-xl border flex items-center justify-center cursor-pointer touch-manipulation transition-colors shrink-0`}
             style={{
               borderColor: isFullscreen ? palette.accent : palette.border,
               backgroundColor: isFullscreen ? palette.accentSoft : 'transparent',
@@ -1603,10 +1738,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             }}
           >
             {isFullscreen ? (
-              <>
-                <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span className="whitespace-nowrap text-[11px] sm:text-xs">Tam Ekrandan Çık</span>
-              </>
+              <Minimize2 className="w-4 h-4" />
             ) : (
               <Maximize2 className="w-4 h-4" />
             )}

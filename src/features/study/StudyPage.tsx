@@ -78,7 +78,11 @@ import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
 import { buildSurahQuestionCountMap, getSurahMap } from '../../utils/poolUtils';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { BookModeView } from './BookModeView';
-import { LocationPickerModal, type LocationPickerTab } from './LocationPickerModal';
+import {
+  LocationPickerModal,
+  type LocationPickerTab,
+  type SelectedRukuInfo,
+} from './LocationPickerModal';
 import { MobileReaderDrawer } from './MobileReaderDrawer';
 import { MushafPageView } from './MushafPageView';
 import { SurahInfoModal } from './SurahInfoModal';
@@ -86,6 +90,13 @@ import { TAJWEED_DIACRITIC_NOTE, TajweedLegendBar } from './TajweedLegendBar';
 import { VerseCardsView } from './VerseCardsView';
 
 const EMPTY_TAJWEED_SURAH_NOS: readonly number[] = [];
+
+type ActiveSelectionScope =
+  | { kind: 'default' }
+  | { kind: 'surah'; surahNo: number }
+  | { kind: 'page'; pageNo: number }
+  | { kind: 'juz'; juzNo: number }
+  | ({ kind: 'ruku' } & SelectedRukuInfo);
 
 type StageLayoutIconKind = 'single' | 'dual' | 'side_by_side' | 'rahle_dual';
 
@@ -244,6 +255,16 @@ export const StudyPage: React.FC = () => {
       ? studyProgress.lastRead.surah * 1000 + studyProgress.lastRead.ayah
       : null,
   );
+  const selectedAyahIdRef = useRef<number | null>(selectedAyahId);
+  selectedAyahIdRef.current = selectedAyahId;
+
+  const [activeSelectionScope, setActiveSelectionScope] = useState<ActiveSelectionScope>({
+    kind: 'default',
+  });
+  const activeSelectionScopeRef = useRef<ActiveSelectionScope>(activeSelectionScope);
+  activeSelectionScopeRef.current = activeSelectionScope;
+  const [activeRukuVerses, setActiveRukuVerses] = useState<CombinedVerse[]>([]);
+
   const [jumpToAyahNo, setJumpToAyahNo] = useState<number | null>(null);
   const [jumpNonce, setJumpNonce] = useState(0);
   const [navResetNonce, setNavResetNonce] = useState(0);
@@ -257,6 +278,9 @@ export const StudyPage: React.FC = () => {
   const lastSyncedAudioAyahRef = useRef<number | null>(null);
   const lastScrolledAudioAyahRef = useRef<number | null>(null);
   const autoScrollRafRef = useRef<number | null>(null);
+  const pendingPausedSyncRef = useRef(false);
+  const pendingPageEdgeSelectionRef = useRef<'first' | 'last' | null>(null);
+  const lastLocationPickerTabRef = useRef<LocationPickerTab | null>(null);
 
   // Yeni Sade Arayüz Popover & Çekmece Durumları
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
@@ -429,16 +453,66 @@ export const StudyPage: React.FC = () => {
     const targetAyah = studyNavTarget.ayah ?? 1;
     const targetPage =
       studyNavTarget.page ?? findPageForSurahAyah(meta, targetSurah, targetAyah);
+    const targetAyahId = targetSurah * 1000 + targetAyah;
 
+    selectedAyahIdRef.current = targetAyahId;
+    pendingPageEdgeSelectionRef.current = null;
+    setActiveSelectionScope({ kind: 'default' });
     setCurrentSurahNo(targetSurah);
     setCurrentPageNo(targetPage);
-    setSelectedAyahId(targetSurah * 1000 + targetAyah);
+    setSelectedAyahId(targetAyahId);
     setSelectedVerseKey(studyNavTarget.ayah ? `${targetSurah}:${targetAyah}` : null);
     setJumpToAyahNo(targetAyah);
     setJumpNonce((n) => n + 1);
     setNavResetNonce((n) => n + 1);
     clearStudyNavTarget();
   }, [studyNavTarget, meta, currentSurahNo, clearStudyNavTarget, setSelectedVerseKey]);
+
+  // Aktif Rükû kapsamı seçiliyse ilgili surenin rükû ayet dilimini (startAyah..endAyah) arka planda hazır tut
+  useEffect(() => {
+    if (activeSelectionScope.kind !== 'ruku') {
+      setActiveRukuVerses([]);
+      return;
+    }
+    const rukuScope = activeSelectionScope;
+    let cancelled = false;
+
+    const resolveRukuVerses = async () => {
+      try {
+        const bundle =
+          surahBundle && surahBundle.surahMeta.no === rukuScope.surah
+            ? surahBundle
+            : await dataService.getSurahBundle(rukuScope.surah);
+        if (cancelled) return;
+        const slice = bundle.verses.filter(
+          (v) => v.ayah >= rukuScope.startAyah && v.ayah <= rukuScope.endAyah,
+        );
+        setActiveRukuVerses(slice);
+
+        if (pendingPausedSyncRef.current && slice.length > 0) {
+          const snap = audioQueueService.getSnapshot();
+          if (snap.status === 'paused' || snap.status === 'error') {
+            pendingPausedSyncRef.current = false;
+            const target =
+              slice.find((v) => v.id === selectedAyahIdRef.current) ?? slice[0];
+            audioQueueService.syncPausedSelection(target, meta, slice, {
+              replaceQueue: true,
+              context: 'custom',
+              contextKey: `ruku:${rukuScope.no}`,
+              queueTitle: `${bundle.surahMeta.shortNameTr} · ${rukuScope.surahRuku}. Rükû (${rukuScope.startAyah}–${rukuScope.endAyah})`,
+            });
+          }
+        }
+      } catch {
+        if (!cancelled) setActiveRukuVerses([]);
+      }
+    };
+
+    void resolveRukuVerses();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSelectionScope, surahBundle, meta]);
 
   // Sayfa (Tek veya Çift) ya da Sure verisini yükle + sonraki sayfayı arka planda önbelleğe al
   useEffect(() => {
@@ -477,8 +551,17 @@ export const StudyPage: React.FC = () => {
             if (curKey && !combinedVerses.some((v) => `${v.surah}:${v.ayah}` === curKey)) {
               setSelectedVerseKey(null);
             }
-            const matched = combinedVerses.find((v) => v.id === selectedAyahId);
+            const edgePref = pendingPageEdgeSelectionRef.current;
+            pendingPageEdgeSelectionRef.current = null;
+            const targetId = selectedAyahIdRef.current;
+            const matched =
+              edgePref === 'last'
+                ? combinedVerses[combinedVerses.length - 1]
+                : edgePref === 'first'
+                  ? combinedVerses[0]
+                  : combinedVerses.find((v) => v.id === targetId);
             const activeVerse = matched ?? combinedVerses[0];
+            selectedAyahIdRef.current = activeVerse.id;
             setSelectedAyahId(activeVerse.id);
             setCurrentSurahNo(activeVerse.surah);
             setLastRead({
@@ -487,6 +570,19 @@ export const StudyPage: React.FC = () => {
               page: bundle.pageNo,
               viewMode: 'mushaf',
             });
+
+            if (pendingPausedSyncRef.current && activeSelectionScopeRef.current.kind !== 'ruku') {
+              pendingPausedSyncRef.current = false;
+              const snap = audioQueueService.getSnapshot();
+              if (snap.status === 'paused' || snap.status === 'error') {
+                audioQueueService.syncPausedSelection(activeVerse, meta, combinedVerses, {
+                  replaceQueue: true,
+                  context: 'page',
+                  contextKey: `page:${bundle.pageNo}`,
+                  queueTitle: `Sayfa ${bundle.pageNo}`,
+                });
+              }
+            }
           }
         } else {
           setSecondPageBundle(null);
@@ -499,8 +595,11 @@ export const StudyPage: React.FC = () => {
             if (curKey && !bundle.verses.some((v) => `${v.surah}:${v.ayah}` === curKey)) {
               setSelectedVerseKey(null);
             }
-            const matched = bundle.verses.find((v) => v.id === selectedAyahId);
+            pendingPageEdgeSelectionRef.current = null;
+            const targetId = selectedAyahIdRef.current;
+            const matched = bundle.verses.find((v) => v.id === targetId);
             const activeVerse = matched ?? bundle.verses[0];
+            selectedAyahIdRef.current = activeVerse.id;
             setSelectedAyahId(activeVerse.id);
             setCurrentPageNo(activeVerse.page);
             setLastRead({
@@ -509,6 +608,19 @@ export const StudyPage: React.FC = () => {
               page: activeVerse.page,
               viewMode,
             });
+
+            if (pendingPausedSyncRef.current && activeSelectionScopeRef.current.kind !== 'ruku') {
+              pendingPausedSyncRef.current = false;
+              const snap = audioQueueService.getSnapshot();
+              if (snap.status === 'paused' || snap.status === 'error') {
+                audioQueueService.syncPausedSelection(activeVerse, meta, bundle.verses, {
+                  replaceQueue: true,
+                  context: 'surah',
+                  contextKey: `surah:${bundle.surahMeta.no}`,
+                  queueTitle: bundle.surahMeta.nameTr,
+                });
+              }
+            }
           }
         }
       } catch (err) {
@@ -756,24 +868,111 @@ export const StudyPage: React.FC = () => {
   }, [activeViewVerses, selectedAyahId]);
 
   const activeAyahNumber = activeSelectedVerse?.ayah ?? 1;
+  const hasActiveRukuScope = activeSelectionScope.kind === 'ruku' && activeRukuVerses.length > 0;
+  const activeRukuLabel = useMemo(() => {
+    if (activeSelectionScope.kind !== 'ruku') return undefined;
+    const sMeta = surahMap.get(activeSelectionScope.surah);
+    const surahTitle = sMeta?.shortNameTr ?? `${activeSelectionScope.surah}. Sure`;
+    return `${surahTitle} · ${activeSelectionScope.surahRuku}. Rükû (${activeSelectionScope.startAyah}–${activeSelectionScope.endAyah})`;
+  }, [activeSelectionScope, surahMap]);
 
-  const openLocationPicker = useCallback((tab: LocationPickerTab = 'surah') => {
-    sfxService.play('click');
-    setLocationPickerTab(tab);
-    setIsLocationPickerOpen(true);
-  }, []);
+  const presentationVerses = useMemo<CombinedVerse[]>(
+    () => (hasActiveRukuScope ? activeRukuVerses : activeViewVerses),
+    [hasActiveRukuScope, activeRukuVerses, activeViewVerses],
+  );
+
+  const presentationActiveVerse = useMemo<CombinedVerse | null>(() => {
+    return (
+      presentationVerses.find((v) => v.id === selectedAyahId) ??
+      presentationVerses[0] ??
+      activeSelectedVerse
+    );
+  }, [presentationVerses, selectedAyahId, activeSelectedVerse]);
+
+  const preparePausedAudioForNavigation = useCallback(
+    (
+      targetAyahId: number | null,
+      options?: {
+        replaceQueue?: boolean;
+        queueVerses?: CombinedVerse[];
+        context?: 'page' | 'surah' | 'custom';
+        contextKey?: string;
+        queueTitle?: string;
+      },
+    ) => {
+      const snap = audioQueueService.getSnapshot();
+      // Sunum Modu içinden konum değiştirildiğinde çalan ses varsa duraklat ki yeni konum hemen yansısın
+      if (isPresentationOpen && (snap.status === 'playing' || snap.status === 'loading')) {
+        audioQueueService.pause();
+      }
+      const nextSnap = audioQueueService.getSnapshot();
+      if (nextSnap.status !== 'paused' && nextSnap.status !== 'error') {
+        pendingPausedSyncRef.current = false;
+        return;
+      }
+
+      const candidatePool = options?.queueVerses ?? activeViewVerses;
+      const found =
+        targetAyahId !== null ? candidatePool.find((v) => v.id === targetAyahId) : null;
+      if (found) {
+        pendingPausedSyncRef.current = false;
+        audioQueueService.syncPausedSelection(found, meta, candidatePool, {
+          replaceQueue: options?.replaceQueue,
+          context: options?.context,
+          contextKey: options?.contextKey,
+          queueTitle: options?.queueTitle,
+        });
+      } else {
+        pendingPausedSyncRef.current = true;
+      }
+    },
+    [isPresentationOpen, activeViewVerses, meta],
+  );
+
+  const openLocationPicker = useCallback(
+    (explicitTab?: LocationPickerTab) => {
+      sfxService.play('click');
+      const resolvedTab: LocationPickerTab =
+        explicitTab ??
+        (activeSelectionScope.kind === 'ruku'
+          ? 'ruku'
+          : lastLocationPickerTabRef.current ??
+            (activeSelectionScope.kind === 'juz'
+              ? 'juz'
+              : viewMode === 'mushaf'
+                ? 'page'
+                : 'surah'));
+      setLocationPickerTab(resolvedTab);
+      setIsLocationPickerOpen(true);
+    },
+    [activeSelectionScope.kind, viewMode],
+  );
 
   const handleSelectSurah = useCallback(
     (surahNo: number) => {
       if (!meta) return;
       const firstPage = findPageForSurahAyah(meta, surahNo, 1);
+      const targetAyahId = surahNo * 1000 + 1;
+      selectedAyahIdRef.current = targetAyahId;
+      pendingPageEdgeSelectionRef.current = null;
+      setActiveSelectionScope({ kind: 'surah', surahNo });
       setCurrentSurahNo(surahNo);
       setCurrentPageNo(firstPage);
-      setSelectedAyahId(surahNo * 1000 + 1);
+      setSelectedAyahId(targetAyahId);
+      setSelectedVerseKey(`${surahNo}:1`);
       setJumpToAyahNo(1);
       setJumpNonce((n) => n + 1);
+      preparePausedAudioForNavigation(targetAyahId, {
+        replaceQueue: true,
+        context: viewMode === 'mushaf' ? 'page' : 'surah',
+        contextKey: viewMode === 'mushaf' ? `page:${firstPage}` : `surah:${surahNo}`,
+        queueTitle:
+          viewMode === 'mushaf'
+            ? `Sayfa ${firstPage}`
+            : surahMap.get(surahNo)?.nameTr ?? `${surahNo}. Sure`,
+      });
     },
-    [meta],
+    [meta, setSelectedVerseKey, preparePausedAudioForNavigation, viewMode, surahMap],
   );
 
   const handleSelectJuz = useCallback(
@@ -781,39 +980,86 @@ export const StudyPage: React.FC = () => {
       if (!meta) return;
       sfxService.play('click');
       const loc = findFirstLocationForJuz(meta, juzNo);
+      const targetAyahId = loc.surah * 1000 + loc.ayah;
+      selectedAyahIdRef.current = targetAyahId;
+      pendingPageEdgeSelectionRef.current = null;
+      setActiveSelectionScope({ kind: 'juz', juzNo });
       setCurrentSurahNo(loc.surah);
       setCurrentPageNo(loc.page);
-      setSelectedAyahId(loc.surah * 1000 + loc.ayah);
+      setSelectedAyahId(targetAyahId);
+      setSelectedVerseKey(`${loc.surah}:${loc.ayah}`);
       setJumpToAyahNo(loc.ayah);
       setJumpNonce((n) => n + 1);
+      preparePausedAudioForNavigation(targetAyahId, {
+        replaceQueue: true,
+        context: viewMode === 'mushaf' ? 'page' : 'surah',
+        contextKey: viewMode === 'mushaf' ? `page:${loc.page}` : `surah:${loc.surah}`,
+        queueTitle:
+          viewMode === 'mushaf'
+            ? `${juzNo}. Cüz · Sayfa ${loc.page}`
+            : surahMap.get(loc.surah)?.nameTr ?? `${loc.surah}. Sure`,
+      });
     },
-    [meta],
+    [meta, setSelectedVerseKey, preparePausedAudioForNavigation, viewMode, surahMap],
   );
 
   const handleSelectRuku = useCallback(
-    (surahNo: number, startAyah: number) => {
+    (ruku: SelectedRukuInfo) => {
       if (!meta) return;
       sfxService.play('click');
-      const targetPage = findPageForSurahAyah(meta, surahNo, startAyah);
-      setCurrentSurahNo(surahNo);
+      const targetPage = findPageForSurahAyah(meta, ruku.surah, ruku.startAyah);
+      const targetAyahId = ruku.surah * 1000 + ruku.startAyah;
+      selectedAyahIdRef.current = targetAyahId;
+      pendingPageEdgeSelectionRef.current = null;
+      setActiveSelectionScope({ kind: 'ruku', ...ruku });
+      setCurrentSurahNo(ruku.surah);
       setCurrentPageNo(targetPage);
-      setSelectedAyahId(surahNo * 1000 + startAyah);
-      setJumpToAyahNo(startAyah);
+      setSelectedAyahId(targetAyahId);
+      setSelectedVerseKey(`${ruku.surah}:${ruku.startAyah}`);
+      setJumpToAyahNo(ruku.startAyah);
       setJumpNonce((n) => n + 1);
+
+      const snap = audioQueueService.getSnapshot();
+      if (isPresentationOpen && (snap.status === 'playing' || snap.status === 'loading')) {
+        audioQueueService.pause();
+      }
+      const nextSnap = audioQueueService.getSnapshot();
+      if (nextSnap.status === 'paused' || nextSnap.status === 'error') {
+        pendingPausedSyncRef.current = true;
+      }
     },
-    [meta],
+    [meta, setSelectedVerseKey, isPresentationOpen],
   );
 
   const handleChangePage = useCallback(
     (nextPage: number) => {
       const clamped = Math.max(pageBounds.minPage, Math.min(pageBounds.maxPage, nextPage));
+      selectedAyahIdRef.current = null;
+      pendingPageEdgeSelectionRef.current = 'first';
+      setActiveSelectionScope((prev) =>
+        prev.kind === 'juz' ? prev : { kind: 'page', pageNo: clamped },
+      );
+      setSelectedVerseKey(null);
       setCurrentPageNo(clamped);
       if (viewMode !== 'mushaf') {
         updateStudyPrefs({ viewMode: 'mushaf' });
       }
+      preparePausedAudioForNavigation(null, {
+        replaceQueue: true,
+        context: 'page',
+        contextKey: `page:${clamped}`,
+        queueTitle: `Sayfa ${clamped}`,
+      });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [pageBounds.minPage, pageBounds.maxPage, viewMode, updateStudyPrefs],
+    [
+      pageBounds.minPage,
+      pageBounds.maxPage,
+      viewMode,
+      updateStudyPrefs,
+      setSelectedVerseKey,
+      preparePausedAudioForNavigation,
+    ],
   );
 
   const handleJumpAyah = useCallback(
@@ -822,13 +1068,77 @@ export const StudyPage: React.FC = () => {
       sfxService.play('click');
       const targetPage = findPageForSurahAyah(meta, currentSurahNo, ayahNo);
       const ayahId = currentSurahNo * 1000 + ayahNo;
+      selectedAyahIdRef.current = ayahId;
+      pendingPageEdgeSelectionRef.current = null;
+      setActiveSelectionScope((prev) => {
+        if (
+          prev.kind === 'ruku' &&
+          prev.surah === currentSurahNo &&
+          ayahNo >= prev.startAyah &&
+          ayahNo <= prev.endAyah
+        ) {
+          return prev;
+        }
+        return { kind: 'default' };
+      });
       setSelectedAyahId(ayahId);
+      setSelectedVerseKey(`${currentSurahNo}:${ayahNo}`);
       setCurrentPageNo(targetPage);
       setJumpToAyahNo(ayahNo);
       setJumpNonce((n) => n + 1);
+      preparePausedAudioForNavigation(ayahId, {
+        replaceQueue: false,
+      });
     },
-    [meta, currentSurahNo],
+    [meta, currentSurahNo, setSelectedVerseKey, preparePausedAudioForNavigation],
   );
+
+  const canPresentationNextPage =
+    viewMode === 'mushaf' &&
+    !hasActiveRukuScope &&
+    (isEffectiveDualLeaf
+      ? (secondPageBundle?.pageNo ?? currentPageNo) < pageBounds.maxPage
+      : currentPageNo < pageBounds.maxPage);
+
+  const canPresentationPrevPage =
+    viewMode === 'mushaf' && !hasActiveRukuScope && currentPageNo > pageBounds.minPage;
+
+  const handlePresentationNextPage = useCallback(() => {
+    if (!canPresentationNextPage) return;
+    const nextPage = Math.min(
+      pageBounds.maxPage,
+      isEffectiveDualLeaf ? (secondPageBundle?.pageNo ?? currentPageNo) + 1 : currentPageNo + 1,
+    );
+    selectedAyahIdRef.current = null;
+    pendingPageEdgeSelectionRef.current = 'first';
+    setSelectedVerseKey(null);
+    setCurrentPageNo(nextPage);
+  }, [
+    canPresentationNextPage,
+    pageBounds.maxPage,
+    isEffectiveDualLeaf,
+    secondPageBundle?.pageNo,
+    currentPageNo,
+    setSelectedVerseKey,
+  ]);
+
+  const handlePresentationPrevPage = useCallback(() => {
+    if (!canPresentationPrevPage) return;
+    const prevPage = Math.max(
+      pageBounds.minPage,
+      currentPageNo - (isEffectiveDualLeaf ? 2 : 1),
+    );
+    selectedAyahIdRef.current = null;
+    pendingPageEdgeSelectionRef.current = 'last';
+    setSelectedVerseKey(null);
+    setCurrentPageNo(prevPage);
+  }, [
+    canPresentationPrevPage,
+    pageBounds.minPage,
+    currentPageNo,
+    isEffectiveDualLeaf,
+    setSelectedVerseKey,
+  ]);
 
   const handleSwitchViewMode = useCallback(
     (mode: StudyViewMode) => {
@@ -865,12 +1175,17 @@ export const StudyPage: React.FC = () => {
 
   // Merkezi Akıllı Odak & Birleşik Dinleme Motoru
   const currentContextKey =
-    viewMode === 'mushaf' ? `page:${currentPageNo}` : `surah:${currentSurahNo}`;
+    hasActiveRukuScope && activeSelectionScope.kind === 'ruku'
+      ? `ruku:${activeSelectionScope.no}`
+      : viewMode === 'mushaf'
+        ? `page:${currentPageNo}`
+        : `surah:${currentSurahNo}`;
 
   const explicitSelectedVerse = useMemo<CombinedVerse | null>(() => {
-    if (!selectedVerseKey || activeViewVerses.length === 0) return null;
-    return activeViewVerses.find((v) => `${v.surah}:${v.ayah}` === selectedVerseKey) ?? null;
-  }, [selectedVerseKey, activeViewVerses]);
+    const pool = hasActiveRukuScope ? activeRukuVerses : activeViewVerses;
+    if (!selectedVerseKey || pool.length === 0) return null;
+    return pool.find((v) => `${v.surah}:${v.ayah}` === selectedVerseKey) ?? null;
+  }, [selectedVerseKey, hasActiveRukuScope, activeRukuVerses, activeViewVerses]);
 
   const playingVerseKey =
     audioState.currentSurah !== null && audioState.currentAyah !== null
@@ -889,16 +1204,29 @@ export const StudyPage: React.FC = () => {
 
   const handlePlayFromVerse = useCallback(
     (verse: CombinedVerse, singleAyahOnly = false, modeOverride?: AudioPlayMode) => {
-      if (!manifest || !meta || activeViewVerses.length === 0) return;
+      if (!manifest || !meta) return;
 
-      const idx = activeViewVerses.findIndex((v) => v.id === verse.id);
+      const useRukuQueue =
+        activeSelectionScope.kind === 'ruku' &&
+        activeRukuVerses.length > 0 &&
+        activeRukuVerses.some((v) => v.id === verse.id);
+      const targetVerses = useRukuQueue ? activeRukuVerses : activeViewVerses;
+      if (targetVerses.length === 0) return;
+
+      const idx = targetVerses.findIndex((v) => v.id === verse.id);
+      selectedAyahIdRef.current = verse.id;
       setSelectedAyahId(verse.id);
       setSelectedVerseKey(`${verse.surah}:${verse.ayah}`);
       audioQueueService.startQueue({
-        verses: activeViewVerses,
+        verses: targetVerses,
         startIndex: Math.max(0, idx),
-        context: viewMode === 'mushaf' ? 'page' : 'surah',
-        contextKey: currentContextKey,
+        context: useRukuQueue ? 'custom' : viewMode === 'mushaf' ? 'page' : 'surah',
+        contextKey: useRukuQueue
+          ? `ruku:${activeSelectionScope.no}`
+          : viewMode === 'mushaf'
+            ? `page:${currentPageNo}`
+            : `surah:${currentSurahNo}`,
+        queueTitle: useRukuQueue ? activeRukuLabel : undefined,
         manifest,
         meta,
         prefs: audioPrefs,
@@ -906,12 +1234,25 @@ export const StudyPage: React.FC = () => {
         modeOverride,
       });
     },
-    [manifest, meta, activeViewVerses, viewMode, currentContextKey, audioPrefs, setSelectedVerseKey],
+    [
+      manifest,
+      meta,
+      activeSelectionScope,
+      activeRukuVerses,
+      activeRukuLabel,
+      activeViewVerses,
+      viewMode,
+      currentPageNo,
+      currentSurahNo,
+      audioPrefs,
+      setSelectedVerseKey,
+    ],
   );
 
   const executeSmartReaderPlay = useCallback(
     (options?: { forceSwitchToSelected?: boolean }): boolean => {
-      if (!manifest || !meta || activeViewVerses.length === 0) return false;
+      const defaultPool = hasActiveRukuScope ? activeRukuVerses : activeViewVerses;
+      if (!manifest || !meta || defaultPool.length === 0) return false;
 
       // 0. Ses aktif çalıyorsa
       if (audioState.isVisible && (audioState.status === 'playing' || audioState.status === 'loading')) {
@@ -943,24 +1284,26 @@ export const StudyPage: React.FC = () => {
         return true;
       }
 
-      // Öncelik 2: Duraklatılmış ses o an açık sayfa/sure içindeyse kaldığı saniyeden devam et
+      // Öncelik 2: Duraklatılmış ses o an açık sayfa/sure/rükû içindeyse kaldığı saniyeden devam et
       if (
         audioState.isVisible &&
         audioState.status === 'paused' &&
         audioState.currentAyahId !== null &&
-        activeViewVerses.some((v) => v.id === audioState.currentAyahId)
+        defaultPool.some((v) => v.id === audioState.currentAyahId)
       ) {
         audioQueueService.togglePlayPause();
         return true;
       }
 
-      // Öncelik 3: Açık Mushaf sayfasının / aktif surenin ilk ayetinden kesintisiz başlat
-      handlePlayFromVerse(activeViewVerses[0], false);
+      // Öncelik 3: Açık Mushaf sayfasının / aktif surenin / rükûnun ilk ayetinden kesintisiz başlat
+      handlePlayFromVerse(defaultPool[0], false);
       return true;
     },
     [
       manifest,
       meta,
+      hasActiveRukuScope,
+      activeRukuVerses,
       activeViewVerses,
       audioState.isVisible,
       audioState.status,
@@ -1169,8 +1512,8 @@ export const StudyPage: React.FC = () => {
       {/* 2. Birleşik Konum Seçici */}
       <button
         type="button"
-        onClick={() => openLocationPicker('surah')}
-        title={`${desktopLocationLabel} — Sure, Sayfa, Cüz veya Ayet seç`}
+        onClick={() => openLocationPicker()}
+        title={`${desktopLocationLabel} — Sure, Sayfa, Cüz, Rükû veya Ayet seç`}
         className="h-9 px-2.5 rounded-xl border text-[11px] xl:text-xs font-extrabold flex items-center gap-1 cursor-pointer min-w-0 max-w-[140px] xl:max-w-[205px] 2xl:max-w-[245px] transition-colors hover:border-teal-600/50"
         style={{
           backgroundColor: 'var(--bg-surface)',
@@ -2549,8 +2892,8 @@ export const StudyPage: React.FC = () => {
             {/* Sol: Ferah Konum Seçici (17. İsrâ · S.281 ▾) */}
             <button
               type="button"
-              onClick={() => openLocationPicker('surah')}
-              title="Sure, Sayfa, Cüz veya Ayet seç"
+              onClick={() => openLocationPicker()}
+              title="Sure, Sayfa, Cüz, Rükû veya Ayet seç"
               className="flex-1 min-w-0 h-9 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-extrabold cursor-pointer text-left"
               style={{
                 backgroundColor: 'var(--bg-surface)',
@@ -2775,6 +3118,96 @@ export const StudyPage: React.FC = () => {
           />
         )}
 
+      {/* Aktif Rükû Kapsam Rozeti (Seçili rükû dilimini net gösterir, tek tıkla dinleme/sunum/kaldırma sunar) */}
+      {activeSelectionScope.kind === 'ruku' && !isMobileReaderImmersive && !viewError && (
+        <div
+          role="region"
+          aria-label="Seçili rükû kapsamı"
+          className="max-w-5xl mx-auto px-3 py-2 rounded-2xl border flex flex-wrap items-center justify-between gap-2"
+          style={{
+            backgroundColor: 'var(--brand-primary-soft)',
+            borderColor: 'var(--brand-primary)',
+          }}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+              style={{
+                backgroundColor: 'var(--brand-primary)',
+                color: '#FFFFFF',
+              }}
+            >
+              <span className="arabic-title leading-none">ع</span>
+            </span>
+            <div className="min-w-0">
+              <p
+                className="text-xs sm:text-sm font-extrabold truncate tabular-nums"
+                style={{ color: 'var(--brand-primary-text)' }}
+              >
+                {surahMap.get(activeSelectionScope.surah)?.shortNameTr ??
+                  `${activeSelectionScope.surah}. Sure`}{' '}
+                · {activeSelectionScope.surahRuku}. Rükû ({activeSelectionScope.startAyah}–
+                {activeSelectionScope.endAyah}. Ayetler)
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                if (activeRukuVerses.length > 0) {
+                  handlePlayFromVerse(activeRukuVerses[0], false);
+                }
+              }}
+              disabled={activeRukuVerses.length === 0}
+              className="min-h-[32px] px-2.5 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1 text-white cursor-pointer disabled:opacity-50"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <Play className="w-3 h-3 fill-current" />
+              <span>Dinle</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openPresentationMode();
+              }}
+              disabled={activeRukuVerses.length === 0}
+              className="min-h-[32px] px-2.5 rounded-lg border text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              <MonitorPlay className="w-3.5 h-3.5" />
+              <span>Sunum</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setActiveSelectionScope({ kind: 'default' });
+              }}
+              aria-label="Rükû kapsamını kaldır"
+              title="Rükû kapsamını kaldır"
+              className="w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {viewError ? (
         <div className="surface-card rounded-2xl p-6 sm:p-8 text-center max-w-lg mx-auto">
           <div
@@ -2832,6 +3265,7 @@ export const StudyPage: React.FC = () => {
           bookmarkedSet={bookmarkedSet}
           isRefreshing={isLoadingView}
           onSelectVerse={(verse) => {
+            selectedAyahIdRef.current = verse.id;
             setSelectedAyahId(verse.id);
             setCurrentSurahNo(verse.surah);
             setLastRead({
@@ -2847,7 +3281,7 @@ export const StudyPage: React.FC = () => {
           onToggleBookmark={toggleBookmarkAyah}
           onShareVerse={handleShareVerse}
           onOpenSurahInfo={(surah) => setInfoModalSurah(surah)}
-          onOpenLocationPicker={(tab) => openLocationPicker(tab ?? 'surah')}
+          onOpenLocationPicker={(tab) => openLocationPicker(tab)}
           onToggleMobileImmersive={() => setIsMobileReaderImmersive(!isMobileReaderImmersive)}
         />
       ) : viewMode === 'cards' && surahBundle ? (
@@ -2897,7 +3331,7 @@ export const StudyPage: React.FC = () => {
           onSelectNextSurah={() => {
             if (currentSurahNo < 114) handleSelectSurah(currentSurahNo + 1);
           }}
-          onOpenLocationPicker={() => openLocationPicker('surah')}
+          onOpenLocationPicker={() => openLocationPicker()}
           onToggleMobileImmersive={() => setIsMobileReaderImmersive(!isMobileReaderImmersive)}
         />
       ) : null}
@@ -2962,9 +3396,13 @@ export const StudyPage: React.FC = () => {
                       type="button"
                       onClick={() => {
                         sfxService.play('click');
+                        selectedAyahIdRef.current = item.ayahId;
+                        pendingPageEdgeSelectionRef.current = null;
+                        setActiveSelectionScope({ kind: 'default' });
                         setCurrentSurahNo(item.surahNo);
                         setCurrentPageNo(item.pageNo);
                         setSelectedAyahId(item.ayahId);
+                        setSelectedVerseKey(`${item.surahNo}:${item.ayahNo}`);
                         setJumpToAyahNo(item.ayahNo);
                         setJumpNonce((n) => n + 1);
                         setIsFavoritesDrawerOpen(false);
@@ -3012,6 +3450,9 @@ export const StudyPage: React.FC = () => {
         onSelectJuz={handleSelectJuz}
         onSelectRuku={handleSelectRuku}
         onSelectAyah={handleJumpAyah}
+        onTabChange={(tab) => {
+          lastLocationPickerTabRef.current = tab;
+        }}
         onClose={() => setIsLocationPickerOpen(false)}
       />
 
@@ -3074,11 +3515,18 @@ export const StudyPage: React.FC = () => {
       <PresentationModeOverlay
         isOpen={isPresentationOpen}
         onClose={closePresentationMode}
-        verses={activeViewVerses}
-        activeVerse={activeSelectedVerse}
+        verses={presentationVerses}
+        activeVerse={presentationActiveVerse}
         surahMap={surahMap}
         besmele={meta?.besmele}
-        scopeMode={viewMode === 'mushaf' ? 'page' : 'surah'}
+        scopeMode={hasActiveRukuScope ? 'ruku' : viewMode === 'mushaf' ? 'page' : 'surah'}
+        scopeLabel={activeRukuLabel}
+        canGoNextPage={canPresentationNextPage}
+        canGoPrevPage={canPresentationPrevPage}
+        onRequestNextPage={handlePresentationNextPage}
+        onRequestPrevPage={handlePresentationPrevPage}
+        onOpenLocationPicker={() => openLocationPicker()}
+        isLocationPickerOpen={isLocationPickerOpen}
         onStartAudioFromActive={(v) => handlePlayFromVerse(v, false)}
         onStartMealAudioFromActive={handlePlayMealFromVerse}
       />

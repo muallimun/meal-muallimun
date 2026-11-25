@@ -19,6 +19,7 @@ import { useBackButtonGuard } from '../services/backStackService';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { MealCategory, MealDefinition } from '../types/quran';
+import { Z_LAYERS } from '../config/zLayers';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { normalizeTurkish } from '../utils/textNormalize';
 
@@ -170,7 +171,7 @@ export const MealSelectorModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs"
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/55 backdrop-blur-xs`}
       role="dialog"
       aria-modal="true"
       aria-label="Meal ve Tefsir Seçici"

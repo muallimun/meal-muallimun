@@ -1989,6 +1989,12 @@ class AudioQueueService {
     verse: CombinedVerse,
     meta?: MetaData | null,
     queueVerses?: CombinedVerse[],
+    options?: {
+      replaceQueue?: boolean;
+      context?: AudioQueueContext;
+      contextKey?: string | null;
+      queueTitle?: string;
+    },
   ): void {
     if (!this.snapshot.isVisible) return;
     if (
@@ -2006,16 +2012,24 @@ class AudioQueueService {
     const sameVerse =
       this.snapshot.currentSurah === verse.surah &&
       this.snapshot.currentAyah === verse.ayah;
+    const shouldReplaceQueue = Boolean(
+      options?.replaceQueue && queueVerses && queueVerses.length > 0,
+    );
 
-    if (!sameVerse) {
+    if (!sameVerse || shouldReplaceQueue) {
       this.playSessionId += 1;
       this.teardownAudioElement();
       this.clearWordSyncState();
-      let idxInQueue = this.verses.findIndex((v) => v.id === verse.id);
+
+      let idxInQueue = shouldReplaceQueue
+        ? -1
+        : this.verses.findIndex((v) => v.id === verse.id);
       if (idxInQueue === -1 && queueVerses && queueVerses.length > 0) {
         const idxInProvided = queueVerses.findIndex((v) => v.id === verse.id);
         if (idxInProvided !== -1) {
           this.verses = queueVerses;
+          this.atomicSegments = [];
+          this.currentAtomicIdx = 0;
           this.singleAyahOnly = false;
           idxInQueue = idxInProvided;
         }
@@ -2029,6 +2043,12 @@ class AudioQueueService {
       this.setMediaPlaybackState('paused');
       this.emit({
         status: 'paused',
+        ...(options?.context !== undefined ? { context: options.context } : {}),
+        ...(options?.contextKey !== undefined ? { contextKey: options.contextKey } : {}),
+        ...(options?.queueTitle !== undefined ? { queueTitle: options.queueTitle } : {}),
+        ...(shouldReplaceQueue
+          ? { currentSegmentIndex: 0, totalSegments: 1 }
+          : {}),
         currentSurah: verse.surah,
         currentSurahName: this.getSurahName(verse.surah),
         currentAyah: verse.ayah,
@@ -2043,6 +2063,39 @@ class AudioQueueService {
         isWordSyncActive: false,
       });
     }
+  }
+
+  /**
+   * Aktif ses kuyruğunun (Cüz, Çalma Listesi, Rükû, Sayfa veya Sure) içindeki belirli bir
+   * ayete kuyruğu bozmadan doğrudan atlar.
+   */
+  public jumpToQueueVerse(verseId: number, autoPlay?: boolean): boolean {
+    if (this.verses.length === 0) return false;
+    const idx = this.verses.findIndex((v) => v.id === verseId);
+    if (idx === -1) return false;
+
+    const shouldAutoPlay = autoPlay ?? this.snapshot.status !== 'paused';
+    const nextSteps = this.buildStepsForVerse(idx, true);
+    if (nextSteps.length === 0) return false;
+
+    this.userPausedDuringLoad = false;
+    this.playSessionId += 1;
+    this.consecutiveFailures = 0;
+    this.currentVerseIndex = idx;
+    this.steps = nextSteps;
+    this.currentStepIndex = 0;
+
+    if (!shouldAutoPlay) {
+      this.teardownAudioElement();
+      this.emitPreparedPausedState(this.verses[idx], nextSteps[0]);
+      return true;
+    }
+
+    claimAudioFocus('main_queue');
+    this.pauseExternalAudioEngines();
+    this.stopPreview();
+    this.playCurrentStep(0);
+    return true;
   }
 
   /**

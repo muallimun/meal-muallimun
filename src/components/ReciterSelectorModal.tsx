@@ -23,6 +23,7 @@ import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { ReciterCategory, ReciterDefinition } from '../types/quran';
 import type { SegMetaFile } from '../types/wordSync';
+import { Z_LAYERS } from '../config/zLayers';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { shouldAutoFocusSearchInput } from '../utils/deviceUtils';
 import { normalizeTurkish } from '../utils/textNormalize';
@@ -86,6 +87,12 @@ export const ReciterSelectorModal: React.FC = () => {
     closeReciterSelector();
   });
 
+  // Body scroll kilidini yalnızca modal açıkken tut (segMeta yüklemesiyle gereksiz yeniden kilitleme olmasın)
+  useEffect(() => {
+    if (!isReciterSelectorOpen) return;
+    return acquireBodyScrollLock();
+  }, [isReciterSelectorOpen]);
+
   // Kapanınca veya unmount olunca Besmele önizlemesini temizle; açılınca seg/meta.json bilgisini tembel yükle
   useEffect(() => {
     if (!isReciterSelectorOpen) {
@@ -93,7 +100,6 @@ export const ReciterSelectorModal: React.FC = () => {
       return;
     }
 
-    const releaseScrollLock = acquireBodyScrollLock();
     let cancelled = false;
     if (!segMeta) {
       void audioQueueService.ensureSegMetaLoaded().then((loaded) => {
@@ -105,7 +111,6 @@ export const ReciterSelectorModal: React.FC = () => {
 
     return () => {
       cancelled = true;
-      releaseScrollLock();
       audioQueueService.stopPreview();
     };
   }, [isReciterSelectorOpen, segMeta]);
@@ -420,7 +425,7 @@ export const ReciterSelectorModal: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]"
+      className={`fixed inset-0 ${Z_LAYERS.NESTED_MODAL} flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-[2px]`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="reciter-selector-title"

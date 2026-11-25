@@ -5,40 +5,57 @@
  * veya erken açılmasını önler.
  */
 
-let activeLockCount = 0;
+const activeLockTokens = new Set<symbol>();
 let savedBodyOverflow: string | null = null;
 let savedBodyOverscroll: string | null = null;
 let savedHtmlOverscroll: string | null = null;
+
+function restoreDocumentScroll(): void {
+  if (typeof document === 'undefined' || !document.body) return;
+  document.body.style.overflow =
+    savedBodyOverflow && savedBodyOverflow !== 'hidden' ? savedBodyOverflow : '';
+  document.body.style.overscrollBehavior =
+    savedBodyOverscroll && savedBodyOverscroll !== 'none' ? savedBodyOverscroll : '';
+  document.documentElement.style.overscrollBehavior =
+    savedHtmlOverscroll && savedHtmlOverscroll !== 'none' ? savedHtmlOverscroll : '';
+  savedBodyOverflow = null;
+  savedBodyOverscroll = null;
+  savedHtmlOverscroll = null;
+}
 
 export function acquireBodyScrollLock(): () => void {
   if (typeof document === 'undefined' || !document.body) {
     return () => {};
   }
 
-  if (activeLockCount === 0) {
-    savedBodyOverflow = document.body.style.overflow;
-    savedBodyOverscroll = document.body.style.overscrollBehavior;
-    savedHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+  const token = Symbol('bodyScrollLock');
+  if (activeLockTokens.size === 0) {
+    const curBodyOverflow = document.body.style.overflow;
+    const curBodyOverscroll = document.body.style.overscrollBehavior;
+    const curHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
+    savedBodyOverflow = curBodyOverflow === 'hidden' ? '' : curBodyOverflow;
+    savedBodyOverscroll = curBodyOverscroll === 'none' ? '' : curBodyOverscroll;
+    savedHtmlOverscroll = curHtmlOverscroll === 'none' ? '' : curHtmlOverscroll;
 
     document.body.style.overflow = 'hidden';
     document.body.style.overscrollBehavior = 'none';
     document.documentElement.style.overscrollBehavior = 'none';
   }
-  activeLockCount += 1;
+  activeLockTokens.add(token);
 
   let released = false;
   return () => {
     if (released) return;
     released = true;
 
-    activeLockCount = Math.max(0, activeLockCount - 1);
-    if (activeLockCount === 0 && typeof document !== 'undefined' && document.body) {
-      document.body.style.overflow = savedBodyOverflow ?? '';
-      document.body.style.overscrollBehavior = savedBodyOverscroll ?? '';
-      document.documentElement.style.overscrollBehavior = savedHtmlOverscroll ?? '';
-      savedBodyOverflow = null;
-      savedBodyOverscroll = null;
-      savedHtmlOverscroll = null;
+    activeLockTokens.delete(token);
+    if (activeLockTokens.size === 0) {
+      restoreDocumentScroll();
     }
   };
+}
+
+export function getActiveBodyScrollLockCount(): number {
+  return activeLockTokens.size;
 }
