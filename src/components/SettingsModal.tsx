@@ -1606,22 +1606,45 @@ export const SettingsModal: React.FC = () => {
 
               {/* Bağlamsal Okuma Ayarları Yönlendirme Notu */}
               <div
-                className="p-3 rounded-xl border flex items-start gap-2.5 text-[11.5px] leading-relaxed"
+                className="p-3 rounded-xl border space-y-2 text-[11.5px] leading-relaxed"
                 style={{
                   backgroundColor: 'var(--bg-surface-soft)',
                   borderColor: 'var(--border-subtle)',
                   color: 'var(--text-secondary)',
                 }}
               >
-                <Info
-                  className="w-4 h-4 shrink-0 mt-0.5"
-                  style={{ color: 'var(--brand-primary-text)' }}
-                />
-                <span>
-                  Mushaf sayfa düzeni, Arapça hat, renkli tecvit, kelime meali ve rükû/secâvend
-                  ayarlarını doğrudan <strong>Okuma</strong> ekranındaki{' '}
-                  <strong>Görünüm (Okuma Menüsü)</strong> panelinden değiştirebilirsiniz.
-                </span>
+                <div className="flex items-start gap-2.5">
+                  <Info
+                    className="w-4 h-4 shrink-0 mt-0.5"
+                    style={{ color: 'var(--brand-primary-text)' }}
+                  />
+                  <span>
+                    Mushaf sayfa düzeni, Arapça hat, renkli tecvit, kelime meali ve rükû/secâvend
+                    ayarlarını doğrudan <strong>Okuma</strong> ekranındaki{' '}
+                    <strong>Görünüm (Okuma Menüsü)</strong> panelinden değiştirebilirsiniz.
+                  </span>
+                </div>
+                {settings.tajweedEnabled && (
+                  <div
+                    className="pt-2 border-t flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[11px]"
+                    style={{ borderColor: 'var(--border-subtle)' }}
+                  >
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      Renkli Tecvit açıkken özel tecvit hattı kullanılır.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateSettings({ tajweedEnabled: false });
+                      }}
+                      className="font-extrabold underline underline-offset-2 cursor-pointer whitespace-nowrap touch-manipulation"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      Seçili Hattı Uygula (Tecviti Kapat)
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}

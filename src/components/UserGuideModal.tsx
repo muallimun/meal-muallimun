@@ -15,11 +15,16 @@ import {
   Keyboard,
   Layers,
   Link2,
+  MessageCircle,
   MessageSquareHeart,
   Search,
+  Send,
   Settings,
+  Share2,
   Smartphone,
   Sparkles,
+  Wifi,
+  WifiOff,
   X,
 } from 'lucide-react';
 import { Z_LAYERS } from '../config/zLayers';
@@ -28,7 +33,15 @@ import { sfxService } from '../services/sfxService';
 import { useAppStore, type UserGuideTabId } from '../store/useAppStore';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { shouldAutoFocusSearchInput } from '../utils/deviceUtils';
+import { BrandMark } from './BrandMark';
 import { OfflinePackCard } from './OfflinePackCard';
+
+const APP_SHARE_URL = 'https://kuran.muallimun.net/';
+const APP_SHARE_TITLE = "Muallimun Kur'an, Meal & Araştırma Platformu";
+const APP_SHARE_SHORT_TEXT =
+  "Muallimun Kur'an, Meal & Araştırma Platformu — 604 sayfa Diyanet Mushafı, 27 meal & tefsir karşılaştırma, kelime takipli sesli tilavet, ezber atölyesi ve sınav merkezi ücretsiz ve reklamsız bir arada:";
+const APP_SHARE_MESSAGE =
+  "Muallimun Kur'an, Meal & Araştırma Platformu — 604 sayfa Diyanet Mushafı, 27 meal & tefsir karşılaştırma, kelime takipli sesli tilavet, ezber atölyesi ve sınav merkezi ücretsiz ve reklamsız bir arada: https://kuran.muallimun.net/";
 
 interface GuideTabMeta {
   id: UserGuideTabId;
@@ -42,6 +55,30 @@ const GUIDE_TABS: GuideTabMeta[] = [
   { id: 'modules', label: 'Modüller & İpuçları', shortLabel: 'Modüller', icon: BookOpenCheck },
   { id: 'offline_backup', label: 'Çevrimdışı & Yedek', shortLabel: 'Çevrimdışı', icon: CloudDownload },
   { id: 'shortcuts', label: 'Kısayollar & Link', shortLabel: 'Kısayollar', icon: Keyboard },
+];
+
+interface QuickStartStep {
+  step: string;
+  title: string;
+  description: string;
+}
+
+const QUICKSTART_STEPS: QuickStartStep[] = [
+  {
+    step: '1',
+    title: 'Konum & Görünüm Seç',
+    description: '604 sayfalık Diyanet Mushafı, Kitap veya Kartlar görünümünden birini açın.',
+  },
+  {
+    step: '2',
+    title: 'Dinle & Kelime Takibi Aç',
+    description: '28 kurrâdan 0.75x–2.5x hızda dinleyin, kelime bazlı takiple okuyun.',
+  },
+  {
+    step: '3',
+    title: 'Not Al, Ezberle veya Paylaş',
+    description: 'Renkli tefekkür notu tutun, ezber turu başlatın veya şık ayet kartı üretin.',
+  },
 ];
 
 interface QuickStartRouteItem {
@@ -58,21 +95,22 @@ interface QuickStartRouteItem {
 const QUICKSTART_ROUTES: QuickStartRouteItem[] = [
   {
     id: 'daily_reader',
-    title: 'Günlük Okuyucu & Hatim Takipçisi',
-    audience: 'Mushaf · 30 Cüz Hatim Planlayıcısı · Ayraçlar',
+    title: 'Günlük Okuyucu & Hatim',
+    audience: '604 Sayfa Diyanet Mushafı · Hatim Planlayıcısı · 9 Seçkin Hat',
     description:
-      'Sayfa sayfa Mushaf okuyun, 30 Cüz Hatim Planlayıcısı ile günlük sayfa veya bitiş tarihi hedefi belirleyin, Hatim ayracınızla ilerlemenizi senkronize edin ve 28 kurrâdan tilavet dinleyin.',
+      'Sayfa sayfa Diyanet Mushafı okuyun, 30 Cüz Hatim Planlayıcısı ile günlük hedef belirleyin, yeşil hatim ayracınızla ilerlemenizi senkronize edin ve 28 kurrâdan 0.75x–2.5x hızda dinleyin.',
     ctaLabel: 'Okuma Ekranını Aç',
     targetTab: 'reader',
     icon: BookOpen,
-    keywords: 'okuma hatim planlayıcı 30 cüz mushaf kitap kart tecvit hat ayraç kurra tilavet ses',
+    keywords:
+      'okuma hatim planlayıcı 30 cüz 604 sayfa diyanet mushaf kitap kart tecvit hat ayraç kurra tilavet ses hız 2.5x',
   },
   {
     id: 'hifz_student',
-    title: 'Hafızlık & Ezber Öğrencisi',
-    audience: 'Ayet · Sayfa · Klasik 30 Cüz Ham–Has',
+    title: 'Hafızlık & Ezber',
+    audience: 'Klasik 20 Tur Ham–Has · Aralıklı Tekrar · Perdeleme',
     description:
-      'Geleneksel 20 tur Ham–Has (30 cüz dönüşümlü) hafızlık takibi, aralıklı tekrar döngüleri, perdeleme ile hafıza yoklama, ayet başı geçiş (rabt) testi, mikrofonla kendi sesini kaydetme ve 604 sayfalık hıfz haritasıyla çalışın.',
+      'Türkiye usulü 30 cüz dönüşümlü 20 tur Ham–Has takibi, perdeleme ile hafıza yoklama, ayet başı geçiş (rabt) testi, mikrofonla ses kaydı ve 604 sayfalık hıfz haritasıyla planlı çalışın.',
     ctaLabel: 'Ezber Atölyesini Aç',
     targetTab: 'memorize',
     icon: Brain,
@@ -81,40 +119,60 @@ const QUICKSTART_ROUTES: QuickStartRouteItem[] = [
   },
   {
     id: 'teacher_classroom',
-    title: 'Öğretmen & Sınıf Akıllı Tahtası',
-    audience: 'Sınav Merkezi · A4 Yazılı · 7 Eğitsel Oyun',
+    title: 'Öğretmen & Akıllı Tahta / Sunum Modu',
+    audience: 'Sunum Modu · A4 Yazılı Sınav · 7 Eğitsel Oyun',
     description:
-      'Sure ve zorluk seçerek çoktan seçmeli denemeler çözün, tek tıkla cevap anahtarlı A4 yazılı sınav kağıdı yazdırın veya akıllı tahtada Tek / 2 Oyuncu yarışmaları başlatın.',
+      'Sınıf ve konferans ekranlarında büyük puntolu Sunum Modu ile ayetleri yansıtın; tek tıkla cevap anahtarlı A4 yazılı sınav kağıdı hazırlayın veya 2 oyunculu sınıf yarışmaları başlatın.',
     ctaLabel: 'Sınav & Oyun Merkezini Aç',
     targetTab: 'exam',
     icon: GraduationCap,
-    keywords: 'öğretmen sınıf akıllı tahta sınav a4 yazılı pdf oyun 2 oyuncu yarışma',
+    keywords:
+      'öğretmen sınıf akıllı tahta sunum modu projeksiyon tam ekran sınav a4 yazılı pdf oyun 2 oyuncu yarışma',
   },
   {
     id: 'researcher',
-    title: 'Araştırmacı & Tefsir/Meal Çalışanı',
+    title: 'Araştırmacı & 27 Meal/Tefsir',
     audience: '27 Meal/Tefsir · Konu Fihristi · Ayet Notları & Defterim',
     description:
-      '27 farklı meal ve tefsiri yan yana karşılaştırın, ayetlere renkli ve etiketli kişisel tefekkür notları ekleyin, konu fihristi ve araştırma defterinizden A4 PDF çalışma çıktıları alın.',
+      '27 meal ve tefsiri yan yana karşılaştırın, ayetlere renkli ve etiketli notlar ekleyin, 601 konulu fihrist ve araştırma defterinizden A4 PDF çalışma çıktıları alın.',
     ctaLabel: 'Fihrist & Araştırmayı Aç',
     targetTab: 'fihrist',
     icon: Layers,
-    keywords: 'araştırma tefsir 27 meal fihrist konu nüzul müteşabihat rüku defter not tefekkür etiket',
+    keywords:
+      'araştırma tefsir 27 meal fihrist konu nüzul müteşabihat rüku defter not tefekkür etiket pdf',
   },
 ];
 
+type ModuleCategoryId = 'all' | 'reading' | 'audio_presentation' | 'hifz_hatim' | 'fihrist_exam';
+
+const MODULE_CATEGORIES: { id: ModuleCategoryId; label: string }[] = [
+  { id: 'all', label: 'Tümü' },
+  { id: 'reading', label: 'Okuma & Mushaf' },
+  { id: 'audio_presentation', label: 'Ses & Sunum' },
+  { id: 'hifz_hatim', label: 'Ezber & Hatim' },
+  { id: 'fihrist_exam', label: 'Fihrist & Sınav' },
+];
+
 type ModuleTipActionId =
+  | 'open_reader'
+  | 'open_exam'
   | 'classical_hifz'
   | 'hatim_planner'
   | 'personal_notes'
   | 'customize_desk';
 
+interface ModuleTipBullet {
+  lead: string;
+  text: string;
+}
+
 interface ModuleTipItem {
   id: string;
+  category: Exclude<ModuleCategoryId, 'all'>;
+  categoryLabel: string;
   title: string;
-  badge: string;
   summary: string;
-  bullets: string[];
+  bullets: ModuleTipBullet[];
   keywords: string;
   ctaLabel?: string;
   actionId?: ModuleTipActionId;
@@ -122,31 +180,126 @@ interface ModuleTipItem {
 
 const MODULE_TIPS: ModuleTipItem[] = [
   {
-    id: 'classical_hifz_guide',
-    title: 'Klasik Türkiye Hafızlık Sistemi (20 Tur Ham–Has)',
-    badge: 'Klasik Hafızlık',
-    summary:
-      'Türkiye’deki geleneksel Kur’an kursu usulüne uygun olarak cüz sonundan başa dönüşümlü 20 tur Ham–Has takibini Ezber Atölyesi içinde yönetebilirsiniz:',
+    id: 'reading_modes',
+    category: 'reading',
+    categoryLabel: 'Okuma & Mushaf',
+    title: 'Mushaf, Kitap, Kartlar & Kitap Kenarı Kaydırma Rayı',
+    summary: 'Okuma ekranının üst çubuğundan çalışma biçiminize uygun görünümü tek dokunuşla seçin.',
     bullets: [
-      'Cüz Sonundan Başa 20 Tur: Her turda 30 cüzün ilgili sıradaki sayfalarını (20. sayfadan 1. sayfaya) önce "Ham" olarak çalışır, pekiştirdikçe "Has" onayına çevirirsiniz.',
-      '30. Cüz Seçenekleri & Ara Seviye Sihirbazı: 30. cüzü başta veya sonda tamamlama tercihi seçebilir; hâlihazırda belirli bir turda olan öğrenciler için geçmiş turları tek adımda işaretleyebilirsiniz.',
-      'Ham + Has Bağlantı Okuması: Günün yeni sayfasını tamamladıktan sonra mevcut Has sayfalarınızla birleştirerek tek akışta tekrar oturumu başlatabilirsiniz.',
+      {
+        lead: 'Mushaf Görünümü:',
+        text: '604 sayfalık Diyanet / Türkiye Mushafı düzeninde akıcı okuma, secâvend vakıf işaretleri ve sayfa sonu uyumu sunar.',
+      },
+      {
+        lead: 'Kitap Görünümü & Hızlı Kaydırma Rayı:',
+        text: 'Uzun surelerde kitap yaprağına bitişik canlı ayet gezgini ve kaydırma rayı ile istediğiniz ayete anında ulaşın.',
+      },
+      {
+        lead: 'Kartlar Görünümü:',
+        text: 'Her ayette kelime kelime anlam, 27 meal/tefsir karşılaştırması, rükû/müteşâbihât bağlantıları ve kişisel not ekleme imkânı verir.',
+      },
     ],
     keywords:
-      'klasik hafızlık 20 tur ham has 30 cüz dönüşümlü osmanlı diyanet çiğ pişmiş bağlantı ara seviye sihirbaz ezber',
+      'mushaf diyanet türkiye 604 sayfa kitap kaydırma rayı gezgin kartlar görünüm okuma modu kelime meal karşılaştırma',
+    ctaLabel: 'Okuma Ekranını Aç',
+    actionId: 'open_reader',
+  },
+  {
+    id: 'tajweed_fonts_secavend',
+    category: 'reading',
+    categoryLabel: 'Okuma & Mushaf',
+    title: '9 Seçkin Mushaf Hattı, Renkli Tecvit & Secâvend Rehberi',
+    summary:
+      'Şeyh Hamdullah Klasik, Elif Mushaf Hattı, Süleyman Feyzullah, Hasenât, Arakom Nesih dâhil 9 seçkin hat ve 3 tema (Açık, Krem Mushaf, Gece) arasında geçiş yapın.',
+    bullets: [
+      {
+        lead: 'Renkli Tecvit & Hat Geçişi:',
+        text: 'Renkli Tecvit açıkken özel tecvit hattı kullanılır; kendi seçtiğiniz hattı görmek için tecviti tek dokunuşla kapatabilirsiniz.',
+      },
+      {
+        lead: 'Durak İşaretleri (Secâvend):',
+        text: 'مـ (Vakf-ı Lâzım: durulmalı) · ط / ج (durmak uygun veya câiz) · قلى (durmak evlâ) · صلى (geçmek evlâ) · لا (durulmaz) · ۛ (Muânaka).',
+      },
+      {
+        lead: 'Tipografi Kontrolü:',
+        text: 'Arapça/meal yazı boyutu, kelime sıklığı ve satır aralığını okuma menüsünden anlık ayarlayın.',
+      },
+    ],
+    keywords:
+      'tecvit renkli hat font şeyh hamdullah elif süleyman feyzullah hasenat arakom nesih 9 hat secavend vakıf durak krem tema',
+  },
+  {
+    id: 'audio_presentation_share',
+    category: 'audio_presentation',
+    categoryLabel: 'Ses & Sunum',
+    title: '28 Kurrâ, 0.75x–2.5x Hız, Sunum Modu & Ayet Kartı Stüdyosu',
+    summary:
+      'Sesli dinleme, sınıf/salon projeksiyon sunumu ve sosyal paylaşım için görsel ayet kartı stüdyosu bir arada çalışır.',
+    bullets: [
+      {
+        lead: 'Esnek Tilavet & Kelime Takibi:',
+        text: '28 kurrâ ve Türkçe meal sesiyle 0.75x–2.5x arası okuma hızı, ayet/bölüm tekrarı ve canlı kelime takibi kullanın.',
+      },
+      {
+        lead: 'Akıllı Tahta Sunum Modu:',
+        text: 'Geniş sahne ve yüksek kontrastlı büyük puntoyla ders ve mukabelelerde klavye ok tuşlarıyla (duraklatılmışken ses başlamadan) gezinin.',
+      },
+      {
+        lead: 'Ayet Paylaşım Kartı Stüdyosu:',
+        text: 'Herhangi bir ayeti 4:5 (Gönderi), 9:16 (Hikâye) veya 1:1 (Kare) formatında seçili meal/tefsir atfıyla yüksek çözünürlüklü PNG olarak indirin.',
+      },
+    ],
+    keywords:
+      'ses kurra 28 hız 0.75x 2.5x kelime takip karaoke sunum modu akıllı tahta projeksiyon ayet paylaşım kartı 4:5 9:16 1:1 png',
+    ctaLabel: 'Okuma & Sunumu Aç',
+    actionId: 'open_reader',
+  },
+  {
+    id: 'classical_hifz_guide',
+    category: 'hifz_hatim',
+    categoryLabel: 'Ezber & Hatim',
+    title: 'Klasik Türkiye Hafızlık Sistemi (20 Tur Ham–Has)',
+    summary:
+      'Geleneksel Kur’an kursu usulüne göre cüz sonundan başa dönüşümlü 20 tur Ham–Has takibini Ezber Atölyesinde yönetin.',
+    bullets: [
+      {
+        lead: '20 Tur Dönüşümlü Akış:',
+        text: 'Her turda 30 cüzün ilgili sayfalarını (20. sayfadan 1. sayfaya) önce "Ham" olarak çalışın, pekiştikçe "Has" onayına çevirin.',
+      },
+      {
+        lead: '30. Cüz & Ara Seviye Sihirbazı:',
+        text: '30. cüzü başta veya sonda tamamlama tercihi seçin; hâlihazırda ileri turdaki öğrenciler için geçmiş turları tek adımda işaretleyin.',
+      },
+      {
+        lead: 'Ham + Has Bağlantı Tekrarı:',
+        text: 'Günün yeni sayfasını mevcut Has sayfalarınızla birleştirerek tek oturumda kesintisiz tekrar başlatın.',
+      },
+    ],
+    keywords:
+      'klasik hafızlık 20 tur ham has 30 cüz dönüşümlü osmanlı diyanet bağlantı ara seviye sihirbaz ezber',
     ctaLabel: 'Klasik Hafızlığı Aç',
     actionId: 'classical_hifz',
   },
   {
     id: 'hatim_planner_guide',
-    title: '30 Cüz Hatim Planlayıcısı ve Hatim Ayracı Senkronu',
-    badge: 'Hatim Takibi',
+    category: 'hifz_hatim',
+    categoryLabel: 'Ezber & Hatim',
+    title: '30 Cüz Hatim Planlayıcısı & Hatim Ayracı Senkronu',
     summary:
-      'Ana Sayfa "Hatim Planım" satırı veya "Sayfa Ayraçlarım" çekmecesinden 604 sayfalık 30 Cüz Hatim Planlayıcısına ulaşabilirsiniz:',
+      '604 sayfalık 30 Cüz Hatim Planlayıcısı ile günlük okuma disiplininizi tek ekrandan takip edin.',
     bullets: [
-      'Günlük sayfa hedefi (ör. günde 4 veya 20 sayfa), hedef bitiş tarihi ya da serbest 30 cüz işaretleme modlarından birini seçebilirsiniz.',
-      'Mushaf görünümünde yeşil "Hatim Ayracımı Buraya Taşı" butonuna bastığınızda aktif hatim planınız o sayfaya kadar otomatik güncellenir; 30 cüzlük ızgaradan herhangi bir cüzü doğrudan açabilir veya tamamlandı işaretleyebilirsiniz.',
-      '604 sayfanın tamamı bittiğinde hatminiz tarih ve notuyla Hatim Geçmişinize kaydedilir.',
+      {
+        lead: 'Esnek Hedef Modları:',
+        text: 'Günlük sayfa hedefi, hedef bitiş tarihi ya da serbest 30 cüz işaretleme modlarından birini seçin.',
+      },
+      {
+        lead: 'Otomatik Ayraç Senkronu:',
+        text: 'Mushafta yeşil "Hatim Ayracımı Buraya Taşı" butonuna bastığınızda aktif planınız o sayfaya kadar anında güncellenir.',
+      },
+      {
+        lead: 'Hatim Geçmişi:',
+        text: '604 sayfanın tamamı bittiğinde hatminiz tarih ve notuyla Hatim Geçmişinize kaydedilir.',
+      },
     ],
     keywords: 'hatim 30 cüz planlayıcı günlük sayfa hedef tarih ayraç mushaf geçmiş',
     ctaLabel: 'Hatim Planlayıcısını Aç',
@@ -154,85 +307,75 @@ const MODULE_TIPS: ModuleTipItem[] = [
   },
   {
     id: 'personal_verse_notes',
-    title: 'Ayet Bazlı Kişisel Tefekkür Notları ve Etiketleme',
-    badge: 'Defterim & Arama',
+    category: 'fihrist_exam',
+    categoryLabel: 'Fihrist & Sınav',
+    title: 'Ayet Notları & Araştırma Defteri',
     summary:
-      'Kartlar, Kitap ve Mushaf görünümlerindeki herhangi bir ayete renkli, etiketli kişisel notlar ekleyebilir ve dilediğinizde Araştırma Defterinize aktarabilirsiniz:',
+      'Herhangi bir ayete renkli ve etiketli tefekkür notları ekleyin, konular altında derleyip A4 PDF çıktısı alın.',
     bullets: [
-      'Not eklediğiniz ayetlerde renkli "Notum" rozeti ve tıklanabilir not kutusu görünür; tüm notlarınız Fihrist → Defterim → Ayet Notlarım altında toplanır.',
-      'Ayet Notlarım panelinde arama, renk/etiket filtreleme ve tek tıkla A4 PDF yazdırma seçenekleri bulunur; Ctrl+K Genel Arama da Türkçe sorgularda kişisel notlarınızı tarar.',
-      'Kişisel notlarınız ve Hatim ilerlemeniz cihazınızda saklanır ve Ayarlar içindeki Tam Yedek (.json) dosyasına otomatik dâhil edilir.',
+      {
+        lead: 'Anında Erişim:',
+        text: 'Notlu ayetlerde renkli "Notum" rozeti görünür; tüm notlar Fihrist → Defterim → Ayet Notlarım altında toplanır.',
+      },
+      {
+        lead: 'Arama & Filtreleme:',
+        text: 'Renk/etiket filtreleriyle notlarınızı tarayın; Ctrl+K Genel Arama da kişisel notlarınızda arama yapar.',
+      },
+      {
+        lead: 'Otomatik Yedek Dâhiliyeti:',
+        text: 'Kişisel notlarınız, araştırma konularınız ve Hatim ilerlemeniz Ayarlar → Tam Yedek (.json) dosyasına otomatik eklenir.',
+      },
     ],
-    keywords: 'kişisel ayet notu tefekkür etiket renk defterim arama pdf yedek',
+    keywords: 'kişisel ayet notu tefekkür etiket renk defterim araştırma arama pdf yedek',
     ctaLabel: 'Ayet Notlarımı Aç',
     actionId: 'personal_notes',
   },
   {
-    id: 'study_desk_customization',
-    title: 'Çalışma Masam Özelleştirme, Odak Profilleri & İletişim',
-    badge: 'Ana Sayfa & İletişim',
+    id: 'study_desk_pool',
+    category: 'fihrist_exam',
+    categoryLabel: 'Fihrist & Sınav',
+    title: 'Aktif Çalışma Havuzu & Çalışma Masam Profilleri',
     summary:
-      'Ana Sayfadaki "Çalışma Masam" alanını kullanım hedefinize göre tek tıkla sadeleştirebilir, dilediğiniz satırları açıp kapatabilirsiniz:',
+      'Ana Sayfayı ve sınav/oyun kapsamını kendi hedefinize göre tek dokunuşla sadeleştirin veya genişletin.',
     bullets: [
-      '4 Hazır Odak Profili: "Okuma & Hatim Odaklı", "Hafızlık & Ezber Odaklı", "Öğrenci & Sınav Odaklı" veya "Tam Kapsamlı" profillerden birini seçerek Ana Sayfayı ihtiyacınıza göre düzenleyin.',
-      'Sınav Vurgusunu Gizleme: Yalnızca okuma, hatim veya ezber odaklı çalışmak istediğinizde "Sınav Vurgusu & Soru Bankası Vitrini" seçeneğini kapatarak soru sayaçlarını ve sınav vitrinini gizleyebilirsiniz.',
-      'Güvenli İletişim & Hata Bildirimi: Alt menüdeki veya Ayarlardaki "Görüş / Hata Bildir" penceresinden önerilerinizi, soru veya meal düzeltme bildirimlerinizi doğrudan iletebilirsiniz.',
+      {
+        lead: '4 Hazır Odak Profili:',
+        text: 'Okuma & Hatim, Hafızlık & Ezber, Öğrenci & Sınav veya Tam Kapsamlı profillerden birini seçerek Ana Sayfa satırlarını düzenleyin.',
+      },
+      {
+        lead: 'Çalışma Havuzu Kapsamı:',
+        text: 'Havuz; Ana Sayfa ayet kartını, Sınav ve Oyun surelerini belirler. Okuma ekranında ise 114 surenin tamamı her zaman açıktır.',
+      },
+      {
+        lead: 'Sınav Vurgusunu Gizleme:',
+        text: 'Yalnızca okuma/hatim odaklı çalışırken soru sayaçlarını ve sınav vitrinini gizleyebilirsiniz.',
+      },
     ],
     keywords:
-      'çalışma masam özelleştir odak profili sadeleştir okuma hatim hafızlık sınav gizle iletişim geri bildirim hata bildir',
+      'çalışma masam özelleştir odak profili havuz aktif 114 sure genişlet sadeleştir sınav gizle',
     ctaLabel: 'Ana Sayfada Özelleştir',
     actionId: 'customize_desk',
   },
   {
-    id: 'reading_modes',
-    title: 'Mushaf, Kitap ve Kart Görünümleri Arasındaki Farklar',
-    badge: 'Okuma Ekranı',
-    summary:
-      'Okuma ekranının üst çubuğundan çalışma biçiminize uygun görünümü tek dokunuşla değiştirebilirsiniz:',
-    bullets: [
-      'Mushaf Görünümü: Klasik 604 sayfalık Medine Mushafı düzeninde akıcı okuma, secâvend vakıf işaretleri ve sayfa sonu kontrolü sunar.',
-      'Kitap Görünümü: Sureyi paragraf akışı hâlinde, Arapça ve seçtiğiniz mealin düzenli yerleşimiyle uzun okumalar için sunar.',
-      'Kartlar Görünümü: Her ayeti ayrı kartta gösterir; kelime kelime anlam, 27 meal karşılaştırması, rükû/müteşâbihât bağlantıları ve kişisel not ekleme için idealdir.',
-    ],
-    keywords: 'mushaf kitap kartlar görünüm okuma modu kelime meal karşılaştırma not',
-  },
-  {
-    id: 'tajweed_fonts_secavend',
-    title: 'Renkli Tecvit, 9 Arapça Hat ve Secâvend Vakıf İşaretleri',
-    badge: 'Tipografi & Kıraat',
-    summary:
-      'Ayarlar penceresinden okuma zevkinize göre 9 Arapça hattı (Osmanî Hafs, Amiri, Scheherazade, IndoPak vb.) ve renkli tecvit vurgusunu açıp kapatabilirsiniz.',
-    bullets: [
-      'مـ (Vakf-ı Lâzım): Durulması gereken yer; geçilirse anlam bozulabilir.',
-      'ط (Vakf-ı Mutlak) ve ج (Vakf-ı Câiz): Durmak daha uygundur veya durmak/geçmek eşittir.',
-      'قلى (Durmak evlâ) · صلى (Geçmek evlâ) · لا (Durulmaz, nefes kesilirse geriden alınır) · ۛ (Muânaka: İki noktadan yalnızca birinde durulur).',
-    ],
-    keywords: 'tecvit renkli hat font osmani secavend vakıf durak mim tı cim kıla sıla la muanaka',
-  },
-  {
-    id: 'study_pool',
-    title: 'Aktif Çalışma Havuzu Nasıl Çalışır?',
-    badge: 'Kişiselleştirme',
-    summary:
-      'Platform ilk açılışta odaklanmayı kolaylaştırmak için kısa namaz sureleri ve temel surelerden oluşan önerilen bir başlangıç havuzuyla gelir.',
-    bullets: [
-      'Çalışma havuzu; Ana Sayfa "Havuzdan Bir Ayet" kartını, Sınav Merkezi varsayılan soru kapsamını ve Eğitsel Oyunlar sure seçimini belirler.',
-      'Sol menüdeki "Havuzu Yönet" veya "Tüm Kur’an’a Genişlet (114 Sure)" butonuyla istediğiniz sureleri ya da cüzleri dilediğiniz an havuza ekleyip çıkarabilirsiniz.',
-      'Okuma ekranında ise havuzdan bağımsız olarak 114 sure ve 604 sayfanın tamamına her zaman doğrudan erişebilirsiniz.',
-    ],
-    keywords: 'havuz aktif çalışma havuzu 114 sure genişlet başlangıç cüz filtre',
-  },
-  {
     id: 'a4_exam_pdf',
-    title: 'A4 Yazılı Sınav Kağıdı ve PDF Çıktısı Alma',
-    badge: 'Öğretmen Aracı',
+    category: 'fihrist_exam',
+    categoryLabel: 'Fihrist & Sınav',
+    title: 'A4 Yazılı Sınav Kağıdı & 7 Eğitsel Oyun',
     summary:
-      'Sınav Merkezi içinde yer alan "A4 Sınav Hazırla" bölümüyle kurum, ders ve tarih bilgili profesyonel sınav kağıtları oluşturabilirsiniz.',
+      'Kurum, ders ve tarih bilgili cevap anahtarlı A4 yazılı kağıtları hazırlayın veya sınıf içi 7 eğitsel oyun oynayın.',
     bullets: [
-      'Sureleri, zorluk derecesini, soru sayısını ve cevap anahtarı seçeneğini belirleyin; sistem A4 kağıt ölçüsüne uyumlu iki sütunlu baskı sayfası hazırlar.',
-      '"Yazdır / PDF Kaydet" butonuna tıkladıktan sonra açılan tarayıcı yazdırma penceresinde hedef yazıcı olarak "PDF olarak kaydet" seçeneğini seçerek dijital dosya elde edebilirsiniz.',
+      {
+        lead: 'İki Sütunlu A4 Baskı:',
+        text: 'Sure, zorluk ve soru sayısını seçin; tarayıcı yazdırma ekranından "PDF olarak kaydet" ile dijital sınav kâğıdı oluşturun.',
+      },
+      {
+        lead: 'Tek / 2 Oyuncu Yarışmaları:',
+        text: 'Akıllı tahtada veya mobilde sure aileleri, ayet eşleştirme ve hızlı bilgi yarışmalarıyla dersi etkileşimli hâle getirin.',
+      },
     ],
-    keywords: 'a4 sınav yazılı kağıt pdf kaydet yazdır öğretmen cevap anahtarı baskı',
+    keywords: 'a4 sınav yazılı kağıt pdf kaydet yazdır öğretmen cevap anahtarı baskı 7 oyun 2 oyuncu',
+    ctaLabel: 'Sınav Merkezini Aç',
+    actionId: 'open_exam',
   },
 ];
 
@@ -248,10 +391,20 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     id: 'global',
     title: 'Genel Kısayollar',
     items: [
-      { keys: ['Ctrl', 'K'], label: 'Hızlı Arama (Sure, ayet no, 27 mealde metin ara)' },
-      { keys: ['Esc'], label: 'Açık pencereyi, çekmeceyi veya rehberi kapat' },
+      { keys: ['Ctrl', 'K'], label: 'Hızlı Arama (Sure, ayet no, 27 meal ve notlarda ara)' },
+      { keys: ['Esc'], label: 'Açık pencereyi, çekmeceyi veya sunum modunu kapat' },
     ],
     keywords: 'genel kısayol ctrl k arama esc kapat',
+  },
+  {
+    id: 'reader_presentation',
+    title: 'Okuma & Sunum Modu',
+    items: [
+      { keys: ['←', '→'], label: 'Mushaf, kitap ve Sunum Modunda ayet/sayfa gezinme' },
+      { keys: ['Space'], label: 'Sunum Modunda tilaveti oynat / duraklat' },
+      { keys: ['F'], label: 'Sunum Modunda tam ekranı aç / kapat (Akıllı Tahta)' },
+    ],
+    keywords: 'okuma sunum akıllı tahta tam ekran sayfa space f ok tuşları',
   },
   {
     id: 'zen_memorize',
@@ -274,15 +427,6 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
     keywords: 'sınav soru şık 1 2 3 4 enter ok tuşları',
   },
-  {
-    id: 'reader_presentation',
-    title: 'Okuma & Sunum',
-    items: [
-      { keys: ['←', '→'], label: 'Mushaf ve kitap görünümünde sayfa / sure gezinme' },
-      { keys: ['F11'], label: 'Tarayıcı tam ekran sunum modu (Akıllı Tahta)' },
-    ],
-    keywords: 'okuma sunum akıllı tahta tam ekran sayfa',
-  },
 ];
 
 interface DeepLinkExample {
@@ -303,7 +447,7 @@ const DEEP_LINK_EXAMPLES: DeepLinkExample[] = [
     id: 'sayfaya_link',
     label: 'Belirli Bir Mushaf Sayfası',
     url: 'https://kuran.muallimun.net/?p=42',
-    description: '42. sayfayı doğrudan Mushaf görünümünde açar.',
+    description: '42. sayfayı doğrudan 604 sayfa Diyanet Mushafı görünümünde açar.',
   },
   {
     id: 'cuze_link',
@@ -327,6 +471,27 @@ function normalizeForSearch(text: string): string {
     .replace(/û/g, 'u');
 }
 
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export const UserGuideModal: React.FC = () => {
   const {
     isUserGuideOpen,
@@ -343,11 +508,30 @@ export const UserGuideModal: React.FC = () => {
   } = useAppStore();
 
   const [activeTab, setLocalTab] = useState<UserGuideTabId>(userGuideTab);
+  const [moduleCategory, setModuleCategory] = useState<ModuleCategoryId>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedUrlId, setCopiedUrlId] = useState<string | null>(null);
+  const [shareToast, setShareToast] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const timersRef = useRef<number[]>([]);
 
   useBackButtonGuard('user_guide_modal', isUserGuideOpen, closeUserGuide);
+
+  const scheduleTimer = useCallback((fn: () => void, ms: number) => {
+    const id = window.setTimeout(fn, ms);
+    timersRef.current.push(id);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      for (const id of timersRef.current) {
+        window.clearTimeout(id);
+      }
+      timersRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (isUserGuideOpen) {
@@ -355,6 +539,8 @@ export const UserGuideModal: React.FC = () => {
     } else {
       setSearchQuery('');
       setCopiedUrlId(null);
+      setShareToast(null);
+      setLinkCopied(false);
     }
   }, [isUserGuideOpen, userGuideTab]);
 
@@ -385,7 +571,11 @@ export const UserGuideModal: React.FC = () => {
     (actionId: ModuleTipActionId) => {
       sfxService.play('click');
       closeUserGuide();
-      if (actionId === 'classical_hifz') {
+      if (actionId === 'open_reader') {
+        setActiveTab('reader');
+      } else if (actionId === 'open_exam') {
+        setActiveTab('exam');
+      } else if (actionId === 'classical_hifz') {
         navigateToMemorizeUnit(undefined, false, 'classical');
       } else if (actionId === 'hatim_planner') {
         openHatimModal();
@@ -398,29 +588,53 @@ export const UserGuideModal: React.FC = () => {
     [closeUserGuide, navigateToFihrist, navigateToMemorizeUnit, openHatimModal, setActiveTab],
   );
 
-  const handleCopyDeepLink = useCallback(async (id: string, url: string) => {
-    sfxService.play('click');
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = url;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
+  const handleCopyDeepLink = useCallback(
+    async (id: string, url: string) => {
+      sfxService.play('click');
+      const ok = await copyTextToClipboard(url);
+      if (ok) {
+        setCopiedUrlId(id);
+        scheduleTimer(() => {
+          setCopiedUrlId((prev) => (prev === id ? null : prev));
+        }, 2000);
       }
-      setCopiedUrlId(id);
-      window.setTimeout(() => {
-        setCopiedUrlId((prev) => (prev === id ? null : prev));
-      }, 2000);
-    } catch {
-      // Kopyalama desteklenmiyorsa sessiz geç
+    },
+    [scheduleTimer],
+  );
+
+  const handleCopyAppLink = useCallback(async () => {
+    sfxService.play('click');
+    const ok = await copyTextToClipboard(APP_SHARE_URL);
+    if (ok) {
+      setLinkCopied(true);
+      scheduleTimer(() => setLinkCopied(false), 2000);
     }
-  }, []);
+  }, [scheduleTimer]);
+
+  const handleNativeOrCopyShare = useCallback(async () => {
+    sfxService.play('click');
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: APP_SHARE_TITLE,
+          text: APP_SHARE_SHORT_TEXT,
+          url: APP_SHARE_URL,
+        });
+        return;
+      } catch (err) {
+        const errName = err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
+        if (errName === 'AbortError') {
+          return;
+        }
+        // Desteklenmeyen/reddedilen ortamda pano yedeğine düş
+      }
+    }
+    const ok = await copyTextToClipboard(APP_SHARE_MESSAGE);
+    if (ok) {
+      setShareToast('Paylaşım bağlantısı kopyalandı');
+      scheduleTimer(() => setShareToast(null), 2600);
+    }
+  }, [scheduleTimer]);
 
   const normalizedQuery = useMemo(() => normalizeForSearch(searchQuery.trim()), [searchQuery]);
   const isSearching = normalizedQuery.length > 0;
@@ -435,13 +649,16 @@ export const UserGuideModal: React.FC = () => {
   }, [isSearching, normalizedQuery]);
 
   const filteredModules = useMemo(() => {
-    if (!isSearching) return MODULE_TIPS;
-    return MODULE_TIPS.filter((item) =>
-      normalizeForSearch(
-        `${item.title} ${item.badge} ${item.summary} ${item.bullets.join(' ')} ${item.keywords}`,
-      ).includes(normalizedQuery),
-    );
-  }, [isSearching, normalizedQuery]);
+    if (isSearching) {
+      return MODULE_TIPS.filter((item) =>
+        normalizeForSearch(
+          `${item.title} ${item.categoryLabel} ${item.summary} ${item.bullets.map((b) => `${b.lead} ${b.text}`).join(' ')} ${item.keywords}`,
+        ).includes(normalizedQuery),
+      );
+    }
+    if (moduleCategory === 'all') return MODULE_TIPS;
+    return MODULE_TIPS.filter((item) => item.category === moduleCategory);
+  }, [isSearching, moduleCategory, normalizedQuery]);
 
   const filteredShortcuts = useMemo(() => {
     if (!isSearching) return SHORTCUT_GROUPS;
@@ -455,16 +672,23 @@ export const UserGuideModal: React.FC = () => {
   const filteredDeepLinks = useMemo(() => {
     if (!isSearching) return DEEP_LINK_EXAMPLES;
     return DEEP_LINK_EXAMPLES.filter((item) =>
-      normalizeForSearch(`${item.label} ${item.url} ${item.description} link url bağla paylaş`).includes(
-        normalizedQuery,
-      ),
+      normalizeForSearch(
+        `${item.label} ${item.url} ${item.description} link url bağla paylaş`,
+      ).includes(normalizedQuery),
     );
   }, [isSearching, normalizedQuery]);
 
   const matchesOfflineBackup = useMemo(() => {
     if (!isSearching) return false;
     return normalizeForSearch(
-      'çevrimdışı offline paket indir önbellek pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle kaynaklar atıf telif bilgilendirme ticari değil',
+      'çevrimdışı offline paket indir önbellek internet tilavet pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle kaynaklar atıf telif bilgilendirme ticari değil',
+    ).includes(normalizedQuery);
+  }, [isSearching, normalizedQuery]);
+
+  const matchesShareCard = useMemo(() => {
+    if (!isSearching) return false;
+    return normalizeForSearch(
+      'paylaş davet tavsiye et arkadaş öğrenci whatsapp telegram kopyala link kuran.muallimun.net hayır',
     ).includes(normalizedQuery);
   }, [isSearching, normalizedQuery]);
 
@@ -473,9 +697,149 @@ export const UserGuideModal: React.FC = () => {
     filteredModules.length +
     filteredShortcuts.length +
     filteredDeepLinks.length +
-    (matchesOfflineBackup ? 1 : 0);
+    (matchesOfflineBackup ? 1 : 0) +
+    (matchesShareCard ? 1 : 0);
 
   if (!isUserGuideOpen) return null;
+
+  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(APP_SHARE_MESSAGE)}`;
+  const telegramHref = `https://t.me/share/url?url=${encodeURIComponent(APP_SHARE_URL)}&text=${encodeURIComponent(APP_SHARE_SHORT_TEXT)}`;
+
+  const renderAppShareCard = () => (
+    <div
+      className="rounded-2xl border p-4 sm:p-5 space-y-3.5 relative overflow-hidden"
+      style={{
+        background:
+          'linear-gradient(135deg, var(--brand-primary-soft) 0%, var(--bg-surface-soft) 55%, var(--brand-accent-soft) 100%)',
+        borderColor: 'var(--border-strong)',
+      }}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3.5">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div
+            className="w-11 h-11 rounded-xl p-0.5 shrink-0 shadow-sm flex items-center justify-center"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            <BrandMark className="w-10 h-10" />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <h3
+              className="text-sm sm:text-[15px] font-extrabold tracking-tight leading-snug"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Bu Hayra Ortak Olun · Platformu Paylaşın
+            </h3>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Ücretsiz ve reklamsız Kur&apos;an, 27 meal/tefsir, ezber ve sınav platformunu
+              dostlarınız, öğrencileriniz veya çalışma gruplarınızla tek dokunuşla paylaşabilirsiniz.
+            </p>
+            <div className="pt-0.5 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void handleCopyAppLink()}
+                title="Bağlantıyı kopyalamak için dokunun"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11.5px] font-mono font-bold transition-colors cursor-pointer hover:opacity-90 touch-manipulation"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: linkCopied ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                  color: 'var(--brand-primary-text)',
+                }}
+              >
+                <Link2 className="w-3.5 h-3.5 shrink-0" />
+                <span>kuran.muallimun.net</span>
+                {linkCopied ? (
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                ) : (
+                  <Copy className="w-3 h-3 shrink-0 opacity-70" />
+                )}
+              </button>
+              {shareToast && (
+                <span
+                  role="status"
+                  className="text-[11.5px] font-extrabold inline-flex items-center gap-1"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>{shareToast}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 Pratik Paylaşım Seçeneği */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-0.5">
+        <button
+          type="button"
+          onClick={() => void handleNativeOrCopyShare()}
+          className="min-h-[40px] px-3 py-2 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer transition-opacity hover:opacity-95 shadow-sm whitespace-nowrap touch-manipulation"
+          style={{ backgroundColor: 'var(--brand-primary)' }}
+        >
+          <Share2 className="w-3.5 h-3.5 shrink-0" />
+          <span>Paylaş</span>
+        </button>
+
+        <a
+          href={whatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => sfxService.play('click')}
+          className="min-h-[40px] px-3 py-2 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 whitespace-nowrap touch-manipulation"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderColor: 'var(--border-strong)',
+            color: 'var(--text-primary)',
+          }}
+        >
+          <MessageCircle className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span>WhatsApp</span>
+        </a>
+
+        <a
+          href={telegramHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => sfxService.play('click')}
+          className="min-h-[40px] px-3 py-2 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 whitespace-nowrap touch-manipulation"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderColor: 'var(--border-strong)',
+            color: 'var(--text-primary)',
+          }}
+        >
+          <Send className="w-3.5 h-3.5 shrink-0 text-sky-600 dark:text-sky-400" />
+          <span>Telegram</span>
+        </a>
+
+        <button
+          type="button"
+          onClick={() => void handleCopyAppLink()}
+          className="min-h-[40px] px-3 py-2 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 whitespace-nowrap touch-manipulation"
+          style={{
+            backgroundColor: linkCopied ? 'var(--brand-primary-soft)' : 'var(--bg-surface)',
+            borderColor: linkCopied ? 'var(--brand-primary)' : 'var(--border-strong)',
+            color: linkCopied ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+          }}
+        >
+          {linkCopied ? (
+            <>
+              <Check className="w-3.5 h-3.5 shrink-0" />
+              <span>Kopyalandı ✓</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5 shrink-0" />
+              <span>Linki Kopyala</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -524,7 +888,7 @@ export const UserGuideModal: React.FC = () => {
                 Muallimun Kullanım Kılavuzu
               </h2>
               <p className="hidden sm:block text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                Okuma, ezber, araştırma, sınav, yedekleme ve çevrimdışı kullanım rehberi
+                604 sayfa Diyanet Mushafı, 27 meal/tefsir, sunum, ezber, sınav ve paylaşım rehberi
               </p>
             </div>
           </div>
@@ -562,7 +926,7 @@ export const UserGuideModal: React.FC = () => {
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rehberde ara (örn. tecvit, ezber, A4 sınav, yedek, çevrimdışı)..."
+              placeholder="Rehberde ara (örn. sunum, tecvit, ezber, A4 sınav, paylaş, çevrimdışı)..."
               aria-label="Kullanım kılavuzunda ara"
               className="w-full min-h-[42px] pl-9 pr-9 rounded-xl border text-base sm:text-sm font-medium outline-none transition-colors focus:border-teal-600"
               style={{
@@ -605,7 +969,7 @@ export const UserGuideModal: React.FC = () => {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => handleTabSelect(tab.id)}
-                    className="min-h-[40px] px-2.5 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer touch-manipulation"
+                    className="min-h-[40px] px-2.5 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap touch-manipulation"
                     style={{
                       backgroundColor: isActive
                         ? 'var(--brand-primary-soft)'
@@ -652,7 +1016,8 @@ export const UserGuideModal: React.FC = () => {
             >
               <p className="text-sm font-bold">Aramanızla eşleşen rehber maddesi bulunamadı.</p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Örnek aramalar: tecvit, secâvend, ezber, A4 sınav, çevrimdışı, yedek, kısayol.
+                Örnek aramalar: sunum, tecvit, şeyh hamdullah, ezber, A4 sınav, paylaş, çevrimdışı,
+                kısayol.
               </p>
             </div>
           )}
@@ -661,85 +1026,123 @@ export const UserGuideModal: React.FC = () => {
               SEKME 1: HIZLI BAŞLANGIÇ
               ============================================================== */}
           {((!isSearching && activeTab === 'quickstart') ||
-            (isSearching && filteredQuickStart.length > 0)) && (
-            <section className="space-y-3">
+            (isSearching && (filteredQuickStart.length > 0 || matchesShareCard))) && (
+            <section className="space-y-4">
+              {/* 3 Adımda Nasıl Başlarım? Şeridi */}
               {!isSearching && (
                 <div
-                  className="p-3.5 rounded-2xl border flex items-start gap-2.5"
+                  className="rounded-2xl border p-3.5 sm:p-4 space-y-3"
                   style={{
-                    backgroundColor: 'var(--brand-primary-soft)',
+                    backgroundColor: 'var(--bg-surface-soft)',
                     borderColor: 'var(--border-subtle)',
                   }}
                 >
-                  <Sparkles
-                    className="w-4 h-4 shrink-0 mt-0.5"
-                    style={{ color: 'var(--brand-primary-text)' }}
-                  />
-                  <p className="text-xs sm:text-sm leading-relaxed">
-                    Çalışma hedefinize uygun yolu seçerek doğrudan ilgili modüle geçebilirsiniz. Tüm
-                    ilerlemeniz ve notlarınız cihazınızda güvenle saklanır.
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs sm:text-sm font-extrabold tracking-tight">
+                      3 Adımda Nasıl Başlarım?
+                    </h3>
+                    <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                      Verileriniz cihazınızda güvenle saklanır
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {QUICKSTART_STEPS.map((item) => (
+                      <div
+                        key={item.step}
+                        className="rounded-xl border p-3 flex items-start gap-2.5"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          borderColor: 'var(--border-subtle)',
+                        }}
+                      >
+                        <span
+                          className="w-6 h-6 rounded-lg text-xs font-extrabold tabular-nums flex items-center justify-center shrink-0"
+                          style={{
+                            backgroundColor: 'var(--brand-primary-soft)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          {item.step}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-extrabold leading-snug">{item.title}</p>
+                          <p
+                            className="text-[11.5px] leading-snug mt-0.5"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            {item.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {filteredQuickStart.map((route) => {
-                  const Icon = route.icon;
-                  return (
-                    <div
-                      key={route.id}
-                      className="rounded-2xl border p-4 flex flex-col justify-between gap-3"
-                      style={{
-                        backgroundColor: 'var(--bg-surface-soft)',
-                        borderColor: 'var(--border-subtle)',
-                      }}
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2.5">
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                            style={{
-                              backgroundColor: 'var(--brand-primary-soft)',
-                              color: 'var(--brand-primary-text)',
-                            }}
-                          >
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="text-sm font-extrabold leading-snug">{route.title}</h3>
-                            <p
-                              className="text-[11px] font-semibold mt-0.5"
-                              style={{ color: 'var(--brand-primary-text)' }}
-                            >
-                              {route.audience}
-                            </p>
-                          </div>
-                        </div>
-                        <p
-                          className="text-xs leading-relaxed"
-                          style={{ color: 'var(--text-secondary)' }}
-                        >
-                          {route.description}
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleGoToModule(route.targetTab)}
-                        className="w-full min-h-[40px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 touch-manipulation"
+              {/* 4 Hedef Kullanıcı Rotası */}
+              {filteredQuickStart.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {filteredQuickStart.map((route) => {
+                    const Icon = route.icon;
+                    return (
+                      <div
+                        key={route.id}
+                        className="rounded-2xl border p-4 flex flex-col justify-between gap-3"
                         style={{
-                          backgroundColor: 'var(--bg-surface)',
-                          borderColor: 'var(--brand-primary)',
-                          color: 'var(--brand-primary-text)',
+                          backgroundColor: 'var(--bg-surface-soft)',
+                          borderColor: 'var(--border-subtle)',
                         }}
                       >
-                        <span>{route.ctaLabel}</span>
-                        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2.5">
+                            <div
+                              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                              style={{
+                                backgroundColor: 'var(--brand-primary-soft)',
+                                color: 'var(--brand-primary-text)',
+                              }}
+                            >
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-extrabold leading-snug">{route.title}</h3>
+                              <p
+                                className="text-[11px] font-semibold mt-0.5"
+                                style={{ color: 'var(--brand-primary-text)' }}
+                              >
+                                {route.audience}
+                              </p>
+                            </div>
+                          </div>
+                          <p
+                            className="text-xs leading-relaxed"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            {route.description}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleGoToModule(route.targetTab)}
+                          className="w-full min-h-[40px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 whitespace-nowrap touch-manipulation"
+                          style={{
+                            backgroundColor: 'var(--bg-surface)',
+                            borderColor: 'var(--brand-primary)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          <span>{route.ctaLabel}</span>
+                          <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Şık Uygulamayı Paylaş & Tavsiye Et Kartı */}
+              {(!isSearching || matchesShareCard) && renderAppShareCard()}
             </section>
           )}
 
@@ -749,60 +1152,104 @@ export const UserGuideModal: React.FC = () => {
           {((!isSearching && activeTab === 'modules') ||
             (isSearching && filteredModules.length > 0)) && (
             <section className="space-y-3">
-              {filteredModules.map((tip) => (
-                <article
-                  key={tip.id}
-                  className="rounded-2xl border p-4 space-y-2.5"
-                  style={{
-                    backgroundColor: 'var(--bg-surface-soft)',
-                    borderColor: 'var(--border-subtle)',
-                  }}
+              {/* Kategori Filtre Çipleri */}
+              {!isSearching && (
+                <div
+                  className="flex flex-wrap items-center gap-1.5"
+                  role="group"
+                  aria-label="Modül kategorisi filtresi"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-sm font-extrabold">{tip.title}</h3>
-                    <span
-                      className="px-2 py-0.5 rounded-full text-[11px] font-bold"
-                      style={{
-                        backgroundColor: 'var(--brand-primary-soft)',
-                        color: 'var(--brand-primary-text)',
-                      }}
-                    >
-                      {tip.badge}
-                    </span>
-                  </div>
-                  <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {tip.summary}
-                  </p>
-                  <ul className="space-y-1.5 text-xs leading-relaxed">
-                    {tip.bullets.map((bullet, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span
-                          className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
-                          style={{ backgroundColor: 'var(--brand-primary)' }}
-                        />
-                        <span style={{ color: 'var(--text-primary)' }}>{bullet}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {tip.ctaLabel && tip.actionId && (
-                    <div className="pt-1">
+                  {MODULE_CATEGORIES.map((cat) => {
+                    const isActive = moduleCategory === cat.id;
+                    return (
                       <button
+                        key={cat.id}
                         type="button"
-                        onClick={() => handleModuleTipAction(tip.actionId!)}
-                        className="min-h-[38px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 touch-manipulation"
+                        aria-pressed={isActive}
+                        onClick={() => {
+                          sfxService.play('click');
+                          setModuleCategory(cat.id);
+                        }}
+                        className="min-h-[36px] px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer whitespace-nowrap touch-manipulation"
                         style={{
-                          backgroundColor: 'var(--bg-surface)',
-                          borderColor: 'var(--brand-primary)',
-                          color: 'var(--brand-primary-text)',
+                          backgroundColor: isActive
+                            ? 'var(--brand-primary)'
+                            : 'var(--bg-surface-soft)',
+                          borderColor: isActive ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                          color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
                         }}
                       >
-                        <span>{tip.ctaLabel}</span>
-                        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                        {cat.label}
                       </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {filteredModules.map((tip) => (
+                  <article
+                    key={tip.id}
+                    className="rounded-2xl border p-4 flex flex-col justify-between gap-3"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <div className="space-y-2.5">
+                      <div className="space-y-0.5">
+                        <p
+                          className="text-[11px] font-bold"
+                          style={{ color: 'var(--brand-primary-text)' }}
+                        >
+                          {tip.categoryLabel}
+                        </p>
+                        <h3 className="text-sm font-extrabold leading-snug">{tip.title}</h3>
+                      </div>
+
+                      <p
+                        className="text-xs leading-relaxed"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        {tip.summary}
+                      </p>
+
+                      <ul className="space-y-1.5 text-xs leading-relaxed">
+                        {tip.bullets.map((bullet, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span
+                              className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0"
+                              style={{ backgroundColor: 'var(--brand-primary)' }}
+                            />
+                            <span style={{ color: 'var(--text-secondary)' }}>
+                              <strong style={{ color: 'var(--text-primary)' }}>{bullet.lead}</strong>{' '}
+                              {bullet.text}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  )}
-                </article>
-              ))}
+
+                    {tip.ctaLabel && tip.actionId && (
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleModuleTipAction(tip.actionId!)}
+                          className="min-h-[38px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors hover:opacity-90 whitespace-nowrap touch-manipulation"
+                          style={{
+                            backgroundColor: 'var(--bg-surface)',
+                            borderColor: 'var(--brand-primary)',
+                            color: 'var(--brand-primary-text)',
+                          }}
+                        >
+                          <span>{tip.ctaLabel}</span>
+                          <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
             </section>
           )}
 
@@ -812,6 +1259,58 @@ export const UserGuideModal: React.FC = () => {
           {((!isSearching && activeTab === 'offline_backup') ||
             (isSearching && matchesOfflineBackup)) && (
             <section className="space-y-3.5">
+              {/* Net Çevrimdışı / Çevrimiçi Ayrım Bilgi Kutusu */}
+              <div
+                className="rounded-2xl border p-4 space-y-2.5"
+                style={{
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  borderColor: 'var(--border-strong)',
+                }}
+              >
+                <p
+                  className="text-xs sm:text-sm font-extrabold leading-snug"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  Metin, meal ve tecvit çevrimdışı çalışır; sesli tilavet için internet bağlantısı
+                  gerekir.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div
+                    className="rounded-xl border px-3 py-2 flex items-start gap-2"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <WifiOff
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    />
+                    <span style={{ color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>İnternetsiz:</strong> 604
+                      sayfa Diyanet Mushafı, seçili mealler, renkli tecvit, fihrist, notlar ve sınav
+                      soruları.
+                    </span>
+                  </div>
+                  <div
+                    className="rounded-xl border px-3 py-2 flex items-start gap-2"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <Wifi
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                      style={{ color: 'var(--brand-accent-text)' }}
+                    />
+                    <span style={{ color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>İnternetle:</strong> 28
+                      kurrâ sesli tilaveti, Türkçe meal sesi ve tek kelime telaffuz kayıtları.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Tek Tıkla Çevrimdışı Paketleyici */}
               <OfflinePackCard />
 
@@ -830,14 +1329,21 @@ export const UserGuideModal: React.FC = () => {
                   />
                   <h3 className="text-sm font-extrabold">Uygulama Gibi Kurulum (Ana Ekrana Ekle)</h3>
                 </div>
-                <ul className="space-y-1.5 text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <ul
+                  className="space-y-1.5 text-xs leading-relaxed"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   <li>
-                    <strong style={{ color: 'var(--text-primary)' }}>Android &amp; Masaüstü (Chrome / Edge):</strong>{' '}
-                    Sol menüdeki veya Ayarlar içindeki <em>&ldquo;Uygulamayı Kur&rdquo;</em> butonunu
-                    ya da adres çubuğundaki yükleme simgesini kullanabilirsiniz.
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      Android &amp; Masaüstü (Chrome / Edge):
+                    </strong>{' '}
+                    Sol menüdeki veya Ayarlar içindeki <em>&ldquo;Uygulamayı Kur&rdquo;</em>{' '}
+                    butonunu ya da adres çubuğundaki yükleme simgesini kullanabilirsiniz.
                   </li>
                   <li>
-                    <strong style={{ color: 'var(--text-primary)' }}>iPhone &amp; iPad (Safari):</strong>{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      iPhone &amp; iPad (Safari):
+                    </strong>{' '}
                     Alt araç çubuğundaki <em>Paylaş</em> simgesine dokunun ve listeden{' '}
                     <em>&ldquo;Ana Ekrana Ekle&rdquo;</em> seçeneğini onaylayın.
                   </li>
@@ -865,9 +1371,8 @@ export const UserGuideModal: React.FC = () => {
                   Tüm çalışma verileriniz (ayraçlar, 30 Cüz Hatim planı, kişisel ayet notları,
                   araştırma defterleri, ezber havuzu, Klasik 20 Tur Ham–Has hafızlık kaydı, Çalışma
                   Masam tercihleri, sınav/oyun ilerlemesi ve ayarlar) yalnızca kendi cihazınızda
-                  saklanır. Farklı bir cihaza geçerken veya düzenli güvenlik yedeği almak için
-                  Ayarlar penceresinden tek tıkla <code>.json</code> yedeği indirebilir, dilediğiniz
-                  zaman iki aşamalı güvenli onayla geri yükleyebilirsiniz.
+                  saklanır. Ayarlar penceresinden tek tıkla <code>.json</code> yedeği indirebilir,
+                  dilediğiniz zaman iki aşamalı güvenli onayla geri yükleyebilirsiniz.
                 </p>
                 <div>
                   <button
@@ -877,7 +1382,7 @@ export const UserGuideModal: React.FC = () => {
                       closeUserGuide();
                       openSettingsModal();
                     }}
-                    className="min-h-[40px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 touch-manipulation"
+                    className="min-h-[40px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
                       borderColor: 'var(--brand-primary)',
@@ -907,10 +1412,10 @@ export const UserGuideModal: React.FC = () => {
                 </div>
                 <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   Muallimun Kur&apos;an &amp; Meal; ticari bir amaç gütmeksizin eğitim, okuma,
-                  hafızlık ve ilmî araştırma amacıyla hazırlanmıştır. Uygulamada sunulan Mushaf
-                  metni, 27 meal ve tefsir kataloğu ile 28 okuyucuya ait sesli tilavet arşivi,
-                  ilgili müelliflere, kurumlara ve açık ilmî kaynaklara atıfla kullanıcıların
-                  istifadesine sunulmaktadır.
+                  hafızlık ve ilmî araştırma amacıyla hazırlanmıştır. Uygulamada sunulan 604 sayfa
+                  Diyanet Mushafı düzeni, 27 meal ve tefsir kataloğu ile 28 okuyucuya ait sesli
+                  tilavet arşivi, ilgili müelliflere, kurumlara ve açık ilmî kaynaklara atıfla
+                  kullanıcıların istifadesine sunulmaktadır.
                 </p>
               </div>
             </section>
@@ -983,7 +1488,9 @@ export const UserGuideModal: React.FC = () => {
                       style={{ color: 'var(--brand-primary-text)' }}
                     />
                     <div>
-                      <h3 className="text-sm font-extrabold">Doğrudan Bağlantı (Deep-Link) Adresleri</h3>
+                      <h3 className="text-sm font-extrabold">
+                        Doğrudan Bağlantı (Deep-Link) Adresleri
+                      </h3>
                       <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                         Öğrencilerle veya çalışma gruplarınızla belirli bir ayet, sayfa, cüz ya da
                         modül bağlantısını doğrudan paylaşabilirsiniz.
@@ -1021,7 +1528,7 @@ export const UserGuideModal: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => void handleCopyDeepLink(example.id, example.url)}
-                            className="min-h-[36px] px-3 rounded-lg border text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 shrink-0 cursor-pointer hover:opacity-90"
+                            className="min-h-[36px] px-3 rounded-lg border text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 shrink-0 cursor-pointer hover:opacity-90 whitespace-nowrap"
                             style={{
                               backgroundColor: isCopied
                                 ? 'var(--brand-primary-soft)'
@@ -1056,7 +1563,7 @@ export const UserGuideModal: React.FC = () => {
           )}
         </div>
 
-        {/* Alt Çubuk */}
+        {/* Sabit Alt Çubuk — Her Sekmeden Hızlı Paylaşım & Geri Bildirim */}
         <div
           className="px-4 py-3 sm:px-5 pb-[max(0.85rem,env(safe-area-inset-bottom,0px))] border-t flex flex-wrap items-center justify-between gap-2 shrink-0"
           style={{
@@ -1071,7 +1578,33 @@ export const UserGuideModal: React.FC = () => {
             <FileText className="w-3.5 h-3.5 shrink-0" />
             <span>kuran.muallimun.net · Kullanım Rehberi</span>
           </span>
-          <div className="flex flex-wrap items-center gap-2">
+
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => void handleNativeOrCopyShare()}
+              className="min-h-[38px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation"
+              style={{
+                backgroundColor: shareToast
+                  ? 'var(--brand-primary-soft)'
+                  : 'var(--bg-surface)',
+                borderColor: 'var(--brand-primary)',
+                color: 'var(--brand-primary-text)',
+              }}
+            >
+              {shareToast ? (
+                <>
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>Bağlantı Kopyalandı</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Uygulamayı Paylaş</span>
+                </>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -1079,16 +1612,20 @@ export const UserGuideModal: React.FC = () => {
                 closeUserGuide();
                 openIntroSplash();
               }}
-              className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 touch-manipulation"
+              className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
                 color: 'var(--text-secondary)',
               }}
             >
-              <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-accent-text)' }} />
-              <span>Platform Tanıtımı</span>
+              <Sparkles
+                className="w-3.5 h-3.5 shrink-0"
+                style={{ color: 'var(--brand-accent-text)' }}
+              />
+              <span>Tanıtım</span>
             </button>
+
             <button
               type="button"
               onClick={() => {
@@ -1096,23 +1633,28 @@ export const UserGuideModal: React.FC = () => {
                 closeUserGuide();
                 openFeedbackModal();
               }}
-              className="min-h-[38px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 touch-manipulation"
+              className="min-h-[38px] px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation"
               style={{
                 backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--brand-primary)',
-                color: 'var(--brand-primary-text)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
               }}
             >
-              <MessageSquareHeart className="w-3.5 h-3.5 shrink-0" />
-              <span>Görüş, Öneri veya Hata Bildir</span>
+              <MessageSquareHeart
+                className="w-3.5 h-3.5 shrink-0"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+              <span className="hidden sm:inline">Görüş / Hata Bildir</span>
+              <span className="sm:hidden">Bildir</span>
             </button>
+
             <button
               type="button"
               onClick={() => {
                 sfxService.play('click');
                 closeUserGuide();
               }}
-              className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white cursor-pointer hover:opacity-95 touch-manipulation"
+              className="min-h-[38px] px-4 rounded-xl text-xs font-extrabold text-white cursor-pointer hover:opacity-95 whitespace-nowrap touch-manipulation"
               style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               Kapat

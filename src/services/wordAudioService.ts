@@ -153,9 +153,17 @@ class WordAudioService {
     if (!Number.isInteger(surah) || surah < 1 || surah > 114) return;
     if (!Number.isInteger(ayah) || ayah < 1) return;
 
+    const key = buildWordAudioKey(surah, ayah, wordIndex1Based);
+    if (
+      this.snapshot.playingKey === key &&
+      (this.snapshot.status === 'playing' || this.snapshot.status === 'loading')
+    ) {
+      this.stop();
+      return;
+    }
+
     claimAudioFocus('word_wbw');
 
-    const key = buildWordAudioKey(surah, ayah, wordIndex1Based);
     this.sessionId += 1;
     const session = this.sessionId;
     this.clearErrorTimer();

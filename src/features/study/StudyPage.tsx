@@ -2288,9 +2288,22 @@ export const StudyPage: React.FC = () => {
                   ))}
                 </select>
                 {settings.tajweedEnabled && (
-                  <p className="text-[10px] leading-snug" style={{ color: 'var(--text-muted)' }}>
-                    Tecvit açıkken harf birleşmeleri için Uthmani OpenType hattı kullanılır.
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-0.5 text-[10.5px] leading-snug">
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      Renkli Tecvit açıkken özel tecvit hattı kullanılır.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        updateSettings({ tajweedEnabled: false });
+                      }}
+                      className="font-extrabold underline underline-offset-2 cursor-pointer whitespace-nowrap"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      Seçili Hattı Uygula (Tecviti Kapat)
+                    </button>
+                  </div>
                 )}
               </div>
             )}

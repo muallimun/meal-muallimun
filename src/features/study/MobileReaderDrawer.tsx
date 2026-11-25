@@ -928,11 +928,6 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                     <Type className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--brand-primary-text)' }} />
                     <span>Arapça Mushaf Hattı</span>
                   </label>
-                  {settings.tajweedEnabled && (
-                    <span className="text-[10px] font-bold" style={{ color: 'var(--brand-accent-text)' }}>
-                      Tecvit: Scheherazade
-                    </span>
-                  )}
                 </div>
                 <select
                   id="mobile-reader-arabic-font"
@@ -954,6 +949,24 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                     </option>
                   ))}
                 </select>
+                {settings.tajweedEnabled && (
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-0.5 text-[11px] leading-snug">
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      Renkli Tecvit açıkken özel tecvit hattı kullanılır.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sfxService.play('click');
+                        onUpdateSettings({ tajweedEnabled: false });
+                      }}
+                      className="font-extrabold underline underline-offset-2 cursor-pointer whitespace-nowrap touch-manipulation"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      Seçili Hattı Uygula (Tecviti Kapat)
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
