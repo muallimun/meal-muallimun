@@ -9,6 +9,13 @@ export type MealDisplayMode = 'single' | 'dual';
 export type PreferredMeal = 'm1' | 'm2' | 'both';
 export type ThemeMode = 'light' | 'cream' | 'dark';
 export type NavTab = 'home' | 'reader' | 'fihrist' | 'memorize' | 'exam' | 'mistakes';
+export type StartupPageOption =
+  | 'home'
+  | 'reader'
+  | 'fihrist'
+  | 'memorize'
+  | 'exam'
+  | 'presentation';
 
 export type StudyViewMode = 'mushaf' | 'cards' | 'book';
 export type ReaderContentMode = 'ar_only' | 'ar_meal' | 'meal_only';
@@ -471,6 +478,7 @@ export interface AppSettings {
   desktopCombinedLayout: DesktopCombinedLayout;
   mushafLayout: MushafLayout;
   deskPrefs: StudyDeskPrefs;
+  startupPage: StartupPageOption;
 }
 
 export interface StudyPool {

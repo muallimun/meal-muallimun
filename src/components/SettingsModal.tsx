@@ -1,17 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle,
+  BookMarked,
+  BookOpen,
   Check,
   CheckCircle2,
   ChevronRight,
   CloudDownload,
+  Compass,
   Download,
   HardDrive,
   Headphones,
+  Home,
   Info,
   Loader2,
   MessageSquareHeart,
   Monitor,
+  MonitorPlay,
   Play,
   RefreshCw,
   RotateCcw,
@@ -22,6 +27,7 @@ import {
   Sparkles,
   Square,
   Sun,
+  Trophy,
   Upload,
   Volume2,
   VolumeX,
@@ -66,7 +72,7 @@ import {
 } from '../store/useAppStore';
 import { setAllPersistencePaused } from '../utils/storageQuotaBus';
 import type { MemorizationBackupPayload } from '../types/memorization';
-import type { ExamSessionState, ThemeMode } from '../types/quran';
+import type { ExamSessionState, StartupPageOption, ThemeMode } from '../types/quran';
 import {
   ARABIC_LINE_HEIGHT_OPTIONS,
   ARABIC_TEXT_DENSITY_OPTIONS,
@@ -276,6 +282,20 @@ const THEME_OPTIONS: {
     accent: '#2DD4BF',
     border: '#334155',
   },
+];
+
+const STARTUP_PAGE_OPTIONS: {
+  id: StartupPageOption;
+  label: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { id: 'home', label: 'Ana Sayfa', desc: 'Varsayılan', icon: Home },
+  { id: 'reader', label: 'Meal & Okuma', desc: 'Mushaf & Meal', icon: BookOpen },
+  { id: 'fihrist', label: 'Fihrist & Araştırma', desc: 'Konular & Defter', icon: Compass },
+  { id: 'memorize', label: 'Ezber Modu', desc: 'Hafızlık & Havuz', icon: BookMarked },
+  { id: 'exam', label: 'Sınav Merkezi', desc: 'Test & Oyunlar', icon: Trophy },
+  { id: 'presentation', label: 'Sunum Modu', desc: 'Tam Ekran Sahne', icon: MonitorPlay },
 ];
 
 export const SettingsModal: React.FC = () => {
@@ -1558,6 +1578,86 @@ export const SettingsModal: React.FC = () => {
                   </section>
                 );
               })()}
+
+              {/* Varsayılan Açılış Sayfası */}
+              <section className="space-y-2">
+                <h3
+                  className="text-xs font-extrabold uppercase tracking-wider"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Varsayılan Açılış Sayfası
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {STARTUP_PAGE_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const active = (settings.startupPage ?? 'home') === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => {
+                          sfxService.play('click');
+                          updateSettings({ startupPage: opt.id });
+                        }}
+                        className="relative p-2.5 sm:p-3 rounded-xl border-2 text-left transition-all cursor-pointer min-w-0"
+                        style={{
+                          backgroundColor: active
+                            ? 'var(--brand-primary-soft)'
+                            : 'var(--bg-surface-soft)',
+                          borderColor: active ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                        }}
+                      >
+                        {active && (
+                          <span
+                            className="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-4 h-4 rounded-md text-white leading-none"
+                            style={{ backgroundColor: 'var(--brand-primary)' }}
+                            aria-hidden="true"
+                          >
+                            <Check className="w-2.5 h-2.5 shrink-0" />
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2 mb-1 min-w-0">
+                          <span
+                            className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                            style={{
+                              backgroundColor: active
+                                ? 'var(--brand-primary)'
+                                : 'var(--bg-surface)',
+                              color: active ? '#FFFFFF' : 'var(--brand-primary-text)',
+                            }}
+                          >
+                            <Icon className="w-3.5 h-3.5 shrink-0" />
+                          </span>
+                          <span
+                            className="text-xs sm:text-[13px] font-extrabold truncate pr-4"
+                            style={{
+                              color: active
+                                ? 'var(--brand-primary-text)'
+                                : 'var(--text-primary)',
+                            }}
+                          >
+                            {opt.label}
+                          </span>
+                        </div>
+                        <p
+                          className="text-[10.5px] sm:text-[11px] truncate"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {opt.desc}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p
+                  className="text-[11px] leading-snug"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Uygulama her açıldığında seçtiğiniz ekran doğrudan açılır. Paylaşılan ayet veya
+                  sayfa bağlantıları her zaman önceliklidir.
+                </p>
+              </section>
 
               {/* Ekranı Açık Tut + Uygulama Ses Efektleri (SFX) + Sınav Şık Harfleri */}
               <section className="space-y-2.5">

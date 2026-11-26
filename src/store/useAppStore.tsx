@@ -76,6 +76,7 @@ import type {
   QuestionIssueReport,
   ReaderContentMode,
   RepeatCountOption,
+  StartupPageOption,
   StudyNavigationTarget,
   StudyPool,
   StudyPrefs,
@@ -137,6 +138,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   desktopCombinedLayout: 'side_by_side',
   mushafLayout: 'mushaf_meal',
   deskPrefs: { ...DEFAULT_DESK_PREFS },
+  startupPage: 'home',
 };
 
 export const DEFAULT_STUDY_POOL: StudyPool = {
@@ -272,6 +274,20 @@ function isValidRepeatCount(val: unknown): val is RepeatCountOption {
 
 function isValidQueueLoop(val: unknown): val is QueueLoopOption {
   return val === 1 || val === 2 || val === 3 || val === 5 || val === 10 || val === 'infinite';
+}
+
+function sanitizeStartupPage(val: unknown): StartupPageOption {
+  if (
+    val === 'home' ||
+    val === 'reader' ||
+    val === 'fihrist' ||
+    val === 'memorize' ||
+    val === 'exam' ||
+    val === 'presentation'
+  ) {
+    return val;
+  }
+  return 'home';
 }
 
 export function computeMushafLayout(
@@ -683,6 +699,7 @@ function hydrateState(): PersistedAppState {
       desktopCombinedLayout: DEFAULT_SETTINGS.desktopCombinedLayout,
       mushafLayout: DEFAULT_SETTINGS.mushafLayout,
       deskPrefs: sanitizeStudyDeskPrefs(rawSettings.deskPrefs),
+      startupPage: sanitizeStartupPage(rawSettings.startupPage),
     };
 
     // Tek seferlik güvenli varsayılan okuma ayarları migrasyonu (v2):
@@ -1438,7 +1455,15 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [persisted, setPersisted] = useState<PersistedAppState>(() => hydrateState());
-  const [activeTab, setActiveTabState] = useState<NavTab>('home');
+  const [activeTab, setActiveTabState] = useState<NavTab>(() => {
+    if (hasInitialDeepLinkTarget()) return 'home';
+    const pref = persisted.settings.startupPage;
+    if (pref === 'presentation') return 'reader';
+    if (pref === 'reader' || pref === 'fihrist' || pref === 'memorize' || pref === 'exam') {
+      return pref;
+    }
+    return 'home';
+  });
   const [studyNavTarget, setStudyNavTarget] = useState<StudyNavigationTarget | null>(null);
   const [examNavTarget, setExamNavTarget] = useState<ExamNavigationTarget | null>(null);
   const [fihristNavTarget, setFihristNavTarget] = useState<FihristNavigationTarget | null>(null);
@@ -1551,6 +1576,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [feedbackSeed, setFeedbackSeed] = useState<FeedbackModalSeed | null>(null);
   const initialUrlHandledRef = useRef(false);
+  const pendingStartupPresentationRef = useRef<boolean>(
+    !hasInitialDeepLinkTarget() && persisted.settings.startupPage === 'presentation',
+  );
   const [introDismissed, setIntroDismissed] = useState<boolean>(() => readIntroDismissed());
   const [isIntroOpen, setIsIntroOpen] = useState<boolean>(
     () => !readIntroDismissed() && !hasInitialDeepLinkTarget(),
@@ -1558,6 +1586,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [manifest, setManifest] = useState<ManifestData | null>(null);
   const [meta, setMeta] = useState<MetaData | null>(null);
+
+  // Varsayılan açılış 'presentation' seçiliyse meta yüklendikten ve intro kapandıktan sonra sessizce Sunum Modunu aç
+  useEffect(() => {
+    if (!pendingStartupPresentationRef.current) return;
+    if (!meta || isIntroOpen) return;
+    pendingStartupPresentationRef.current = false;
+    setActiveTabState('reader');
+    setIsPresentationOpen(true);
+  }, [meta, isIntroOpen]);
   const [questionIndex, setQuestionIndex] = useState<QuestionIndexFile | null>(null);
   const [questionIndexError, setQuestionIndexError] = useState<string | null>(null);
   const [isLoadingCore, setIsLoadingCore] = useState(true);
@@ -2587,6 +2624,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const openPresentationMode = useCallback(() => {
+    pendingStartupPresentationRef.current = false;
     sfxService.play('click');
     setActiveTabState('reader');
     setIsPresentationOpen(true);
@@ -2597,6 +2635,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const setActiveTab = useCallback((tab: NavTab) => {
+    pendingStartupPresentationRef.current = false;
     sfxService.play('click');
     if (tab === 'mistakes') {
       setExamNavTarget({ openMistakeCamp: true, nonce: Date.now() });
@@ -2608,6 +2647,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const navigateToStudy = useCallback((target: Omit<StudyNavigationTarget, 'nonce'>) => {
+    pendingStartupPresentationRef.current = false;
     sfxService.play('click');
     if (
       target.viewMode ||
@@ -2710,6 +2750,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const navigateToExam = useCallback((target?: Omit<ExamNavigationTarget, 'nonce'>) => {
+    pendingStartupPresentationRef.current = false;
     sfxService.play('click');
     setExamNavTarget({ ...(target ?? {}), nonce: Date.now() });
     setActiveTabState('exam');
@@ -2721,6 +2762,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const navigateToFihrist = useCallback((target?: Omit<FihristNavigationTarget, 'nonce'>) => {
+    pendingStartupPresentationRef.current = false;
     sfxService.play('click');
     setIsExamActive(false);
     setFihristNavTarget({ ...(target ?? {}), nonce: Date.now() });
