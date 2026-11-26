@@ -6,8 +6,10 @@ import {
   BookMarked,
   BookOpen,
   BookOpenCheck,
+  Calendar,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Flame,
   Headphones,
@@ -17,12 +19,14 @@ import {
   RefreshCw,
   Settings,
   SlidersHorizontal,
+  Sparkles,
   Star,
   StickyNote,
   Target,
   Trophy,
   X,
 } from 'lucide-react';
+import { AyahEndMarker } from '../components/AyahEndMarker';
 import { PwaInstallControl } from '../components/PwaInstallControl';
 import {
   findMealById,
@@ -60,6 +64,11 @@ import {
   resolveCurrentTurnLesson,
   TOTAL_MUSHAF_PAGES,
 } from '../utils/classicalHifzUtils';
+import {
+  getHijriOffset,
+  getIslamicCalendarSnapshot,
+  subscribeHijriOffset,
+} from '../utils/islamicCalendar';
 import {
   formatNumberTr,
   getSurahMap,
@@ -136,6 +145,7 @@ export const HomePage: React.FC = () => {
     openPoolModal,
     openBookmarksDrawer,
     openHatimModal,
+    openCalendarModal,
     openListeningDrawer,
     openVerseNoteModal,
     setSelectedVerseKey,
@@ -150,6 +160,15 @@ export const HomePage: React.FC = () => {
     () => (hatimState.activePlan ? computeHatimSummary(hatimState.activePlan) : null),
     [hatimState.activePlan],
   );
+  const hijriOffset = useSyncExternalStore(subscribeHijriOffset, getHijriOffset);
+  const calendarSnapshot = useMemo(
+    () => getIslamicCalendarSnapshot(new Date(), hijriOffset),
+    [hijriOffset],
+  );
+  const todayDailyJuz = calendarSnapshot.dailyJuz;
+  const todayDailyJuzBadge = todayDailyJuz.isCombinedFinalDay
+    ? '29–30. Cüz'
+    : `${todayDailyJuz.primaryJuz}. Cüz`;
   const personalVerseNotes = useSyncExternalStore(
     verseNotesStorage.subscribe,
     verseNotesStorage.getSnapshot,
@@ -718,22 +737,18 @@ export const HomePage: React.FC = () => {
         <p
           dir="rtl"
           lang="ar"
-          className="text-center leading-[1.95] sm:leading-[2.15] text-[18px] sm:text-[23px] break-words"
+          className="arabic-text text-center leading-[1.95] sm:leading-[2.15] text-[18px] sm:text-[23px] break-words"
           style={{
-            fontFamily: '"Scheherazade New", "Amiri Quran", serif',
             color: 'var(--text-primary)',
           }}
         >
           {verse.arabic}{' '}
-          <span
-            className="inline-block text-[0.82em] align-middle mx-0.5"
-            style={{
-              color:
-                tone === 'primary' ? 'var(--brand-primary-text)' : 'var(--brand-accent-text)',
-            }}
-          >
-            ﴿{toArabicIndicDigits(verse.ayah)}﴾
-          </span>
+          <AyahEndMarker
+            ayahNo={verse.ayah}
+            size="card"
+            theme={settings.theme}
+            isHighlighted={tone === 'accent'}
+          />
         </p>
 
         <p
@@ -786,6 +801,61 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      {/* ====================================================================
+          0a. Mobil İnce Hicrî Takvim & Günün Cüzü Şeridi (Yalnızca < lg)
+          ==================================================================== */}
+      <section aria-label="Hicrî takvim ve günün cüzü" className="lg:hidden">
+        <button
+          type="button"
+          onClick={openCalendarModal}
+          className="w-full min-h-[38px] px-3 py-1.5 rounded-xl border flex items-center justify-between gap-2 text-left transition-colors cursor-pointer active:scale-[0.995]"
+          style={{
+            backgroundColor:
+              'color-mix(in srgb, var(--brand-primary-soft) 52%, var(--bg-surface))',
+            borderColor: 'color-mix(in srgb, var(--brand-primary) 26%, var(--border-subtle))',
+          }}
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <span
+              className="text-sm leading-none shrink-0"
+              aria-hidden="true"
+              title={calendarSnapshot.moonPhase.label}
+            >
+              {calendarSnapshot.moonPhase.symbol}
+            </span>
+            <span
+              className="text-xs font-extrabold tracking-tight truncate"
+              style={{ color: 'var(--brand-primary-text)' }}
+            >
+              {calendarSnapshot.hijri.formattedTr}
+            </span>
+            {calendarSnapshot.holyDay && (
+              <Sparkles
+                className="w-3 h-3 shrink-0"
+                style={{ color: 'var(--brand-accent-text)' }}
+                aria-label={calendarSnapshot.holyDay.name}
+              />
+            )}
+          </span>
+          <span className="flex items-center gap-1 shrink-0">
+            <span
+              className="px-2 py-0.5 rounded-lg text-[11px] font-extrabold tabular-nums whitespace-nowrap border"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                color: 'var(--brand-primary-text)',
+                borderColor: 'color-mix(in srgb, var(--brand-primary) 24%, var(--border-subtle))',
+              }}
+            >
+              {todayDailyJuzBadge}
+            </span>
+            <ChevronRight
+              className="w-3.5 h-3.5 shrink-0 opacity-70"
+              style={{ color: 'var(--brand-primary-text)' }}
+            />
+          </span>
+        </button>
+      </section>
+
       {/* ====================================================================
           0. Kaldığın Yerden Devam Et — Hızlı Erişim Şeridi (İlk Bakış Alanı)
           ==================================================================== */}
@@ -1048,7 +1118,7 @@ export const HomePage: React.FC = () => {
             )}
           </div>
 
-          {/* Alt 4'lü Ferah Özet Şeridi (Orta dikey çizgisi tam %50 merkezde) */}
+          {/* Alt 4'lü Ferah ve Etkileşimli Özet Şeridi (Orta dikey çizgisi tam %50 merkezde) */}
           <div
             className="grid grid-cols-2 lg:grid-cols-4 border-t"
             style={{
@@ -1056,8 +1126,11 @@ export const HomePage: React.FC = () => {
               borderColor: 'var(--border-subtle)',
             }}
           >
-            <div
-              className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 border-r"
+            <button
+              type="button"
+              onClick={openCalendarModal}
+              title="Takvim yaprağını ve günlük cüz tavsiyesini aç"
+              className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 border-r text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
               style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
             >
               <span
@@ -1073,12 +1146,18 @@ export const HomePage: React.FC = () => {
               <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                 {formatNumberTr(gamification.streakDays)} gün
               </span>
-            </div>
+            </button>
 
             {deskPrefs.showPoolAndExamSection && gamification.solvedCount > 0 ? (
               <>
-                <div
-                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 lg:border-r"
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setActiveTab('exam');
+                  }}
+                  title="Sınav Merkezine git"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 lg:border-r text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
@@ -1094,10 +1173,16 @@ export const HomePage: React.FC = () => {
                   <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {formatNumberTr(gamification.totalXp)}
                   </span>
-                </div>
+                </button>
 
-                <div
-                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-r"
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setActiveTab('exam');
+                  }}
+                  title="Sınav Merkezine git"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-r text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
@@ -1113,9 +1198,17 @@ export const HomePage: React.FC = () => {
                   <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {formatNumberTr(gamification.solvedCount)} soru
                   </span>
-                </div>
+                </button>
 
-                <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setActiveTab('exam');
+                  }}
+                  title="Sınav başarı istatistikleri"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
+                >
                   <span
                     className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
@@ -1129,12 +1222,18 @@ export const HomePage: React.FC = () => {
                   <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {accuracyPercent !== null ? `%${accuracyPercent}` : '—'}
                   </span>
-                </div>
+                </button>
               </>
             ) : !deskPrefs.showPoolAndExamSection && gamification.solvedCount > 0 ? (
               <>
-                <div
-                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 lg:border-r"
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    setActiveTab('exam');
+                  }}
+                  title="Sınav Merkezine git"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 lg:border-r text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
@@ -1150,10 +1249,16 @@ export const HomePage: React.FC = () => {
                   <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {formatNumberTr(gamification.totalXp)}
                   </span>
-                </div>
+                </button>
 
-                <div
-                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-r"
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    openHatimModal();
+                  }}
+                  title="Hatim Planlayıcısını aç"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-r text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
@@ -1169,52 +1274,83 @@ export const HomePage: React.FC = () => {
                   <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {hatimSummary ? `%${hatimSummary.percent}` : 'Plan yok'}
                   </span>
-                </div>
+                </button>
 
-                <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    navigateToStudy({
+                      page: todayDailyJuz.startPage,
+                      viewMode: 'mushaf',
+                      ensureArabicVisible: true,
+                    });
+                  }}
+                  title={`Bugünün cüzünü Mushaf'ta aç (Sayfa ${todayDailyJuz.startPage}–${todayDailyJuz.endPage})`}
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
+                >
                   <span
                     className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
-                    <BookOpen
+                    <Calendar
                       className="w-3.5 h-3.5 shrink-0"
                       style={{ color: 'var(--brand-primary-text)' }}
                     />
-                    <span>Son Konum</span>
+                    <span>Günün Cüzü</span>
                   </span>
                   <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
-                    {lastRead ? `S.${lastRead.page}` : 'Hazır'}
+                    {todayDailyJuzBadge}
                   </span>
-                </div>
+                </button>
               </>
             ) : (
               <>
-                <div
-                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 lg:border-r"
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    navigateToStudy({
+                      page: todayDailyJuz.startPage,
+                      viewMode: 'mushaf',
+                      ensureArabicVisible: true,
+                    });
+                  }}
+                  title={`Bugünün cüzünü Mushaf'ta aç (Sayfa ${todayDailyJuz.startPage}–${todayDailyJuz.endPage})`}
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 lg:border-r text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
                     className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
-                    <BookOpen
+                    <Calendar
                       className="w-3.5 h-3.5 shrink-0"
                       style={{ color: 'var(--brand-primary-text)' }}
                     />
-                    <span>Son Konum</span>
+                    <span>Günün Cüzü</span>
                   </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug sm:whitespace-nowrap">
-                    {lastRead
-                      ? `${lastSurahMeta?.shortNameTr ?? ''} · S.${lastRead.page}`.replace(
-                          /^\s*·\s*/,
-                          '',
-                        )
-                      : 'İlk Okuma'}
+                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
+                    {todayDailyJuzBadge}
                   </span>
-                </div>
+                </button>
 
-                <div
-                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-r"
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    if (hatimSummary || (!classicalStats && memUnits.length === 0)) {
+                      openHatimModal();
+                    } else {
+                      setActiveTab('memorize');
+                    }
+                  }}
+                  title={
+                    hatimSummary || (!classicalStats && memUnits.length === 0)
+                      ? 'Hatim Planlayıcısını aç'
+                      : 'Ezber Moduna git'
+                  }
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-r text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   {hatimSummary ? (
@@ -1282,9 +1418,23 @@ export const HomePage: React.FC = () => {
                       </span>
                     </>
                   )}
-                </div>
+                </button>
 
-                <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    sfxService.play('click');
+                    const totalBookmarks =
+                      studyProgress.pageBookmarks.length + studyProgress.bookmarkedAyahIds.length;
+                    if (personalVerseNotes.length > 0 && totalBookmarks === 0) {
+                      navigateToFihrist({ subTab: 'notebook', notebookSubTab: 'notes' });
+                    } else {
+                      openBookmarksDrawer();
+                    }
+                  }}
+                  title="Ayraçlarımı ve kişisel notlarımı aç"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 text-left cursor-pointer transition-colors hover:bg-[var(--bg-surface-soft)]"
+                >
                   <span
                     className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
@@ -1302,7 +1452,7 @@ export const HomePage: React.FC = () => {
                     )}{' '}
                     Ayraç
                   </span>
-                </div>
+                </button>
               </>
             )}
           </div>

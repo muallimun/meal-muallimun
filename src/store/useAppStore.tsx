@@ -1209,6 +1209,8 @@ function hydrateState(): PersistedAppState {
   }
 }
 
+export type SettingsTabId = 'general' | 'offline' | 'backup';
+
 interface AppContextValue {
   // Kalıcı durumlar
   settings: AppSettings;
@@ -1325,7 +1327,8 @@ interface AppContextValue {
   openPoolModal: () => void;
   closePoolModal: () => void;
   isSettingsModalOpen: boolean;
-  openSettingsModal: () => void;
+  settingsInitialTab: SettingsTabId;
+  openSettingsModal: (initialTab?: SettingsTabId) => void;
   closeSettingsModal: () => void;
   isReciterSelectorOpen: boolean;
   reciterSelectorContext: 'default' | 'memorize';
@@ -1482,6 +1485,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTabId>('general');
   const [isListeningDrawerOpen, setIsListeningDrawerOpen] = useState(false);
   const [listeningDrawerSeed, setListeningDrawerSeed] = useState<ListeningDrawerSeed | null>(null);
   const [isReciterSelectorOpen, setIsReciterSelectorOpen] = useState(false);
@@ -2736,8 +2740,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsPoolModalOpen(false);
   }, []);
 
-  const openSettingsModal = useCallback(() => {
+  const openSettingsModal = useCallback((initialTab?: SettingsTabId) => {
     sfxService.play('click');
+    const resolvedTab: SettingsTabId =
+      initialTab === 'offline' || initialTab === 'backup' ? initialTab : 'general';
+    setSettingsInitialTab(resolvedTab);
     setIsSettingsModalOpen(true);
   }, []);
 
@@ -3282,6 +3289,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       openPoolModal,
       closePoolModal,
       isSettingsModalOpen,
+      settingsInitialTab,
       openSettingsModal,
       closeSettingsModal,
       isReciterSelectorOpen,
@@ -3431,6 +3439,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       openPoolModal,
       closePoolModal,
       isSettingsModalOpen,
+      settingsInitialTab,
       openSettingsModal,
       closeSettingsModal,
       isReciterSelectorOpen,

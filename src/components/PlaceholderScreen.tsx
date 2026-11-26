@@ -173,7 +173,7 @@ export const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({ tab }) => 
 
           <button
             type="button"
-            onClick={openSettingsModal}
+            onClick={() => openSettingsModal()}
             className="min-h-[44px] px-4 py-2.5 rounded-xl text-sm font-semibold border flex items-center gap-2 transition-colors cursor-pointer"
             style={{
               backgroundColor: 'var(--bg-surface)',

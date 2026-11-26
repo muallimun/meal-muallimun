@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle,
   BookMarked,
@@ -6,6 +6,7 @@ import {
   Bookmark,
   ChevronDown,
   Compass,
+  HardDrive,
   HelpCircle,
   Home,
   Maximize2,
@@ -28,6 +29,11 @@ import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import type { NavTab } from '../types/quran';
+import {
+  getHijriOffset,
+  getIslamicCalendarSnapshot,
+  subscribeHijriOffset,
+} from '../utils/islamicCalendar';
 import {
   applyPwaUpdate,
   isPwaUpdateAvailable,
@@ -72,6 +78,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     openUserGuide,
     openFeedbackModal,
     openBookmarksDrawer,
+    openCalendarModal,
     openSearchModal,
     dataSourceMode,
     retryCoreLoad,
@@ -124,6 +131,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     subscribePwaUpdate,
     isPwaUpdateAvailable,
   );
+  const hijriOffset = useSyncExternalStore(subscribeHijriOffset, getHijriOffset);
+  const calendarSnapshot = useMemo(
+    () => getIslamicCalendarSnapshot(new Date(), hijriOffset),
+    [hijriOffset],
+  );
+  const showDesktopTopbarTools = !isSidebarCollapsed && !isReaderTab;
 
   const audioState = useSyncExternalStore(
     audioQueueService.subscribe,
@@ -406,11 +419,27 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             })}
           </nav>
 
-          {/* Alt Tek Sade Satır: İletişim & Geri Bildirim */}
+          {/* Alt Yardımcı Kısayollar: Veri Yedekle & Taşı + İletişim & Geri Bildirim */}
           <div
-            className="mt-auto p-3 border-t shrink-0"
+            className="mt-auto p-3 border-t shrink-0 space-y-1"
             style={{ borderColor: 'var(--border-subtle)' }}
           >
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openSettingsModal('backup');
+              }}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-semibold transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <HardDrive
+                className="w-4 h-4 shrink-0"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+              <span className="truncate">Veri Yedekle &amp; Taşı</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -443,10 +472,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           }}
         >
           <div
-            className={`h-full ${contentWidthClass} mx-auto px-2.5 sm:px-4 lg:px-4 xl:px-5 flex items-center justify-between gap-1.5 sm:gap-2`}
+            className={`h-full ${contentWidthClass} mx-auto px-2.5 sm:px-4 ${
+              isReaderTab ? 'lg:px-4 xl:px-5' : 'lg:px-6'
+            } flex items-center justify-between gap-1.5 sm:gap-2`}
           >
-            {/* Sol: Menü (Masaüstü) + Marka + Kompakt Navigasyon */}
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0">
+            {/* Sol: Menü (Masaüstü) + Marka + Kompakt Arama & Hicrî Takvim / Kompakt Navigasyon */}
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               {/* Masaüstü Sidebar Aç — Yalnızca sol menü kapalıyken görünür */}
               {isSidebarCollapsed && (
                 <button
@@ -487,6 +518,100 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   Muallimun
                 </span>
               </button>
+
+              {/* Sol Panel Açıkken & Okuma Dışında Masaüstü Araçları: Kompakt Arama + Vurgulu Hicrî Takvim */}
+              {showDesktopTopbarTools && (
+                <div className="hidden lg:flex items-center gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={openSearchModal}
+                    title="Sure, ayet veya meal ara (Ctrl+K)"
+                    aria-label="Hızlı Ara (Ctrl+K)"
+                    className="w-44 xl:w-52 h-9 px-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs transition-colors cursor-pointer hover:border-[var(--brand-primary)]/60 shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Search
+                        className="w-3.5 h-3.5 shrink-0"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      />
+                      <span
+                        className="font-semibold truncate"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        Ara…
+                      </span>
+                    </span>
+                    <kbd
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border shrink-0 leading-none"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      Ctrl K
+                    </kbd>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={openCalendarModal}
+                    title={`Takvim Yaprağını Aç · ${calendarSnapshot.hijri.formattedTr} / ${calendarSnapshot.gregorian.formattedFullTr}`}
+                    aria-label={`Hicrî takvim: ${calendarSnapshot.hijri.formattedTr}, Milâdî: ${calendarSnapshot.gregorian.formattedTr}. Takvim yaprağını aç`}
+                    className="h-9 px-3 rounded-xl border flex items-center gap-2 transition-colors cursor-pointer hover:border-[var(--brand-primary)]/60 min-w-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                    style={{
+                      backgroundColor:
+                        'color-mix(in srgb, var(--brand-primary-soft) 55%, var(--bg-surface))',
+                      borderColor:
+                        'color-mix(in srgb, var(--brand-primary) 26%, var(--border-subtle))',
+                    }}
+                  >
+                    <span
+                      className="text-sm leading-none shrink-0"
+                      aria-hidden="true"
+                      title={calendarSnapshot.moonPhase.label}
+                    >
+                      {calendarSnapshot.moonPhase.symbol}
+                    </span>
+                    <span
+                      className="text-xs font-extrabold tracking-tight whitespace-nowrap"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      {calendarSnapshot.hijri.formattedTr}
+                    </span>
+                    <span
+                      className="text-[11px] opacity-40 select-none shrink-0"
+                      aria-hidden="true"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      ·
+                    </span>
+                    <span
+                      className="text-[11.5px] font-semibold whitespace-nowrap truncate"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      {calendarSnapshot.gregorian.day} {calendarSnapshot.gregorian.monthNameTr}
+                      <span className="hidden xl:inline"> {calendarSnapshot.gregorian.year}</span>
+                    </span>
+                    {calendarSnapshot.holyDay && (
+                      <span
+                        className="hidden xl:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold whitespace-nowrap shrink-0"
+                        style={{
+                          backgroundColor: 'var(--brand-accent-soft)',
+                          color: 'var(--brand-accent-text)',
+                        }}
+                      >
+                        <Sparkles className="w-2.5 h-2.5 shrink-0" />
+                        <span>{calendarSnapshot.holyDay.name}</span>
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
 
               {/* Sidebar Kapalıyken Masaüstü Navigasyon: Okuma'da kompakt dropdown, diğerlerinde 5-sekme şerit */}
               {isSidebarCollapsed && isReaderTab && (
@@ -648,13 +773,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
             {/* Sağ Global Araçlar: Mobilde 36px, tablet/masaüstünde 40px dokunma hedefli ikon butonları */}
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-              {/* 1. Hızlı Arama Tetikleyicisi (Ctrl+K) — Yalnızca İkon */}
+              {/* 1. Hızlı Arama Tetikleyicisi (Ctrl+K) — Solda kompakt arama varken lg+ gizlenir */}
               <button
                 type="button"
                 onClick={openSearchModal}
                 title="Hızlı Ara (Ctrl+K)"
                 aria-label="Hızlı Ara (Ctrl+K)"
-                className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50 touch-manipulation"
+                className={`${
+                  showDesktopTopbarTools ? 'lg:hidden ' : ''
+                }w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50 touch-manipulation`}
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -743,7 +870,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               {/* 6. Ayarlar Butonu */}
               <button
                 type="button"
-                onClick={openSettingsModal}
+                onClick={() => openSettingsModal()}
                 title="Görünüm ve Ayarlar"
                 aria-label="Ayarları aç"
                 className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
@@ -851,7 +978,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   type="button"
                   onClick={() => {
                     sfxService.play('click');
-                    openSettingsModal();
+                    openSettingsModal('backup');
                   }}
                   className="px-2.5 py-1 rounded-lg font-extrabold cursor-pointer text-[11px] text-white"
                   style={{ backgroundColor: 'var(--brand-primary)' }}

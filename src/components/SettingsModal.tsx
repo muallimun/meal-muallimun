@@ -59,7 +59,11 @@ import {
   VERSE_NOTES_STORAGE_KEY,
   validateVerseNotesJson,
 } from '../services/verseNotesStorage';
-import { setStorePersistencePaused, useAppStore } from '../store/useAppStore';
+import {
+  setStorePersistencePaused,
+  useAppStore,
+  type SettingsTabId,
+} from '../store/useAppStore';
 import { setAllPersistencePaused } from '../utils/storageQuotaBus';
 import type { MemorizationBackupPayload } from '../types/memorization';
 import type { ExamSessionState, ThemeMode } from '../types/quran';
@@ -229,8 +233,6 @@ function extractDeskProfileLabelFromJson(rawJson: string | undefined): string | 
   }
 }
 
-type SettingsTabId = 'general' | 'offline' | 'backup';
-
 const SETTINGS_TABS: {
   id: SettingsTabId;
   label: string;
@@ -279,6 +281,7 @@ const THEME_OPTIONS: {
 export const SettingsModal: React.FC = () => {
   const {
     isSettingsModalOpen,
+    settingsInitialTab,
     closeSettingsModal,
     settings,
     audioPrefs,
@@ -343,9 +346,10 @@ export const SettingsModal: React.FC = () => {
       setPendingBackupRestore(null);
       return;
     }
+    setActiveTab(settingsInitialTab);
     setLastBackupAt(readLastBackupTimestamp());
     return acquireBodyScrollLock();
-  }, [isSettingsModalOpen]);
+  }, [isSettingsModalOpen, settingsInitialTab]);
 
   const recordLastBackupTimestamp = () => {
     const nowIso = new Date().toISOString();
