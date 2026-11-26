@@ -292,15 +292,27 @@ const THEME_OPTIONS: {
   },
 ];
 
+const APP_BUILD_VERSION =
+  typeof __APP_BUILD_VERSION__ !== 'undefined' ? __APP_BUILD_VERSION__ : null;
+const APP_BUILD_DATE_LABEL =
+  typeof __APP_BUILD_DATE_LABEL__ !== 'undefined' ? __APP_BUILD_DATE_LABEL__ : null;
+
 const STARTUP_PAGE_OPTIONS: {
   id: StartupPageOption;
   label: string;
+  shortLabel?: string;
   desc: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   { id: 'home', label: 'Ana Sayfa', desc: 'Varsayılan', icon: Home },
   { id: 'reader', label: 'Meal & Okuma', desc: 'Mushaf & Meal', icon: BookOpen },
-  { id: 'fihrist', label: 'Fihrist & Araştırma', desc: 'Konular & Defter', icon: Compass },
+  {
+    id: 'fihrist',
+    label: 'Fihrist & Araştırma',
+    shortLabel: 'Fihrist',
+    desc: 'Konular & Defter',
+    icon: Compass,
+  },
   { id: 'memorize', label: 'Ezber Modu', desc: 'Hafızlık & Havuz', icon: BookMarked },
   { id: 'exam', label: 'Sınav Merkezi', desc: 'Test & Oyunlar', icon: Trophy },
   { id: 'presentation', label: 'Sunum Modu', desc: 'Tam Ekran Sahne', icon: MonitorPlay },
@@ -1645,7 +1657,8 @@ export const SettingsModal: React.FC = () => {
                                 : 'var(--text-primary)',
                             }}
                           >
-                            {opt.label}
+                            <span className="sm:hidden">{opt.shortLabel ?? opt.label}</span>
+                            <span className="hidden sm:inline">{opt.label}</span>
                           </span>
                         </div>
                         <p
@@ -1971,19 +1984,39 @@ export const SettingsModal: React.FC = () => {
                       >
                         Uygulama Sürümü &amp; Güncelleme Kontrolü
                       </h3>
-                      {manifest?.dataVersion && (
+                      {(APP_BUILD_VERSION || manifest?.dataVersion) && (
                         <span
                           className="px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums"
                           style={{
                             backgroundColor: 'var(--bg-surface)',
-                            color: 'var(--text-muted)',
+                            color: 'var(--brand-primary-text)',
                             border: '1px solid var(--border-subtle)',
                           }}
                         >
-                          v{manifest.dataVersion}
+                          {APP_BUILD_VERSION ?? `v${manifest?.dataVersion}`}
                         </span>
                       )}
                     </div>
+                    {(APP_BUILD_DATE_LABEL || manifest?.dataVersion) && (
+                      <p
+                        className="text-[10.5px] mt-0.5 leading-snug flex flex-wrap items-center gap-x-1.5 gap-y-0.5"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        {APP_BUILD_DATE_LABEL && (
+                          <span>Son güncelleme: {APP_BUILD_DATE_LABEL}</span>
+                        )}
+                        {APP_BUILD_DATE_LABEL && manifest?.dataVersion && (
+                          <span aria-hidden="true" style={{ color: 'var(--border-strong)' }}>
+                            ·
+                          </span>
+                        )}
+                        {manifest?.dataVersion && (
+                          <span className="tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                            Veri paketi: v{manifest.dataVersion}
+                          </span>
+                        )}
+                      </p>
+                    )}
                     <p
                       className="text-[11px] mt-0.5 leading-snug"
                       style={{

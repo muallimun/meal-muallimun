@@ -3,7 +3,43 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+function getIstanbulBuildStamp(now = new Date()): {
+  buildVersion: string;
+  buildDateLabel: string;
+} {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Istanbul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+
+  const pick = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '00';
+
+  const buildVersion = `v${pick('year')}.${pick('month')}.${pick('day')}.${pick('hour')}${pick('minute')}`;
+  const buildDateLabel = new Intl.DateTimeFormat('tr-TR', {
+    timeZone: 'Europe/Istanbul',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(now);
+
+  return { buildVersion, buildDateLabel };
+}
+
+const { buildVersion, buildDateLabel } = getIstanbulBuildStamp();
+
 export default defineConfig({
+  define: {
+    __APP_BUILD_VERSION__: JSON.stringify(buildVersion),
+    __APP_BUILD_DATE_LABEL__: JSON.stringify(buildDateLabel),
+  },
   plugins: [
     react(),
     tailwindcss(),
