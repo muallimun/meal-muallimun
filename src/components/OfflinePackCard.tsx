@@ -1,7 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   CheckCircle2,
   CloudDownload,
+  Headphones,
   Info,
   Loader2,
   RefreshCw,
@@ -9,7 +17,27 @@ import {
   Trash2,
   WifiOff,
 } from 'lucide-react';
+import { getDynamicMealAudioSources } from '../config/assetsConfig';
 import { isExtraMealId } from '../config/mealsConfig';
+import {
+  buildReciterAudioUrls,
+  buildTemplateAudioUrl,
+  findReciterById,
+  resolveSyncedReciterKey,
+} from '../config/recitersConfig';
+import {
+  clearAudioCache,
+  getAudioCacheStats,
+  getAutoCacheAudioEnabled,
+  isAudioCacheAbortError,
+  prefetchSurahAudio,
+  setAutoCacheAudioEnabled,
+  subscribeAudioCacheChanges,
+  subscribeAutoCacheAudio,
+  type AudioCacheStats,
+  type SurahAudioPrefetchProgress,
+} from '../services/audioCacheService';
+import { audioQueueService } from '../services/audioQueueService';
 import {
   clearOfflinePack,
   downloadOfflineTextPack,
@@ -42,8 +70,34 @@ function formatDateTr(iso: string): string {
   }
 }
 
+function formatBytesTr(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 KB';
+  if (bytes < 1024 * 1024) {
+    return `${formatNumberTr(Math.max(1, Math.round(bytes / 1024)))} KB`;
+  }
+  const mb = bytes / (1024 * 1024);
+  try {
+    return `${new Intl.NumberFormat('tr-TR', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(mb)} MB`;
+  } catch {
+    return `${mb.toFixed(1).replace('.', ',')} MB`;
+  }
+}
+
 export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = false }) => {
-  const { manifest, poolStats, settings, questionIndex, isOnline, dataSourceMode } = useAppStore();
+  const {
+    manifest,
+    meta,
+    poolStats,
+    settings,
+    audioPrefs,
+    studyProgress,
+    questionIndex,
+    isOnline,
+    dataSourceMode,
+  } = useAppStore();
 
   const [status, setStatus] = useState<OfflinePackStatus | null>(() => loadOfflinePackStatus());
   const [isDownloading, setIsDownloading] = useState(false);
@@ -57,6 +111,39 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Ses önbelleği & tek sure ön-indirme durumları
+  const autoCacheAudioEnabled = useSyncExternalStore(
+    subscribeAutoCacheAudio,
+    getAutoCacheAudioEnabled,
+  );
+  const [audioStats, setAudioStats] = useState<AudioCacheStats>({ entryCount: 0, totalBytes: 0 });
+  const [isLoadingAudioStats, setIsLoadingAudioStats] = useState(true);
+  const [selectedSurahNo, setSelectedSurahNo] = useState<number>(() => {
+    const activeLastSurah =
+      studyProgress.lastRead?.surah ?? audioQueueService.getSnapshot().currentSurah ?? 1;
+    return activeLastSurah >= 1 && activeLastSurah <= 114 ? activeLastSurah : 1;
+  });
+  const [includeMealAudioInPrefetch, setIncludeMealAudioInPrefetch] = useState<boolean>(
+    () => audioPrefs.mode !== 'ar',
+  );
+  const [isPrefetchingAudio, setIsPrefetchingAudio] = useState(false);
+  const [isClearingAudio, setIsClearingAudio] = useState(false);
+  const [audioProgress, setAudioProgress] = useState<SurahAudioPrefetchProgress | null>(null);
+  const [audioFeedback, setAudioFeedback] = useState<{
+    type: 'success' | 'info' | 'error';
+    text: string;
+  } | null>(null);
+
+  const audioAbortRef = useRef<AbortController | null>(null);
+  const isPrefetchingAudioRef = useRef(false);
+  const statsRefreshTimerRef = useRef<number | null>(null);
+
+  const refreshAudioStats = useCallback(async () => {
+    const nextStats = await getAudioCacheStats();
+    setAudioStats(nextStats);
+    setIsLoadingAudioStats(false);
+  }, []);
+
   useEffect(() => {
     let active = true;
     void verifyOfflinePackCache().then((isValid) => {
@@ -64,12 +151,38 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
         setStatus((prev) => (prev !== null ? null : prev));
       }
     });
+    void getAudioCacheStats().then((nextStats) => {
+      if (active) {
+        setAudioStats(nextStats);
+        setIsLoadingAudioStats(false);
+      }
+    });
+    const unsubscribeAudioCache = subscribeAudioCacheChanges(() => {
+      if (!active || isPrefetchingAudioRef.current) return;
+      if (statsRefreshTimerRef.current !== null) {
+        window.clearTimeout(statsRefreshTimerRef.current);
+      }
+      statsRefreshTimerRef.current = window.setTimeout(() => {
+        statsRefreshTimerRef.current = null;
+        if (active) {
+          void refreshAudioStats();
+        }
+      }, 400);
+    });
+
     return () => {
       active = false;
+      unsubscribeAudioCache();
+      if (statsRefreshTimerRef.current !== null) {
+        window.clearTimeout(statsRefreshTimerRef.current);
+        statsRefreshTimerRef.current = null;
+      }
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
+      audioAbortRef.current?.abort();
+      audioAbortRef.current = null;
     };
-  }, []);
+  }, [refreshAudioStats]);
 
   const includeExtraMeals = useMemo(() => {
     return (
@@ -200,6 +313,190 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
     }
   }, [isDownloading, isClearing]);
 
+  const activeReciter = useMemo(
+    () => findReciterById(audioPrefs.arabicReciterId || audioPrefs.arabicAudioSource, manifest),
+    [audioPrefs.arabicReciterId, audioPrefs.arabicAudioSource, manifest],
+  );
+
+  const activeMealAudio = useMemo(() => {
+    const sources = getDynamicMealAudioSources(manifest);
+    if (sources.length === 0) return null;
+    if (audioPrefs.mealAudioSource) {
+      const exact = sources.find((s) => s.id === audioPrefs.mealAudioSource);
+      if (exact) return exact;
+    }
+    return sources[0] ?? null;
+  }, [audioPrefs.mealAudioSource, manifest]);
+
+  const selectedSurahMeta = useMemo(() => {
+    const found = meta?.surahs.find((s) => s.no === selectedSurahNo);
+    if (found) return found;
+    return {
+      no: selectedSurahNo,
+      nameTr: `${selectedSurahNo}. Sure`,
+      ayahCount: 7,
+    };
+  }, [meta?.surahs, selectedSurahNo]);
+
+  const handleToggleAutoCacheAudio = useCallback(() => {
+    sfxService.play('click');
+    setAutoCacheAudioEnabled(!autoCacheAudioEnabled);
+  }, [autoCacheAudioEnabled]);
+
+  const handlePrefetchSurahAudio = useCallback(async () => {
+    if (isPrefetchingAudio || isClearingAudio) return;
+    sfxService.play('click');
+    setAudioFeedback(null);
+
+    if (!isOnline) {
+      setAudioFeedback({
+        type: 'error',
+        text: 'İnternet bağlantısı algılanmadı. Sure sesi indirmek için çevrimiçi olmanız gerekir.',
+      });
+      return;
+    }
+
+    const willIncludeMeal = Boolean(includeMealAudioInPrefetch && activeMealAudio);
+    const willIncludeArabic = audioPrefs.mode !== 'meal' || !willIncludeMeal;
+
+    const controller = new AbortController();
+    audioAbortRef.current = controller;
+    isPrefetchingAudioRef.current = true;
+    setIsPrefetchingAudio(true);
+
+    const segMeta = settings.wordSyncEnabled
+      ? await audioQueueService.ensureSegMetaLoaded()
+      : null;
+    const syncedReciterKey =
+      settings.wordSyncEnabled && segMeta ? resolveSyncedReciterKey(activeReciter, segMeta) : null;
+    const syncedTemplate =
+      syncedReciterKey && segMeta?.reciters[syncedReciterKey]?.audioUrlTemplate
+        ? segMeta.reciters[syncedReciterKey].audioUrlTemplate
+        : null;
+
+    const buildArabicAyahUrls = (sNo: number, aNo: number): string[] => {
+      const base = buildReciterAudioUrls(activeReciter, sNo, aNo);
+      if (syncedTemplate) {
+        const syncedUrl = buildTemplateAudioUrl(syncedTemplate, sNo, aNo);
+        return [syncedUrl, ...base.filter((u) => u !== syncedUrl)];
+      }
+      return base;
+    };
+
+    const buildMealAyahUrls = (sNo: number, aNo: number): string[] => {
+      if (!activeMealAudio) return [];
+      return buildReciterAudioUrls(activeMealAudio, sNo, aNo);
+    };
+
+    const primaryBuilder = willIncludeArabic ? buildArabicAyahUrls : buildMealAyahUrls;
+    const extraBuilder = willIncludeArabic && willIncludeMeal ? buildMealAyahUrls : undefined;
+
+    setAudioProgress({
+      completed: 0,
+      total: selectedSurahMeta.ayahCount * (extraBuilder ? 2 : 1),
+      percent: 0,
+      failed: 0,
+    });
+
+    try {
+      const result = await prefetchSurahAudio({
+        surahNo: selectedSurahMeta.no,
+        ayahCount: selectedSurahMeta.ayahCount,
+        buildAyahUrls: primaryBuilder,
+        buildExtraAyahUrls: extraBuilder,
+        includeBesmele: true,
+        includeExtraBesmele: Boolean(extraBuilder),
+        concurrency: 3,
+        signal: controller.signal,
+        onProgress: (next) => {
+          setAudioProgress(next);
+        },
+      });
+
+      await refreshAudioStats();
+      sfxService.play('success');
+
+      if (result.cachedCount === 0 && result.failed > 0) {
+        setAudioFeedback({
+          type: 'error',
+          text: 'Ses dosyaları önbelleğe kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.',
+        });
+      } else if (result.failed > 0) {
+        setAudioFeedback({
+          type: 'info',
+          text: `${selectedSurahMeta.nameTr} Suresi için ${formatNumberTr(result.cachedCount)} ses kaydı önbelleğe alındı (${formatNumberTr(result.failed)} kayıt atlandı).`,
+        });
+      } else {
+        setAudioFeedback({
+          type: 'success',
+          text: `${selectedSurahMeta.nameTr} Suresi çevrimdışı dinleme için önbelleğe alındı (${formatNumberTr(result.cachedCount)} kayıt).`,
+        });
+      }
+    } catch (err) {
+      await refreshAudioStats();
+      if (isAudioCacheAbortError(err)) {
+        setAudioFeedback({
+          type: 'info',
+          text: 'Sure ses indirmesi durduruldu. Şimdiye kadar indirilen kayıtlar cihazda saklandı.',
+        });
+      } else {
+        setAudioFeedback({
+          type: 'error',
+          text:
+            err instanceof Error
+              ? err.message
+              : 'Sure sesleri indirilirken beklenmeyen bir sorun oluştu.',
+        });
+      }
+    } finally {
+      if (audioAbortRef.current === controller) {
+        audioAbortRef.current = null;
+      }
+      isPrefetchingAudioRef.current = false;
+      setIsPrefetchingAudio(false);
+    }
+  }, [
+    isPrefetchingAudio,
+    isClearingAudio,
+    isOnline,
+    includeMealAudioInPrefetch,
+    activeMealAudio,
+    audioPrefs.mode,
+    settings.wordSyncEnabled,
+    activeReciter,
+    selectedSurahMeta.no,
+    selectedSurahMeta.ayahCount,
+    selectedSurahMeta.nameTr,
+    refreshAudioStats,
+  ]);
+
+  const handleCancelAudioPrefetch = useCallback(() => {
+    sfxService.play('click');
+    audioAbortRef.current?.abort();
+  }, []);
+
+  const handleClearAudioCache = useCallback(async () => {
+    if (isPrefetchingAudio || isClearingAudio) return;
+    sfxService.play('click');
+    setIsClearingAudio(true);
+    setAudioFeedback(null);
+    try {
+      await clearAudioCache();
+      await refreshAudioStats();
+      setAudioFeedback({
+        type: 'info',
+        text: 'Ses önbelleği cihazınızdan temizlendi.',
+      });
+    } catch {
+      setAudioFeedback({
+        type: 'error',
+        text: 'Ses önbelleği temizlenirken bir sorun oluştu.',
+      });
+    } finally {
+      setIsClearingAudio(false);
+    }
+  }, [isPrefetchingAudio, isClearingAudio, refreshAudioStats]);
+
   const hasDataUpdate = Boolean(
     status &&
       manifest?.dataVersion &&
@@ -209,6 +506,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
   const updatedDateLabel = status ? formatDateTr(status.updatedAt) : '';
 
   return (
+    <div className="space-y-3 min-w-0">
     <div
       className={`rounded-2xl border ${compact ? 'p-3.5' : 'p-4'} space-y-3`}
       style={{
@@ -477,6 +775,303 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
           tilavet kayıtları çevrimiçi (internet üzerinden) dinlenir.
         </p>
       </div>
+    </div>
+
+    {/* Dinledikçe Ses Önbelleği & İsteğe Bağlı Tek Sure Ön-İndirme Kartı */}
+    <div
+      className={`rounded-2xl border ${compact ? 'p-3.5' : 'p-4'} space-y-3 min-w-0 overflow-hidden`}
+      style={{
+        backgroundColor: 'var(--bg-surface-soft)',
+        borderColor: 'var(--border-subtle)',
+      }}
+    >
+      {/* Üst Başlık */}
+      <div className="flex items-start gap-2.5 min-w-0">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+          style={{
+            backgroundColor: 'var(--brand-primary-soft)',
+            color: 'var(--brand-primary-text)',
+          }}
+        >
+          <Headphones className="w-4 h-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h4 className="text-sm font-extrabold leading-snug">
+            Dinledikçe Ses Önbelleği &amp; Sure Ön-İndirme
+          </h4>
+          <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Dinlediğiniz ayet sesleri otomatik olarak cihazınızda saklanır; internet yokken tekrar
+            dinlenebilir.
+          </p>
+        </div>
+      </div>
+
+      {/* Önbellek İstatistiği & "Dinledikçe sakla" Anahtarı */}
+      <div
+        className="rounded-xl border px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 min-w-0"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-subtle)',
+        }}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold tabular-nums max-w-full"
+            style={{
+              backgroundColor:
+                audioStats.entryCount > 0 ? 'var(--brand-primary-soft)' : 'var(--bg-surface-soft)',
+              color:
+                audioStats.entryCount > 0 ? 'var(--brand-primary-text)' : 'var(--text-muted)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            {isLoadingAudioStats ? (
+              <span>Hesaplanıyor…</span>
+            ) : audioStats.entryCount > 0 ? (
+              <span className="truncate">
+                {formatNumberTr(audioStats.entryCount)} ayet · {formatBytesTr(audioStats.totalBytes)}
+              </span>
+            ) : (
+              <span>Henüz kayıtlı ses yok</span>
+            )}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          role="switch"
+          aria-checked={autoCacheAudioEnabled}
+          onClick={handleToggleAutoCacheAudio}
+          className="min-h-[36px] inline-flex items-center gap-2 cursor-pointer shrink-0 touch-manipulation"
+        >
+          <span className="text-xs font-bold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+            Dinledikçe sakla
+          </span>
+          <span
+            aria-hidden="true"
+            className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0"
+            style={{
+              backgroundColor: autoCacheAudioEnabled
+                ? 'var(--brand-primary)'
+                : 'var(--border-strong)',
+            }}
+          >
+            <span
+              className={`inline-block h-4 w-4 rounded-full bg-white shadow-xs transition-transform ${
+                autoCacheAudioEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'
+              }`}
+            />
+          </span>
+        </button>
+      </div>
+
+      {/* Aktif Okuyucu & Meal Kaynağı Etiketleri */}
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px] min-w-0">
+        <span
+          className="px-2 py-0.5 rounded-md border font-semibold max-w-full truncate"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderColor: 'var(--border-subtle)',
+            color: 'var(--text-secondary)',
+          }}
+        >
+          Okuyucu: {activeReciter.shortLabel}
+        </span>
+        {activeMealAudio && (
+          <button
+            type="button"
+            disabled={isPrefetchingAudio}
+            aria-pressed={includeMealAudioInPrefetch}
+            onClick={() => {
+              sfxService.play('click');
+              setIncludeMealAudioInPrefetch((prev) => !prev);
+            }}
+            className="px-2 py-0.5 rounded-md border font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-60 max-w-full"
+            style={{
+              backgroundColor: includeMealAudioInPrefetch
+                ? 'var(--brand-primary-soft)'
+                : 'var(--bg-surface)',
+              borderColor: includeMealAudioInPrefetch
+                ? 'var(--brand-primary)'
+                : 'var(--border-subtle)',
+              color: includeMealAudioInPrefetch
+                ? 'var(--brand-primary-text)'
+                : 'var(--text-muted)',
+            }}
+          >
+            <span className="truncate">
+              {includeMealAudioInPrefetch ? '✓ ' : '+ '}
+              {activeMealAudio.shortLabel}
+            </span>
+          </button>
+        )}
+      </div>
+
+      {/* Sure Ön-İndirme İlerleme Çubuğu */}
+      {isPrefetchingAudio && audioProgress && (
+        <div
+          className="p-3 rounded-xl border space-y-2"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderColor: 'var(--brand-primary)',
+          }}
+        >
+          <div className="flex items-center justify-between gap-2 text-xs min-w-0">
+            <span className="font-bold flex items-center gap-1.5 min-w-0">
+              <Loader2
+                className="w-3.5 h-3.5 animate-spin shrink-0"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+              <span className="truncate">{selectedSurahMeta.nameTr} Suresi indiriliyor…</span>
+            </span>
+            <span
+              className="font-extrabold tabular-nums shrink-0"
+              style={{ color: 'var(--brand-primary-text)' }}
+            >
+              %{audioProgress.percent}
+            </span>
+          </div>
+
+          <div
+            className="w-full h-2 rounded-full overflow-hidden"
+            style={{ backgroundColor: 'var(--bg-surface-soft)' }}
+            role="progressbar"
+            aria-valuenow={audioProgress.percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-200"
+              style={{
+                width: `${audioProgress.percent}%`,
+                backgroundColor: 'var(--brand-primary)',
+              }}
+            />
+          </div>
+
+          <div
+            className="flex flex-wrap items-center justify-between gap-2 text-[11px]"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <span className="tabular-nums font-semibold">
+              {formatNumberTr(audioProgress.completed)} / {formatNumberTr(audioProgress.total)} kayıt
+              {audioProgress.failed > 0 ? ` · ${formatNumberTr(audioProgress.failed)} atlandı` : ''}
+            </span>
+            <button
+              type="button"
+              onClick={handleCancelAudioPrefetch}
+              className="min-h-[34px] px-2.5 rounded-lg border font-bold inline-flex items-center gap-1 cursor-pointer shrink-0 hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--bg-surface-soft)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Square className="w-3 h-3 fill-current shrink-0" />
+              <span>İptal</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sure Seçici + Sure Ön-İndir Satırı & Temizle Butonu */}
+      {!isPrefetchingAudio && (
+        <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+            <label htmlFor="offline-audio-surah-select" className="sr-only">
+              Ön-indirilecek sureyi seçin
+            </label>
+            <select
+              id="offline-audio-surah-select"
+              value={selectedSurahNo}
+              onChange={(e) => setSelectedSurahNo(Number(e.target.value))}
+              disabled={isClearingAudio}
+              className="w-full sm:flex-1 min-w-0 min-h-[42px] px-3 rounded-xl border text-xs font-bold cursor-pointer focus:outline-none"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              {(meta?.surahs && meta.surahs.length > 0
+                ? meta.surahs
+                : Array.from({ length: 114 }, (_, i) => ({
+                    no: i + 1,
+                    nameTr: `${i + 1}. Sure`,
+                    ayahCount: 0,
+                  }))
+              ).map((s) => (
+                <option key={s.no} value={s.no}>
+                  {s.no}. {s.nameTr}
+                  {s.ayahCount > 0 ? ` (${s.ayahCount} ayet)` : ''}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              disabled={!isOnline || isClearingAudio}
+              onClick={() => void handlePrefetchSurahAudio()}
+              className="w-full sm:w-auto min-h-[42px] px-3.5 py-2 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 shrink-0 transition-opacity cursor-pointer hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <CloudDownload className="w-4 h-4 shrink-0" />
+              <span>Sure Ön-İndir</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            disabled={isClearingAudio || audioStats.entryCount === 0}
+            onClick={() => void handleClearAudioCache()}
+            className="w-full min-h-[38px] px-3 py-1.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--state-danger-text)',
+            }}
+          >
+            {isClearingAudio ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+            ) : (
+              <Trash2 className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <span>{isClearingAudio ? 'Ses Önbelleği Temizleniyor…' : 'Ses Önbelleğini Temizle'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Ses Önbelleği Geri Bildirim Mesajı */}
+      {audioFeedback && (
+        <p
+          role="status"
+          className="text-xs font-bold px-3 py-2 rounded-xl border leading-snug"
+          style={{
+            backgroundColor:
+              audioFeedback.type === 'success'
+                ? 'var(--brand-primary-soft)'
+                : audioFeedback.type === 'error'
+                  ? 'var(--state-danger-bg)'
+                  : 'var(--bg-surface)',
+            borderColor:
+              audioFeedback.type === 'success'
+                ? 'var(--brand-primary)'
+                : audioFeedback.type === 'error'
+                  ? 'rgba(239, 68, 68, 0.35)'
+                  : 'var(--border-subtle)',
+            color:
+              audioFeedback.type === 'success'
+                ? 'var(--brand-primary-text)'
+                : audioFeedback.type === 'error'
+                  ? 'var(--state-danger-text)'
+                  : 'var(--text-secondary)',
+          }}
+        >
+          {audioFeedback.text}
+        </p>
+      )}
+    </div>
     </div>
   );
 };

@@ -5,6 +5,11 @@ import {
   findReciterById,
   resolveSyncedReciterKey,
 } from '../config/recitersConfig';
+import {
+  cacheAudioFromUrl,
+  getAutoCacheAudioEnabled,
+  getCachedAudioObjectUrl,
+} from './audioCacheService';
 import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
 import { dataService, getPageBounds } from './dataService';
 import { wakeLockService } from './wakeLockService';
@@ -210,6 +215,7 @@ class AudioQueueService {
 
   private sharedAudio: HTMLAudioElement | null = null;
   private audio: HTMLAudioElement | null = null;
+  private activeObjectUrl: string | null = null;
   private audioAbortController: AbortController | null = null;
   private preloader: HTMLAudioElement | null = null;
   private previewAudio: HTMLAudioElement | null = null;
@@ -1065,6 +1071,17 @@ class AudioQueueService {
     audio.playbackRate = rate;
   }
 
+  private revokeActiveObjectUrl(): void {
+    if (this.activeObjectUrl) {
+      try {
+        URL.revokeObjectURL(this.activeObjectUrl);
+      } catch {
+        // ignore revoke errors
+      }
+      this.activeObjectUrl = null;
+    }
+  }
+
   private teardownAudioElement(preserveWordSyncFlag = false): void {
     this.clearSkipTimer();
     this.clearLoadTimer();
@@ -1086,6 +1103,8 @@ class AudioQueueService {
       }
       this.audio = null;
     }
+
+    this.revokeActiveObjectUrl();
   }
 
   private preloadNextUrl(): void {
@@ -1155,7 +1174,7 @@ class AudioQueueService {
     return { canGoPrev, canGoNext };
   }
 
-  private playCurrentStep(urlIndex = 0): void {
+  private playCurrentStep(urlIndex = 0, skipCache = false): void {
     const session = this.playSessionId;
     const step = this.steps[this.currentStepIndex];
 
@@ -1234,6 +1253,15 @@ class AudioQueueService {
     this.audio = audio;
 
     let handledFailure = false;
+    let playedFromCache = false;
+    let backgroundCacheTriggered = false;
+
+    const triggerBackgroundAudioCache = () => {
+      if (playedFromCache || backgroundCacheTriggered) return;
+      if (!getAutoCacheAudioEnabled()) return;
+      backgroundCacheTriggered = true;
+      void cacheAudioFromUrl(targetUrl);
+    };
 
     const handleFailure = () => {
       if (handledFailure || session !== this.playSessionId) return;
@@ -1241,8 +1269,14 @@ class AudioQueueService {
       this.clearLoadTimer();
       this.clearStallTimer();
 
+      if (playedFromCache) {
+        this.revokeActiveObjectUrl();
+        this.playCurrentStep(0, true);
+        return;
+      }
+
       if (urlIndex + 1 < step.urls.length) {
-        this.playCurrentStep(urlIndex + 1);
+        this.playCurrentStep(urlIndex + 1, true);
         return;
       }
 
@@ -1254,6 +1288,7 @@ class AudioQueueService {
     const recoverPlayingState = () => {
       if (session !== this.playSessionId) return;
       this.clearStallTimer();
+      triggerBackgroundAudioCache();
       if (!audio.paused && this.snapshot.status === 'loading') {
         this.clearLoadTimer();
         this.consecutiveFailures = 0;
@@ -1312,6 +1347,7 @@ class AudioQueueService {
         this.setMediaPlaybackState('playing');
         this.startWordSyncLoop();
         this.preloadNextUrl();
+        triggerBackgroundAudioCache();
       },
       { signal },
     );
@@ -1347,28 +1383,69 @@ class AudioQueueService {
       { signal },
     );
 
-    audio.src = targetUrl;
+    const beginPlayback = (srcUrl: string) => {
+      if (session !== this.playSessionId || signal.aborted) return;
+      if (this.userPausedDuringLoad || this.snapshot.status === 'paused') return;
 
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch((err) => {
-        if (session !== this.playSessionId) return;
-        const errName =
-          err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
-        if (errName === 'AbortError') return;
-        if (errName === 'NotAllowedError') {
-          this.clearLoadTimer();
-          this.clearStallTimer();
-          this.setMediaPlaybackState('paused');
-          this.emit({
-            status: 'paused',
-            errorMessage: 'Ses oynatmak için oynat butonuna dokunun.',
-          });
-          return;
-        }
-        handleFailure();
-      });
+      audio.src = srcUrl;
+
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch((err) => {
+          if (session !== this.playSessionId) return;
+          const errName =
+            err && typeof err === 'object' && 'name' in err ? String(err.name) : '';
+          if (errName === 'AbortError') return;
+          if (errName === 'NotAllowedError') {
+            this.clearLoadTimer();
+            this.clearStallTimer();
+            this.setMediaPlaybackState('paused');
+            this.emit({
+              status: 'paused',
+              errorMessage: 'Ses oynatmak için oynat butonuna dokunun.',
+            });
+            return;
+          }
+          handleFailure();
+        });
+      }
+    };
+
+    if (urlIndex === 0 && !skipCache && 'caches' in window) {
+      void getCachedAudioObjectUrl(step.urls)
+        .then((cachedObjectUrl) => {
+          if (
+            session !== this.playSessionId ||
+            signal.aborted ||
+            this.userPausedDuringLoad ||
+            this.snapshot.status === 'paused'
+          ) {
+            if (cachedObjectUrl) {
+              try {
+                URL.revokeObjectURL(cachedObjectUrl);
+              } catch {
+                // ignore
+              }
+            }
+            return;
+          }
+
+          if (cachedObjectUrl) {
+            this.revokeActiveObjectUrl();
+            this.activeObjectUrl = cachedObjectUrl;
+            playedFromCache = true;
+            beginPlayback(cachedObjectUrl);
+          } else {
+            beginPlayback(targetUrl);
+          }
+        })
+        .catch(() => {
+          beginPlayback(targetUrl);
+        });
+      return;
     }
+
+    beginPlayback(targetUrl);
   }
 
   private handleStepExhausted(session: number): void {
