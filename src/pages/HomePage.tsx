@@ -881,6 +881,32 @@ export const HomePage: React.FC = () => {
               type="button"
               onClick={() => {
                 sfxService.play('click');
+                openBookmarksDrawer();
+              }}
+              title="Kayıtlı ayraçlarımı aç"
+              className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:border-[var(--brand-primary)] whitespace-nowrap shrink-0"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Bookmark
+                className="w-3.5 h-3.5 shrink-0"
+                style={{ color: 'var(--brand-accent-text)' }}
+              />
+              <span>
+                Ayraçlar
+                {studyProgress.pageBookmarks.length > 0
+                  ? ` (${studyProgress.pageBookmarks.length})`
+                  : ''}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
                 navigateToStudy({
                   surah: quickResumeSurahNo,
                   ayah: quickResumeAyahNo,
@@ -1031,11 +1057,11 @@ export const HomePage: React.FC = () => {
             }}
           >
             <div
-              className="px-4 py-2.5 flex items-center justify-between gap-2 border-b lg:border-b-0 border-r"
+              className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 border-r"
               style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
             >
               <span
-                className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                 style={{ color: 'var(--text-muted)' }}
               >
                 <Flame
@@ -1044,7 +1070,7 @@ export const HomePage: React.FC = () => {
                 />
                 <span>Günlük Seri</span>
               </span>
-              <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+              <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                 {formatNumberTr(gamification.streakDays)} gün
               </span>
             </div>
@@ -1052,11 +1078,11 @@ export const HomePage: React.FC = () => {
             {deskPrefs.showPoolAndExamSection && gamification.solvedCount > 0 ? (
               <>
                 <div
-                  className="px-4 py-2.5 flex items-center justify-between gap-2 border-b lg:border-b-0 lg:border-r"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 lg:border-r"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
-                    className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                    className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     <Star
@@ -1065,17 +1091,17 @@ export const HomePage: React.FC = () => {
                     />
                     <span>Toplam Puan</span>
                   </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {formatNumberTr(gamification.totalXp)}
                   </span>
                 </div>
 
                 <div
-                  className="px-4 py-2.5 flex items-center justify-between gap-2 border-r"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-r"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
-                    className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                    className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     <CheckCircle2
@@ -1084,14 +1110,14 @@ export const HomePage: React.FC = () => {
                     />
                     <span>Çözülen</span>
                   </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {formatNumberTr(gamification.solvedCount)} soru
                   </span>
                 </div>
 
-                <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+                <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0">
                   <span
-                    className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                    className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     <Target
@@ -1100,7 +1126,7 @@ export const HomePage: React.FC = () => {
                     />
                     <span>Doğruluk</span>
                   </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {accuracyPercent !== null ? `%${accuracyPercent}` : '—'}
                   </span>
                 </div>
@@ -1108,11 +1134,11 @@ export const HomePage: React.FC = () => {
             ) : !deskPrefs.showPoolAndExamSection && gamification.solvedCount > 0 ? (
               <>
                 <div
-                  className="px-4 py-2.5 flex items-center justify-between gap-2 border-b lg:border-b-0 lg:border-r"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 lg:border-r"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
-                    className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                    className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     <Star
@@ -1121,17 +1147,17 @@ export const HomePage: React.FC = () => {
                     />
                     <span>Toplam Puan</span>
                   </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {formatNumberTr(gamification.totalXp)}
                   </span>
                 </div>
 
                 <div
-                  className="px-4 py-2.5 flex items-center justify-between gap-2 border-r"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-r"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
-                    className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                    className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     <BookOpenCheck
@@ -1140,14 +1166,14 @@ export const HomePage: React.FC = () => {
                     />
                     <span>Hatim</span>
                   </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                     {hatimSummary ? `%${hatimSummary.percent}` : 'Plan yok'}
                   </span>
                 </div>
 
-                <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+                <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0">
                   <span
-                    className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                    className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     <BookOpen
@@ -1156,19 +1182,19 @@ export const HomePage: React.FC = () => {
                     />
                     <span>Son Konum</span>
                   </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
-                    {lastRead ? `Sayfa ${lastRead.page}` : 'Hazır'}
+                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
+                    {lastRead ? `S.${lastRead.page}` : 'Hazır'}
                   </span>
                 </div>
               </>
             ) : (
               <>
                 <div
-                  className="px-4 py-2.5 flex items-center justify-between gap-2 border-b lg:border-b-0 lg:border-r"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-b lg:border-b-0 lg:border-r"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   <span
-                    className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                    className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     <BookOpen
@@ -1177,9 +1203,9 @@ export const HomePage: React.FC = () => {
                     />
                     <span>Son Konum</span>
                   </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap truncate">
+                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug sm:whitespace-nowrap">
                     {lastRead
-                      ? `${lastSurahMeta?.shortNameTr ?? ''} · Sayfa ${lastRead.page}`.replace(
+                      ? `${lastSurahMeta?.shortNameTr ?? ''} · S.${lastRead.page}`.replace(
                           /^\s*·\s*/,
                           '',
                         )
@@ -1188,13 +1214,13 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 <div
-                  className="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 border-r"
+                  className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0 border-r"
                   style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 80%, transparent)' }}
                 >
                   {hatimSummary ? (
                     <>
                       <span
-                        className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                        className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                         style={{ color: 'var(--text-muted)' }}
                       >
                         <BookOpenCheck
@@ -1203,14 +1229,14 @@ export const HomePage: React.FC = () => {
                         />
                         <span>Hatim</span>
                       </span>
-                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                         {formatNumberTr(hatimSummary.completedCount)}/604 Sayfa
                       </span>
                     </>
                   ) : classicalStats ? (
                     <>
                       <span
-                        className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                        className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                         style={{ color: 'var(--text-muted)' }}
                       >
                         <BookMarked
@@ -1219,14 +1245,14 @@ export const HomePage: React.FC = () => {
                         />
                         <span>Hafızlık</span>
                       </span>
-                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                         {formatNumberTr(classicalStats.hasCount)}/604 Has
                       </span>
                     </>
                   ) : memUnits.length > 0 ? (
                     <>
                       <span
-                        className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                        className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                         style={{ color: 'var(--text-muted)' }}
                       >
                         <BookMarked
@@ -1235,14 +1261,14 @@ export const HomePage: React.FC = () => {
                         />
                         <span>Ezber</span>
                       </span>
-                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                         {formatNumberTr(memUnits.length)} Bölüm
                       </span>
                     </>
                   ) : (
                     <>
                       <span
-                        className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                        className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                         style={{ color: 'var(--text-muted)' }}
                       >
                         <BookOpenCheck
@@ -1251,25 +1277,25 @@ export const HomePage: React.FC = () => {
                         />
                         <span>Okuma Hedefi</span>
                       </span>
-                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                      <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug whitespace-nowrap">
                         30 Cüz
                       </span>
                     </>
                   )}
                 </div>
 
-                <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+                <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 min-w-0">
                   <span
-                    className="text-[11px] font-semibold flex items-center gap-1.5 truncate"
+                    className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap"
                     style={{ color: 'var(--text-muted)' }}
                   >
                     <Bookmark
                       className="w-3.5 h-3.5 shrink-0"
                       style={{ color: 'var(--brand-accent-text)' }}
                     />
-                    <span>Not / Ayraç</span>
+                    <span>Not &amp; Ayraç</span>
                   </span>
-                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums whitespace-nowrap">
+                  <span className="text-xs sm:text-[13px] font-extrabold tabular-nums leading-snug sm:whitespace-nowrap">
                     {formatNumberTr(personalVerseNotes.length)} Not ·{' '}
                     {formatNumberTr(
                       studyProgress.pageBookmarks.length + studyProgress.bookmarkedAyahIds.length,
@@ -1495,10 +1521,10 @@ export const HomePage: React.FC = () => {
             </div>
           )}
 
-          {/* 1. Birincil Odak Kartı: Okuma — Kaldığım Yer (Hafif Zümrüt Vurgulu Özel Kart) */}
+          {/* 1. Birincil Odak Kartı: Okuma — Kaldığım Yer (Masaüstünde görünür; mobilde üst hızlı erişim kartı yerini alır) */}
           {deskPrefs.showReadingRow && (
             <div
-              className="rounded-xl border p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              className="hidden lg:flex lg:flex-row lg:items-center justify-between gap-3 rounded-xl border p-3.5"
               style={{
                 backgroundColor: 'color-mix(in srgb, var(--brand-primary) 5.5%, var(--bg-surface))',
                 borderColor: 'color-mix(in srgb, var(--brand-primary) 26%, var(--border-subtle))',
@@ -1640,7 +1666,7 @@ export const HomePage: React.FC = () => {
                         )}
                       </div>
                       <p
-                        className="text-[11.5px] tabular-nums truncate mt-0.5"
+                        className="text-[11.5px] tabular-nums line-clamp-2 lg:line-clamp-none lg:truncate leading-snug mt-0.5"
                         style={{ color: 'var(--text-muted)' }}
                       >
                         {hatimSummary ? (
@@ -1709,7 +1735,7 @@ export const HomePage: React.FC = () => {
                         )}
                       </div>
                       <p
-                        className="text-[11.5px] tabular-nums truncate mt-0.5"
+                        className="text-[11.5px] tabular-nums line-clamp-2 lg:line-clamp-none lg:truncate leading-snug mt-0.5"
                         style={{ color: 'var(--text-muted)' }}
                       >
                         {memorizationSummary.detail}
@@ -1862,7 +1888,7 @@ export const HomePage: React.FC = () => {
                         </span>
                       </div>
                       <p
-                        className="text-[11.5px] truncate mt-0.5"
+                        className="text-[11.5px] line-clamp-2 lg:line-clamp-none lg:truncate leading-snug mt-0.5"
                         style={{ color: 'var(--text-muted)' }}
                       >
                         {latestPersonalNote
