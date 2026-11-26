@@ -155,6 +155,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
   );
   const [isPrefetchingAudio, setIsPrefetchingAudio] = useState(false);
   const [isClearingAudio, setIsClearingAudio] = useState(false);
+  const [confirmClearAudio, setConfirmClearAudio] = useState(false);
   const [audioProgress, setAudioProgress] = useState<SurahAudioPrefetchProgress | null>(null);
   const [audioFeedback, setAudioFeedback] = useState<{
     type: 'success' | 'info' | 'error';
@@ -164,6 +165,15 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
   const audioAbortRef = useRef<AbortController | null>(null);
   const isPrefetchingAudioRef = useRef(false);
   const statsRefreshTimerRef = useRef<number | null>(null);
+  const confirmClearAudioTimerRef = useRef<number | null>(null);
+
+  const resetClearAudioConfirm = useCallback(() => {
+    if (confirmClearAudioTimerRef.current !== null) {
+      window.clearTimeout(confirmClearAudioTimerRef.current);
+      confirmClearAudioTimerRef.current = null;
+    }
+    setConfirmClearAudio(false);
+  }, []);
 
   const refreshAudioStats = useCallback(async () => {
     const nextStats = await getAudioCacheStats();
@@ -172,9 +182,10 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
     setAudioInventory(nextInventory);
     if (nextStats.entryCount === 0) {
       setIsAudioInventoryOpen(false);
+      resetClearAudioConfirm();
     }
     setIsLoadingAudioStats(false);
-  }, []);
+  }, [resetClearAudioConfirm]);
 
   useEffect(() => {
     let active = true;
@@ -212,6 +223,10 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
       if (statsRefreshTimerRef.current !== null) {
         window.clearTimeout(statsRefreshTimerRef.current);
         statsRefreshTimerRef.current = null;
+      }
+      if (confirmClearAudioTimerRef.current !== null) {
+        window.clearTimeout(confirmClearAudioTimerRef.current);
+        confirmClearAudioTimerRef.current = null;
       }
       abortControllerRef.current?.abort();
       abortControllerRef.current = null;
@@ -415,6 +430,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
 
   const handlePrefetchSurahAudio = useCallback(async () => {
     if (isPrefetchingAudio || isClearingAudio) return;
+    resetClearAudioConfirm();
     sfxService.play('click');
     setAudioFeedback(null);
 
@@ -549,6 +565,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
     selectedSurahMeta.ayahCount,
     selectedSurahMeta.nameTr,
     refreshAudioStats,
+    resetClearAudioConfirm,
   ]);
 
   const handleCancelAudioPrefetch = useCallback(() => {
@@ -557,7 +574,22 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
   }, []);
 
   const handleClearAudioCache = useCallback(async () => {
-    if (isPrefetchingAudio || isClearingAudio) return;
+    if (isPrefetchingAudio || isClearingAudio || audioStats.entryCount === 0) return;
+
+    if (!confirmClearAudio) {
+      sfxService.play('click');
+      setConfirmClearAudio(true);
+      if (confirmClearAudioTimerRef.current !== null) {
+        window.clearTimeout(confirmClearAudioTimerRef.current);
+      }
+      confirmClearAudioTimerRef.current = window.setTimeout(() => {
+        confirmClearAudioTimerRef.current = null;
+        setConfirmClearAudio(false);
+      }, 4000);
+      return;
+    }
+
+    resetClearAudioConfirm();
     sfxService.play('click');
     setIsClearingAudio(true);
     setAudioFeedback(null);
@@ -578,7 +610,14 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
     } finally {
       setIsClearingAudio(false);
     }
-  }, [isPrefetchingAudio, isClearingAudio, refreshAudioStats]);
+  }, [
+    isPrefetchingAudio,
+    isClearingAudio,
+    audioStats.entryCount,
+    confirmClearAudio,
+    resetClearAudioConfirm,
+    refreshAudioStats,
+  ]);
 
   const hasDataUpdate = Boolean(
     status &&
@@ -1256,20 +1295,35 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
           <button
             type="button"
             disabled={isClearingAudio || audioStats.entryCount === 0}
+            aria-live="polite"
             onClick={() => void handleClearAudioCache()}
-            className="w-full min-h-[38px] px-3 py-1.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-subtle)',
-              color: 'var(--state-danger-text)',
-            }}
+            className="w-full min-h-[38px] px-3 py-1.5 rounded-xl border text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation text-center leading-snug"
+            style={
+              confirmClearAudio && !isClearingAudio
+                ? {
+                    backgroundColor: 'var(--state-danger-bg)',
+                    borderColor: 'var(--state-danger-text)',
+                    color: 'var(--state-danger-text)',
+                  }
+                : {
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--state-danger-text)',
+                  }
+            }
           >
             {isClearingAudio ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
             ) : (
               <Trash2 className="w-3.5 h-3.5 shrink-0" />
             )}
-            <span>{isClearingAudio ? 'Ses Önbelleği Temizleniyor…' : 'Ses Önbelleğini Temizle'}</span>
+            <span>
+              {isClearingAudio
+                ? 'Ses Önbelleği Temizleniyor…'
+                : confirmClearAudio
+                  ? 'Emin misiniz? Silmek için tekrar dokunun'
+                  : 'Ses Önbelleğini Temizle'}
+            </span>
           </button>
         </div>
       )}

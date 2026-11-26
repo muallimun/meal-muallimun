@@ -137,6 +137,8 @@ const MAX_CONSECUTIVE_FAILURES = 3;
 const LOAD_TIMEOUT_MS = 12000;
 export const AUDIO_LOAD_ERROR_MESSAGE =
   'Ses dosyasına ulaşılamadı. İnternet bağlantınızı kontrol edin veya farklı bir okuyucu seçin.';
+export const OFFLINE_AUDIO_UNAVAILABLE_MESSAGE =
+  'Bu ayet cihazda kayıtlı değil; dinlemek için internet bağlantısı gerekiyor.';
 
 const INITIAL_SNAPSHOT: AudioQueueSnapshot = {
   status: 'idle',
@@ -217,6 +219,7 @@ class AudioQueueService {
   private audio: HTMLAudioElement | null = null;
   private activeObjectUrl: string | null = null;
   private audioAbortController: AbortController | null = null;
+  private mealPreloadAbortController: AbortController | null = null;
   private preloader: HTMLAudioElement | null = null;
   private previewAudio: HTMLAudioElement | null = null;
   private previewAbortController: AbortController | null = null;
@@ -1082,10 +1085,76 @@ class AudioQueueService {
     }
   }
 
+  private isOffline(): boolean {
+    return typeof navigator !== 'undefined' && navigator.onLine === false;
+  }
+
+  private abortMealPreload(): void {
+    if (this.mealPreloadAbortController) {
+      this.mealPreloadAbortController.abort();
+      this.mealPreloadAbortController = null;
+    }
+  }
+
+  private preloadUpcomingMealAudio(mealCandidateUrls: string[], session: number): void {
+    if (typeof window === 'undefined' || mealCandidateUrls.length === 0) return;
+
+    this.abortMealPreload();
+    const controller = new AbortController();
+    const { signal } = controller;
+    this.mealPreloadAbortController = controller;
+
+    void (async () => {
+      try {
+        if ('caches' in window) {
+          const cachedObjectUrl = await getCachedAudioObjectUrl(mealCandidateUrls);
+          if (cachedObjectUrl) {
+            try {
+              URL.revokeObjectURL(cachedObjectUrl);
+            } catch {
+              // ignore revoke errors
+            }
+            return;
+          }
+        }
+
+        if (signal.aborted || session !== this.playSessionId) return;
+        if (this.isOffline()) return;
+
+        const autoCacheEnabled = getAutoCacheAudioEnabled();
+
+        for (const mealUrl of mealCandidateUrls) {
+          if (signal.aborted || session !== this.playSessionId) return;
+          if (autoCacheEnabled) {
+            const stored = await cacheAudioFromUrl(mealUrl, signal, false);
+            if (stored) return;
+          } else {
+            try {
+              const res = await fetch(mealUrl, { signal, mode: 'cors' });
+              if (res.ok) {
+                await res.arrayBuffer();
+                return;
+              }
+            } catch {
+              // Sonraki yedek URL'ye geç veya sessizce bırak
+            }
+          }
+        }
+      } catch {
+        // Ana oynatma akışını bloke etmeden sessizce geç
+      } finally {
+        if (this.mealPreloadAbortController === controller) {
+          this.mealPreloadAbortController = null;
+        }
+      }
+    })();
+  }
+
   private teardownAudioElement(preserveWordSyncFlag = false): void {
     this.clearSkipTimer();
     this.clearLoadTimer();
     this.clearStallTimer();
+    this.abortMealPreload();
     this.clearWordSyncState(preserveWordSyncFlag);
 
     if (this.audioAbortController) {
@@ -1111,6 +1180,17 @@ class AudioQueueService {
     if (typeof window === 'undefined' || typeof Audio === 'undefined') return;
 
     this.prewarmUpcomingSegment();
+
+    const currentStep = this.steps[this.currentStepIndex];
+    const nextStep = this.steps[this.currentStepIndex + 1];
+    // Sıralı dinlemede (ar_then_meal) meal adımını özel arka plan ön-yükleyici yönetir
+    if (
+      this.getEffectiveMode() === 'ar_then_meal' &&
+      currentStep?.phase === 'ar' &&
+      nextStep?.phase === 'meal'
+    ) {
+      return;
+    }
 
     let nextUrl: string | null = null;
     if (this.currentStepIndex + 1 < this.steps.length) {
@@ -1255,12 +1335,24 @@ class AudioQueueService {
     let handledFailure = false;
     let playedFromCache = false;
     let backgroundCacheTriggered = false;
+    let mealPreloadTriggered = false;
 
     const triggerBackgroundAudioCache = () => {
       if (playedFromCache || backgroundCacheTriggered) return;
       if (!getAutoCacheAudioEnabled()) return;
       backgroundCacheTriggered = true;
       void cacheAudioFromUrl(targetUrl);
+    };
+
+    const triggerUpcomingMealPreload = () => {
+      if (mealPreloadTriggered) return;
+      if (this.getEffectiveMode() !== 'ar_then_meal' || step.phase !== 'ar') return;
+      const upcomingStep = this.steps[this.currentStepIndex + 1];
+      if (!upcomingStep || upcomingStep.phase !== 'meal' || upcomingStep.urls.length === 0) {
+        return;
+      }
+      mealPreloadTriggered = true;
+      this.preloadUpcomingMealAudio(upcomingStep.urls, session);
     };
 
     const handleFailure = () => {
@@ -1296,6 +1388,7 @@ class AudioQueueService {
         this.emit({ status: 'playing', errorMessage: null });
         this.setMediaPlaybackState('playing');
         this.startWordSyncLoop();
+        triggerUpcomingMealPreload();
       }
     };
 
@@ -1348,6 +1441,7 @@ class AudioQueueService {
         this.startWordSyncLoop();
         this.preloadNextUrl();
         triggerBackgroundAudioCache();
+        triggerUpcomingMealPreload();
       },
       { signal },
     );
@@ -1435,21 +1529,47 @@ class AudioQueueService {
             this.activeObjectUrl = cachedObjectUrl;
             playedFromCache = true;
             beginPlayback(cachedObjectUrl);
+          } else if (this.isOffline()) {
+            this.handleOfflineAudioUnavailable(session);
           } else {
             beginPlayback(targetUrl);
           }
         })
         .catch(() => {
-          beginPlayback(targetUrl);
+          if (session !== this.playSessionId || signal.aborted) return;
+          if (this.isOffline()) {
+            this.handleOfflineAudioUnavailable(session);
+          } else {
+            beginPlayback(targetUrl);
+          }
         });
+      return;
+    }
+
+    if (this.isOffline()) {
+      this.handleOfflineAudioUnavailable(session);
       return;
     }
 
     beginPlayback(targetUrl);
   }
 
+  private handleOfflineAudioUnavailable(session: number): void {
+    if (session !== this.playSessionId) return;
+    this.teardownAudioElement();
+    this.setMediaPlaybackState('paused');
+    this.emit({
+      status: 'error',
+      errorMessage: OFFLINE_AUDIO_UNAVAILABLE_MESSAGE,
+    });
+  }
+
   private handleStepExhausted(session: number): void {
     if (session !== this.playSessionId) return;
+    if (this.isOffline()) {
+      this.handleOfflineAudioUnavailable(session);
+      return;
+    }
     this.consecutiveFailures += 1;
 
     const hasMoreStepsInVerse = this.currentStepIndex + 1 < this.steps.length;
@@ -2103,6 +2223,7 @@ class AudioQueueService {
       this.clearSkipTimer();
       this.clearLoadTimer();
       this.clearStallTimer();
+      this.abortMealPreload();
       this.stopWordSyncLoop();
       try {
         this.audio?.pause();
