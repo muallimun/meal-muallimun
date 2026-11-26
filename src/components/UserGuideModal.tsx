@@ -211,7 +211,7 @@ const MODULE_TIPS: ModuleTipItem[] = [
     categoryLabel: 'Okuma & Mushaf',
     title: '9 Seçkin Mushaf Hattı, Renkli Tecvit & Secâvend Rehberi',
     summary:
-      'Şeyh Hamdullah Klasik, Elif Mushaf Hattı, Süleyman Feyzullah, Hasenât, Arakom Nesih dâhil 9 seçkin hat ve 3 tema (Açık, Krem Mushaf, Gece) arasında geçiş yapın.',
+      'Şeyh Hamdullah Klasik, Elif Mushaf Hattı, Süleyman Feyzullah, Hasenât, Arakom Nesih dâhil 9 seçkin hat ve 4 göz dostu tema (Açık, Krem Mushaf, Adaçayı, Gece Mavisi) arasında geçiş yapın.',
     bullets: [
       {
         lead: 'Renkli Tecvit & Hat Geçişi:',
@@ -227,7 +227,7 @@ const MODULE_TIPS: ModuleTipItem[] = [
       },
     ],
     keywords:
-      'tecvit renkli hat font şeyh hamdullah elif süleyman feyzullah hasenat arakom nesih 9 hat secavend vakıf durak krem tema',
+      'tecvit renkli hat font şeyh hamdullah elif süleyman feyzullah hasenat arakom nesih 9 hat secavend vakıf durak krem tema adaçayı gece mavisi',
   },
   {
     id: 'audio_presentation_share',
@@ -378,9 +378,13 @@ const MODULE_TIPS: ModuleTipItem[] = [
         lead: 'Sınav Vurgusunu Gizleme:',
         text: 'Yalnızca okuma/hatim odaklı çalışırken soru sayaçlarını ve sınav vitrinini gizleyebilirsiniz.',
       },
+      {
+        lead: 'Varsayılan Açılış Sayfası:',
+        text: 'Ayarlar → Genel & Görünüm’den Varsayılan Açılış Sayfası seçerek uygulamanın doğrudan istediğiniz ekranla açılmasını sağlayabilirsiniz.',
+      },
     ],
     keywords:
-      'çalışma masam özelleştir odak profili havuz aktif 114 sure genişlet sadeleştir sınav gizle',
+      'çalışma masam özelleştir odak profili havuz aktif 114 sure genişlet sadeleştir sınav gizle açılış sayfası varsayılan açılış',
     ctaLabel: 'Ana Sayfada Özelleştir',
     actionId: 'customize_desk',
   },
@@ -737,7 +741,7 @@ export const UserGuideModal: React.FC = () => {
   const matchesOfflineBackup = useMemo(() => {
     if (!isSearching) return false;
     return normalizeForSearch(
-      'çevrimdışı offline paket indir önbellek internet tilavet pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle yedeği paylaş gönder whatsapp telegram drive e-posta son yedekleme tarihi kaynaklar atıf telif bilgilendirme ticari değil',
+      'çevrimdışı offline paket indir önbellek ses önbelleği dinledikçe sakla sure ön-indir internet tilavet pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle yedeği paylaş gönder whatsapp telegram drive e-posta son yedekleme tarihi kaynaklar atıf telif bilgilendirme ticari değil',
     ).includes(normalizedQuery);
   }, [isSearching, normalizedQuery]);
 
@@ -1330,8 +1334,10 @@ export const UserGuideModal: React.FC = () => {
                   className="text-xs sm:text-sm font-extrabold leading-snug"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  Metin, meal ve tecvit çevrimdışı çalışır; sesli tilavet için internet bağlantısı
-                  gerekir.
+                  Metin, meal, tecvit ve fihrist çevrimdışı çalışır. Dinledikçe Ses Önbelleği
+                  açıkken dinlediğiniz ayet ve sesli mealler cihazda otomatik saklanır; dilerseniz
+                  aşağıdan seçtiğiniz bir sureyi (tilavet + sesli meal) tek dokunuşla çevrimdışı
+                  ön-indirebilirsiniz.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <div
@@ -1347,8 +1353,8 @@ export const UserGuideModal: React.FC = () => {
                     />
                     <span style={{ color: 'var(--text-secondary)' }}>
                       <strong style={{ color: 'var(--text-primary)' }}>İnternetsiz:</strong> 604
-                      sayfa Diyanet Mushafı, seçili mealler, renkli tecvit, fihrist, notlar ve sınav
-                      soruları.
+                      sayfa Diyanet Mushafı, seçili mealler, renkli tecvit, fihrist, notlar, sınav
+                      soruları ve önbelleğe alınan ayet/sure sesleri.
                     </span>
                   </div>
                   <div
@@ -1363,8 +1369,9 @@ export const UserGuideModal: React.FC = () => {
                       style={{ color: 'var(--brand-accent-text)' }}
                     />
                     <span style={{ color: 'var(--text-secondary)' }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>İnternetle:</strong> 28
-                      kurrâ sesli tilaveti, Türkçe meal sesi ve tek kelime telaffuz kayıtları.
+                      <strong style={{ color: 'var(--text-primary)' }}>İnternetle:</strong> Henüz
+                      önbelleğe alınmamış 28 kurrâ sesli tilaveti, Türkçe meal sesi ve tek kelime
+                      telaffuz kayıtları.
                     </span>
                   </div>
                 </div>

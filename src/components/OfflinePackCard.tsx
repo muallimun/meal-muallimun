@@ -90,6 +90,25 @@ function formatBytesTr(bytes: number): string {
   }
 }
 
+function formatSurahName(name: string): string {
+  const cleaned = name
+    .trim()
+    .replace(/(\s+Suresi){2,}$/gi, ' Suresi')
+    .trim();
+  if (!cleaned) return '';
+  if (/\s+Suresi$/i.test(cleaned) || /\s+Sure$/i.test(cleaned)) {
+    return cleaned;
+  }
+  return `${cleaned} Suresi`;
+}
+
+function stripSurahSuffix(name: string): string {
+  return name
+    .trim()
+    .replace(/(\s+Suresi)+$/gi, '')
+    .trim();
+}
+
 export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = false }) => {
   const {
     manifest,
@@ -476,6 +495,8 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
       await refreshAudioStats();
       sfxService.play('success');
 
+      const displaySurahLabel = formatSurahName(selectedSurahMeta.nameTr);
+
       if (result.cachedCount === 0 && result.failed > 0) {
         setAudioFeedback({
           type: 'error',
@@ -484,12 +505,12 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
       } else if (result.failed > 0) {
         setAudioFeedback({
           type: 'info',
-          text: `${selectedSurahMeta.no}. ${selectedSurahMeta.nameTr} Suresi için ${formatNumberTr(result.cachedCount)} ses kaydı önbelleğe alındı (${formatNumberTr(result.failed)} kayıt atlandı).`,
+          text: `${selectedSurahMeta.no}. ${displaySurahLabel} için ${formatNumberTr(result.cachedCount)} ses kaydı önbelleğe alındı (${formatNumberTr(result.failed)} kayıt atlandı).`,
         });
       } else {
         setAudioFeedback({
           type: 'success',
-          text: `${selectedSurahMeta.no}. ${selectedSurahMeta.nameTr} Suresi sesleri önbelleğe alındı.`,
+          text: `${selectedSurahMeta.no}. ${displaySurahLabel} sesleri önbelleğe alındı.`,
         });
       }
     } catch (err) {
@@ -961,7 +982,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
                     style={{ color: 'var(--text-muted)' }}
                   >
                     Son: {audioInventory.lastPrefetched.surahNo}.{' '}
-                    {audioInventory.lastPrefetched.surahName}
+                    {stripSurahSuffix(audioInventory.lastPrefetched.surahName)}
                   </span>
                 )}
               </div>
@@ -1041,6 +1062,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
                               <div className="flex flex-wrap gap-1 min-w-0">
                                 {entry.surahs.map((sNo) => {
                                   const sName = surahNameByNo.get(sNo);
+                                  const compactName = sName ? stripSurahSuffix(sName) : '';
                                   return (
                                     <span
                                       key={sNo}
@@ -1051,7 +1073,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
                                         color: 'var(--text-secondary)',
                                       }}
                                     >
-                                      {sName ? `${sNo}. ${sName}` : `${sNo}. Sure`}
+                                      {compactName ? `${sNo}. ${compactName}` : `${sNo}. Sure`}
                                     </span>
                                   );
                                 })}
@@ -1126,7 +1148,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
                 style={{ color: 'var(--brand-primary-text)' }}
               />
               <span className="truncate">
-                {selectedSurahMeta.no}. {selectedSurahMeta.nameTr} Suresi indiriliyor (
+                {selectedSurahMeta.no}. {formatSurahName(selectedSurahMeta.nameTr)} indiriliyor (
                 {formatNumberTr(audioProgress.completed)}/{formatNumberTr(audioProgress.total)})…
               </span>
             </span>
@@ -1212,7 +1234,7 @@ export const OfflinePackCard: React.FC<OfflinePackCardProps> = ({ compact = fals
                 return (
                   <option key={s.no} value={s.no}>
                     {isCached ? '✓ ' : ''}
-                    {hasMetaName ? `${s.no}. ${s.nameTr} Suresi` : s.nameTr}
+                    {hasMetaName ? `${s.no}. ${formatSurahName(s.nameTr)}` : s.nameTr}
                     {s.ayahCount > 0 ? ` (${s.ayahCount} ayet)` : ''}
                   </option>
                 );

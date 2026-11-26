@@ -163,6 +163,13 @@ function createEmptyInventory(): AudioCacheInventory {
   return { sources: {}, lastPrefetched: null };
 }
 
+function normalizeSurahName(raw: string): string {
+  return raw
+    .trim()
+    .replace(/(\s+Suresi){2,}$/gi, ' Suresi')
+    .trim();
+}
+
 function sanitizeSurahList(raw: unknown): number[] {
   if (!Array.isArray(raw)) return [];
   const unique = new Set<number>();
@@ -247,7 +254,7 @@ export function getAudioCacheInventory(): AudioCacheInventory {
       ) {
         lastPrefetched = {
           surahNo: Math.trunc(lp.surahNo),
-          surahName: lp.surahName.trim(),
+          surahName: normalizeSurahName(lp.surahName),
           reciterLabel: lp.reciterLabel.trim(),
           ...(typeof lp.mealLabel === 'string' && lp.mealLabel.trim()
             ? { mealLabel: lp.mealLabel.trim() }
@@ -311,7 +318,7 @@ export function recordPrefetchedSurah(params: RecordPrefetchedSurahParams): Audi
     sources: nextSources,
     lastPrefetched: {
       surahNo: safeSurah,
-      surahName: params.surahName.trim() || `${safeSurah}. Sure`,
+      surahName: normalizeSurahName(params.surahName) || `${safeSurah}. Sure`,
       reciterLabel:
         shouldRecordReciter && params.reciterLabel.trim()
           ? params.reciterLabel.trim()

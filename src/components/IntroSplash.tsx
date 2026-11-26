@@ -45,7 +45,7 @@ const INTRO_STATS: readonly IntroStatItem[] = [
 const INTRO_MODULE_CARDS: readonly IntroModuleCard[] = [
   {
     title: 'Okuma, Renkli Tecvit & Kelime Takibi',
-    description: `604 sayfa Diyanet Mushafı, Kitap ve Kart görünümleri; etkileşimli Tecvit & Secâvend rehberi; ${RECITERS_CATALOG.length} kurrâdan kelime takipli (karaoke) tilavet ve 0.75x–2.5x okuma hızı.`,
+    description: `604 sayfa Diyanet Mushafı, 4 göz dostu tema (Krem Mushaf, Adaçayı, Gece Mavisi), renkli Tecvit & Secâvend; ${RECITERS_CATALOG.length} kurrâdan kelime takipli tilavet (0.75x–2.5x).`,
     icon: BookOpen,
     tone: 'emerald',
   },
@@ -258,6 +258,11 @@ export const IntroSplash: React.FC = () => {
                 );
               })}
             </div>
+
+            <p className="mt-2.5 lg:mt-2 text-[11px] sm:text-[11.5px] text-teal-100/80 max-w-3xl leading-snug">
+              Dinledikçe cihazda saklanan ses önbelleği, tek sure ön-indirme ve kişiselleştirilebilir
+              açılış sayfası ile çevrimdışı kullanıma da hazır.
+            </p>
           </div>
         </div>
 
