@@ -602,6 +602,7 @@ function hydrateState(): PersistedAppState {
       theme:
         rawSettings.theme === 'light' ||
         rawSettings.theme === 'cream' ||
+        rawSettings.theme === 'sage' ||
         rawSettings.theme === 'dark'
           ? rawSettings.theme
           : DEFAULT_SETTINGS.theme,
@@ -1773,7 +1774,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const themeColorMeta = document.querySelector('meta[name="theme-color"]');
     if (themeColorMeta) {
       const themeColor =
-        theme === 'dark' ? '#0b1314' : theme === 'light' ? '#f4f7f7' : '#faf6ee';
+        theme === 'dark'
+          ? '#0f172a'
+          : theme === 'sage'
+            ? '#e7f0eb'
+            : theme === 'light'
+              ? '#f4f7f7'
+              : '#faf6ee';
       themeColorMeta.setAttribute('content', themeColor);
     }
 

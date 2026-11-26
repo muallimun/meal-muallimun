@@ -433,7 +433,10 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
     left: false,
     right: false,
   });
-  const leafFadeBg = settings.theme === 'cream' ? 'var(--bg-mushaf)' : 'var(--bg-surface)';
+  const leafFadeBg =
+    settings.theme === 'cream' || settings.theme === 'sage'
+      ? 'var(--bg-mushaf)'
+      : 'var(--bg-surface)';
 
   const arabicDensity = useMemo(
     () => getArabicDensityMetrics(settings.arabicTextDensity, settings.arabicLineHeight),

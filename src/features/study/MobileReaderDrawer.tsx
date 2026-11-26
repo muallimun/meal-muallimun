@@ -13,6 +13,7 @@ import {
   Info,
   Languages,
   LayoutList,
+  Leaf,
   ListMusic,
   Maximize2,
   Minimize2,
@@ -1025,7 +1026,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                 </span>
               </div>
               <div
-                className="grid grid-cols-3 gap-1 p-1 rounded-xl"
+                className="grid grid-cols-2 gap-1.5 p-1 rounded-xl"
                 style={{ backgroundColor: 'var(--bg-surface)' }}
                 role="group"
                 aria-label="Okuma teması"
@@ -1034,7 +1035,8 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                   [
                     { id: 'light', label: 'Açık', icon: Sun },
                     { id: 'cream', label: 'Krem Mushaf', icon: BookOpen },
-                    { id: 'dark', label: 'Gece', icon: Moon },
+                    { id: 'sage', label: 'Adaçayı', icon: Leaf },
+                    { id: 'dark', label: 'Gece Mavisi', icon: Moon },
                   ] as Array<{ id: ThemeMode; label: string; icon: React.ComponentType<{ className?: string }> }>
                 ).map((opt) => {
                   const active = settings.theme === opt.id;

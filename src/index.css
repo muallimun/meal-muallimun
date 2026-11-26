@@ -97,7 +97,7 @@
 }
 
 /* ============================================================================
-   3 Tema Renk Değişkenleri (light / cream / dark)
+   4 Tema Renk Değişkenleri (light / cream / sage / dark)
    ============================================================================ */
 :root,
 [data-theme="light"] {
@@ -168,23 +168,51 @@
   --scrollbar-thumb-hover: #0f766e;
 }
 
+[data-theme="sage"] {
+  --bg-canvas: #e7f0eb;
+  --bg-surface: #f4f9f6;
+  --bg-surface-soft: #e2ede7;
+  --bg-surface-hover: #d6e6de;
+  --bg-mushaf: #eef6f1;
+  --bg-nav: rgba(244, 249, 246, 0.94);
+  --border-subtle: #c8dbd1;
+  --border-strong: #a9c7b8;
+  --text-primary: #10241d;
+  --text-secondary: #325146;
+  --text-muted: #4b6c60;
+  --brand-primary: #0f766e;
+  --brand-primary-hover: #0b5e57;
+  --brand-primary-soft: #d7eee6;
+  --brand-primary-text: #0c635c;
+  --brand-accent: #c27803;
+  --brand-accent-soft: #f5ebd4;
+  --brand-accent-text: #8c4f05;
+  --state-success: #10b981;
+  --state-danger: #ef4444;
+  --state-danger-text: #b91c1c;
+  --state-danger-bg: rgba(239, 68, 68, 0.09);
+  --shadow-card: 0 1px 2px rgba(16, 36, 29, 0.05), 0 6px 20px rgba(16, 36, 29, 0.06);
+  --scrollbar-thumb: #8db0a0;
+  --scrollbar-thumb-hover: #0f766e;
+}
+
 [data-theme="dark"],
 .dark {
-  --bg-canvas: #0b1314;
-  --bg-surface: #121e20;
-  --bg-surface-soft: #18272a;
-  --bg-surface-hover: #1f3337;
-  --bg-mushaf: #152427;
-  --bg-nav: rgba(18, 30, 32, 0.92);
-  --border-subtle: #223539;
-  --border-strong: #314b50;
-  --text-primary: #f1f6f5;
-  --text-secondary: #bfd0ce;
-  --text-muted: #8ea7a4;
+  --bg-canvas: #0f172a;
+  --bg-surface: #162033;
+  --bg-surface-soft: #1e293b;
+  --bg-surface-hover: #263449;
+  --bg-mushaf: #192438;
+  --bg-nav: rgba(15, 23, 42, 0.93);
+  --border-subtle: #28364f;
+  --border-strong: #394b6a;
+  --text-primary: #eef2f8;
+  --text-secondary: #c1cde0;
+  --text-muted: #90a2be;
   --brand-primary: #0f766e;
-  --brand-primary-hover: #0d9488;
-  --brand-primary-soft: rgba(13, 148, 136, 0.16);
-  --brand-primary-text: #2dd4bf;
+  --brand-primary-hover: #14b8a6;
+  --brand-primary-soft: rgba(20, 184, 166, 0.16);
+  --brand-primary-text: #5eead4;
   --brand-accent: #f59e0b;
   --brand-accent-soft: rgba(245, 158, 11, 0.16);
   --brand-accent-text: #fbbf24;
@@ -193,8 +221,8 @@
   --state-danger-text: #fca5a5;
   --state-danger-bg: rgba(239, 68, 68, 0.16);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.22);
-  --scrollbar-thumb: #3c5d63;
-  --scrollbar-thumb-hover: #2dd4bf;
+  --scrollbar-thumb: #425678;
+  --scrollbar-thumb-hover: #5eead4;
   --note-emerald-text: #5eead4;
   --note-emerald-bg: rgba(20, 184, 166, 0.18);
   --note-amber-text: #fcd34d;
@@ -614,6 +642,42 @@
   );
 }
 
+[data-theme="sage"] .mushaf-cover-frame {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 118, 110, 0.14) 0%,
+    rgba(114, 159, 138, 0.1) 50%,
+    rgba(15, 118, 110, 0.14) 100%
+  );
+  border-color: rgba(114, 159, 138, 0.45);
+  box-shadow:
+    0 14px 36px -14px rgba(16, 36, 29, 0.18),
+    0 2px 8px rgba(16, 36, 29, 0.06);
+}
+
+[data-theme="sage"] .mushaf-paper-single,
+[data-theme="sage"] .mushaf-paper-left,
+[data-theme="sage"] .mushaf-paper-right {
+  background-color: var(--bg-mushaf);
+}
+
+[data-theme="sage"] .mushaf-cetvel-outer {
+  border-color: rgba(15, 118, 110, 0.44);
+}
+
+[data-theme="sage"] .mushaf-cetvel-inner {
+  border-color: rgba(114, 159, 138, 0.42);
+  background-color: var(--bg-mushaf) !important;
+}
+
+[data-theme="sage"] .book-serlevha-header {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 118, 110, 0.14) 0%,
+    rgba(238, 246, 241, 0) 100%
+  );
+}
+
 .dark .mushaf-cetvel-outer {
   border-color: rgba(45, 212, 191, 0.32);
 }
@@ -946,6 +1010,18 @@
 
 [data-theme='cream'] .mushaf-leaf-scroll::-webkit-scrollbar-thumb:hover {
   background-color: rgba(180, 125, 45, 0.56);
+}
+
+[data-theme='sage'] .mushaf-leaf-scroll {
+  scrollbar-color: rgba(15, 118, 110, 0.32) transparent;
+}
+
+[data-theme='sage'] .mushaf-leaf-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 118, 110, 0.32);
+}
+
+[data-theme='sage'] .mushaf-leaf-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(15, 118, 110, 0.54);
 }
 
 [data-theme='dark'] .mushaf-leaf-scroll {

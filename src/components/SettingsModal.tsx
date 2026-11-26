@@ -275,12 +275,20 @@ const THEME_OPTIONS: {
     border: '#D6C7A9',
   },
   {
+    id: 'sage',
+    label: 'Adaçayı',
+    desc: 'Serin yeşil kâğıt',
+    swatch: '#E7F0EB',
+    accent: '#0F766E',
+    border: '#A9C7B8',
+  },
+  {
     id: 'dark',
-    label: 'Gece',
-    desc: 'Göz dostu',
-    swatch: '#0B1314',
-    accent: '#2DD4BF',
-    border: '#334155',
+    label: 'Gece Mavisi',
+    desc: 'Yumuşak gece',
+    swatch: '#0F172A',
+    accent: '#5EEAD4',
+    border: '#394B6A',
   },
 ];
 
@@ -1058,7 +1066,7 @@ export const SettingsModal: React.FC = () => {
                 <h3 className="text-xs font-extrabold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Uygulama Teması
                 </h3>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {THEME_OPTIONS.map((t) => {
                     const active = settings.theme === t.id;
                     return (
@@ -1080,17 +1088,17 @@ export const SettingsModal: React.FC = () => {
                       >
                         {active && (
                           <span
-                            className="absolute top-1.5 right-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold text-white leading-none"
+                            className="absolute top-2 right-2 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold text-white leading-none"
                             style={{ backgroundColor: 'var(--brand-primary)' }}
                           >
                             <Check className="w-2.5 h-2.5 shrink-0" />
-                            <span className="hidden sm:inline">Seçili</span>
+                            <span>Seçili</span>
                           </span>
                         )}
-                        <div className="flex items-center gap-2 mb-1.5">
+                        <div className="mb-2">
                           <span
                             aria-hidden="true"
-                            className="w-6 h-5 rounded-md border overflow-hidden flex flex-col justify-between p-0.5 shrink-0 shadow-2xs"
+                            className="w-7 h-5 rounded-md border overflow-hidden flex flex-col justify-between p-0.5 shrink-0 shadow-2xs"
                             style={{
                               backgroundColor: t.swatch,
                               borderColor: t.border,
@@ -1105,11 +1113,11 @@ export const SettingsModal: React.FC = () => {
                               style={{ backgroundColor: t.accent }}
                             />
                           </span>
-                          <span className="text-xs sm:text-sm font-extrabold truncate pr-4 sm:pr-10">
-                            {t.label}
-                          </span>
                         </div>
-                        <p className="text-[10.5px] sm:text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                        <span className="block text-xs sm:text-[13px] font-extrabold truncate">
+                          {t.label}
+                        </span>
+                        <p className="text-[10.5px] sm:text-[11px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
                           {t.desc}
                         </p>
                       </button>

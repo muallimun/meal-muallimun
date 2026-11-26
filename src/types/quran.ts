@@ -7,7 +7,7 @@ export type MealCategory = 'resmi' | 'klasik' | 'cagdas' | 'evrensel';
 export type MealStorageType = 'm1' | 'm2' | 'mx';
 export type MealDisplayMode = 'single' | 'dual';
 export type PreferredMeal = 'm1' | 'm2' | 'both';
-export type ThemeMode = 'light' | 'cream' | 'dark';
+export type ThemeMode = 'light' | 'cream' | 'sage' | 'dark';
 export type NavTab = 'home' | 'reader' | 'fihrist' | 'memorize' | 'exam' | 'mistakes';
 export type StartupPageOption =
   | 'home'

@@ -22,6 +22,7 @@ import {
   Info,
   Languages,
   LayoutList,
+  Leaf,
   ListMusic,
   Menu,
   Minimize2,
@@ -2312,7 +2313,7 @@ export const StudyPage: React.FC = () => {
               </div>
             )}
 
-            {/* 5. Hızlı Tema Seçici (Açık / Krem / Gece) */}
+            {/* 5. Hızlı Tema Seçici (Açık / Krem / Adaçayı / Gece) */}
             <div
               className="pt-3 border-t space-y-1.5"
               style={{ borderColor: 'var(--border-subtle)' }}
@@ -2325,13 +2326,14 @@ export const StudyPage: React.FC = () => {
                 <span>Tema</span>
               </span>
               <div
-                className="grid grid-cols-3 gap-1.5"
+                className="grid grid-cols-2 gap-1.5"
               >
                 {(
                   [
                     { id: 'light', label: 'Açık', icon: Sun },
                     { id: 'cream', label: 'Krem', icon: BookOpen },
-                    { id: 'dark', label: 'Gece', icon: Moon },
+                    { id: 'sage', label: 'Adaçayı', icon: Leaf },
+                    { id: 'dark', label: 'Gece Mavisi', icon: Moon },
                   ] as const
                 ).map((opt) => {
                   const active = settings.theme === opt.id;

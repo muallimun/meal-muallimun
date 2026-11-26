@@ -182,7 +182,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
   }, [audioPrefs.arabicReciterId, featuredSurah, manifest, previewKey]);
 
   const handleCycleTheme = () => {
-    const order: ThemeMode[] = ['light', 'cream', 'dark'];
+    const order: ThemeMode[] = ['light', 'cream', 'sage', 'dark'];
     const idx = order.indexOf(settings.theme);
     const next = order[(idx + 1) % order.length];
     updateSettings({ theme: next });
@@ -474,7 +474,7 @@ export const GameArenaShell: React.FC<GameArenaShellProps> = ({
           <button
             type="button"
             onClick={handleCycleTheme}
-            title="Temayı Değiştir (Açık / Krem / Koyu)"
+            title="Temayı Değiştir (Açık / Krem / Adaçayı / Gece Mavisi)"
             aria-label="Temayı Değiştir"
             className="w-9 h-9 rounded-full border inline-flex items-center justify-center cursor-pointer transition-colors"
             style={{
