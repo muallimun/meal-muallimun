@@ -250,7 +250,7 @@ const CARD_PALETTE_ORDER: readonly ShareCardTheme[] = [
 ] as const;
 
 const MIN_TEXT_SCALE = 0.7;
-const MAX_TEXT_SCALE = 1.75;
+const MAX_TEXT_SCALE = 2.2;
 const TEXT_SCALE_STEP = 0.05;
 const TURKISH_CANVAS_FONT = '"Plus Jakarta Sans", "Inter", system-ui, sans-serif';
 const RTL_TAFSIR_CANVAS_FONT =
@@ -607,8 +607,8 @@ function computeCardLayout(params: {
       );
     }
 
-    const arBlockH = includeAr ? arLines.length * arLh + 24 : 0;
-    const divH = includeAr && includeMeal ? 60 : 0;
+    const arBlockH = includeAr ? arLines.length * arLh + 28 : 0;
+    const divH = includeAr && includeMeal ? 88 : 0;
     const mealLabelH = includeMeal ? 48 : 0;
     const mealBlockH = includeMeal ? mealLines.length * mLh + mealLabelH + 10 : 0;
     const bodyTotalH = arBlockH + divH + mealBlockH;
@@ -627,7 +627,7 @@ function computeCardLayout(params: {
     };
   };
 
-  const shrinkSteps = [1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46];
+  const shrinkSteps = [1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.42, 0.38];
   let chosen = measureForShrink(1);
   let wasAutoShrunk = false;
 
@@ -1141,12 +1141,12 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
         cursorY += currentLayout.arabicLineHeight;
       }
       ctx.direction = 'ltr';
-      cursorY += 20;
+      cursorY += 28;
     }
 
     // 5. Ayırıcı Süs Çizgisi
     if (includeAr && includeMeal) {
-      const lineY = cursorY + 24;
+      const lineY = cursorY + Math.round(currentLayout.dividerHeight / 2);
       ctx.strokeStyle = palette.dividerColor;
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1493,7 +1493,7 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                       style={{
                         paddingTop: px(20),
                         paddingBottom: px(20),
-                        gap: px(18),
+                        gap: px(28),
                       }}
                     >
                       {showArabicBlock && (
@@ -1515,7 +1515,12 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
                       {showArabicBlock && showMealBlock && (
                         <div
                           className="flex items-center justify-center shrink-0"
-                          style={{ width: px(280), gap: px(18) }}
+                          style={{
+                            width: px(280),
+                            gap: px(18),
+                            paddingTop: px(10),
+                            paddingBottom: px(10),
+                          }}
                         >
                           <span
                             className="flex-1"

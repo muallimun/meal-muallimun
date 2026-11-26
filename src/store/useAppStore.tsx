@@ -2588,6 +2588,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const openPresentationMode = useCallback(() => {
     sfxService.play('click');
+    setActiveTabState('reader');
     setIsPresentationOpen(true);
   }, []);
 

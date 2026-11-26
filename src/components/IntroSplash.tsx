@@ -125,7 +125,7 @@ export const IntroSplash: React.FC = () => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="intro-splash-title"
-      className={`fixed inset-0 ${Z_LAYERS.PANEL} flex items-center justify-center p-2.5 sm:p-5 transition-opacity duration-200 ${
+      className={`fixed inset-0 ${Z_LAYERS.PANEL} flex items-center justify-center p-2.5 sm:p-4 lg:p-3 transition-opacity duration-200 ${
         isLeaving ? 'opacity-0' : 'opacity-100'
       }`}
       style={{
@@ -146,7 +146,7 @@ export const IntroSplash: React.FC = () => {
       />
 
       <div
-        className={`relative w-full max-w-4xl max-h-[90dvh] flex flex-col rounded-2xl sm:rounded-3xl border border-amber-200/20 bg-[#0a302d]/94 backdrop-blur-xl text-white shadow-2xl overflow-hidden transition-transform duration-200 ${
+        className={`relative w-full max-w-4xl max-h-[90dvh] lg:max-h-[94dvh] flex flex-col rounded-2xl sm:rounded-3xl border border-amber-200/20 bg-[#0a302d]/94 backdrop-blur-xl text-white shadow-2xl overflow-hidden transition-transform duration-200 ${
           isLeaving ? 'scale-95' : 'scale-100'
         }`}
       >
@@ -158,30 +158,30 @@ export const IntroSplash: React.FC = () => {
           type="button"
           onClick={() => handleEnter()}
           aria-label="Karşılama ekranını kapat"
-          className="absolute top-3 right-3 sm:top-3.5 sm:right-3.5 z-20 inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#072623]/75 border border-white/12 text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer touch-manipulation"
+          className="absolute top-3 right-3 sm:top-3 sm:right-3 z-20 inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[#072623]/75 border border-white/12 text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer touch-manipulation"
         >
           <X className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
-        {/* Kaydırılabilir İçerik Gövdesi */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-3.5 py-4 sm:px-6 sm:py-5">
+        {/* Kaydırılabilir İçerik Gövdesi (15"/15.6" dizüstülerde kaydırmasız tam sığar) */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-3.5 py-4 sm:px-6 sm:py-4 lg:px-6 lg:py-4">
           <div className="flex flex-col items-center text-center">
             {/* Üst Serlevha: Logo, Altın-Zümrüt Çerçeveli Besmele ve Platform Rozeti */}
-            <div className="inline-flex items-center justify-center p-1.5 sm:p-2 rounded-2xl bg-white/10 ring-1 ring-amber-300/40 shadow-lg mb-2">
-              <BrandMark className="w-10 h-10 sm:w-12 sm:h-12" />
+            <div className="inline-flex items-center justify-center p-1.5 sm:p-2 lg:p-1.5 rounded-2xl bg-white/10 ring-1 ring-amber-300/40 shadow-lg mb-2 lg:mb-1.5">
+              <BrandMark className="w-10 h-10 sm:w-11 sm:h-11 lg:w-9 lg:h-9" />
             </div>
 
-            <div className="inline-flex items-center justify-center px-4 py-1 rounded-full border border-amber-300/35 bg-gradient-to-r from-teal-950/60 via-emerald-900/50 to-amber-950/40 shadow-sm mb-2">
+            <div className="inline-flex items-center justify-center px-4 py-1 lg:py-0.5 rounded-full border border-amber-300/35 bg-gradient-to-r from-teal-950/60 via-emerald-900/50 to-amber-950/40 shadow-sm mb-2 lg:mb-1.5">
               <p
                 dir="rtl"
                 lang="ar"
-                className="arabic-title text-[15px] sm:text-lg text-amber-200 tracking-normal leading-snug"
+                className="arabic-title text-[15px] sm:text-base lg:text-[15.5px] text-amber-200 tracking-normal leading-snug"
               >
                 بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/12 border border-amber-300/30 text-amber-200 text-[10.5px] sm:text-xs font-bold mb-2 max-w-full">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 lg:py-0.5 rounded-full bg-amber-400/12 border border-amber-300/30 text-amber-200 text-[10.5px] sm:text-[11px] font-bold mb-2 lg:mb-1 max-w-full">
               <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-amber-300" />
               <span className="leading-snug">
                 kuran.muallimun.net · Ücretsiz &amp; Reklamsız Kur&apos;an Eğitim Platformu
@@ -190,37 +190,37 @@ export const IntroSplash: React.FC = () => {
 
             <h1
               id="intro-splash-title"
-              className="text-xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight text-balance"
+              className="text-xl sm:text-2xl lg:text-[26px] font-extrabold tracking-tight text-white leading-tight text-balance"
             >
               Muallimun Kur&apos;an &amp; Meal
             </h1>
 
-            <p className="mt-1.5 text-xs sm:text-[13.5px] text-teal-100/88 max-w-2xl leading-relaxed">
+            <p className="mt-1.5 lg:mt-1 text-xs sm:text-[13px] lg:text-[12.5px] text-teal-100/88 max-w-2xl leading-relaxed lg:leading-snug">
               Kur&apos;an-ı Kerim&apos;i usulüne uygun okumak, anlamak, ezberlemek ve üzerinde
               tefekkür etmek için hazırlanmış kapsamlı dijital çalışma ortamı.
             </p>
 
             {/* 6'lı Özet Rakam Şeridi */}
-            <div className="mt-4 w-full grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+            <div className="mt-4 lg:mt-3 w-full grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-6 gap-1.5 sm:gap-2 lg:gap-2">
               {INTRO_STATS.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-xl border border-white/12 bg-white/[0.06] px-2 py-2 sm:py-2.5 flex flex-col items-center justify-center relative overflow-hidden"
+                  className="rounded-xl border border-white/12 bg-white/[0.06] px-2 py-2 sm:py-2 lg:py-1.5 flex flex-col items-center justify-center relative overflow-hidden"
                 >
                   <span
                     aria-hidden="true"
-                    className={`w-7 h-0.5 rounded-full mb-1.5 ${
+                    className={`w-7 h-0.5 rounded-full mb-1.5 lg:mb-1 ${
                       stat.tone === 'amber' ? 'bg-amber-400/80' : 'bg-teal-400/80'
                     }`}
                   />
                   <span
-                    className={`text-sm sm:text-base font-extrabold tabular-nums leading-none ${
+                    className={`text-sm sm:text-[15px] font-extrabold tabular-nums leading-none ${
                       stat.tone === 'amber' ? 'text-amber-300' : 'text-teal-200'
                     }`}
                   >
                     {stat.value}
                   </span>
-                  <span className="mt-1 text-[10px] sm:text-[11px] font-semibold text-teal-100/80 leading-tight text-center">
+                  <span className="mt-1 lg:mt-0.5 text-[10px] sm:text-[10.5px] font-semibold text-teal-100/80 leading-tight text-center">
                     {stat.label}
                   </span>
                 </div>
@@ -228,30 +228,30 @@ export const IntroSplash: React.FC = () => {
             </div>
 
             {/* 6 Kompakt Modül Kartı */}
-            <div className="mt-3.5 sm:mt-4 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-left">
+            <div className="mt-3.5 sm:mt-3.5 lg:mt-3 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-2 text-left">
               {INTRO_MODULE_CARDS.map((card) => {
                 const Icon = card.icon;
                 const isAmber = card.tone === 'amber';
                 return (
                   <article
                     key={card.title}
-                    className="rounded-2xl bg-white/[0.065] border border-white/12 hover:border-amber-300/25 transition-colors p-3 sm:p-3.5 flex flex-col"
+                    className="rounded-2xl bg-white/[0.065] border border-white/12 hover:border-amber-300/25 transition-colors p-3 sm:p-3 lg:p-2.5 flex flex-col"
                   >
-                    <div className="flex items-center gap-2.5 mb-1.5">
+                    <div className="flex items-center gap-2 mb-1.5 lg:mb-1">
                       <div
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                        className={`w-8 h-8 lg:w-7 lg:h-7 rounded-xl lg:rounded-lg flex items-center justify-center shrink-0 ${
                           isAmber
                             ? 'bg-amber-400/18 text-amber-200 ring-1 ring-amber-300/25'
                             : 'bg-teal-400/18 text-teal-200 ring-1 ring-teal-300/25'
                         }`}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
                       </div>
-                      <h2 className="text-xs sm:text-[13px] font-extrabold text-white leading-snug">
+                      <h2 className="text-xs sm:text-[12.5px] font-extrabold text-white leading-snug">
                         {card.title}
                       </h2>
                     </div>
-                    <p className="text-[11.5px] sm:text-xs text-teal-100/80 leading-relaxed">
+                    <p className="text-[11.5px] sm:text-[11.5px] text-teal-100/80 leading-relaxed lg:leading-snug line-clamp-2 sm:line-clamp-3">
                       {card.description}
                     </p>
                   </article>
@@ -262,7 +262,7 @@ export const IntroSplash: React.FC = () => {
         </div>
 
         {/* Altta Sabit Aksiyon Çubuğu ve Yerel Veri Güvencesi */}
-        <div className="shrink-0 px-3.5 py-3 sm:px-6 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] border-t border-white/12 bg-[#072422]/96 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="shrink-0 px-3.5 py-3 sm:px-6 sm:py-3 lg:py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] border-t border-white/12 bg-[#072422]/96 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3.5 min-w-0">
             <label className="inline-flex items-center gap-2 text-[11.5px] sm:text-xs text-teal-100/90 select-none cursor-pointer min-h-[32px]">
               <input
@@ -284,7 +284,7 @@ export const IntroSplash: React.FC = () => {
             <button
               type="button"
               onClick={() => handleEnter('reader')}
-              className="flex-1 sm:flex-initial min-h-[42px] px-3.5 sm:px-4 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap touch-manipulation"
+              className="flex-1 sm:flex-initial min-h-[42px] lg:min-h-[38px] px-3.5 sm:px-4 rounded-xl border border-white/20 bg-white/10 hover:bg-white/15 text-white font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap touch-manipulation"
             >
               <BookOpen className="w-4 h-4 shrink-0" />
               <span>Mushaf&apos;ı Aç</span>
@@ -293,7 +293,7 @@ export const IntroSplash: React.FC = () => {
             <button
               type="button"
               onClick={() => handleEnter()}
-              className="flex-1 sm:flex-initial min-h-[42px] px-4 sm:px-6 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-amber-950/30 inline-flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer whitespace-nowrap touch-manipulation"
+              className="flex-1 sm:flex-initial min-h-[42px] lg:min-h-[38px] px-4 sm:px-6 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-amber-950/30 inline-flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] cursor-pointer whitespace-nowrap touch-manipulation"
             >
               <span>Çalışmaya Başla</span>
               <ArrowRight className="w-4 h-4 shrink-0" />

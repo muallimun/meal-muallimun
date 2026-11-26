@@ -12,6 +12,7 @@ import {
   Maximize2,
   MessageSquareHeart,
   Minimize2,
+  MonitorPlay,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -80,6 +81,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     openBookmarksDrawer,
     openCalendarModal,
     openSearchModal,
+    openPresentationMode,
     dataSourceMode,
     retryCoreLoad,
     isExamActive,
@@ -103,6 +105,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   );
   const [pendingNavTab, setPendingNavTab] = useState<NavTab | null>(null);
+  const [pendingOpenPresentation, setPendingOpenPresentation] = useState(false);
   const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
   const [dismissedPwaUpdate, setDismissedPwaUpdate] = useState(false);
   const [dismissedOfflineBanner, setDismissedOfflineBanner] = useState(false);
@@ -251,6 +254,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     pendingNavTab !== null,
     () => {
       setPendingNavTab(null);
+      setPendingOpenPresentation(false);
     },
   );
 
@@ -304,6 +308,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       }
       if (isExamActive) {
         sfxService.play('click');
+        setPendingOpenPresentation(false);
         setPendingNavTab(tab);
         return;
       }
@@ -312,12 +317,28 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     [activeTab, isExamActive, setActiveTab],
   );
 
+  const handleRequestPresentationMode = useCallback(() => {
+    if (isExamActive) {
+      sfxService.play('click');
+      setPendingOpenPresentation(true);
+      setPendingNavTab('reader');
+      return;
+    }
+    openPresentationMode();
+  }, [isExamActive, openPresentationMode]);
+
   const handleConfirmLeaveExam = () => {
     if (!pendingNavTab) return;
     const target = pendingNavTab;
+    const shouldOpenPresentation = pendingOpenPresentation;
     setPendingNavTab(null);
+    setPendingOpenPresentation(false);
     setIsExamActive(false);
-    setActiveTab(target);
+    if (shouldOpenPresentation) {
+      openPresentationMode();
+    } else {
+      setActiveTab(target);
+    }
   };
 
   return (
@@ -419,7 +440,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             })}
           </nav>
 
-          {/* Alt Yardımcı Kısayollar: Veri Yedekle & Taşı + İletişim & Geri Bildirim */}
+          {/* Alt Yardımcı Kısayollar: Veri Yedekle & Taşı + Sunum Modu + İletişim & Geri Bildirim */}
           <div
             className="mt-auto p-3 border-t shrink-0 space-y-1"
             style={{ borderColor: 'var(--border-subtle)' }}
@@ -438,6 +459,19 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 style={{ color: 'var(--brand-primary-text)' }}
               />
               <span className="truncate">Veri Yedekle &amp; Taşı</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRequestPresentationMode}
+              className="w-full min-h-[40px] px-3 py-2 rounded-xl flex items-center gap-2.5 text-xs font-semibold transition-colors cursor-pointer hover:bg-[var(--bg-surface-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <MonitorPlay
+                className="w-4 h-4 shrink-0"
+                style={{ color: 'var(--brand-primary-text)' }}
+              />
+              <span className="truncate">Sunum Modu</span>
             </button>
 
             <button
@@ -830,6 +864,24 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
             {/* Sağ Global Araçlar: Mobilde 36px, tablet/masaüstünde 40px dokunma hedefli ikon butonları */}
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              {/* 0. Sol Panel Kapalıyken Masaüstü Sunum Modu Kısayolu (Yalnızca İkon, w-9 h-9) */}
+              {isSidebarCollapsed && !isReaderTab && (
+                <button
+                  type="button"
+                  onClick={handleRequestPresentationMode}
+                  title="Sunum Modu"
+                  aria-label="Sunum Modu"
+                  className="hidden lg:inline-flex w-9 h-9 rounded-xl border items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50 shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-subtle)',
+                    color: 'var(--brand-primary-text)',
+                  }}
+                >
+                  <MonitorPlay className="w-4 h-4 shrink-0" />
+                </button>
+              )}
+
               {/* 1. Hızlı Arama Tetikleyicisi (Ctrl+K) — Solda kompakt arama varken lg+ gizlenir */}
               <button
                 type="button"
@@ -1252,7 +1304,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           aria-modal="true"
           aria-labelledby="nav-leave-exam-title"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setPendingNavTab(null);
+            if (e.target === e.currentTarget) {
+              setPendingNavTab(null);
+              setPendingOpenPresentation(false);
+            }
           }}
         >
           <div className="surface-card rounded-2xl p-5 max-w-md w-full space-y-4">
@@ -1283,6 +1338,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 onClick={() => {
                   sfxService.play('click');
                   setPendingNavTab(null);
+                  setPendingOpenPresentation(false);
                 }}
                 className="min-h-[42px] px-4 rounded-xl text-xs sm:text-sm font-bold text-white cursor-pointer"
                 style={{ backgroundColor: 'var(--brand-primary)' }}

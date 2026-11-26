@@ -247,12 +247,31 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
   }, [result.questions, result.answers, filter]);
 
   const scoreMessage = (() => {
-    if (result.scorePct >= 90) return 'Olağanüstü! Surelerin meallerine derinlemesine hâkimsiniz.';
-    if (result.scorePct >= passThreshold)
-      return 'Tebrikler! Hedef başarı barajını aşarak güçlü bir performans sergilediniz.';
-    if (result.scorePct >= 50)
-      return 'Güzel bir ilerleme! Yanlış ve boş soruları inceleyerek hızlıca güçlenebilirsiniz.';
-    return 'Her deneme yeni bir öğrenme fırsatıdır. Hatalı soruları tekrar ederek pekiştirebilirsiniz.';
+    const count = result.totalQuestions;
+    if (result.scorePct >= 90) {
+      if (count <= 5) {
+        return result.scorePct === 100
+          ? 'Harika bir başlangıç! Tüm soruları doğru yanıtladınız; daha geniş kapsamlı testlere geçebilirsiniz.'
+          : 'Güzel bir başlangıç! Kısa testi hatasız tamamladınız; daha fazla soruyla pekiştirebilirsiniz.';
+      }
+      if (count <= 15) {
+        return 'Çok başarılı! Seçili kapsamdaki soruları yüksek isabetle tamamladınız.';
+      }
+      return 'Olağanüstü bir performans! Geniş kapsamlı sınavda güçlü bir hâkimiyet gösterdiniz.';
+    }
+    if (result.scorePct >= passThreshold) {
+      if (count <= 5) {
+        return 'İyi bir adım! Barajı geçtiniz; eksik kalan ayetlere göz atabilirsiniz.';
+      }
+      if (count <= 15) {
+        return 'Başarılı bir sonuç! Temel noktaları sağlamlaştırdınız.';
+      }
+      return 'Güçlü ve istikrarlı bir sonuç! Geniş kapsamda barajı rahatça geçtiniz.';
+    }
+    if (result.scorePct >= 50) {
+      return "Güzel bir deneme oldu; yanlışları ve Hata Kampı'nı inceleyerek bir sonraki turda puanınızı yükseltebilirsiniz.";
+    }
+    return "Her deneme yeni bir öğrenme fırsatıdır; yanlışları ve Hata Kampı'nı inceleyerek bir sonraki turda puanınızı yükseltebilirsiniz.";
   })();
 
   // SVG dairesel başarı halkası
