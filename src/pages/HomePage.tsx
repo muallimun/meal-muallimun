@@ -1512,7 +1512,7 @@ export const HomePage: React.FC = () => {
                     sfxService.play('click');
                     setActiveTab('mistakes');
                   }}
-                  className="min-h-[34px] px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90"
+                  className="hidden lg:inline-flex min-h-[34px] px-2.5 rounded-xl border text-xs font-bold items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-90"
                   style={{
                     backgroundColor: 'rgba(239, 68, 68, 0.08)',
                     borderColor: 'rgba(239, 68, 68, 0.25)',
@@ -1774,7 +1774,7 @@ export const HomePage: React.FC = () => {
                   className="flex-1 sm:flex-initial min-h-[36px] px-3.5 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-95"
                   style={{ backgroundColor: 'var(--brand-primary)' }}
                 >
-                  <span>Okumaya Devam Et</span>
+                  <span>{lastRead ? 'Okumaya Devam Et' : 'Okumaya Başla'}</span>
                   <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                 </button>
               </div>

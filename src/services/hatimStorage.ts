@@ -91,6 +91,28 @@ export function getJuzForMushafPage(pageNo: number): number {
   return Math.floor((safePage - 1) / 20) + 1;
 }
 
+/**
+ * 604 sayfalık 30 cüz düzeninde 30. cüz 24 sayfa olduğu için (+4 sayfa)
+ * günde 20 sayfa = tam 30 gün, günde 10 sayfa = tam 60 gün mukabele tutarlılığı sağlar.
+ */
+export function estimateHatimDays(remainingPages: number, dailyTargetPages: number): number {
+  const remaining = Math.max(0, Math.trunc(remainingPages));
+  if (remaining <= 0) return 0;
+  const daily = Math.max(1, Math.trunc(dailyTargetPages) || 1);
+
+  if (daily === 20) {
+    if (remaining <= 24) return 1;
+    if (remaining % 20 <= 4) return Math.floor(remaining / 20);
+    return Math.ceil(remaining / 20);
+  }
+
+  if (daily === 10 && remaining >= 600 && remaining % 10 <= 4) {
+    return 60;
+  }
+
+  return Math.ceil(remaining / daily);
+}
+
 export function normalizePageList(pages: Iterable<number>): number[] {
   const set = new Set<number>();
   for (const p of pages) {
@@ -386,7 +408,7 @@ export function computeHatimSummary(plan: ActiveHatimPlan): HatimProgressSummary
       if (isCompleted) {
         estimatedDaysRemaining = 0;
       } else {
-        estimatedDaysRemaining = Math.ceil(remainingPages / todayTargetPages);
+        estimatedDaysRemaining = estimateHatimDays(remainingPages, todayTargetPages);
         estimatedFinishDate = new Date(Date.now() + estimatedDaysRemaining * 24 * 60 * 60 * 1000);
       }
     } else {

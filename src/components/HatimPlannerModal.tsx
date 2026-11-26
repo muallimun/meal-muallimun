@@ -19,6 +19,7 @@ import { Z_LAYERS } from '../config/zLayers';
 import { useBackButtonGuard } from '../services/backStackService';
 import {
   computeHatimSummary,
+  estimateHatimDays,
   getHatimJuzPageBounds,
   getHatimJuzStatuses,
   getLocalDateStamp,
@@ -692,9 +693,8 @@ export const HatimPlannerModal: React.FC = () => {
                       className="text-sm font-extrabold tabular-nums mt-0.5"
                       style={{ color: 'var(--brand-primary-text)' }}
                     >
-                      Yaklaşık{' '}
-                      {Math.ceil(
-                        Math.max(
+                      {(() => {
+                        const remainingForEstimate = Math.max(
                           1,
                           HATIM_TOTAL_PAGES -
                             (activePlan
@@ -702,9 +702,13 @@ export const HatimPlannerModal: React.FC = () => {
                               : preMarkBeforeStart
                                 ? Math.max(0, formStartPage - 1)
                                 : 0),
-                        ) / Math.max(1, formDailyPages),
-                      )}{' '}
-                      gün
+                        );
+                        const estDays = estimateHatimDays(remainingForEstimate, formDailyPages);
+                        const isExactStandardPace =
+                          remainingForEstimate === HATIM_TOTAL_PAGES &&
+                          (formDailyPages === 20 || formDailyPages === 10);
+                        return isExactStandardPace ? `${estDays} gün` : `Yaklaşık ${estDays} gün`;
+                      })()}
                     </span>
                   </div>
                 </div>

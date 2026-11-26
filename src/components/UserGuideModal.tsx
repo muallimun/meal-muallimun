@@ -158,6 +158,7 @@ type ModuleTipActionId =
   | 'open_exam'
   | 'classical_hifz'
   | 'hatim_planner'
+  | 'open_calendar'
   | 'personal_notes'
   | 'customize_desk';
 
@@ -289,8 +290,8 @@ const MODULE_TIPS: ModuleTipItem[] = [
       '604 sayfalık 30 Cüz Hatim Planlayıcısı ile günlük okuma disiplininizi tek ekrandan takip edin.',
     bullets: [
       {
-        lead: 'Esnek Hedef Modları:',
-        text: 'Günlük sayfa hedefi, hedef bitiş tarihi ya da serbest 30 cüz işaretleme modlarından birini seçin.',
+        lead: '4 Esnek Hedef Modu:',
+        text: 'Hicrî Ay Hatmi (Mukabele), günlük sayfa hedefi, hedef bitiş tarihi ya da serbest 30 cüz işaretleme modlarından birini seçin.',
       },
       {
         lead: 'Otomatik Ayraç Senkronu:',
@@ -301,9 +302,36 @@ const MODULE_TIPS: ModuleTipItem[] = [
         text: '604 sayfanın tamamı bittiğinde hatminiz tarih ve notuyla Hatim Geçmişinize kaydedilir.',
       },
     ],
-    keywords: 'hatim 30 cüz planlayıcı günlük sayfa hedef tarih ayraç mushaf geçmiş',
+    keywords:
+      'hatim 30 cüz planlayıcı günlük sayfa hedef tarih ayraç mushaf geçmiş mukabele hicri 29 gün',
     ctaLabel: 'Hatim Planlayıcısını Aç',
     actionId: 'hatim_planner',
+  },
+  {
+    id: 'islamic_calendar_mukabele',
+    category: 'hifz_hatim',
+    categoryLabel: 'Ezber & Hatim',
+    title: 'Hicrî–Milâdî–Rûmî Takvim Yaprağı & Hicrî Ay (Mukabele) Hatmi',
+    summary:
+      'İnternetsiz çalışan Diyanet uyumlu üçlü takvim yaprağı ile günün cüzünü ve Hicrî ay mukabele hatmini takip edin.',
+    bullets: [
+      {
+        lead: 'Üçlü Takvim & Mübarek Günler:',
+        text: 'Diyanet takvimiyle uyumlu Hicrî tarih, Rûmî ve Milâdî karşılıklar, ay evresi ve mübarek gün/geceleri (±1/±2 gün ince ayar desteğiyle) tek ekranda görün.',
+      },
+      {
+        lead: 'Güne Göre Günlük Cüz Tavsiyesi:',
+        text: 'Hicrî ayın gününe karşılık gelen cüzü tek dokunuşla doğrudan Mushaf görünümünde açın.',
+      },
+      {
+        lead: '29 Gün Çeken Aylara Otomatik Mukabele:',
+        text: 'Hicrî Ay Hatmi (Mukabele) modunda 29 gün süren aylarda son gün 29. ve 30. cüz birlikte planlanarak hatim ay bitmeden tamamlanır.',
+      },
+    ],
+    keywords:
+      'hicri rumi miladi takvim yaprağı mukabele 29 gün 30 gün günün cüzü mübarek gün kandil ramazan ay evresi diyanet hatim',
+    ctaLabel: 'Takvim Yaprağını Aç',
+    actionId: 'open_calendar',
   },
   {
     id: 'personal_verse_notes',
@@ -360,10 +388,14 @@ const MODULE_TIPS: ModuleTipItem[] = [
     id: 'a4_exam_pdf',
     category: 'fihrist_exam',
     categoryLabel: 'Fihrist & Sınav',
-    title: 'A4 Yazılı Sınav Kağıdı & 7 Eğitsel Oyun',
+    title: 'Sınav Merkezi, A4 Yazılı Sınav Kâğıdı & 7 Eğitsel Oyun',
     summary:
-      'Kurum, ders ve tarih bilgili cevap anahtarlı A4 yazılı kağıtları hazırlayın veya sınıf içi 7 eğitsel oyun oynayın.',
+      'Kurum, ders ve tarih bilgili cevap anahtarlı A4 yazılı kâğıtları hazırlayın veya sınıf içi 7 eğitsel oyun oynayın.',
     bullets: [
+      {
+        lead: 'Mushaf Sıralı & Karışık Soru Seçeneği:',
+        text: 'Tekli ve çoklu sure seçimlerinde sorular hem çevrimiçi sınavlarda hem A4 PDF kâğıtlarında varsayılan olarak Mushaf sure ve ayet sırasına göre gelir; isterseniz tek tıkla Karışık sıralamaya geçebilirsiniz.',
+      },
       {
         lead: 'İki Sütunlu A4 Baskı:',
         text: 'Sure, zorluk ve soru sayısını seçin; tarayıcı yazdırma ekranından "PDF olarak kaydet" ile dijital sınav kâğıdı oluşturun.',
@@ -373,7 +405,8 @@ const MODULE_TIPS: ModuleTipItem[] = [
         text: 'Akıllı tahtada veya mobilde sure aileleri, ayet eşleştirme ve hızlı bilgi yarışmalarıyla dersi etkileşimli hâle getirin.',
       },
     ],
-    keywords: 'a4 sınav yazılı kağıt pdf kaydet yazdır öğretmen cevap anahtarı baskı 7 oyun 2 oyuncu',
+    keywords:
+      'a4 sınav yazılı kağıt pdf kaydet yazdır öğretmen cevap anahtarı baskı 7 oyun 2 oyuncu mushaf sıralı ayet sırası karışık sıralama',
     ctaLabel: 'Sınav Merkezini Aç',
     actionId: 'open_exam',
   },
@@ -503,6 +536,7 @@ export const UserGuideModal: React.FC = () => {
     openIntroSplash,
     navigateToMemorizeUnit,
     openHatimModal,
+    openCalendarModal,
     navigateToFihrist,
     openFeedbackModal,
   } = useAppStore();
@@ -592,13 +626,22 @@ export const UserGuideModal: React.FC = () => {
         navigateToMemorizeUnit(undefined, false, 'classical');
       } else if (actionId === 'hatim_planner') {
         openHatimModal();
+      } else if (actionId === 'open_calendar') {
+        openCalendarModal();
       } else if (actionId === 'personal_notes') {
         navigateToFihrist({ subTab: 'notebook', notebookSubTab: 'notes' });
       } else if (actionId === 'customize_desk') {
         setActiveTab('home');
       }
     },
-    [closeUserGuide, navigateToFihrist, navigateToMemorizeUnit, openHatimModal, setActiveTab],
+    [
+      closeUserGuide,
+      navigateToFihrist,
+      navigateToMemorizeUnit,
+      openCalendarModal,
+      openHatimModal,
+      setActiveTab,
+    ],
   );
 
   const handleCopyDeepLink = useCallback(
@@ -694,7 +737,7 @@ export const UserGuideModal: React.FC = () => {
   const matchesOfflineBackup = useMemo(() => {
     if (!isSearching) return false;
     return normalizeForSearch(
-      'çevrimdışı offline paket indir önbellek internet tilavet pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle paylaş gönder whatsapp telegram drive kaynaklar atıf telif bilgilendirme ticari değil',
+      'çevrimdışı offline paket indir önbellek internet tilavet pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle yedeği paylaş gönder whatsapp telegram drive e-posta son yedekleme tarihi kaynaklar atıf telif bilgilendirme ticari değil',
     ).includes(normalizedQuery);
   }, [isSearching, normalizedQuery]);
 
@@ -1032,8 +1075,8 @@ export const UserGuideModal: React.FC = () => {
             >
               <p className="text-sm font-bold">Aramanızla eşleşen rehber maddesi bulunamadı.</p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Örnek aramalar: sunum, tecvit, şeyh hamdullah, ezber, A4 sınav, paylaş, çevrimdışı,
-                kısayol.
+                Örnek aramalar: hicrî takvim, mukabele, tecvit, ezber, mushaf sıralı, A4 sınav,
+                yedeği paylaş, çevrimdışı, kısayol.
               </p>
             </div>
           )}
@@ -1387,10 +1430,11 @@ export const UserGuideModal: React.FC = () => {
                   Tüm çalışma verileriniz (ayraçlar, 30 Cüz Hatim planı, kişisel ayet notları,
                   araştırma defterleri, ezber havuzu, Klasik 20 Tur Ham–Has hafızlık kaydı, Çalışma
                   Masam tercihleri, sınav/oyun ilerlemesi ve ayarlar) yalnızca kendi cihazınızda
-                  saklanır. Ayarlar penceresinden tek tıkla <code>.json</code> yedeği indirebilir
-                  veya telefondan <strong>&ldquo;Yedeği Paylaş / Gönder&rdquo;</strong> ile
-                  WhatsApp, Telegram ya da Google Drive&apos;a tek dokunuşla aktarabilir,
-                  dilediğiniz zaman iki aşamalı güvenli onayla geri yükleyebilirsiniz.
+                  otomatik saklanır. Yedekleme sekmesinden <strong>son yedekleme tarihini</strong>{' '}
+                  görebilir, tek tıkla <code>.json</code> dosyası indirebilir ya da telefon ve
+                  tablette <strong>&ldquo;Yedeği Paylaş / Gönder&rdquo;</strong> ile WhatsApp,
+                  Telegram, Google Drive veya e-postaya tek dokunuşla gönderebilirsiniz. Dilediğiniz
+                  zaman iki aşamalı güvenli doğrulama ile geri yükleyebilirsiniz.
                 </p>
                 <div>
                   <button
@@ -1398,7 +1442,7 @@ export const UserGuideModal: React.FC = () => {
                     onClick={() => {
                       sfxService.play('click');
                       closeUserGuide();
-                      openSettingsModal();
+                      openSettingsModal('backup');
                     }}
                     className="min-h-[40px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 whitespace-nowrap touch-manipulation"
                     style={{
@@ -1408,7 +1452,7 @@ export const UserGuideModal: React.FC = () => {
                     }}
                   >
                     <Settings className="w-3.5 h-3.5 shrink-0" />
-                    <span>Ayarlar &amp; Yedekleme Ekranını Aç</span>
+                    <span>Yedekleme &amp; Veri Ekranını Aç</span>
                   </button>
                 </div>
               </div>

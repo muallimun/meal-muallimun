@@ -761,6 +761,63 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               )}
             </div>
 
+            {/* Sol Menü Kapalıyken & Okuma Dışında: 5'li Menü ile Sağ İkonlar Arasında Hicrî–Milâdî Takvim Rozeti */}
+            {isSidebarCollapsed && !isReaderTab && (
+              <button
+                type="button"
+                onClick={openCalendarModal}
+                title={`Takvim Yaprağını Aç · ${calendarSnapshot.hijri.formattedTr} / ${calendarSnapshot.gregorian.formattedFullTr}`}
+                aria-label={`Hicrî takvim: ${calendarSnapshot.hijri.formattedTr}, Milâdî: ${calendarSnapshot.gregorian.formattedTr}. Takvim yaprağını aç`}
+                className="hidden lg:inline-flex h-9 px-2.5 xl:px-3 rounded-xl border items-center gap-1.5 xl:gap-2 transition-colors cursor-pointer hover:border-[var(--brand-primary)]/60 min-w-0 shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                style={{
+                  backgroundColor:
+                    'color-mix(in srgb, var(--brand-primary-soft) 55%, var(--bg-surface))',
+                  borderColor:
+                    'color-mix(in srgb, var(--brand-primary) 26%, var(--border-subtle))',
+                }}
+              >
+                <span
+                  className="text-sm leading-none shrink-0"
+                  aria-hidden="true"
+                  title={calendarSnapshot.moonPhase.label}
+                >
+                  {calendarSnapshot.moonPhase.symbol}
+                </span>
+                <span
+                  className="text-xs font-extrabold tracking-tight whitespace-nowrap"
+                  style={{ color: 'var(--brand-primary-text)' }}
+                >
+                  {calendarSnapshot.hijri.formattedTr}
+                </span>
+                <span
+                  className="hidden xl:inline text-[11px] opacity-40 select-none shrink-0"
+                  aria-hidden="true"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  ·
+                </span>
+                <span
+                  className="hidden xl:inline text-[11.5px] font-semibold whitespace-nowrap"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {calendarSnapshot.gregorian.day} {calendarSnapshot.gregorian.monthNameTr}
+                  <span className="hidden 2xl:inline"> {calendarSnapshot.gregorian.year}</span>
+                </span>
+                {calendarSnapshot.holyDay && (
+                  <span
+                    className="hidden 2xl:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold whitespace-nowrap shrink-0"
+                    style={{
+                      backgroundColor: 'var(--brand-accent-soft)',
+                      color: 'var(--brand-accent-text)',
+                    }}
+                  >
+                    <Sparkles className="w-2.5 h-2.5 shrink-0" />
+                    <span>{calendarSnapshot.holyDay.name}</span>
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* Orta Bağlam Yuvası (Masaüstü Okuma Araç Çubuğu Portal Alanı) */}
             <div
               id="app-topbar-context-slot"
