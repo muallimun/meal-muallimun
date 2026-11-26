@@ -38,6 +38,11 @@ const GlobalSearchModal = lazyWithRetry(() =>
 const HatimPlannerModal = lazyWithRetry(() =>
   import('./components/HatimPlannerModal').then((m) => ({ default: m.HatimPlannerModal })),
 );
+const IslamicCalendarModal = lazyWithRetry(() =>
+  import('./components/IslamicCalendarModal').then((m) => ({
+    default: m.IslamicCalendarModal,
+  })),
+);
 const SettingsModal = lazyWithRetry(() =>
   import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal })),
 );
@@ -73,6 +78,7 @@ const MainRouter: React.FC = () => {
     settings,
     isSearchModalOpen,
     isHatimModalOpen,
+    isCalendarModalOpen,
     isSettingsModalOpen,
     isUserGuideOpen,
     isListeningDrawerOpen,
@@ -90,6 +96,7 @@ const MainRouter: React.FC = () => {
     closeQuickResearch,
     closeBookmarksDrawer,
     closeHatimModal,
+    closeCalendarModal,
     closeVerseNoteModal,
     closeSearchModal,
     closeUserGuide,
@@ -110,6 +117,7 @@ const MainRouter: React.FC = () => {
     closeQuickResearch();
     closeBookmarksDrawer();
     closeHatimModal();
+    closeCalendarModal();
     closeVerseNoteModal();
     closeSearchModal();
     closeUserGuide();
@@ -117,6 +125,7 @@ const MainRouter: React.FC = () => {
     closeIntroSplash(false);
   }, [
     closeBookmarksDrawer,
+    closeCalendarModal,
     closeFeedbackModal,
     closeHatimModal,
     closeIntroSplash,
@@ -197,6 +206,11 @@ const MainRouter: React.FC = () => {
         {isHatimModalOpen && (
           <Suspense fallback={null}>
             <HatimPlannerModal />
+          </Suspense>
+        )}
+        {isCalendarModalOpen && (
+          <Suspense fallback={null}>
+            <IslamicCalendarModal />
           </Suspense>
         )}
         <VerseNoteModal />

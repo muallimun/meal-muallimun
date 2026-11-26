@@ -1350,6 +1350,9 @@ interface AppContextValue {
   isHatimModalOpen: boolean;
   openHatimModal: () => void;
   closeHatimModal: () => void;
+  isCalendarModalOpen: boolean;
+  openCalendarModal: () => void;
+  closeCalendarModal: () => void;
   verseNoteTarget: { surah: number; ayah: number; page?: number } | null;
   openVerseNoteModal: (surah: number, ayah: number, page?: number) => void;
   closeVerseNoteModal: () => void;
@@ -1532,6 +1535,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isWaqfGuideOpen, setIsWaqfGuideOpen] = useState(false);
   const [isBookmarksDrawerOpen, setIsBookmarksDrawerOpen] = useState(false);
   const [isHatimModalOpen, setIsHatimModalOpen] = useState(false);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [verseNoteTarget, setVerseNoteTarget] = useState<{
     surah: number;
     ayah: number;
@@ -2852,6 +2856,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsHatimModalOpen(false);
   }, []);
 
+  const openCalendarModal = useCallback(() => {
+    sfxService.play('click');
+    setIsCalendarModalOpen(true);
+  }, []);
+
+  const closeCalendarModal = useCallback(() => {
+    setIsCalendarModalOpen(false);
+  }, []);
+
   const openVerseNoteModal = useCallback((surah: number, ayah: number, page?: number) => {
     sfxService.play('click');
     setVerseNoteTarget({ surah, ayah, page });
@@ -3294,6 +3307,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isHatimModalOpen,
       openHatimModal,
       closeHatimModal,
+      isCalendarModalOpen,
+      openCalendarModal,
+      closeCalendarModal,
       verseNoteTarget,
       openVerseNoteModal,
       closeVerseNoteModal,
@@ -3440,6 +3456,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isHatimModalOpen,
       openHatimModal,
       closeHatimModal,
+      isCalendarModalOpen,
+      openCalendarModal,
+      closeCalendarModal,
       verseNoteTarget,
       openVerseNoteModal,
       closeVerseNoteModal,
