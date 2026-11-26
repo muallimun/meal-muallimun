@@ -1,11 +1,43 @@
 export const AUDIO_CACHE_NAME = 'muallimun-audio-cache-v1';
 export const AUTO_CACHE_AUDIO_KEY = 'muallimun_auto_cache_audio_v1';
+export const AUDIO_CACHE_INDEX_KEY = 'muallimun_audio_cache_index_v1';
 
 const MIN_VALID_AUDIO_BYTES = 256;
 
 export interface AudioCacheStats {
   entryCount: number;
   totalBytes: number;
+}
+
+export interface CachedAudioSourceEntry {
+  sourceId: string;
+  label: string;
+  kind: 'ar' | 'meal';
+  surahs: number[];
+  updatedAt: string;
+}
+
+export interface LastPrefetchedSurahInfo {
+  surahNo: number;
+  surahName: string;
+  reciterLabel: string;
+  mealLabel?: string;
+  updatedAt: string;
+}
+
+export interface AudioCacheInventory {
+  sources: Record<string, CachedAudioSourceEntry>;
+  lastPrefetched: LastPrefetchedSurahInfo | null;
+}
+
+export interface RecordPrefetchedSurahParams {
+  surahNo: number;
+  surahName: string;
+  reciterId: string;
+  reciterLabel: string;
+  mealId?: string;
+  mealLabel?: string;
+  includeReciter?: boolean;
 }
 
 export interface SurahAudioPrefetchProgress {
@@ -25,6 +57,7 @@ export interface PrefetchSurahAudioOptions {
   concurrency?: number;
   signal?: AbortSignal;
   onProgress?: (progress: SurahAudioPrefetchProgress) => void;
+  recordInventory?: Omit<RecordPrefetchedSurahParams, 'surahNo'>;
 }
 
 export interface PrefetchSurahAudioResult {
@@ -124,6 +157,175 @@ export function subscribeAudioCacheChanges(listener: Listener): () => void {
   return () => {
     cacheStatsListeners.delete(listener);
   };
+}
+
+function createEmptyInventory(): AudioCacheInventory {
+  return { sources: {}, lastPrefetched: null };
+}
+
+function sanitizeSurahList(raw: unknown): number[] {
+  if (!Array.isArray(raw)) return [];
+  const unique = new Set<number>();
+  for (const item of raw) {
+    if (typeof item === 'number' && Number.isFinite(item)) {
+      const n = Math.trunc(item);
+      if (n >= 1 && n <= 114) {
+        unique.add(n);
+      }
+    }
+  }
+  return Array.from(unique).sort((a, b) => a - b);
+}
+
+function clearAudioCacheInventoryKey(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(AUDIO_CACHE_INDEX_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function saveAudioCacheInventory(inventory: AudioCacheInventory): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(AUDIO_CACHE_INDEX_KEY, JSON.stringify(inventory));
+  } catch {
+    // Depolama kısıtlıysa sessizce geç
+  }
+}
+
+/**
+ * Cihazda kaynak bazlı ön-indirilen sure dizinini (localStorage) okur.
+ */
+export function getAudioCacheInventory(): AudioCacheInventory {
+  if (typeof window === 'undefined') return createEmptyInventory();
+  try {
+    const raw = window.localStorage.getItem(AUDIO_CACHE_INDEX_KEY);
+    if (!raw) return createEmptyInventory();
+    const parsed = JSON.parse(raw) as Partial<AudioCacheInventory> | null;
+    if (!parsed || typeof parsed !== 'object') return createEmptyInventory();
+
+    const sources: Record<string, CachedAudioSourceEntry> = {};
+    if (parsed.sources && typeof parsed.sources === 'object' && !Array.isArray(parsed.sources)) {
+      for (const [key, entry] of Object.entries(parsed.sources)) {
+        if (!entry || typeof entry !== 'object') continue;
+        const rec = entry as Partial<CachedAudioSourceEntry>;
+        const sourceId =
+          typeof rec.sourceId === 'string' && rec.sourceId.trim() ? rec.sourceId.trim() : key;
+        const label =
+          typeof rec.label === 'string' && rec.label.trim() ? rec.label.trim() : sourceId;
+        const kind: 'ar' | 'meal' = rec.kind === 'meal' ? 'meal' : 'ar';
+        const surahs = sanitizeSurahList(rec.surahs);
+        if (surahs.length === 0) continue;
+        const updatedAt =
+          typeof rec.updatedAt === 'string' && rec.updatedAt.trim()
+            ? rec.updatedAt
+            : new Date(0).toISOString();
+        sources[key] = {
+          sourceId,
+          label,
+          kind,
+          surahs,
+          updatedAt,
+        };
+      }
+    }
+
+    let lastPrefetched: LastPrefetchedSurahInfo | null = null;
+    if (parsed.lastPrefetched && typeof parsed.lastPrefetched === 'object') {
+      const lp = parsed.lastPrefetched as Partial<LastPrefetchedSurahInfo>;
+      if (
+        typeof lp.surahNo === 'number' &&
+        Number.isFinite(lp.surahNo) &&
+        lp.surahNo >= 1 &&
+        lp.surahNo <= 114 &&
+        typeof lp.surahName === 'string' &&
+        lp.surahName.trim() &&
+        typeof lp.reciterLabel === 'string' &&
+        lp.reciterLabel.trim()
+      ) {
+        lastPrefetched = {
+          surahNo: Math.trunc(lp.surahNo),
+          surahName: lp.surahName.trim(),
+          reciterLabel: lp.reciterLabel.trim(),
+          ...(typeof lp.mealLabel === 'string' && lp.mealLabel.trim()
+            ? { mealLabel: lp.mealLabel.trim() }
+            : {}),
+          updatedAt:
+            typeof lp.updatedAt === 'string' && lp.updatedAt.trim()
+              ? lp.updatedAt
+              : new Date(0).toISOString(),
+        };
+      }
+    }
+
+    return { sources, lastPrefetched };
+  } catch {
+    return createEmptyInventory();
+  }
+}
+
+/**
+ * Ön-indirilen sureyi ilgili okuyucu (ve dahil edildiyse sesli meal) kaynağı altında tekil ve sıralı kaydeder.
+ */
+export function recordPrefetchedSurah(params: RecordPrefetchedSurahParams): AudioCacheInventory {
+  const safeSurah = Math.max(1, Math.min(114, Math.trunc(params.surahNo)));
+  const nowIso = new Date().toISOString();
+  const current = getAudioCacheInventory();
+  const nextSources: Record<string, CachedAudioSourceEntry> = { ...current.sources };
+
+  const shouldRecordReciter = params.includeReciter !== false && Boolean(params.reciterId?.trim());
+  if (shouldRecordReciter) {
+    const reciterKey = params.reciterId.trim();
+    const existing = nextSources[reciterKey];
+    const mergedSurahs = sanitizeSurahList([...(existing?.surahs ?? []), safeSurah]);
+    nextSources[reciterKey] = {
+      sourceId: reciterKey,
+      label: params.reciterLabel.trim() || existing?.label || reciterKey,
+      kind: 'ar',
+      surahs: mergedSurahs,
+      updatedAt: nowIso,
+    };
+  }
+
+  const hasMeal = Boolean(params.mealId?.trim() && params.mealLabel?.trim());
+  if (hasMeal && params.mealId && params.mealLabel) {
+    const rawMealId = params.mealId.trim();
+    const mealKey =
+      nextSources[rawMealId] && nextSources[rawMealId].kind === 'ar'
+        ? `meal:${rawMealId}`
+        : rawMealId;
+    const existingMeal = nextSources[mealKey];
+    const mergedMealSurahs = sanitizeSurahList([...(existingMeal?.surahs ?? []), safeSurah]);
+    nextSources[mealKey] = {
+      sourceId: rawMealId,
+      label: params.mealLabel.trim(),
+      kind: 'meal',
+      surahs: mergedMealSurahs,
+      updatedAt: nowIso,
+    };
+  }
+
+  const nextInventory: AudioCacheInventory = {
+    sources: nextSources,
+    lastPrefetched: {
+      surahNo: safeSurah,
+      surahName: params.surahName.trim() || `${safeSurah}. Sure`,
+      reciterLabel:
+        shouldRecordReciter && params.reciterLabel.trim()
+          ? params.reciterLabel.trim()
+          : params.mealLabel?.trim() || params.reciterLabel.trim(),
+      ...(shouldRecordReciter && params.mealLabel?.trim()
+        ? { mealLabel: params.mealLabel.trim() }
+        : {}),
+      updatedAt: nowIso,
+    },
+  };
+
+  saveAudioCacheInventory(nextInventory);
+  emitCacheStatsChange();
+  return nextInventory;
 }
 
 /**
@@ -248,11 +450,17 @@ export async function getAudioCacheStats(): Promise<AudioCacheStats> {
   try {
     const exists = await window.caches.has(AUDIO_CACHE_NAME);
     if (!exists) {
+      clearAudioCacheInventoryKey();
       return { entryCount: 0, totalBytes: 0 };
     }
 
     const cache = await window.caches.open(AUDIO_CACHE_NAME);
     const keys = await cache.keys();
+    if (keys.length === 0) {
+      clearAudioCacheInventoryKey();
+      return { entryCount: 0, totalBytes: 0 };
+    }
+
     let totalBytes = 0;
 
     for (const req of keys) {
@@ -282,13 +490,18 @@ export async function getAudioCacheStats(): Promise<AudioCacheStats> {
 }
 
 /**
- * `muallimun-audio-cache-v1` ses önbelleğini tamamen temizler.
+ * `muallimun-audio-cache-v1` ses önbelleğini ve kaynak dizinini tamamen temizler.
  */
 export async function clearAudioCache(): Promise<void> {
-  if (typeof window === 'undefined' || !('caches' in window)) return;
+  if (typeof window === 'undefined' || !('caches' in window)) {
+    clearAudioCacheInventoryKey();
+    emitCacheStatsChange();
+    return;
+  }
   try {
     await window.caches.delete(AUDIO_CACHE_NAME);
   } finally {
+    clearAudioCacheInventoryKey();
     emitCacheStatsChange();
   }
 }
@@ -310,6 +523,7 @@ export async function prefetchSurahAudio(
     concurrency = 3,
     signal,
     onProgress,
+    recordInventory,
   } = options;
 
   if (typeof window === 'undefined' || !('caches' in window)) {
@@ -409,7 +623,14 @@ export async function prefetchSurahAudio(
     throw createAbortError();
   }
 
-  emitCacheStatsChange();
+  if (cachedCount > 0 && recordInventory) {
+    recordPrefetchedSurah({
+      surahNo: safeSurah,
+      ...recordInventory,
+    });
+  } else {
+    emitCacheStatsChange();
+  }
 
   return {
     completed,
