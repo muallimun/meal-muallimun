@@ -694,7 +694,7 @@ export const UserGuideModal: React.FC = () => {
   const matchesOfflineBackup = useMemo(() => {
     if (!isSearching) return false;
     return normalizeForSearch(
-      'çevrimdışı offline paket indir önbellek internet tilavet pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle kaynaklar atıf telif bilgilendirme ticari değil',
+      'çevrimdışı offline paket indir önbellek internet tilavet pwa ana ekrana ekle ios safari android yedek json aktar veri geri yükle paylaş gönder whatsapp telegram drive kaynaklar atıf telif bilgilendirme ticari değil',
     ).includes(normalizedQuery);
   }, [isSearching, normalizedQuery]);
 
@@ -1387,7 +1387,9 @@ export const UserGuideModal: React.FC = () => {
                   Tüm çalışma verileriniz (ayraçlar, 30 Cüz Hatim planı, kişisel ayet notları,
                   araştırma defterleri, ezber havuzu, Klasik 20 Tur Ham–Has hafızlık kaydı, Çalışma
                   Masam tercihleri, sınav/oyun ilerlemesi ve ayarlar) yalnızca kendi cihazınızda
-                  saklanır. Ayarlar penceresinden tek tıkla <code>.json</code> yedeği indirebilir,
+                  saklanır. Ayarlar penceresinden tek tıkla <code>.json</code> yedeği indirebilir
+                  veya telefondan <strong>&ldquo;Yedeği Paylaş / Gönder&rdquo;</strong> ile
+                  WhatsApp, Telegram ya da Google Drive&apos;a tek dokunuşla aktarabilir,
                   dilediğiniz zaman iki aşamalı güvenli onayla geri yükleyebilirsiniz.
                 </p>
                 <div>

@@ -11,9 +11,11 @@ import {
   Info,
   Loader2,
   MessageSquareHeart,
+  Monitor,
   Play,
   RefreshCw,
   RotateCcw,
+  Share2,
   ShieldCheck,
   SlidersHorizontal,
   Smartphone,
@@ -82,6 +84,17 @@ import {
 } from '../utils/pwaUtils';
 
 const MAX_BACKUP_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
+const LAST_BACKUP_STORAGE_KEY = 'muallimun_last_backup_at';
+
+function readLastBackupTimestamp(): string | null {
+  try {
+    const raw = window.localStorage.getItem(LAST_BACKUP_STORAGE_KEY);
+    if (!raw || Number.isNaN(new Date(raw).getTime())) return null;
+    return raw;
+  } catch {
+    return null;
+  }
+}
 
 const JSON_LOCAL_STORAGE_KEYS = new Set<string>([
   'muallimun_meal_v1',
@@ -320,6 +333,7 @@ export const SettingsModal: React.FC = () => {
   );
   const [isBackupBusy, setIsBackupBusy] = useState(false);
   const [isReloadingAfterRestore, setIsReloadingAfterRestore] = useState(false);
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(() => readLastBackupTimestamp());
   const backupFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useBackButtonGuard('settings_modal', isSettingsModalOpen, closeSettingsModal);
@@ -329,10 +343,23 @@ export const SettingsModal: React.FC = () => {
       setPendingBackupRestore(null);
       return;
     }
+    setLastBackupAt(readLastBackupTimestamp());
     return acquireBodyScrollLock();
   }, [isSettingsModalOpen]);
 
-  const exportCurrentBackupFile = async (): Promise<{
+  const recordLastBackupTimestamp = () => {
+    const nowIso = new Date().toISOString();
+    try {
+      window.localStorage.setItem(LAST_BACKUP_STORAGE_KEY, nowIso);
+    } catch {
+      // Depolama dolu veya kısıtlıysa sessizce devam et
+    }
+    setLastBackupAt(nowIso);
+  };
+
+  const buildFullBackupBundle = async (): Promise<{
+    jsonStr: string;
+    fileName: string;
     localKeysCount: number;
     memorizationUnitsCount: number;
   }> => {
@@ -348,31 +375,52 @@ export const SettingsModal: React.FC = () => {
 
     const memorizationPayload = await memorizationStorage.createBackupPayload();
     const activeExamSession = loadActiveExamSession();
+    const exportedAt = new Date().toISOString();
 
     const fullBackup = {
       app: 'muallimun-kuran-full-backup',
       version: 2,
-      exportedAt: new Date().toISOString(),
+      exportedAt,
       localStorage: localEntries,
       memorization: memorizationPayload,
       activeExamSession,
     };
 
     const jsonStr = JSON.stringify(fullBackup, null, 2);
+    const dateStamp = exportedAt.slice(0, 10);
+    const fileName = `muallimun-kuran-yedek-${dateStamp}.json`;
+
+    return {
+      jsonStr,
+      fileName,
+      localKeysCount: Object.keys(localEntries).length,
+      memorizationUnitsCount: memorizationPayload.units.length,
+    };
+  };
+
+  const triggerJsonFileDownload = (jsonStr: string, fileName: string) => {
     const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const dateStamp = new Date().toISOString().slice(0, 10);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `muallimun-kuran-yedek-${dateStamp}.json`;
+    anchor.download = fileName;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const exportCurrentBackupFile = async (): Promise<{
+    localKeysCount: number;
+    memorizationUnitsCount: number;
+  }> => {
+    const bundle = await buildFullBackupBundle();
+    triggerJsonFileDownload(bundle.jsonStr, bundle.fileName);
+    recordLastBackupTimestamp();
 
     return {
-      localKeysCount: Object.keys(localEntries).length,
-      memorizationUnitsCount: memorizationPayload.units.length,
+      localKeysCount: bundle.localKeysCount,
+      memorizationUnitsCount: bundle.memorizationUnitsCount,
     };
   };
 
@@ -390,6 +438,87 @@ export const SettingsModal: React.FC = () => {
       setBackupStatus({
         type: 'error',
         text: 'Yedek dosyası hazırlanırken bir hata oluştu.',
+      });
+    } finally {
+      setIsBackupBusy(false);
+    }
+  };
+
+  const handleShareFullBackup = async () => {
+    sfxService.play('click');
+    setIsBackupBusy(true);
+    setBackupStatus(null);
+    let bundle: Awaited<ReturnType<typeof buildFullBackupBundle>> | null = null;
+    try {
+      bundle = await buildFullBackupBundle();
+
+      let shareableFile: File | null = null;
+      if (
+        typeof navigator !== 'undefined' &&
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function' &&
+        typeof File !== 'undefined'
+      ) {
+        const jsonFile = new File([bundle.jsonStr], bundle.fileName, {
+          type: 'application/json',
+        });
+        if (navigator.canShare({ files: [jsonFile] })) {
+          shareableFile = jsonFile;
+        } else {
+          const plainTypedJsonFile = new File([bundle.jsonStr], bundle.fileName, {
+            type: 'text/plain;charset=utf-8',
+          });
+          if (navigator.canShare({ files: [plainTypedJsonFile] })) {
+            shareableFile = plainTypedJsonFile;
+          }
+        }
+      }
+
+      if (shareableFile) {
+        await navigator.share({
+          files: [shareableFile],
+          title: 'Muallimun Kur’an & Meal Yedeği',
+          text: `Muallimun çalışma verileri yedeği (${bundle.fileName})`,
+        });
+        recordLastBackupTimestamp();
+        sfxService.play('correct');
+        setBackupStatus({
+          type: 'success',
+          text: `Yedek başarıyla paylaşıldı (${bundle.localKeysCount} kayıt alanı ve ${bundle.memorizationUnitsCount} ezber birimi).`,
+        });
+        return;
+      }
+
+      triggerJsonFileDownload(bundle.jsonStr, bundle.fileName);
+      recordLastBackupTimestamp();
+      setBackupStatus({
+        type: 'success',
+        text: 'Cihazınız doğrudan dosya paylaşımını desteklemediği için yedek dosyanız indirildi; dosyayı dilediğiniz uygulamayla gönderebilirsiniz.',
+      });
+    } catch (err) {
+      const errName =
+        err && typeof err === 'object' && 'name' in err
+          ? String((err as { name?: unknown }).name)
+          : '';
+      if (errName === 'AbortError') {
+        return;
+      }
+      if (bundle) {
+        try {
+          triggerJsonFileDownload(bundle.jsonStr, bundle.fileName);
+          recordLastBackupTimestamp();
+          setBackupStatus({
+            type: 'success',
+            text: 'Cihazınız doğrudan dosya paylaşımını desteklemediği için yedek dosyanız indirildi; dosyayı dilediğiniz uygulamayla gönderebilirsiniz.',
+          });
+          return;
+        } catch {
+          // İndirme yedeği de başarısızsa hata mesajına düş
+        }
+      }
+      setBackupStatus({
+        type: 'error',
+        text: 'Yedek dosyası paylaşılırken bir hata oluştu.',
       });
     } finally {
       setIsBackupBusy(false);
@@ -1801,7 +1930,7 @@ export const SettingsModal: React.FC = () => {
               ================================================================ */}
           {activeTab === 'backup' && (
             <div className="space-y-4">
-              {/* Çalışma Verilerimi Yedekle & Taşı */}
+              {/* Otomatik Kayıt Güvencesi & Cihaz Rehberi */}
               <section
                 className="p-3.5 sm:p-4 rounded-2xl border space-y-3"
                 style={{
@@ -1817,43 +1946,217 @@ export const SettingsModal: React.FC = () => {
                       color: 'var(--brand-primary-text)',
                     }}
                   >
-                    <HardDrive className="w-4 h-4" />
+                    <ShieldCheck className="w-4 h-4" />
                   </span>
                   <div className="min-w-0">
                     <h3
-                      className="text-xs sm:text-sm font-extrabold"
+                      className="text-xs sm:text-sm font-extrabold leading-snug"
                       style={{ color: 'var(--text-primary)' }}
                     >
-                      Çalışma Verilerimi Yedekle &amp; Taşı
+                      Verileriniz Cihazınızda Otomatik Saklanır (Üyeliksiz &amp; Gizlilik Öncelikli)
                     </h3>
                     <p
-                      className="text-[11px] mt-0.5 leading-snug"
-                      style={{ color: 'var(--text-muted)' }}
+                      className="text-[11.5px] mt-1 leading-relaxed"
+                      style={{ color: 'var(--text-secondary)' }}
                     >
-                      Ayarlarınızı, Çalışma Masam tercihlerinizi, ayraçlarınızı, 30 Cüz Hatim
-                      planınızı, kişisel ayet notlarınızı, araştırma defterlerinizi, ezber
-                      havuzunuzu, Klasik Hafızlık (20 Tur Ham–Has) kaydınızı ve oyun ilerlemenizi
-                      tek bir JSON dosyasına aktarın veya başka bir cihaza taşıyın.
+                      Okuma konumunuz, 30 Cüz hatim planınız, ezber ilerlemeniz, kişisel ayet
+                      notlarınız, araştırma defteriniz ve sınav geçmişiniz üyelik gerektirmeden
+                      doğrudan bu cihazın hafızasına otomatik kaydedilir.
                     </p>
                   </div>
                 </div>
 
+                {/* Önemli Uyarı Şeridi */}
+                <div
+                  className="flex items-start gap-2 px-3 py-2.5 rounded-xl border text-[11.5px] leading-relaxed"
+                  style={{
+                    backgroundColor: 'var(--brand-accent-soft)',
+                    borderColor: 'rgba(217, 119, 6, 0.28)',
+                    color: 'var(--brand-accent-text)',
+                  }}
+                >
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>
+                    Tarayıcı geçmişini/site verilerini temizlediğinizde, gizli sekme
+                    kullandığınızda veya cihaz değiştirdiğinizde yerel kayıtlar sıfırlanabilir.
+                    Emeklerinizin korunması için düzenli aralıklarla yedek almanız önerilir.
+                  </span>
+                </div>
+
+                {/* 2 Sütunlu Pratik Cihaz Rehberi */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div
+                    className="p-2.5 sm:p-3 rounded-xl border flex items-start gap-2.5"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <span
+                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                      style={{
+                        backgroundColor: 'var(--brand-primary-soft)',
+                        color: 'var(--brand-primary-text)',
+                      }}
+                    >
+                      <Monitor className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p
+                        className="text-[11.5px] font-extrabold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        Bilgisayarda
+                      </p>
+                      <p
+                        className="text-[11px] mt-0.5 leading-snug"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        <strong>Yedeği İndir (.json)</strong> ile dosyayı bilgisayarınıza
+                        kaydedin; ihtiyaç duyduğunuzda <strong>Yedekten Geri Yükle</strong> ile
+                        seçip yükleyin.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    className="p-2.5 sm:p-3 rounded-xl border flex items-start gap-2.5"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <span
+                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                      style={{
+                        backgroundColor: 'var(--brand-primary-soft)',
+                        color: 'var(--brand-primary-text)',
+                      }}
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p
+                        className="text-[11.5px] font-extrabold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        Telefon &amp; Tablette
+                      </p>
+                      <p
+                        className="text-[11px] mt-0.5 leading-snug"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        <strong>Yedeği Paylaş / Gönder</strong> ile dosyayı tek dokunuşla kendinize
+                        (WhatsApp, Telegram, Google Drive veya E-posta) gönderin ya da cihazınıza
+                        indirin; farklı bir cihaza geçtiğinizde <strong>Yedekten Geri Yükle</strong>{' '}
+                        ile tüm çalışmalarınızı aktarın.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Çalışma Verilerimi Yedekle & Taşı */}
+              <section
+                className="p-3.5 sm:p-4 rounded-2xl border space-y-3"
+                style={{
+                  backgroundColor: 'var(--bg-surface-soft)',
+                  borderColor: 'var(--border-subtle)',
+                }}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <span
+                      className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: 'var(--brand-primary-soft)',
+                        color: 'var(--brand-primary-text)',
+                      }}
+                    >
+                      <HardDrive className="w-4 h-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3
+                        className="text-xs sm:text-sm font-extrabold"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        Çalışma Verilerimi Yedekle &amp; Taşı
+                      </h3>
+                      <p
+                        className="text-[11px] mt-0.5 leading-snug"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        Ayarlarınızı, Çalışma Masam tercihlerinizi, ayraçlarınızı, 30 Cüz Hatim
+                        planınızı, kişisel ayet notlarınızı, araştırma defterlerinizi, ezber
+                        havuzunuzu, Klasik Hafızlık (20 Tur Ham–Has) kaydınızı ve oyun ilerlemenizi
+                        tek bir JSON dosyasına aktarın veya başka bir cihaza taşıyın.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Son Yedekleme Durum Rozeti */}
+                  <span
+                    className="inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-lg border text-[10.5px] font-extrabold whitespace-nowrap shrink-0 tabular-nums"
+                    style={
+                      lastBackupAt
+                        ? {
+                            backgroundColor: 'var(--brand-primary-soft)',
+                            borderColor: 'rgba(13, 148, 136, 0.3)',
+                            color: 'var(--brand-primary-text)',
+                          }
+                        : {
+                            backgroundColor: 'var(--brand-accent-soft)',
+                            borderColor: 'rgba(217, 119, 6, 0.3)',
+                            color: 'var(--brand-accent-text)',
+                          }
+                    }
+                  >
+                    {lastBackupAt ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 shrink-0" />
+                        <span>Son yedek: {formatBackupDate(lastBackupAt)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="w-3 h-3 shrink-0" />
+                        <span>Henüz yedek alınmadı</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     type="button"
                     disabled={isBackupBusy}
                     onClick={() => void handleExportFullBackup()}
-                    className="min-h-[42px] px-3.5 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                    className="min-h-[42px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-opacity hover:opacity-95 shadow-xs touch-manipulation"
                     style={{ backgroundColor: 'var(--brand-primary)' }}
                   >
                     <Download className="w-3.5 h-3.5 shrink-0" />
                     <span>Yedeği İndir (.json)</span>
                   </button>
 
+                  <button
+                    type="button"
+                    disabled={isBackupBusy}
+                    onClick={() => void handleShareFullBackup()}
+                    title="WhatsApp, Telegram, Google Drive veya E-posta ile gönderin"
+                    className="min-h-[42px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-colors hover:opacity-90 touch-manipulation"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-soft)',
+                      borderColor: 'var(--brand-primary)',
+                      color: 'var(--brand-primary-text)',
+                    }}
+                  >
+                    <Share2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Yedeği Paylaş / Gönder</span>
+                  </button>
+
                   <input
                     ref={backupFileInputRef}
                     type="file"
-                    accept="application/json,.json"
+                    accept=".json,application/json,text/plain"
                     onChange={(e) => void handleImportFullBackup(e)}
                     className="hidden"
                   />
@@ -1861,11 +2164,11 @@ export const SettingsModal: React.FC = () => {
                     type="button"
                     disabled={isBackupBusy}
                     onClick={() => backupFileInputRef.current?.click()}
-                    className="min-h-[42px] px-3.5 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                    className="min-h-[42px] px-3 rounded-xl border text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 transition-colors hover:border-[var(--brand-primary)] touch-manipulation"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--brand-primary)',
-                      color: 'var(--brand-primary-text)',
+                      borderColor: 'var(--border-strong)',
+                      color: 'var(--text-primary)',
                     }}
                   >
                     <Upload className="w-3.5 h-3.5 shrink-0" />
