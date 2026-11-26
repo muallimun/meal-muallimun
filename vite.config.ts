@@ -20,7 +20,7 @@ export default defineConfig({
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        globIgnores: ['data/**', 'fonts/**', 'sfx/**'],
+        globIgnores: ['data/**', 'fonts/**', 'sfx/**', 'icons/og-cover.png'],
         navigateFallbackDenylist: [/^\/api\//, /^\/quran_vocab/],
         cleanupOutdatedCaches: true,
         runtimeCaching: [
