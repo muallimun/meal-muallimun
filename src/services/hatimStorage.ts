@@ -1,12 +1,13 @@
 import { dataService } from './dataService';
 import type { MetaData } from '../types/quran';
+import { getHijriDailyJuzRecommendation } from '../utils/islamicCalendar';
 import { isAllPersistencePaused, reportStorageQuotaError } from '../utils/storageQuotaBus';
 
 export const HATIM_STORAGE_KEY = 'muallimun_hatim_planner_v1';
 export const HATIM_TOTAL_PAGES = 604;
 export const HATIM_TOTAL_JUZS = 30;
 
-export type HatimGoalMode = 'daily_pages' | 'target_date' | 'free_juz';
+export type HatimGoalMode = 'daily_pages' | 'target_date' | 'free_juz' | 'hijri_month';
 
 export interface CompletedHatimRecord {
   id: string;
@@ -136,7 +137,12 @@ function isValidDateStamp(val: unknown): val is string {
 }
 
 function sanitizeGoalMode(raw: unknown): HatimGoalMode {
-  if (raw === 'daily_pages' || raw === 'target_date' || raw === 'free_juz') {
+  if (
+    raw === 'daily_pages' ||
+    raw === 'target_date' ||
+    raw === 'free_juz' ||
+    raw === 'hijri_month'
+  ) {
     return raw;
   }
   return 'daily_pages';
@@ -334,44 +340,67 @@ export function computeHatimSummary(plan: ActiveHatimPlan): HatimProgressSummary
   const juzStatuses = getHatimJuzStatuses(plan);
   const completedJuzCount = juzStatuses.filter((j) => j.status === 'completed').length;
 
-  const todayCompletedCount = plan.todayDate === today ? plan.todayReadPages.length : 0;
-
+  let todayCompletedCount = plan.todayDate === today ? plan.todayReadPages.length : 0;
   let todayTargetPages = plan.dailyTargetPages;
+  let todayRemainingPages: number;
   let estimatedDaysRemaining: number | null = null;
   let estimatedFinishDate: Date | null = null;
 
-  if (plan.goalMode === 'target_date' && plan.targetEndDate) {
-    const daysLeft = computeRemainingDaysUntilDate(plan.targetEndDate);
-    // Bugün zaten okunan sayfaları da hesaba katarak gün başındaki dinamik hedefi sabit tut
-    const remainingAtDayStart = remainingPages + todayCompletedCount;
-    todayTargetPages =
-      remainingAtDayStart <= 0
-        ? 0
-        : Math.max(1, Math.min(HATIM_TOTAL_PAGES, Math.ceil(remainingAtDayStart / daysLeft)));
-    estimatedDaysRemaining = isCompleted ? 0 : daysLeft;
-    if (!isCompleted) {
-      const parts = plan.targetEndDate.split('-').map(Number);
+  if (plan.goalMode === 'hijri_month') {
+    const rec = getHijriDailyJuzRecommendation();
+    todayTargetPages = rec.totalPages;
+    const completedSet = new Set(plan.completedPages);
+    let completedInTodayJuz = 0;
+    for (let p = rec.startPage; p <= rec.endPage; p += 1) {
+      if (completedSet.has(p)) {
+        completedInTodayJuz += 1;
+      }
+    }
+    todayCompletedCount = completedInTodayJuz;
+    todayRemainingPages = isCompleted
+      ? 0
+      : Math.max(0, todayTargetPages - completedInTodayJuz);
+    estimatedDaysRemaining = isCompleted
+      ? 0
+      : Math.max(1, rec.monthLength - rec.hijri.day + 1);
+    if (!isCompleted && isValidDateStamp(rec.monthEndDateStamp)) {
+      const parts = rec.monthEndDateStamp.split('-').map(Number);
       estimatedFinishDate = new Date(parts[0], parts[1] - 1, parts[2]);
     }
-  } else if (plan.goalMode === 'daily_pages') {
-    todayTargetPages = Math.max(1, Math.min(HATIM_TOTAL_PAGES, plan.dailyTargetPages));
-    if (isCompleted) {
-      estimatedDaysRemaining = 0;
-    } else {
-      estimatedDaysRemaining = Math.ceil(remainingPages / todayTargetPages);
-      estimatedFinishDate = new Date(Date.now() + estimatedDaysRemaining * 24 * 60 * 60 * 1000);
-    }
   } else {
-    // Serbest cüz dağıtımı
-    todayTargetPages = Math.max(1, Math.min(HATIM_TOTAL_PAGES, plan.dailyTargetPages || 20));
-    if (isCompleted) {
-      estimatedDaysRemaining = 0;
+    if (plan.goalMode === 'target_date' && plan.targetEndDate) {
+      const daysLeft = computeRemainingDaysUntilDate(plan.targetEndDate);
+      // Bugün zaten okunan sayfaları da hesaba katarak gün başındaki dinamik hedefi sabit tut
+      const remainingAtDayStart = remainingPages + todayCompletedCount;
+      todayTargetPages =
+        remainingAtDayStart <= 0
+          ? 0
+          : Math.max(1, Math.min(HATIM_TOTAL_PAGES, Math.ceil(remainingAtDayStart / daysLeft)));
+      estimatedDaysRemaining = isCompleted ? 0 : daysLeft;
+      if (!isCompleted) {
+        const parts = plan.targetEndDate.split('-').map(Number);
+        estimatedFinishDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      }
+    } else if (plan.goalMode === 'daily_pages') {
+      todayTargetPages = Math.max(1, Math.min(HATIM_TOTAL_PAGES, plan.dailyTargetPages));
+      if (isCompleted) {
+        estimatedDaysRemaining = 0;
+      } else {
+        estimatedDaysRemaining = Math.ceil(remainingPages / todayTargetPages);
+        estimatedFinishDate = new Date(Date.now() + estimatedDaysRemaining * 24 * 60 * 60 * 1000);
+      }
+    } else {
+      // Serbest cüz dağıtımı
+      todayTargetPages = Math.max(1, Math.min(HATIM_TOTAL_PAGES, plan.dailyTargetPages || 20));
+      if (isCompleted) {
+        estimatedDaysRemaining = 0;
+      }
     }
-  }
 
-  const todayRemainingPages = isCompleted
-    ? 0
-    : Math.max(0, Math.min(remainingPages, todayTargetPages - todayCompletedCount));
+    todayRemainingPages = isCompleted
+      ? 0
+      : Math.max(0, Math.min(remainingPages, todayTargetPages - todayCompletedCount));
+  }
 
   return {
     completedCount,
@@ -676,40 +705,59 @@ export const hatimStorage = {
     const state = ensureHydrated();
     if (!state.activePlan) return null;
     const base = rollToday(state.activePlan);
-    const summary = computeHatimSummary(base);
-    const countToMark = summary.todayRemainingPages;
-
-    if (countToMark <= 0) {
-      return { plan: base, markedPages: [] };
-    }
 
     const completedSet = new Set(base.completedPages);
     const todaySet = new Set(base.todayReadPages);
     const newlyMarked: number[] = [];
+    let preferredNextStart = base.currentPage;
 
-    // Önce currentPage'den 604'e, yetmezse 1'den currentPage'e okunmamış sayfaları topla
-    for (let p = base.currentPage; p <= HATIM_TOTAL_PAGES && newlyMarked.length < countToMark; p += 1) {
-      if (!completedSet.has(p)) {
-        completedSet.add(p);
-        todaySet.add(p);
-        newlyMarked.push(p);
+    if (base.goalMode === 'hijri_month') {
+      const rec = getHijriDailyJuzRecommendation();
+      for (let p = rec.startPage; p <= rec.endPage; p += 1) {
+        if (!completedSet.has(p)) {
+          completedSet.add(p);
+          todaySet.add(p);
+          newlyMarked.push(p);
+        }
       }
-    }
-    for (let p = 1; p < base.currentPage && newlyMarked.length < countToMark; p += 1) {
-      if (!completedSet.has(p)) {
-        completedSet.add(p);
-        todaySet.add(p);
-        newlyMarked.push(p);
+      if (newlyMarked.length === 0) {
+        return { plan: base, markedPages: [] };
       }
+      preferredNextStart = Math.min(HATIM_TOTAL_PAGES, rec.endPage + 1);
+    } else {
+      const summary = computeHatimSummary(base);
+      const countToMark = summary.todayRemainingPages;
+
+      if (countToMark <= 0) {
+        return { plan: base, markedPages: [] };
+      }
+
+      // Önce currentPage'den 604'e, yetmezse 1'den currentPage'e okunmamış sayfaları topla
+      for (
+        let p = base.currentPage;
+        p <= HATIM_TOTAL_PAGES && newlyMarked.length < countToMark;
+        p += 1
+      ) {
+        if (!completedSet.has(p)) {
+          completedSet.add(p);
+          todaySet.add(p);
+          newlyMarked.push(p);
+        }
+      }
+      for (let p = 1; p < base.currentPage && newlyMarked.length < countToMark; p += 1) {
+        if (!completedSet.has(p)) {
+          completedSet.add(p);
+          todaySet.add(p);
+          newlyMarked.push(p);
+        }
+      }
+      const lastMarked = newlyMarked[newlyMarked.length - 1] ?? base.currentPage;
+      preferredNextStart = Math.min(HATIM_TOTAL_PAGES, lastMarked + 1);
     }
 
-    const lastMarked = newlyMarked[newlyMarked.length - 1] ?? base.currentPage;
     const nextCompleted = normalizePageList(completedSet);
     const nextToday = normalizePageList(todaySet);
-    const nextCurrent = findNextUnreadPage(
-      nextCompleted,
-      Math.min(HATIM_TOTAL_PAGES, lastMarked + 1),
-    );
+    const nextCurrent = findNextUnreadPage(nextCompleted, preferredNextStart);
 
     const nextPlan: ActiveHatimPlan = {
       ...base,

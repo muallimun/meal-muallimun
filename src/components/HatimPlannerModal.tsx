@@ -30,6 +30,11 @@ import {
 import { sfxService } from '../services/sfxService';
 import { useAppStore } from '../store/useAppStore';
 import { acquireBodyScrollLock } from '../utils/bodyScrollLock';
+import {
+  getHijriDailyJuzRecommendation,
+  getHijriOffset,
+  subscribeHijriOffset,
+} from '../utils/islamicCalendar';
 
 interface HatimPresetItem {
   id: string;
@@ -40,6 +45,13 @@ interface HatimPresetItem {
 }
 
 const HATIM_PRESETS: readonly HatimPresetItem[] = [
+  {
+    id: 'hijri_month',
+    label: 'Hicrî Ay Hatmi',
+    sublabel: 'Güne Göre Cüz · 29/30 Gün Uyumlu',
+    goalMode: 'hijri_month',
+    dailyPages: 20,
+  },
   {
     id: 'daily_20',
     label: 'Günde 20 Sayfa',
@@ -118,6 +130,12 @@ export const HatimPlannerModal: React.FC = () => {
     hatimStorage.subscribe,
     hatimStorage.getSnapshot,
   );
+  const hijriOffset = useSyncExternalStore(subscribeHijriOffset, getHijriOffset);
+  const hijriRec = useMemo(
+    () => getHijriDailyJuzRecommendation(new Date(), hijriOffset),
+    [hijriOffset],
+  );
+  const suggestedHijriTitle = `${hijriRec.hijri.monthNameTr} ${hijriRec.hijri.year} Hatmi`;
 
   const activePlan = hatimState.activePlan;
   const history = hatimState.history;
@@ -176,7 +194,9 @@ export const HatimPlannerModal: React.FC = () => {
 
   const summary = useMemo(
     () => (activePlan ? computeHatimSummary(activePlan) : null),
-    [activePlan],
+    // hijriOffset değiştiğinde hijri_month hedefi anlık güncellenir
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activePlan, hijriOffset],
   );
 
   const juzStatuses = useMemo(
@@ -411,23 +431,82 @@ export const HatimPlannerModal: React.FC = () => {
             </div>
           )}
 
+          {/* Hicrî Güne Göre Günün Cüzü Şeridi */}
+          <section
+            aria-label="Hicrî güne göre günün cüzü"
+            className="rounded-2xl border p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+            style={{
+              backgroundColor: hijriRec.isCombinedFinalDay
+                ? 'var(--brand-accent-soft)'
+                : 'var(--brand-primary-soft)',
+              borderColor: hijriRec.isCombinedFinalDay
+                ? 'rgba(217, 119, 6, 0.35)'
+                : 'color-mix(in srgb, var(--brand-primary) 32%, var(--border-subtle))',
+            }}
+          >
+            <div className="min-w-0 space-y-0.5">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                <span
+                  className="font-extrabold inline-flex items-center gap-1"
+                  style={{
+                    color: hijriRec.isCombinedFinalDay
+                      ? 'var(--brand-accent-text)'
+                      : 'var(--brand-primary-text)',
+                  }}
+                >
+                  <Calendar className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {hijriRec.hijri.formattedTr} · {hijriRec.monthLength} Gün
+                  </span>
+                </span>
+              </div>
+              <p
+                className="text-xs sm:text-[13px] font-extrabold leading-snug"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {hijriRec.isCombinedFinalDay
+                  ? `${hijriRec.label} · Hatim Tamamlama Günü (Sayfa ${hijriRec.startPage}–${hijriRec.endPage})`
+                  : `Bugünün Cüzü: ${hijriRec.label} (Sayfa ${hijriRec.startPage}–${hijriRec.endPage})`}
+              </p>
+              {hijriRec.note && (
+                <p
+                  className="text-[11px] leading-snug pt-0.5"
+                  style={{ color: 'var(--brand-accent-text)' }}
+                >
+                  {hijriRec.note}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleOpenJuzInMushaf(hijriRec.juzs[0])}
+              className="w-full sm:w-auto min-h-[38px] px-3 rounded-xl text-xs font-extrabold text-white inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap transition-opacity hover:opacity-95 touch-manipulation"
+              style={{ backgroundColor: 'var(--brand-primary)' }}
+            >
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+              <span>Bugünün Cüzünü Aç</span>
+            </button>
+          </section>
+
           {/* Kurulum veya Düzenleme Formu */}
           {(!activePlan || isSetupFormOpen) && (
             <form
               onSubmit={handleSaveSetup}
-              className="rounded-2xl border p-4 space-y-4"
+              className="rounded-2xl border p-3.5 sm:p-4 space-y-4"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
               }}
             >
               <div className="flex items-center justify-between gap-2">
-                <div>
+                <div className="min-w-0">
                   <h3 className="text-sm sm:text-base font-extrabold">
                     {activePlan ? 'Hatim Hedefini Düzenle' : 'Yeni Hatim Planı Oluştur'}
                   </h3>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    Günlük sayfa hedefi, bitiş tarihi veya serbest cüz usulü seçebilirsiniz.
+                  <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
+                    Hicrî ay mukabelesi, günlük sayfa hedefi, bitiş tarihi veya serbest cüz usulü
+                    seçebilirsiniz.
                   </p>
                 </div>
               </div>
@@ -463,6 +542,7 @@ export const HatimPlannerModal: React.FC = () => {
                       formGoalMode === preset.goalMode &&
                       (preset.goalMode !== 'daily_pages' ||
                         formDailyPages === preset.dailyPages);
+                    const isHijriPreset = preset.id === 'hijri_month';
                     return (
                       <button
                         key={preset.id}
@@ -473,8 +553,25 @@ export const HatimPlannerModal: React.FC = () => {
                           if (preset.dailyPages) {
                             setFormDailyPages(preset.dailyPages);
                           }
+                          if (!activePlan) {
+                            const defaultSequentialTitle = `${history.length + 1}. Hatim`;
+                            if (preset.goalMode === 'hijri_month') {
+                              if (
+                                !formTitle.trim() ||
+                                formTitle.trim() === defaultSequentialTitle
+                              ) {
+                                setFormTitle(suggestedHijriTitle);
+                              }
+                              setFormStartPage(hijriRec.startPage);
+                              setPreMarkBeforeStart(true);
+                            } else if (formTitle.trim() === suggestedHijriTitle) {
+                              setFormTitle(defaultSequentialTitle);
+                            }
+                          }
                         }}
-                        className="p-2.5 rounded-xl border text-left transition-all cursor-pointer"
+                        className={`${
+                          isHijriPreset ? 'col-span-2 sm:col-span-3' : ''
+                        } min-h-[44px] p-2.5 rounded-xl border text-left transition-all cursor-pointer touch-manipulation`}
                         style={{
                           backgroundColor: isSelected
                             ? 'var(--brand-primary-soft)'
@@ -484,18 +581,33 @@ export const HatimPlannerModal: React.FC = () => {
                             : 'var(--border-subtle)',
                         }}
                       >
+                        <div className="flex items-center justify-between gap-2">
+                          <p
+                            className="text-xs font-extrabold truncate"
+                            style={{
+                              color: isSelected
+                                ? 'var(--brand-primary-text)'
+                                : 'var(--text-primary)',
+                            }}
+                          >
+                            {isHijriPreset ? 'Hicrî Ay Hatmi (Mukabele)' : preset.label}
+                          </p>
+                          {isHijriPreset && (
+                            <span
+                              className="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold whitespace-nowrap shrink-0"
+                              style={{
+                                backgroundColor: isSelected
+                                  ? 'var(--brand-primary)'
+                                  : 'var(--brand-primary-soft)',
+                                color: isSelected ? '#FFFFFF' : 'var(--brand-primary-text)',
+                              }}
+                            >
+                              {hijriRec.hijri.monthNameTr} · {hijriRec.monthLength} Gün
+                            </span>
+                          )}
+                        </div>
                         <p
-                          className="text-xs font-extrabold truncate"
-                          style={{
-                            color: isSelected
-                              ? 'var(--brand-primary-text)'
-                              : 'var(--text-primary)',
-                          }}
-                        >
-                          {preset.label}
-                        </p>
-                        <p
-                          className="text-[11px] truncate mt-0.5"
+                          className="text-[11px] leading-snug mt-0.5"
                           style={{ color: 'var(--text-muted)' }}
                         >
                           {preset.sublabel}
@@ -507,6 +619,38 @@ export const HatimPlannerModal: React.FC = () => {
               </div>
 
               {/* Mod Detay Alanı */}
+              {formGoalMode === 'hijri_month' && (
+                <div
+                  className="p-3 rounded-xl border space-y-1.5"
+                  style={{
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'color-mix(in srgb, var(--brand-primary) 35%, var(--border-subtle))',
+                  }}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <span
+                      className="text-[11px] font-extrabold"
+                      style={{ color: 'var(--brand-primary-text)' }}
+                    >
+                      Hicrî Ay Hatmi (Mukabele) · {hijriRec.hijri.monthNameTr} {hijriRec.hijri.year}
+                    </span>
+                    <span
+                      className="text-[11px] font-bold tabular-nums"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Bugün: {hijriRec.label} ({hijriRec.totalPages} Sayfa)
+                    </span>
+                  </div>
+                  <p
+                    className="text-xs leading-relaxed"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Hicrî ayın gününe göre sıradaki cüz otomatik önerilir; 29 gün çeken aylarda son
+                    gün 29. ve 30. cüz birlikte planlanır.
+                  </p>
+                </div>
+              )}
+
               {formGoalMode === 'daily_pages' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -701,15 +845,19 @@ export const HatimPlannerModal: React.FC = () => {
                   </div>
 
                   {formStartPage > 1 && (
-                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer pt-0.5">
+                    <label className="flex items-start gap-2 text-xs font-semibold cursor-pointer pt-0.5">
                       <input
                         type="checkbox"
                         checked={preMarkBeforeStart}
                         onChange={(e) => setPreMarkBeforeStart(e.target.checked)}
-                        className="w-4 h-4 accent-[var(--brand-primary)]"
+                        className="w-4 h-4 mt-0.5 shrink-0 accent-[var(--brand-primary)]"
                       />
-                      <span style={{ color: 'var(--text-secondary)' }}>
-                        Sayfa 1–{formStartPage - 1} arasını okundu olarak işaretle
+                      <span className="leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                        {formGoalMode === 'hijri_month' &&
+                        formStartPage === hijriRec.startPage &&
+                        hijriRec.hijri.day > 1
+                          ? `Önceki ${hijriRec.hijri.day - 1} cüzü (Sayfa 1–${hijriRec.startPage - 1}) okundu işaretle`
+                          : `Sayfa 1–${formStartPage - 1} arasını okundu olarak işaretle`}
                       </span>
                     </label>
                   )}
@@ -949,7 +1097,7 @@ export const HatimPlannerModal: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleCompleteTodayQuota}
-                      className="min-h-[44px] px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer transition-colors hover:border-[var(--brand-primary)]"
+                      className="min-h-[44px] px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer transition-colors hover:border-[var(--brand-primary)] touch-manipulation"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--brand-primary)',
@@ -959,8 +1107,12 @@ export const HatimPlannerModal: React.FC = () => {
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span className="truncate">
                         {summary.todayRemainingPages > 0
-                          ? `Bugünkü Hedefi Okudum İşaretle (+${summary.todayRemainingPages} Sayfa)`
-                          : 'Bugünkü Hedef Tamamlandı'}
+                          ? activePlan.goalMode === 'hijri_month'
+                            ? `Bugünün Cüzünü Tamamla (+${summary.todayRemainingPages} Sayfa)`
+                            : `Bugünkü Hedefi Okudum İşaretle (+${summary.todayRemainingPages} Sayfa)`
+                          : activePlan.goalMode === 'hijri_month'
+                            ? 'Bugünün Cüzü Tamamlandı'
+                            : 'Bugünkü Hedef Tamamlandı'}
                       </span>
                     </button>
                   </div>
@@ -984,20 +1136,28 @@ export const HatimPlannerModal: React.FC = () => {
                     const pct = Math.round((item.readCount / item.totalPages) * 100);
                     const isDone = item.status === 'completed';
                     const isCurrent = summary.currentJuz === item.juz && !summary.isCompleted;
+                    const isTodayHijriJuz = hijriRec.juzs.includes(item.juz);
 
                     return (
                       <div
                         key={item.juz}
-                        className="rounded-xl border p-2.5 flex flex-col justify-between gap-2 transition-colors"
+                        className="rounded-xl border p-2.5 flex flex-col justify-between gap-2 transition-colors min-w-0"
                         style={{
                           backgroundColor: isDone
                             ? 'var(--brand-primary-soft)'
-                            : 'var(--bg-surface)',
-                          borderColor: isCurrent
-                            ? 'var(--brand-accent)'
-                            : isDone
-                              ? 'var(--brand-primary)'
-                              : 'var(--border-subtle)',
+                            : isTodayHijriJuz
+                              ? 'color-mix(in srgb, var(--brand-primary-soft) 55%, var(--bg-surface))'
+                              : 'var(--bg-surface)',
+                          borderColor: isTodayHijriJuz
+                            ? 'var(--brand-primary)'
+                            : isCurrent
+                              ? 'var(--brand-accent)'
+                              : isDone
+                                ? 'var(--brand-primary)'
+                                : 'var(--border-subtle)',
+                          boxShadow: isTodayHijriJuz
+                            ? '0 0 0 1px color-mix(in srgb, var(--brand-primary) 35%, transparent)'
+                            : undefined,
                         }}
                       >
                         <div className="flex items-start justify-between gap-1">
@@ -1007,16 +1167,32 @@ export const HatimPlannerModal: React.FC = () => {
                             className="text-left min-w-0 flex-1 cursor-pointer group"
                             title={`${item.juz}. Cüzü Mushaf'ta aç (Sayfa ${item.startPage}–${item.endPage})`}
                           >
-                            <p
-                              className="text-xs font-extrabold group-hover:underline truncate"
-                              style={{
-                                color: isDone
-                                  ? 'var(--brand-primary-text)'
-                                  : 'var(--text-primary)',
-                              }}
-                            >
-                              {item.juz}. Cüz
-                            </p>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <p
+                                className="text-xs font-extrabold group-hover:underline truncate"
+                                style={{
+                                  color:
+                                    isDone || isTodayHijriJuz
+                                      ? 'var(--brand-primary-text)'
+                                      : 'var(--text-primary)',
+                                }}
+                              >
+                                {item.juz}. Cüz
+                              </p>
+                              {isTodayHijriJuz && (
+                                <span
+                                  className="px-1.5 py-0.5 rounded text-[9.5px] font-extrabold leading-none whitespace-nowrap shrink-0"
+                                  style={{
+                                    backgroundColor: isDone
+                                      ? 'var(--brand-primary)'
+                                      : 'var(--brand-accent-soft)',
+                                    color: isDone ? '#FFFFFF' : 'var(--brand-accent-text)',
+                                  }}
+                                >
+                                  Bugün
+                                </span>
+                              )}
+                            </div>
                             <p
                               className="text-[10px] tabular-nums"
                               style={{ color: 'var(--text-muted)' }}
