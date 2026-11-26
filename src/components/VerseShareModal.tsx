@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   Check,
   ChevronUp,
@@ -514,7 +521,7 @@ function computeCardLayout(params: {
   const targetHeight = preset.height;
   const paddingX = 96;
   const contentWidth = width - paddingX * 2;
-  const wrapWidth = contentWidth - 20;
+  const wrapWidth = contentWidth - 44;
 
   const includeAr = (contentMode === 'both' || contentMode === 'ar') && Boolean(arabicText.trim());
   const includeMeal =
@@ -559,10 +566,14 @@ function computeCardLayout(params: {
   const minMealFloor = isRtlMeal ? 25 : 21;
 
   const headerHeight =
-    (aspectRatio === '9:16' ? 238 : aspectRatio === '1:1' ? 196 : 212) - (hasArabicSurah ? 0 : 28);
-  const footerHeight = aspectRatio === '9:16' ? 218 : aspectRatio === '1:1' ? 186 : 196;
-  const bodyVerticalMargin = 48;
-  const maxBodyFitHeight = Math.max(300, targetHeight - headerHeight - footerHeight - bodyVerticalMargin);
+    (aspectRatio === '9:16' ? 238 : aspectRatio === '1:1' ? 208 : 218) -
+    (hasArabicSurah ? 0 : 44);
+  const footerHeight = aspectRatio === '9:16' ? 256 : aspectRatio === '1:1' ? 226 : 234;
+  const bodyVerticalMargin = 72;
+  const maxBodyFitHeight = Math.max(
+    280,
+    targetHeight - headerHeight - footerHeight - bodyVerticalMargin,
+  );
 
   const mealDisplayText = isRtlMeal ? mealText.trim() : `“${mealText.trim()}”`;
   const mealFontStack = isRtlMeal ? RTL_TAFSIR_CANVAS_FONT : TURKISH_CANVAS_FONT;
@@ -596,10 +607,10 @@ function computeCardLayout(params: {
       );
     }
 
-    const arBlockH = includeAr ? arLines.length * arLh + 16 : 0;
-    const divH = includeAr && includeMeal ? 54 : 0;
-    const mealLabelH = includeMeal ? 44 : 0;
-    const mealBlockH = includeMeal ? mealLines.length * mLh + mealLabelH : 0;
+    const arBlockH = includeAr ? arLines.length * arLh + 24 : 0;
+    const divH = includeAr && includeMeal ? 60 : 0;
+    const mealLabelH = includeMeal ? 48 : 0;
+    const mealBlockH = includeMeal ? mealLines.length * mLh + mealLabelH + 10 : 0;
     const bodyTotalH = arBlockH + divH + mealBlockH;
 
     return {
@@ -616,7 +627,7 @@ function computeCardLayout(params: {
     };
   };
 
-  const shrinkSteps = [1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58];
+  const shrinkSteps = [1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46];
   let chosen = measureForShrink(1);
   let wasAutoShrunk = false;
 
@@ -628,7 +639,7 @@ function computeCardLayout(params: {
 
   const isOverflowExpanded = chosen.bodyTotalH > maxBodyFitHeight;
   const canvasHeight = isOverflowExpanded
-    ? Math.ceil(headerHeight + chosen.bodyTotalH + footerHeight + 76)
+    ? Math.ceil(headerHeight + chosen.bodyTotalH + footerHeight + 84)
     : targetHeight;
 
   return {
@@ -687,9 +698,13 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
   const [fontsReadyTick, setFontsReadyTick] = useState(0);
   const [iconStage, setIconStage] = useState<'local' | 'cdn' | 'vector'>('local');
 
+  const previewStageRef = useRef<HTMLDivElement | null>(null);
   const previewCardRef = useRef<HTMLDivElement | null>(null);
   const mobileCopyMenuRef = useRef<HTMLDivElement | null>(null);
-  const [previewWidth, setPreviewWidth] = useState<number>(300);
+  const [stageSize, setStageSize] = useState<{ width: number; height: number }>({
+    width: 185,
+    height: 220,
+  });
   const [isMobileCopyMenuOpen, setIsMobileCopyMenuOpen] = useState(false);
 
   const canCopyImage = useMemo(
@@ -929,21 +944,26 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     safeArabicSurah,
   ]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!verse) return;
-    const node = previewCardRef.current;
+    const node = previewStageRef.current;
     if (!node) return;
 
-    const updateWidth = () => {
-      const next = node.clientWidth;
-      if (next > 40) {
-        setPreviewWidth(next);
+    const updateSize = () => {
+      const nextW = node.clientWidth;
+      const nextH = node.clientHeight;
+      if (nextW > 40 && nextH > 40) {
+        setStageSize((prev) =>
+          prev.width === nextW && prev.height === nextH
+            ? prev
+            : { width: nextW, height: nextH },
+        );
       }
     };
 
-    updateWidth();
+    updateSize();
     if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(updateWidth);
+    const observer = new ResizeObserver(updateSize);
     observer.observe(node);
     return () => observer.disconnect();
   }, [verse, aspectRatio, layout.isOverflowExpanded]);
@@ -955,7 +975,16 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
   const isScaleCustomized =
     Math.abs(arabicScale - 1) > 0.001 || Math.abs(mealScale - 1) > 0.001;
 
-  const previewScale = Math.max(0.15, Math.min(0.45, previewWidth / CANVAS_WIDTH));
+  const safeStageW = Math.max(80, stageSize.width);
+  const safeStageH = Math.max(80, stageSize.height);
+  const previewScale = layout.isOverflowExpanded
+    ? Math.max(0.06, Math.min(0.45, safeStageW / layout.width))
+    : Math.max(
+        0.06,
+        Math.min(0.45, safeStageW / layout.width, safeStageH / layout.canvasHeight),
+      );
+  const previewBoxWidth = Math.round(layout.width * previewScale);
+  const previewBoxHeight = Math.round(layout.canvasHeight * previewScale);
   const localIconUrl = getLocalIconUrl('icon-192.png');
   const cdnIconUrl = getIconUrl('icon-192.png');
   const previewIconSrc = iconStage === 'local' ? localIconUrl : cdnIconUrl;
@@ -1075,9 +1104,21 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
       ctx.direction = 'ltr';
     }
 
+    // Alt imza ölçülerini önceden hesapla ki gövde ile çizgi arasında tam hizalama korunsun
+    const footerBottomPad = aspectRatio === '9:16' ? 76 : 56;
+    const footerHostFontSize = 25;
+    const footerHostHeight = Math.round(footerHostFontSize * 1.15);
+    const iconSize = 68;
+    const iconRadius = 16;
+    const iconToHostGap = 14;
+    const dividerToIconGap = 28;
+    const hostTopY = canvasHeight - footerBottomPad - footerHostHeight;
+    const iconY = hostTopY - iconToHostGap - iconSize;
+    const dividerY = iconY - dividerToIconGap;
+
     // Dikey ortalama hesabı (Header ile Footer arasında dengeli yerleşim)
-    const availableStart = headerHeight + 24;
-    const availableEnd = canvasHeight - footerHeight - 16;
+    const availableStart = headerHeight + 16;
+    const availableEnd = Math.min(canvasHeight - footerHeight, dividerY - 24);
     let cursorY =
       availableStart +
       Math.max(0, (availableEnd - availableStart - currentLayout.bodyTotalH) / 2);
@@ -1100,12 +1141,12 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
         cursorY += currentLayout.arabicLineHeight;
       }
       ctx.direction = 'ltr';
-      cursorY += 16;
+      cursorY += 20;
     }
 
     // 5. Ayırıcı Süs Çizgisi
     if (includeAr && includeMeal) {
-      const lineY = cursorY + 22;
+      const lineY = cursorY + 24;
       ctx.strokeStyle = palette.dividerColor;
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1143,30 +1184,26 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
       ctx.fillText(`— ${activeMealLabel}`, width / 2, cursorY + 14);
     }
 
-    // 7. Alt İmza (Üstte İnce Çizgi, Ortada Uygulama İkonu + kuran.muallimun.net)
-    const footerTopY = canvasHeight - footerHeight;
-    const dividerY = footerTopY + 18;
+    // 7. Alt İmza (Üstte İnce Çizgi, Ortada 68px Uygulama İkonu + 25px kuran.muallimun.net)
     ctx.strokeStyle = palette.dividerColor;
-    ctx.lineWidth = 1.25;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(paddingX + 110, dividerY);
     ctx.lineTo(width - paddingX - 110, dividerY);
     ctx.stroke();
 
-    const iconSize = 54;
     const iconX = (width - iconSize) / 2;
-    const iconY = dividerY + 26;
 
     if (iconImg) {
       ctx.save();
-      drawRoundedRect(ctx, iconX, iconY, iconSize, iconSize, 13);
+      drawRoundedRect(ctx, iconX, iconY, iconSize, iconSize, iconRadius);
       ctx.clip();
       ctx.drawImage(iconImg, iconX, iconY, iconSize, iconSize);
       ctx.restore();
 
       ctx.strokeStyle = palette.frameInner;
-      ctx.lineWidth = 1.5;
-      drawRoundedRect(ctx, iconX, iconY, iconSize, iconSize, 13);
+      ctx.lineWidth = 1.75;
+      drawRoundedRect(ctx, iconX, iconY, iconSize, iconSize, iconRadius);
       ctx.stroke();
     } else {
       drawMuallimunVectorBadge(ctx, iconX, iconY, iconSize);
@@ -1175,9 +1212,9 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.direction = 'ltr';
-    ctx.font = `600 22px ${TURKISH_CANVAS_FONT}`;
+    ctx.font = `600 ${footerHostFontSize}px ${TURKISH_CANVAS_FONT}`;
     ctx.fillStyle = palette.mutedColor;
-    ctx.fillText(PUBLIC_SITE_HOST, width / 2, iconY + iconSize + 14);
+    ctx.fillText(PUBLIC_SITE_HOST, width / 2, hostTopY);
 
     try {
       const blob = await new Promise<Blob | null>((resolve, reject) => {
@@ -1310,21 +1347,16 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
   const showArabicBlock = contentMode === 'both' || contentMode === 'ar';
   const showMealBlock = (contentMode === 'both' || contentMode === 'meal') && Boolean(activeMealText);
 
-  // Canlı önizlemede tüm metin ve boşlukları 1080px kanvas oranıyla birebir ölçekle
-  const px = (canvasPx: number) => `${Math.max(1, canvasPx * previewScale).toFixed(2)}px`;
-  const previewCardAspectStyle: React.CSSProperties = layout.isOverflowExpanded
-    ? {
-        width: 'min(100%, 300px)',
-        minHeight: `${Math.round(layout.canvasHeight * previewScale)}px`,
-        background: `linear-gradient(155deg, ${palette.bgStart} 0%, ${palette.bgEnd} 100%)`,
-      }
-    : {
-        aspectRatio: `${activeAspectPreset.width} / ${activeAspectPreset.height}`,
-        height: '100%',
-        maxHeight: '100%',
-        maxWidth: '100%',
-        background: `linear-gradient(155deg, ${palette.bgStart} 0%, ${palette.bgEnd} 100%)`,
-      };
+  // İç kart 1080px gerçek kanvas koordinatında çizilip transform: scale() ile küçültüldüğü için
+  // mobilde/masaüstünde indirilen PNG ile birebir aynı satır kırılımı ve oran korunur
+  const px = (canvasPx: number) => `${canvasPx}px`;
+  const previewCardAspectStyle: React.CSSProperties = {
+    width: `${previewBoxWidth}px`,
+    height: `${previewBoxHeight}px`,
+    aspectRatio: `${layout.width} / ${layout.canvasHeight}`,
+    borderRadius: `${Math.max(6, Math.round(44 * previewScale))}px`,
+    background: `linear-gradient(155deg, ${palette.bgStart} 0%, ${palette.bgEnd} 100%)`,
+  };
 
   return (
     <div
@@ -1366,258 +1398,271 @@ export const VerseShareModal: React.FC<VerseShareModalProps> = ({
         {/* Stüdyo Gövdesi: Masaüstünde Sol Önizleme + Sağ Kontroller; Mobilde Sabit Üst Önizleme + Kaydırılan Alt Kontroller */}
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)]">
           {/* Sol / Üst: Canlı Kart Sahnesi */}
-          <div className="relative flex flex-col items-center justify-center gap-2 px-3 py-2 md:p-5 bg-[var(--bg-surface-soft)] border-b md:border-b-0 md:border-r border-[var(--border-subtle)] shrink-0 md:shrink md:min-h-0 md:overflow-hidden">
+          <div className="relative flex flex-col items-center justify-center md:gap-2 px-3 py-2 md:p-5 bg-[var(--bg-surface-soft)] border-b md:border-b-0 md:border-r border-[var(--border-subtle)] shrink-0 md:shrink md:min-h-0 md:overflow-hidden">
             <div
-              className={`w-full flex items-center justify-center ${
+              ref={previewStageRef}
+              className={`w-full flex justify-center ${
                 layout.isOverflowExpanded
-                  ? 'max-h-[28dvh] sm:max-h-[32dvh] md:max-h-[60dvh] overflow-y-auto items-start py-0.5'
-                  : 'h-[27dvh] sm:h-[31dvh] md:h-[58dvh] md:max-h-[60dvh]'
+                  ? 'max-w-[min(100%,185px)] sm:max-w-[min(100%,215px)] md:max-w-[300px] max-h-[27dvh] sm:max-h-[30dvh] md:max-h-[60dvh] overflow-y-auto overscroll-contain items-start py-0.5'
+                  : 'max-w-[min(100%,185px)] sm:max-w-[min(100%,215px)] md:max-w-full h-[27dvh] sm:h-[30dvh] md:h-[58dvh] md:max-h-[60dvh] items-center'
               }`}
             >
               <div
                 ref={previewCardRef}
-                className="relative rounded-2xl shadow-xl transition-[background,border-color] duration-200 flex flex-col overflow-hidden mx-auto"
+                className="relative rounded-2xl shadow-xl transition-[background,border-color] duration-200 overflow-hidden mx-auto shrink-0"
                 style={previewCardAspectStyle}
               >
-                {/* Dış & İç Zarif Çift Çerçeve */}
+                {/* 1080px Gerçek Kanvas Aynası (transform: scale ile sıfır kırpılma & birebir PNG eşleşmesi) */}
                 <div
-                  className="pointer-events-none absolute"
+                  className="absolute top-0 left-0 flex flex-col"
                   style={{
-                    inset: px(40),
-                    border: `${Math.max(1, 3 * previewScale).toFixed(2)}px solid ${palette.frameOuter}`,
-                    borderRadius: px(34),
-                  }}
-                />
-                <div
-                  className="pointer-events-none absolute"
-                  style={{
-                    inset: px(54),
-                    border: `${Math.max(0.75, 1.5 * previewScale).toFixed(2)}px solid ${palette.frameInner}`,
-                    borderRadius: px(26),
-                  }}
-                />
-
-                {/* Kart İçeriği */}
-                <div
-                  className="relative z-[1] flex-1 flex flex-col justify-between items-center text-center"
-                  style={{
-                    paddingLeft: px(96),
-                    paddingRight: px(96),
-                    paddingTop: px(aspectRatio === '9:16' ? 112 : 96),
-                    paddingBottom: px(aspectRatio === '9:16' ? 56 : 44),
+                    width: `${layout.width}px`,
+                    height: `${layout.canvasHeight}px`,
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: 'top left',
                   }}
                 >
-                  {/* Üst Başlık */}
+                  {/* Dış & İç Zarif Çift Çerçeve */}
                   <div
-                    className="flex flex-col items-center w-full shrink-0"
-                    style={{ gap: px(12) }}
-                  >
-                    <span
-                      className="font-bold uppercase tracking-wide inline-flex items-center justify-center max-w-full truncate"
-                      style={{
-                        backgroundColor: palette.badgeBg,
-                        color: palette.badgeText,
-                        fontSize: px(22),
-                        paddingLeft: px(30),
-                        paddingRight: px(30),
-                        paddingTop: px(12),
-                        paddingBottom: px(12),
-                        borderRadius: px(26),
-                        lineHeight: 1.15,
-                      }}
-                    >
-                      {surahLabel}
-                    </span>
-                    {safeArabicSurah && (
-                      <span
-                        dir="rtl"
-                        lang="ar"
-                        className="arabic-title"
-                        style={{
-                          color: palette.mutedColor,
-                          fontSize: px(32),
-                          lineHeight: 1.35,
-                        }}
-                      >
-                        {safeArabicSurah}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Orta Metin Alanı (Dikeyde Dengeli) */}
-                  <div
-                    className="flex-1 flex flex-col items-center justify-center w-full"
+                    className="pointer-events-none absolute"
                     style={{
-                      paddingTop: px(22),
-                      paddingBottom: px(22),
-                      gap: px(18),
+                      inset: px(40),
+                      border: `${Math.max(3, 1.15 / previewScale).toFixed(2)}px solid ${palette.frameOuter}`,
+                      borderRadius: px(34),
+                    }}
+                  />
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      inset: px(54),
+                      border: `${Math.max(1.5, 0.85 / previewScale).toFixed(2)}px solid ${palette.frameInner}`,
+                      borderRadius: px(26),
+                    }}
+                  />
+
+                  {/* Kart İçeriği */}
+                  <div
+                    className="relative z-[1] flex-1 flex flex-col justify-between items-center text-center"
+                    style={{
+                      paddingLeft: px(96),
+                      paddingRight: px(96),
+                      paddingTop: px(aspectRatio === '9:16' ? 112 : 96),
+                      paddingBottom: px(aspectRatio === '9:16' ? 76 : 56),
                     }}
                   >
-                    {showArabicBlock && (
-                      <p
-                        dir="rtl"
-                        lang="ar"
-                        className="text-center w-full break-words"
+                    {/* Üst Başlık */}
+                    <div
+                      className="flex flex-col items-center w-full shrink-0"
+                      style={{ gap: px(12) }}
+                    >
+                      <span
+                        className="font-bold uppercase tracking-wide inline-flex items-center justify-center max-w-full truncate"
                         style={{
-                          color: palette.arabicColor,
-                          fontFamily: arabicFontStack,
-                          fontSize: px(layout.arabicFontSize),
-                          lineHeight: 1.88,
+                          backgroundColor: palette.badgeBg,
+                          color: palette.badgeText,
+                          fontSize: px(22),
+                          paddingLeft: px(30),
+                          paddingRight: px(30),
+                          paddingTop: px(12),
+                          paddingBottom: px(12),
+                          borderRadius: px(26),
+                          lineHeight: 1.15,
                         }}
                       >
-                        {verse.ar.t}
-                      </p>
-                    )}
-
-                    {showArabicBlock && showMealBlock && (
-                      <div
-                        className="flex items-center justify-center shrink-0"
-                        style={{ width: px(280), gap: px(18) }}
-                      >
+                        {surahLabel}
+                      </span>
+                      {safeArabicSurah && (
                         <span
-                          className="flex-1"
-                          style={{
-                            height: `${Math.max(1, 2 * previewScale).toFixed(2)}px`,
-                            backgroundColor: palette.dividerColor,
-                          }}
-                        />
-                        <span
-                          className="rounded-full shrink-0"
-                          style={{
-                            width: px(9),
-                            height: px(9),
-                            backgroundColor: palette.frameOuter,
-                          }}
-                        />
-                        <span
-                          className="flex-1"
-                          style={{
-                            height: `${Math.max(1, 2 * previewScale).toFixed(2)}px`,
-                            backgroundColor: palette.dividerColor,
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {showMealBlock ? (
-                      <div
-                        className="flex flex-col items-center w-full"
-                        style={{ gap: px(14) }}
-                      >
-                        <p
-                          dir={mealPres.dir}
-                          lang={mealPres.lang}
-                          className="text-center w-full break-words"
-                          style={{
-                            color: palette.mealColor,
-                            fontFamily: mealPres.isRtl
-                              ? RTL_TAFSIR_CANVAS_FONT
-                              : TURKISH_CANVAS_FONT,
-                            fontWeight: mealPres.isRtl ? 400 : 500,
-                            fontSize: px(layout.mealFontSize),
-                            lineHeight: mealPres.isRtl ? 1.88 : 1.6,
-                          }}
-                        >
-                          {mealPres.isRtl ? activeMealText : `“${activeMealText}”`}
-                        </p>
-                        <p
-                          className="font-semibold text-center"
+                          dir="rtl"
+                          lang="ar"
+                          className="arabic-title"
                           style={{
                             color: palette.mutedColor,
-                            fontSize: px(22),
-                            lineHeight: 1.25,
+                            fontSize: px(32),
+                            lineHeight: 1.35,
                           }}
                         >
-                          — {activeMealLabel}
-                        </p>
-                      </div>
-                    ) : (
-                      contentMode !== 'ar' &&
-                      resolvedMealInfo.isLoading && (
-                        <div
-                          className="inline-flex items-center gap-1.5 font-semibold"
-                          style={{ color: palette.mutedColor, fontSize: px(22) }}
-                        >
-                          <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-                          <span>Seçili eser yükleniyor…</span>
-                        </div>
-                      )
-                    )}
-                  </div>
-
-                  {/* Alt İmza: İnce Çizgi + Uygulama İkonu + kuran.muallimun.net */}
-                  <div
-                    className="flex flex-col items-center w-full shrink-0"
-                    style={{ gap: px(12) }}
-                  >
-                    <div
-                      style={{
-                        width: '72%',
-                        height: `${Math.max(0.75, 1.25 * previewScale).toFixed(2)}px`,
-                        backgroundColor: palette.dividerColor,
-                        marginBottom: px(10),
-                      }}
-                    />
-
-                    <div
-                      className="overflow-hidden flex items-center justify-center shrink-0"
-                      style={{
-                        width: px(54),
-                        height: px(54),
-                        borderRadius: px(13),
-                        border: `${Math.max(0.75, 1.5 * previewScale).toFixed(2)}px solid ${palette.frameInner}`,
-                      }}
-                    >
-                      {iconStage === 'vector' ? (
-                        <BrandMark className="w-full h-full" />
-                      ) : (
-                        <img
-                          src={previewIconSrc}
-                          alt="Muallimun"
-                          className="w-full h-full object-cover block"
-                          onError={() => {
-                            if (iconStage === 'local' && cdnIconUrl !== localIconUrl) {
-                              setIconStage('cdn');
-                            } else {
-                              setIconStage('vector');
-                            }
-                          }}
-                        />
+                          {safeArabicSurah}
+                        </span>
                       )}
                     </div>
 
-                    <span
-                      className="font-semibold tracking-wide"
+                    {/* Orta Metin Alanı (Dikeyde Dengeli) */}
+                    <div
+                      className="flex-1 min-h-0 flex flex-col items-center justify-center w-full"
                       style={{
-                        color: palette.mutedColor,
-                        fontSize: px(22),
-                        lineHeight: 1.15,
+                        paddingTop: px(20),
+                        paddingBottom: px(20),
+                        gap: px(18),
                       }}
                     >
-                      {PUBLIC_SITE_HOST}
-                    </span>
+                      {showArabicBlock && (
+                        <p
+                          dir="rtl"
+                          lang="ar"
+                          className="text-center w-full break-words"
+                          style={{
+                            color: palette.arabicColor,
+                            fontFamily: arabicFontStack,
+                            fontSize: px(layout.arabicFontSize),
+                            lineHeight: 1.88,
+                          }}
+                        >
+                          {verse.ar.t}
+                        </p>
+                      )}
+
+                      {showArabicBlock && showMealBlock && (
+                        <div
+                          className="flex items-center justify-center shrink-0"
+                          style={{ width: px(280), gap: px(18) }}
+                        >
+                          <span
+                            className="flex-1"
+                            style={{
+                              height: `${Math.max(2, 0.9 / previewScale).toFixed(2)}px`,
+                              backgroundColor: palette.dividerColor,
+                            }}
+                          />
+                          <span
+                            className="rounded-full shrink-0"
+                            style={{
+                              width: px(9),
+                              height: px(9),
+                              backgroundColor: palette.frameOuter,
+                            }}
+                          />
+                          <span
+                            className="flex-1"
+                            style={{
+                              height: `${Math.max(2, 0.9 / previewScale).toFixed(2)}px`,
+                              backgroundColor: palette.dividerColor,
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {showMealBlock ? (
+                        <div
+                          className="flex flex-col items-center w-full"
+                          style={{ gap: px(14) }}
+                        >
+                          <p
+                            dir={mealPres.dir}
+                            lang={mealPres.lang}
+                            className="text-center w-full break-words"
+                            style={{
+                              color: palette.mealColor,
+                              fontFamily: mealPres.isRtl
+                                ? RTL_TAFSIR_CANVAS_FONT
+                                : TURKISH_CANVAS_FONT,
+                              fontWeight: mealPres.isRtl ? 400 : 500,
+                              fontSize: px(layout.mealFontSize),
+                              lineHeight: mealPres.isRtl ? 1.88 : 1.6,
+                            }}
+                          >
+                            {mealPres.isRtl ? activeMealText : `“${activeMealText}”`}
+                          </p>
+                          <p
+                            className="font-semibold text-center"
+                            style={{
+                              color: palette.mutedColor,
+                              fontSize: px(22),
+                              lineHeight: 1.25,
+                            }}
+                          >
+                            — {activeMealLabel}
+                          </p>
+                        </div>
+                      ) : (
+                        contentMode !== 'ar' &&
+                        resolvedMealInfo.isLoading && (
+                          <div
+                            className="inline-flex items-center font-semibold"
+                            style={{
+                              color: palette.mutedColor,
+                              fontSize: px(22),
+                              gap: px(10),
+                            }}
+                          >
+                            <Loader2
+                              className="animate-spin shrink-0"
+                              style={{ width: px(26), height: px(26) }}
+                            />
+                            <span>Seçili eser yükleniyor…</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+
+                    {/* Alt İmza: İnce Çizgi + 68px Uygulama İkonu + 25px kuran.muallimun.net */}
+                    <div
+                      className="flex flex-col items-center w-full shrink-0"
+                      style={{ gap: px(14) }}
+                    >
+                      <div
+                        style={{
+                          width: '72%',
+                          height: `${Math.max(1.5, 0.9 / previewScale).toFixed(2)}px`,
+                          backgroundColor: palette.dividerColor,
+                          marginBottom: px(14),
+                        }}
+                      />
+
+                      <div
+                        className="overflow-hidden flex items-center justify-center shrink-0"
+                        style={{
+                          width: px(68),
+                          height: px(68),
+                          borderRadius: px(16),
+                          border: `${Math.max(1.75, 0.85 / previewScale).toFixed(2)}px solid ${palette.frameInner}`,
+                        }}
+                      >
+                        {iconStage === 'vector' ? (
+                          <BrandMark className="w-full h-full" />
+                        ) : (
+                          <img
+                            src={previewIconSrc}
+                            alt="Muallimun"
+                            className="w-full h-full object-cover block"
+                            onError={() => {
+                              if (iconStage === 'local' && cdnIconUrl !== localIconUrl) {
+                                setIconStage('cdn');
+                              } else {
+                                setIconStage('vector');
+                              }
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      <span
+                        className="font-semibold tracking-wide"
+                        style={{
+                          color: palette.mutedColor,
+                          fontSize: px(25),
+                          lineHeight: 1.15,
+                        }}
+                      >
+                        {PUBLIC_SITE_HOST}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Mobil Sahne Köşe Rozeti (Ekstra dikey satır harcamadan oran & boyut bilgisi) */}
-            <div className="md:hidden pointer-events-none absolute right-2 bottom-1.5 z-[2] flex items-center gap-1">
+            {/* Mobil Sahne Altı Oran & Boyut Bilgisi (Kart metniyle çakışmayan ayrı kapsayıcı) */}
+            <div className="md:hidden mt-1.5 flex flex-wrap items-center justify-center gap-1.5 text-[10px] font-semibold text-[var(--text-muted)]">
+              <span className="tabular-nums">
+                {activeAspectPreset.ratioLabel} {activeAspectPreset.label} · {layout.width}×
+                {layout.canvasHeight}px
+              </span>
               {layout.isOverflowExpanded && (
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-[var(--brand-primary-soft)] text-[var(--brand-primary-text)] text-[9.5px] font-bold border border-[var(--brand-primary)]/25">
                   Tam metin
                 </span>
               )}
-              <span
-                className="inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-bold tabular-nums backdrop-blur-xs"
-                style={{
-                  backgroundColor: 'color-mix(in srgb, var(--bg-surface) 88%, transparent)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                {activeAspectPreset.ratioLabel} · {layout.width}×{layout.canvasHeight}px
-              </span>
             </div>
 
             {/* Masaüstü Sahne Altı Bilgi Satırı */}
