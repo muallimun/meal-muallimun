@@ -431,6 +431,18 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     onCloseRef.current();
   });
 
+  useBackButtonGuard(
+    'presentation_ayah_picker',
+    isOpen && isAyahPickerOpen,
+    () => setIsAyahPickerOpen(false),
+  );
+
+  useBackButtonGuard(
+    'presentation_settings_panel',
+    isOpen && isSettingsPopoverOpen,
+    () => setIsSettingsPopoverOpen(false),
+  );
+
   // Body scroll kilidi ve fullscreen durum takibi — SADECE isOpen'a bağlı!
   // Ses durumu veya ayet/sayfa değişiminde asla fullscreen'den çıkmaz.
   useEffect(() => {
@@ -1053,12 +1065,17 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
       <header
         className={`${
           isCompactLandscape ? 'h-11 px-2.5 sm:px-4' : 'h-14 px-3 sm:px-6'
-        } border-b flex items-center justify-between gap-2 shrink-0 backdrop-blur-md relative z-20`}
+        } border-b flex items-center justify-between gap-2 shrink-0 relative z-20`}
         style={{
-          backgroundColor: palette.surface,
           borderColor: palette.border,
         }}
       >
+        {/* Bulanık arka plan ayrı kardeş katmanda tutulur; böylece header içindeki fixed paneller viewport'a göre konumlanır */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 backdrop-blur-md pointer-events-none"
+          style={{ backgroundColor: palette.surface }}
+        />
         {/* Sol: Sure & Ayet Hızlı Seçici Başlığı (Sure No ve Ayet No asla kesilmez) */}
         <div ref={ayahPickerRef} className="relative flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
           {!isFullscreen && (
@@ -1380,34 +1397,47 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                 {/* Arka Plan (Mobilde karartılmış bottom-sheet örtüsü, masaüstünde şeffaf dış tıklama kapatıcı) */}
                 <div
                   aria-hidden="true"
-                  onClick={() => setIsSettingsPopoverOpen(false)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsSettingsPopoverOpen(false);
+                  }}
                   className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
                 />
                 <div
                   role="dialog"
                   aria-label="Görünüm ve ses ayarları"
-                  className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl max-h-[82dvh] overflow-y-auto p-4 pb-6 border-t shadow-2xl space-y-3.5 text-left md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-11 md:w-[320px] md:max-w-[calc(100vw-2rem)] md:max-h-[80dvh] md:rounded-2xl md:border md:p-3.5"
+                  onClick={(e) => e.stopPropagation()}
+                  className="fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[82dvh] overflow-hidden rounded-t-2xl border-t shadow-2xl text-left md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-11 md:w-[320px] md:max-w-[calc(100vw-2rem)] md:max-h-[80dvh] md:rounded-2xl md:border"
                   style={{
                     backgroundColor: palette.popoverBg,
                     borderColor: palette.border,
                     color: palette.text,
-                    paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
                   }}
                 >
-                  {/* Mobil Bottom Sheet Tutamak ve Başlık */}
-                  <div className="md:hidden pb-2 border-b space-y-2" style={{ borderColor: palette.border }}>
-                    <div className="w-10 h-1 rounded-full mx-auto opacity-35 bg-current" />
+                  {/* Sabit Üst Başlık ve Doğrudan Kapatma (×) Butonu */}
+                  <div
+                    className="shrink-0 px-4 pt-2.5 pb-2.5 md:px-3.5 md:pt-3 md:pb-2.5 border-b space-y-2 md:space-y-0"
+                    style={{ borderColor: palette.border }}
+                  >
+                    <div className="md:hidden w-10 h-1 rounded-full mx-auto opacity-35 bg-current" />
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-extrabold">Görünüm &amp; Ses Ayarları</span>
+                      <span className="text-sm font-extrabold truncate">
+                        Görünüm &amp; Ses Ayarları
+                      </span>
                       <button
                         type="button"
-                        onClick={() => setIsSettingsPopoverOpen(false)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          sfxService.play('click');
+                          setIsSettingsPopoverOpen(false);
+                        }}
                         aria-label="Ayarları kapat"
-                        className="w-8 h-8 rounded-xl border flex items-center justify-center cursor-pointer"
+                        title="Ayarları kapat"
+                        className="min-w-[36px] min-h-[36px] rounded-xl border flex items-center justify-center shrink-0 cursor-pointer transition-opacity hover:opacity-90 active:scale-95 touch-manipulation"
                         style={{
                           borderColor: palette.border,
                           backgroundColor: palette.surface,
-                          color: palette.muted,
+                          color: palette.text,
                         }}
                       >
                         <X className="w-4 h-4" />
@@ -1415,6 +1445,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     </div>
                   </div>
 
+                  {/* Dikey Kaydırılabilir Ayar Gövdesi */}
+                  <div className="flex-auto min-h-0 overflow-y-auto overscroll-contain px-4 pt-3.5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] space-y-3.5 md:px-3.5 md:py-3.5">
                   {/* Mobil Hızlı Anahtarlar: Renkli Tecvit & Kelime Takibi */}
                   <div className="md:hidden space-y-1.5">
                     <p
@@ -1685,10 +1717,10 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                           key={m.id}
                           type="button"
                           onClick={() => handleAudioModeChange(m.id)}
-                          className="min-h-[32px] px-1.5 rounded-lg font-bold cursor-pointer whitespace-nowrap"
+                          className="min-h-[32px] px-1.5 rounded-lg font-bold cursor-pointer whitespace-nowrap touch-manipulation"
                           style={{
                             backgroundColor: active ? palette.accentSoft : 'transparent',
-                            color: active ? palette.accent : palette.muted,
+                            color: active ? palette.accent : palette.text,
                           }}
                         >
                           {m.label}
@@ -1715,7 +1747,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                             sfxService.play('click');
                             setPresTheme(t);
                           }}
-                          className="min-h-[36px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer inline-flex items-center gap-2 text-left"
+                          className="min-h-[38px] px-2.5 rounded-xl border text-xs font-bold cursor-pointer inline-flex items-center gap-2 text-left transition-colors touch-manipulation"
                           style={{
                             borderColor: active ? palette.accent : palette.border,
                             backgroundColor: active ? palette.accentSoft : palette.surface,
@@ -1736,6 +1768,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
                     })}
                   </div>
                 </div>
+                  </div>
                 </div>
               </>
             )}
