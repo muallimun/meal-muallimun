@@ -2826,16 +2826,10 @@ export const StudyPage: React.FC = () => {
     <div
       className={`space-y-2.5 lg:space-y-3 ${
         needsBottomPlayerClearance
-          ? 'pb-[calc(var(--bottom-nav-h)+5.5rem)] lg:pb-24'
+          ? 'pb-1.5 lg:pb-24'
           : isFullAudioBarDocked
-            ? 'pb-[calc(var(--bottom-nav-h)+5.5rem)] lg:pb-0'
-            : isAnyAudioBarActive
-              ? isMobileReaderImmersive
-                ? 'pb-24 lg:pb-6'
-                : 'pb-[calc(var(--bottom-nav-h)+4.5rem)] lg:pb-6'
-              : isMobileReaderImmersive
-                ? 'pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] lg:pb-6'
-                : 'pb-[calc(var(--bottom-nav-h)+1.75rem)] lg:pb-6'
+            ? 'pb-1.5 lg:pb-0'
+            : 'pb-1.5 lg:pb-6'
       }`}
     >
       {/* ====================================================================

@@ -45,7 +45,11 @@ import { TajweedText } from '../features/study/TajweedText';
 import { useTajweedData } from '../hooks/useTajweedData';
 import { audioQueueService } from '../services/audioQueueService';
 import { dataService, resolvePlaylistItemStartLocation } from '../services/dataService';
-import { computeHatimSummary, hatimStorage } from '../services/hatimStorage';
+import {
+  computeHatimSummary,
+  hatimStorage,
+  resolvePageLocationForBookmark,
+} from '../services/hatimStorage';
 import { isUnitDueForReview, memorizationStorage } from '../services/memorizationStorage';
 import { researchStorage } from '../services/researchStorage';
 import { sfxService } from '../services/sfxService';
@@ -160,6 +164,34 @@ export const HomePage: React.FC = () => {
     () => (hatimState.activePlan ? computeHatimSummary(hatimState.activePlan) : null),
     [hatimState.activePlan],
   );
+  const formatSayfaAblative = useCallback((pageNo: number): string => {
+    const n = Math.max(1, Math.trunc(pageNo));
+    const ones = n % 10;
+    if (ones === 3 || ones === 4 || ones === 5) return `Sayfa ${n}'ten`;
+    if (ones === 6 || ones === 9) return `Sayfa ${n}'dan`;
+    if (ones === 1 || ones === 2 || ones === 7 || ones === 8) return `Sayfa ${n}'den`;
+    const tens = Math.floor((n % 100) / 10);
+    if (tens === 4 || tens === 6) return `Sayfa ${n}'tan`;
+    if (tens === 7) return `Sayfa ${n}'ten`;
+    if (tens === 1 || tens === 3 || tens === 9) return `Sayfa ${n}'dan`;
+    return `Sayfa ${n}'den`;
+  }, []);
+  const handleContinueHatimReading = useCallback(() => {
+    const plan = hatimState.activePlan;
+    if (!plan) {
+      openHatimModal();
+      return;
+    }
+    sfxService.play('click');
+    const loc = resolvePageLocationForBookmark(meta, plan.currentPage);
+    navigateToStudy({
+      page: plan.currentPage,
+      surah: loc.surah,
+      ayah: loc.ayah,
+      viewMode: 'mushaf',
+      ensureArabicVisible: true,
+    });
+  }, [hatimState.activePlan, meta, navigateToStudy, openHatimModal]);
   const hijriOffset = useSyncExternalStore(subscribeHijriOffset, getHijriOffset);
   const calendarSnapshot = useMemo(
     () => getIslamicCalendarSnapshot(new Date(), hijriOffset),
@@ -1698,16 +1730,35 @@ export const HomePage: React.FC = () => {
                     >
                       Son Okuma Konumu
                     </span>
-                    {!deskPrefs.showHatimRow && hatimSummary && (
+                    {!deskPrefs.showHatimRow && hatimSummary && hatimState.activePlan && (
                       <button
                         type="button"
                         onClick={openHatimModal}
                         title="30 Cüz Hatim Planlayıcısını aç"
                         className="font-bold tabular-nums hover:underline cursor-pointer"
-                        style={{ color: 'var(--text-secondary)' }}
+                        style={{
+                          color:
+                            hatimState.activePlan.goalMode !== 'free_juz' &&
+                            !hatimSummary.isTodayQuotaMet &&
+                            hatimSummary.daysSinceLastRead !== null &&
+                            hatimSummary.daysSinceLastRead >= 2
+                              ? 'var(--brand-accent-text)'
+                              : hatimSummary.isTodayQuotaMet &&
+                                  hatimState.activePlan.goalMode !== 'free_juz'
+                                ? 'var(--brand-primary-text)'
+                                : 'var(--text-secondary)',
+                        }}
                       >
-                        · Hatim %{hatimSummary.percent} ({hatimSummary.todayCompletedCount}/
-                        {hatimSummary.todayTargetPages} Sayfa)
+                        {hatimSummary.isTodayQuotaMet &&
+                        hatimState.activePlan.goalMode !== 'free_juz'
+                          ? `· Hatim %${hatimSummary.percent} · ✓ Bugünkü Hatim Tamamlandı`
+                          : hatimState.activePlan.goalMode !== 'free_juz' &&
+                              hatimSummary.daysSinceLastRead !== null &&
+                              hatimSummary.daysSinceLastRead >= 2
+                            ? `· Hatim %${hatimSummary.percent} · ${hatimSummary.daysSinceLastRead} gündür ara verildi`
+                            : hatimState.activePlan.goalMode === 'free_juz'
+                              ? `· Hatim %${hatimSummary.percent} (${hatimSummary.completedJuzCount}/30 Cüz)`
+                              : `· Hatim %${hatimSummary.percent} (Bugün ${hatimSummary.todayCompletedCount}/${hatimSummary.todayTargetPages} Sayfa)`}
                       </button>
                     )}
                   </div>
@@ -1785,75 +1836,211 @@ export const HomePage: React.FC = () => {
           {hasSecondaryDeskRows && (
             <div className="flex-1 flex flex-col justify-between divide-y divide-[var(--border-subtle)]/70">
               {/* Satır 2: 30 Cüz Hatim Planım */}
-              {deskPrefs.showHatimRow && (
-                <div className="py-3 first:pt-1 last:pb-0 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span
-                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                      style={{
-                        backgroundColor: 'var(--bg-surface-soft)',
-                        color: 'var(--brand-primary-text)',
-                      }}
-                    >
-                      <BookOpenCheck className="w-4 h-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <span className="text-xs sm:text-[13.5px] font-bold truncate">
-                          {hatimSummary
-                            ? `${hatimState.activePlan?.title || '30 Cüz Hatim'} · %${hatimSummary.percent}`
-                            : '30 Cüz Hatim'}
-                        </span>
-                        {hatimSummary && (
-                          <span
-                            className="text-[11px] font-bold tabular-nums whitespace-nowrap"
-                            style={{ color: 'var(--brand-primary-text)' }}
-                          >
-                            {hatimSummary.isTodayQuotaMet
-                              ? '· Bugün tamam'
-                              : `· ${hatimSummary.todayRemainingPages} Sayfa kaldı`}
-                          </span>
-                        )}
-                      </div>
-                      <p
-                        className="text-[11.5px] tabular-nums line-clamp-2 lg:line-clamp-none lg:truncate leading-snug mt-0.5"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        {hatimSummary ? (
-                          <>
-                            {hatimSummary.completedCount}/604 Sayfa ·{' '}
-                            {hatimSummary.completedJuzCount}/30 Cüz · Bugün{' '}
-                            {hatimSummary.todayCompletedCount}/{hatimSummary.todayTargetPages} Sayfa
-                          </>
-                        ) : hatimState.history.length > 0 ? (
-                          `Tamamlanan hatim: ${hatimState.history.length} · Yeni plan oluşturun`
-                        ) : (
-                          'Günlük sayfa hedefi veya serbest cüz takibiyle hatim planlayın'
-                        )}
-                      </p>
-                    </div>
-                  </div>
+              {deskPrefs.showHatimRow &&
+                (() => {
+                  const activePlan = hatimState.activePlan;
+                  const isActiveUnfinished = Boolean(
+                    activePlan && hatimSummary && !hatimSummary.isCompleted,
+                  );
+                  const isFreeJuz = activePlan?.goalMode === 'free_juz';
+                  const daysPaused = hatimSummary?.daysSinceLastRead ?? null;
+                  const isTodayDone = Boolean(
+                    hatimSummary && !isFreeJuz && hatimSummary.isTodayQuotaMet,
+                  );
+                  const isShortBreak = Boolean(
+                    hatimSummary &&
+                      !isFreeJuz &&
+                      !isTodayDone &&
+                      daysPaused !== null &&
+                      daysPaused >= 2 &&
+                      daysPaused <= 3,
+                  );
+                  const isLongBreak = Boolean(
+                    hatimSummary &&
+                      !isFreeJuz &&
+                      !isTodayDone &&
+                      daysPaused !== null &&
+                      daysPaused >= 4,
+                  );
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfxService.play('click');
-                      openHatimModal();
-                    }}
-                    className="min-w-[100px] min-h-[34px] px-3 rounded-lg border text-xs font-bold inline-flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)]"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: hatimSummary
-                        ? 'color-mix(in srgb, var(--brand-primary) 50%, var(--border-subtle))'
-                        : 'var(--border-subtle)',
-                      color: hatimSummary ? 'var(--brand-primary-text)' : 'var(--text-primary)',
-                    }}
-                  >
-                    <span>{hatimSummary ? 'Devam Et' : 'Planla'}</span>
-                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
-                  </button>
-                </div>
-              )}
+                  return (
+                    <div className="py-3 first:pt-1 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          openHatimModal();
+                        }}
+                        title="Hatim planlayıcısını ve cüz takibini aç"
+                        className="flex items-start sm:items-center gap-3 min-w-0 flex-1 text-left cursor-pointer group"
+                      >
+                        <span
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 sm:mt-0"
+                          style={{
+                            backgroundColor:
+                              isShortBreak || isLongBreak
+                                ? 'var(--brand-accent-soft)'
+                                : 'var(--bg-surface-soft)',
+                            color:
+                              isShortBreak || isLongBreak
+                                ? 'var(--brand-accent-text)'
+                                : 'var(--brand-primary-text)',
+                          }}
+                        >
+                          <BookOpenCheck className="w-4 h-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-xs sm:text-[13.5px] font-bold truncate group-hover:underline">
+                              {hatimSummary && activePlan
+                                ? `${activePlan.title || '30 Cüz Hatim'} · %${hatimSummary.percent}`
+                                : '30 Cüz Hatim'}
+                            </span>
+
+                            {hatimSummary && activePlan && isTodayDone && (
+                              <span
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-extrabold whitespace-nowrap"
+                                style={{
+                                  backgroundColor: 'var(--brand-primary-soft)',
+                                  color: 'var(--brand-primary-text)',
+                                }}
+                              >
+                                {hatimSummary.isCompleted
+                                  ? '✓ Hatim Tamamlandı'
+                                  : '✓ Bugünkü Hatim Tamamlandı'}
+                              </span>
+                            )}
+
+                            {hatimSummary && activePlan && (isShortBreak || isLongBreak) && (
+                              <span
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-extrabold whitespace-nowrap tabular-nums"
+                                style={{
+                                  backgroundColor: 'var(--brand-accent-soft)',
+                                  color: 'var(--brand-accent-text)',
+                                }}
+                              >
+                                {daysPaused} gündür ara verildi
+                              </span>
+                            )}
+
+                            {hatimSummary &&
+                              activePlan &&
+                              !isFreeJuz &&
+                              !isTodayDone &&
+                              !isShortBreak &&
+                              !isLongBreak && (
+                                <span
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-extrabold whitespace-nowrap tabular-nums"
+                                  style={{
+                                    backgroundColor: 'var(--brand-primary-soft)',
+                                    color: 'var(--brand-primary-text)',
+                                  }}
+                                >
+                                  Bugün {hatimSummary.todayCompletedCount}/
+                                  {hatimSummary.todayTargetPages} Sayfa ·{' '}
+                                  {hatimSummary.todayRemainingPages} Sayfa kaldı
+                                </span>
+                              )}
+                          </div>
+
+                          <p
+                            className="text-[11.5px] tabular-nums leading-snug mt-0.5 break-words"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
+                            {hatimSummary && activePlan ? (
+                              hatimSummary.isCompleted ? (
+                                `${hatimSummary.completedCount}/604 Sayfa · ${hatimSummary.completedJuzCount}/30 Cüz · Hatim tamamlandı`
+                              ) : isTodayDone ? (
+                                `${hatimSummary.completedCount}/604 Sayfa · ${hatimSummary.completedJuzCount}/30 Cüz · Sıradaki: Sayfa ${activePlan.currentPage}`
+                              ) : isShortBreak ? (
+                                <>
+                                  {formatSayfaAblative(activePlan.currentPage)} kendi ritminizle
+                                  devam edebilirsiniz
+                                  {activePlan.goalMode === 'hijri_month' &&
+                                  hatimSummary.missedHijriJuzCount > 0
+                                    ? ` · Önceki günlerden ${hatimSummary.missedHijriJuzCount} cüz bekliyor`
+                                    : ''}
+                                </>
+                              ) : isLongBreak ? (
+                                <>
+                                  Kaldığınız yerden (Sayfa {activePlan.currentPage}) rahatça devam
+                                  edin
+                                  {activePlan.goalMode === 'target_date' &&
+                                  hatimSummary.isTargetDateBehind
+                                    ? ' · Dilerseniz planlayıcıdan hedef tarihi esnetebilirsiniz'
+                                    : activePlan.goalMode === 'hijri_month' &&
+                                        hatimSummary.missedHijriJuzCount > 0
+                                      ? ` · Önceki günlerden ${hatimSummary.missedHijriJuzCount} cüz bekliyor`
+                                      : ''}
+                                </>
+                              ) : isFreeJuz ? (
+                                `${hatimSummary.completedCount}/604 Sayfa · ${hatimSummary.completedJuzCount}/30 Cüz · Sıradaki: Sayfa ${activePlan.currentPage}`
+                              ) : (
+                                `${hatimSummary.completedCount}/604 Sayfa · ${formatSayfaAblative(activePlan.currentPage)} devam`
+                              )
+                            ) : hatimState.history.length > 0 ? (
+                              `Tamamlanan hatim: ${hatimState.history.length} · Yeni plan oluşturun`
+                            ) : (
+                              'Günlük sayfa hedefi veya serbest cüz takibiyle hatim planlayın'
+                            )}
+                          </p>
+                        </div>
+                      </button>
+
+                      {isActiveUnfinished && activePlan ? (
+                        <div className="flex items-center justify-end gap-1.5 shrink-0 pl-11 sm:pl-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              sfxService.play('click');
+                              openHatimModal();
+                            }}
+                            title="Hatim planını ve cüz listesini aç"
+                            className="min-h-[34px] px-2.5 rounded-lg border text-xs font-bold inline-flex items-center justify-center shrink-0 cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)] touch-manipulation"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            Plan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleContinueHatimReading}
+                            title={`Mushaf'ta Sayfa ${activePlan.currentPage} konumunu aç`}
+                            className="min-h-[34px] px-3 rounded-lg text-xs font-bold text-white inline-flex items-center justify-center gap-1 shrink-0 cursor-pointer whitespace-nowrap transition-opacity hover:opacity-95 tabular-nums touch-manipulation"
+                            style={{ backgroundColor: 'var(--brand-primary)' }}
+                          >
+                            <span>S. {activePlan.currentPage} · Oku</span>
+                            <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sfxService.play('click');
+                            openHatimModal();
+                          }}
+                          className="min-w-[100px] min-h-[34px] px-3 rounded-lg border text-xs font-bold inline-flex items-center justify-center gap-1 shrink-0 self-end sm:self-center cursor-pointer whitespace-nowrap transition-colors hover:border-[var(--brand-primary)] touch-manipulation"
+                          style={{
+                            backgroundColor: 'var(--bg-surface)',
+                            borderColor: hatimSummary
+                              ? 'color-mix(in srgb, var(--brand-primary) 50%, var(--border-subtle))'
+                              : 'var(--border-subtle)',
+                            color: hatimSummary
+                              ? 'var(--brand-primary-text)'
+                              : 'var(--text-primary)',
+                          }}
+                        >
+                          <span>{hatimSummary ? 'Hatmi Kaydet' : 'Planla'}</span>
+                          <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
 
               {/* Satır 3: Ezber & Hafızlık */}
               {deskPrefs.showMemorizationRow && (

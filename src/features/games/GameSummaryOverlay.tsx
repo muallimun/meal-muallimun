@@ -313,7 +313,7 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
                     }}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span
                           className="text-xs font-extrabold tabular-nums px-1.5 py-0.5 rounded-md shrink-0"
                           style={{
@@ -324,13 +324,10 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
                           {surah.no}.
                         </span>
                         <span
-                          className="text-sm font-bold truncate"
+                          className="min-w-0 flex-1 text-sm font-bold leading-snug break-words"
                           style={{ color: 'var(--text-primary)' }}
                         >
                           {surah.nameTr}
-                        </span>
-                        <span className="text-xs shrink-0" style={{ color: 'var(--text-muted)' }}>
-                          ({surah.ayahCount} ayet · {surah.type})
                         </span>
                       </div>
                       <span
@@ -342,8 +339,23 @@ export const GameSummaryOverlay: React.FC<GameSummaryOverlayProps> = ({
                       </span>
                     </div>
 
-                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      Anlamı: <strong style={{ color: 'var(--text-primary)' }}>{surah.meaningTr}</strong>
+                    <div
+                      className="text-xs leading-snug flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      <span
+                        className="text-[11px] font-semibold tabular-nums"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {surah.ayahCount} ayet · {surah.type}
+                      </span>
+                      <span aria-hidden="true" style={{ color: 'var(--text-muted)' }}>
+                        ·
+                      </span>
+                      <span>
+                        Anlamı:{' '}
+                        <strong style={{ color: 'var(--text-primary)' }}>{surah.meaningTr}</strong>
+                      </span>
                     </div>
 
                     {specialSummary && (

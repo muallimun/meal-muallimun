@@ -9,6 +9,7 @@ import React, {
 import {
   BookOpen,
   Bookmark,
+  Check,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -39,7 +40,12 @@ import { useRukusData } from '../../hooks/useStudyReferenceData';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { audioQueueService } from '../../services/audioQueueService';
 import { hasActiveBackStackEntries } from '../../services/backStackService';
-import { hatimStorage } from '../../services/hatimStorage';
+import {
+  computeHatimSummary,
+  hatimStorage,
+  resolvePageLocationForBookmark,
+} from '../../services/hatimStorage';
+import { getHijriDailyJuzRecommendation } from '../../utils/islamicCalendar';
 import { RukuMarkerBadge } from './StudyPopovers';
 import { SyncedVerseArabic } from './SyncedArabicText';
 import {
@@ -99,6 +105,19 @@ interface MushafPageViewProps {
 }
 
 const ENDS_WITH_ARABIC_NUMERAL = /[\u0660-\u0669]\s*$/;
+
+function formatSayfaDative(pageNo: number): string {
+  const n = Math.max(1, Math.trunc(pageNo));
+  const ones = n % 10;
+  if (ones === 1 || ones === 3 || ones === 4 || ones === 5 || ones === 8) return `Sayfa ${n}'e`;
+  if (ones === 2 || ones === 7) return `Sayfa ${n}'ye`;
+  if (ones === 6) return `Sayfa ${n}'ya`;
+  if (ones === 9) return `Sayfa ${n}'a`;
+  const tens = Math.floor((n % 100) / 10);
+  if (tens === 2 || tens === 5) return `Sayfa ${n}'ye`;
+  if (tens === 7 || tens === 8 || tens === 0) return `Sayfa ${n}'e`;
+  return `Sayfa ${n}'a`;
+}
 
 interface ScrollPaneOptions {
   bottomReservePx?: number;
@@ -394,6 +413,22 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       ),
     [audioState.activePhase, audioState.activeSourceKey, audioPrefs.mealAudioSource, manifest],
   );
+
+  const hatimState = useSyncExternalStore(
+    hatimStorage.subscribe,
+    hatimStorage.getSnapshot,
+  );
+  const activeHatimPlan = hatimState.activePlan;
+  const hatimSummary = useMemo(
+    () => (activeHatimPlan ? computeHatimSummary(activeHatimPlan) : null),
+    [activeHatimPlan],
+  );
+  const hatimCompletedSet = useMemo(
+    () => new Set(activeHatimPlan?.completedPages ?? []),
+    [activeHatimPlan?.completedPages],
+  );
+  const [hatimToast, setHatimToast] = useState<{ pageNo: number; text: string } | null>(null);
+  const hatimToastTimerRef = useRef<number | null>(null);
 
   const [openRibbonPage, setOpenRibbonPage] = useState<number | null>(null);
   const [isVerseDrawerOpen, setIsVerseDrawerOpen] = useState<boolean>(false);
@@ -897,8 +932,158 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       if (pageAnimTimerRef.current !== null) {
         window.clearTimeout(pageAnimTimerRef.current);
       }
+      if (hatimToastTimerRef.current !== null) {
+        window.clearTimeout(hatimToastTimerRef.current);
+      }
     };
   }, []);
+
+  const handleMarkHatimPageRead = useCallback(
+    (pageNo: number, fromPage?: number) => {
+      const prevSummary = activeHatimPlan ? computeHatimSummary(activeHatimPlan) : null;
+      const updated = hatimStorage.markPagesReadUpTo(pageNo, {
+        ...(typeof fromPage === 'number' ? { fromPage } : {}),
+        includeTargetPage: true,
+      });
+      if (!updated) return;
+
+      const loc = resolvePageLocationForBookmark(meta, updated.currentPage);
+      moveHatimBookmark(loc);
+
+      const nextSummary = computeHatimSummary(updated);
+      const justCompletedHatim = nextSummary.isCompleted && !prevSummary?.isCompleted;
+      const justCompletedToday =
+        updated.goalMode !== 'free_juz' &&
+        nextSummary.isTodayQuotaMet &&
+        !prevSummary?.isTodayQuotaMet;
+
+      if (justCompletedHatim || justCompletedToday) {
+        sfxService.play('success');
+      } else {
+        sfxService.play('click');
+      }
+
+      const nextPageDative = formatSayfaDative(updated.currentPage);
+      const text = justCompletedHatim
+        ? 'Tebrikler! 604 sayfa tamamlandı · Hatim planlayıcısından kaydedebilirsiniz ✓'
+        : justCompletedToday
+          ? `Bugünkü hatim hedefiniz tamamlandı · Hatim ayracınız ${nextPageDative} taşındı ✓`
+          : `Sayfa ${pageNo} okundu · Hatim ayracınız ${nextPageDative} taşındı ✓`;
+
+      setHatimToast({ pageNo, text });
+      if (hatimToastTimerRef.current !== null) {
+        window.clearTimeout(hatimToastTimerRef.current);
+      }
+      hatimToastTimerRef.current = window.setTimeout(() => {
+        setHatimToast(null);
+        hatimToastTimerRef.current = null;
+      }, 3500);
+    },
+    [activeHatimPlan, meta, moveHatimBookmark],
+  );
+
+  const renderHatimLeafFooterAction = (pageNo: number) => {
+    if (hatimToast && hatimToast.pageNo === pageNo) {
+      return (
+        <div className="mt-2 flex justify-center shrink-0">
+          <div
+            role="status"
+            aria-live="polite"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold text-center leading-snug max-w-full"
+            style={{
+              backgroundColor: 'var(--brand-primary-soft)',
+              borderColor: 'color-mix(in srgb, var(--brand-primary) 42%, var(--border-subtle))',
+              color: 'var(--brand-primary-text)',
+            }}
+          >
+            <span>{hatimToast.text}</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (!activeHatimPlan || !hatimSummary || hatimSummary.isCompleted) return null;
+    if (hatimCompletedSet.has(pageNo)) return null;
+
+    const cur = activeHatimPlan.currentPage;
+    let inSafeWindow = false;
+    let fromPageOverride: number | undefined;
+
+    if (activeHatimPlan.goalMode === 'free_juz') {
+      inSafeWindow = pageNo >= cur && pageNo <= cur + 24;
+    } else if (activeHatimPlan.goalMode === 'hijri_month') {
+      const rec = getHijriDailyJuzRecommendation();
+      const inSequentialWindow =
+        pageNo >= cur && pageNo <= cur + Math.max(hatimSummary.todayTargetPages, 20);
+      const inTodayHijriJuz = pageNo >= rec.startPage && pageNo <= rec.endPage;
+      inSafeWindow = inSequentialWindow || inTodayHijriJuz;
+      if (inTodayHijriJuz && (pageNo < cur || cur < rec.startPage)) {
+        fromPageOverride = rec.startPage;
+      }
+    } else {
+      inSafeWindow =
+        pageNo >= cur && pageNo <= cur + Math.max(hatimSummary.todayTargetPages, 20);
+    }
+
+    if (!inSafeWindow) return null;
+
+    const rangeStart = fromPageOverride ?? cur;
+    let unreadToMark = 0;
+    for (let p = rangeStart; p <= pageNo; p += 1) {
+      if (!hatimCompletedSet.has(p)) {
+        unreadToMark += 1;
+      }
+    }
+    unreadToMark = Math.max(1, unreadToMark);
+
+    const isDailyTracked = activeHatimPlan.goalMode !== 'free_juz';
+    const afterTodayCount = hatimSummary.todayCompletedCount + unreadToMark;
+    const willFinishTodayQuota =
+      isDailyTracked &&
+      !hatimSummary.isTodayQuotaMet &&
+      afterTodayCount >= hatimSummary.todayTargetPages;
+
+    let label: string;
+    if (isDailyTracked && !hatimSummary.isTodayQuotaMet) {
+      if (willFinishTodayQuota) {
+        const shownCount = Math.min(afterTodayCount, hatimSummary.todayTargetPages);
+        label = `Bugünkü Hatmi Tamamla (${shownCount}/${hatimSummary.todayTargetPages})`;
+      } else {
+        label = `Buraya Kadar Okudum (${afterTodayCount}/${hatimSummary.todayTargetPages})`;
+      }
+    } else {
+      label = `Sayfa ${pageNo} Okundu İşaretle`;
+    }
+
+    return (
+      <div className="mt-2 flex justify-center shrink-0">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleMarkHatimPageRead(pageNo, fromPageOverride);
+          }}
+          className="min-h-[32px] max-w-full px-3.5 py-1 rounded-full border text-[11.5px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all hover:opacity-95 active:scale-[0.98] touch-manipulation tabular-nums"
+          style={
+            willFinishTodayQuota
+              ? {
+                  backgroundColor: 'var(--brand-primary)',
+                  borderColor: 'var(--brand-primary)',
+                  color: '#FFFFFF',
+                }
+              : {
+                  backgroundColor: 'var(--brand-primary-soft)',
+                  borderColor: 'color-mix(in srgb, var(--brand-primary) 45%, var(--border-subtle))',
+                  color: 'var(--brand-primary-text)',
+                }
+          }
+        >
+          <Check className="w-3.5 h-3.5 shrink-0" strokeWidth={2.75} />
+          <span className="truncate">{label}</span>
+        </button>
+      </div>
+    );
+  };
 
   // Mobilde canlı parmak takipli yatay kaydırma ile sayfa çevirme (LTR / RTL uyumlu)
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -1564,7 +1749,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
               </div>
                 {/* Alt Klasik Sayfa Numarası */}
                 <div
-                  className="mt-4 pt-2 pb-1.5 lg:pb-0 border-t flex items-center justify-center text-xs font-bold tabular-nums shrink-0"
+                  className="mt-4 pt-2 pb-1.5 lg:pb-0 border-t flex flex-col items-center justify-center text-xs font-bold tabular-nums shrink-0"
                   style={{
                     borderColor: 'var(--border-subtle)',
                     color: 'var(--text-muted)',
@@ -1573,6 +1758,7 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
                   <span>
                     — {bundle.pageNo} / {bundle.maxPage} —
                   </span>
+                  {renderHatimLeafFooterAction(bundle.pageNo)}
                 </div>
                 </div>
                 {isDualPane && paneSide && paneHasMoreBelow[paneSide] && (
@@ -2541,33 +2727,36 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
 
               {/* Alt Bilgi */}
               <div
-                className="mt-4 pt-2 border-t flex items-center justify-between gap-2 text-[11px] font-semibold shrink-0"
+                className="mt-4 pt-2 border-t shrink-0"
                 style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}
               >
-                {isMealMode ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sfxService.play('click');
-                        openMealSelector('primary');
-                      }}
-                      title={`${MEALS_CATALOG.length} meal ve tefsir arasından değiştir`}
-                      className="truncate hover:underline text-left cursor-pointer font-bold"
-                      style={{ color: 'var(--brand-primary-text)' }}
-                    >
-                      {mealTitle}
-                    </button>
-                    <span className="tabular-nums shrink-0 font-bold">
-                      — {bundle.pageNo} / {bundle.maxPage} —
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span>Senkronize Meal Sayfası</span>
-                    <span className="tabular-nums">Sayfa {bundle.pageNo}</span>
-                  </>
-                )}
+                <div className="flex items-center justify-between gap-2 text-[11px] font-semibold">
+                  {isMealMode ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sfxService.play('click');
+                          openMealSelector('primary');
+                        }}
+                        title={`${MEALS_CATALOG.length} meal ve tefsir arasından değiştir`}
+                        className="truncate hover:underline text-left cursor-pointer font-bold"
+                        style={{ color: 'var(--brand-primary-text)' }}
+                      >
+                        {mealTitle}
+                      </button>
+                      <span className="tabular-nums shrink-0 font-bold">
+                        — {bundle.pageNo} / {bundle.maxPage} —
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Senkronize Meal Sayfası</span>
+                      <span className="tabular-nums">Sayfa {bundle.pageNo}</span>
+                    </>
+                  )}
+                </div>
+                {renderHatimLeafFooterAction(bundle.pageNo)}
               </div>
               </div>
               {isDualPane && paneSide && paneHasMoreBelow[paneSide] && (
@@ -2613,10 +2802,8 @@ export const MushafPageView: React.FC<MushafPageViewProps> = ({
       <div
         className={
           isBookSpread
-            ? `space-y-2.5 lg:flex lg:flex-col lg:gap-0 lg:space-y-0 lg:overflow-visible ${desktopSpreadHeightClass} ${
-                isAudioBarVisible ? 'pb-28 lg:pb-0' : ''
-              }`
-            : `max-w-[54rem] mx-auto w-full space-y-2 ${isAudioBarVisible ? 'pb-32 lg:pb-24' : ''}`
+            ? `space-y-2.5 lg:flex lg:flex-col lg:gap-0 lg:space-y-0 lg:overflow-visible ${desktopSpreadHeightClass}`
+            : `max-w-[54rem] mx-auto w-full space-y-2 ${isAudioBarVisible ? 'lg:pb-24' : ''}`
         }
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

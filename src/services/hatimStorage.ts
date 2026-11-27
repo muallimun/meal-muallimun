@@ -28,6 +28,7 @@ export interface ActiveHatimPlan {
   currentPage: number;
   todayDate: string;
   todayReadPages: number[];
+  lastReadDate?: string | null;
   startedAt: string;
   updatedAt: string;
 }
@@ -61,6 +62,9 @@ export interface HatimProgressSummary {
   estimatedDaysRemaining: number | null;
   estimatedFinishDate: Date | null;
   currentJuz: number;
+  daysSinceLastRead: number | null;
+  missedHijriJuzCount: number;
+  isTargetDateBehind: boolean;
 }
 
 export function getLocalDateStamp(date = new Date()): string {
@@ -207,6 +211,27 @@ export function sanitizeActiveHatimPlan(raw: unknown): ActiveHatimPlan | null {
       : [];
 
   const targetEndDate = isValidDateStamp(r.targetEndDate) ? r.targetEndDate.trim() : null;
+  const startedAt = sanitizeIso(r.startedAt, nowIso);
+  const updatedAt = sanitizeIso(r.updatedAt, nowIso);
+
+  let lastReadDate: string | null;
+  if (isValidDateStamp(r.lastReadDate)) {
+    lastReadDate = r.lastReadDate.trim();
+  } else if (r.lastReadDate === null) {
+    lastReadDate = null;
+  } else if (rawTodayPages.length > 0) {
+    lastReadDate = today;
+  } else if (
+    Array.isArray(r.todayReadPages) &&
+    r.todayReadPages.length > 0 &&
+    isValidDateStamp(r.todayDate)
+  ) {
+    lastReadDate = r.todayDate.trim();
+  } else if (completedPages.length > 0) {
+    lastReadDate = getLocalDateStamp(new Date(updatedAt));
+  } else {
+    lastReadDate = null;
+  }
 
   return {
     id:
@@ -224,8 +249,9 @@ export function sanitizeActiveHatimPlan(raw: unknown): ActiveHatimPlan | null {
     currentPage,
     todayDate: today,
     todayReadPages: rawTodayPages,
-    startedAt: sanitizeIso(r.startedAt, nowIso),
-    updatedAt: sanitizeIso(r.updatedAt, nowIso),
+    lastReadDate,
+    startedAt,
+    updatedAt,
   };
 }
 
@@ -306,6 +332,15 @@ function computeDurationDays(startedAtIso: string, completedAtIso: string): numb
   return Math.max(1, Math.ceil((end - start) / (24 * 60 * 60 * 1000)));
 }
 
+function computeCalendarDaysBetween(fromDateStamp: string, toDateStamp: string): number {
+  if (!isValidDateStamp(fromDateStamp) || !isValidDateStamp(toDateStamp)) return 0;
+  const [fy, fm, fd] = fromDateStamp.split('-').map(Number);
+  const [ty, tm, td] = toDateStamp.split('-').map(Number);
+  const fromUtc = Date.UTC(fy, fm - 1, fd);
+  const toUtc = Date.UTC(ty, tm - 1, td);
+  return Math.max(0, Math.round((toUtc - fromUtc) / (24 * 60 * 60 * 1000)));
+}
+
 function computeRemainingDaysUntilDate(targetDateStamp: string | null | undefined): number {
   if (!targetDateStamp || !isValidDateStamp(targetDateStamp)) return 30;
   const parts = targetDateStamp.split('-').map(Number);
@@ -367,6 +402,8 @@ export function computeHatimSummary(plan: ActiveHatimPlan): HatimProgressSummary
   let todayRemainingPages: number;
   let estimatedDaysRemaining: number | null = null;
   let estimatedFinishDate: Date | null = null;
+  let missedHijriJuzCount = 0;
+  let isTargetDateBehind = false;
 
   if (plan.goalMode === 'hijri_month') {
     const rec = getHijriDailyJuzRecommendation();
@@ -389,6 +426,13 @@ export function computeHatimSummary(plan: ActiveHatimPlan): HatimProgressSummary
       const parts = rec.monthEndDateStamp.split('-').map(Number);
       estimatedFinishDate = new Date(parts[0], parts[1] - 1, parts[2]);
     }
+    if (!isCompleted && rec.primaryJuz > 1) {
+      for (let juzIdx = 0; juzIdx < rec.primaryJuz - 1; juzIdx += 1) {
+        if (juzStatuses[juzIdx] && juzStatuses[juzIdx].status !== 'completed') {
+          missedHijriJuzCount += 1;
+        }
+      }
+    }
   } else {
     if (plan.goalMode === 'target_date' && plan.targetEndDate) {
       const daysLeft = computeRemainingDaysUntilDate(plan.targetEndDate);
@@ -398,12 +442,14 @@ export function computeHatimSummary(plan: ActiveHatimPlan): HatimProgressSummary
         remainingAtDayStart <= 0
           ? 0
           : Math.max(1, Math.min(HATIM_TOTAL_PAGES, Math.ceil(remainingAtDayStart / daysLeft)));
+      isTargetDateBehind = !isCompleted && todayTargetPages - plan.dailyTargetPages >= 5;
       estimatedDaysRemaining = isCompleted ? 0 : daysLeft;
       if (!isCompleted) {
         const parts = plan.targetEndDate.split('-').map(Number);
         estimatedFinishDate = new Date(parts[0], parts[1] - 1, parts[2]);
       }
     } else if (plan.goalMode === 'daily_pages') {
+      // Borç yığmama kuralı: Okunmayan günler günlük hedefi katlamaz; bitiş tahmini doğal olarak ileri kayar
       todayTargetPages = Math.max(1, Math.min(HATIM_TOTAL_PAGES, plan.dailyTargetPages));
       if (isCompleted) {
         estimatedDaysRemaining = 0;
@@ -424,6 +470,18 @@ export function computeHatimSummary(plan: ActiveHatimPlan): HatimProgressSummary
       : Math.max(0, Math.min(remainingPages, todayTargetPages - todayCompletedCount));
   }
 
+  let daysSinceLastRead: number | null = null;
+  if (plan.lastReadDate && isValidDateStamp(plan.lastReadDate)) {
+    daysSinceLastRead = computeCalendarDaysBetween(plan.lastReadDate, today);
+  } else if (todayCompletedCount > 0) {
+    daysSinceLastRead = 0;
+  } else if (plan.startedAt) {
+    const startedDt = new Date(plan.startedAt);
+    if (!Number.isNaN(startedDt.getTime())) {
+      daysSinceLastRead = computeCalendarDaysBetween(getLocalDateStamp(startedDt), today);
+    }
+  }
+
   return {
     completedCount,
     remainingPages,
@@ -437,6 +495,9 @@ export function computeHatimSummary(plan: ActiveHatimPlan): HatimProgressSummary
     estimatedDaysRemaining,
     estimatedFinishDate,
     currentJuz: getJuzForMushafPage(plan.currentPage),
+    daysSinceLastRead,
+    missedHijriJuzCount,
+    isTargetDateBehind,
   };
 }
 
@@ -582,6 +643,7 @@ export const hatimStorage = {
       currentPage: safeStartPage,
       todayDate: today,
       todayReadPages: [],
+      lastReadDate: null,
       startedAt: nowIso,
       updatedAt: nowIso,
     };
@@ -666,6 +728,7 @@ export const hatimStorage = {
       completedPages: nextCompleted,
       todayReadPages: nextToday,
       currentPage: nextCurrent,
+      lastReadDate: !allInJuzDone ? getLocalDateStamp() : (base.lastReadDate ?? null),
       updatedAt: new Date().toISOString(),
     };
     persistState({ ...state, activePlan: nextPlan });
@@ -714,6 +777,7 @@ export const hatimStorage = {
       completedPages: nextCompleted,
       todayReadPages: nextToday,
       currentPage: nextCurrent,
+      lastReadDate: end >= start ? getLocalDateStamp() : (base.lastReadDate ?? null),
       updatedAt: new Date().toISOString(),
     };
     persistState({ ...state, activePlan: nextPlan });
@@ -786,6 +850,7 @@ export const hatimStorage = {
       completedPages: nextCompleted,
       todayReadPages: nextToday,
       currentPage: nextCurrent,
+      lastReadDate: getLocalDateStamp(),
       updatedAt: new Date().toISOString(),
     };
 
@@ -838,6 +903,7 @@ export const hatimStorage = {
         currentPage: 1,
         todayDate: getLocalDateStamp(),
         todayReadPages: [],
+        lastReadDate: null,
         startedAt: nowIso,
         updatedAt: nowIso,
       };

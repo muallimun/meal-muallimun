@@ -1161,18 +1161,20 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           } ${
             isMobileReaderImmersive
               ? isFullAudioBarDocked
-                ? `pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                ? `pb-[calc(6rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
                 : isAudioBarVisible
-                  ? `pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                  : `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                  ? `pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                  : `pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
               : activeTab !== 'home'
                 ? isExamActive || isMemorizationZenActive
                   ? `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
                   : isFullAudioBarDocked
-                    ? `pb-[calc(var(--bottom-nav-h)+6.25rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                    ? `pb-[calc(var(--bottom-nav-h)+6rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
                     : isAudioBarVisible
-                      ? `pb-[calc(var(--bottom-nav-h)+4.5rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                      : `pb-[calc(var(--bottom-nav-h)+1rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                      ? `pb-[calc(var(--bottom-nav-h)+4.25rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                      : isReaderTab
+                        ? `pb-[calc(var(--bottom-nav-h)+0.375rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                        : `pb-[calc(var(--bottom-nav-h)+1rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
                 : isFullAudioBarDocked
                   ? `pb-10 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
                   : `pb-4 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
