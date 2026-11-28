@@ -78,7 +78,10 @@ import {
   ARABIC_TEXT_DENSITY_OPTIONS,
 } from '../../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
-import { getReaderContentShortLabel } from '../../utils/bottomNavModel';
+import {
+  getReaderContentShortLabel,
+  requestBottomNavReveal,
+} from '../../utils/bottomNavModel';
 import { buildSurahQuestionCountMap, getSurahMap } from '../../utils/poolUtils';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { BookModeView } from './BookModeView';
@@ -1085,6 +1088,7 @@ export const StudyPage: React.FC = () => {
         contextKey: `page:${clamped}`,
         queueTitle: `Sayfa ${clamped}`,
       });
+      requestBottomNavReveal();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     [
@@ -1183,6 +1187,13 @@ export const StudyPage: React.FC = () => {
     },
     [viewMode, updateStudyPrefs],
   );
+
+  // Mushaf sayfası çevrildiğinde tam ekranda alt navigasyon barını görünür konuma getir
+  useEffect(() => {
+    if (viewMode === 'mushaf') {
+      requestBottomNavReveal();
+    }
+  }, [currentPageNo, viewMode]);
 
   const handleSelectReaderContentMode = useCallback(
     (mode: ReaderContentMode) => {

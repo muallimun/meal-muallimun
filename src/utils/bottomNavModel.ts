@@ -10,30 +10,35 @@ export interface BottomNavPolicyInput {
 
 export interface BottomNavPolicy {
   isMounted: boolean;
-  isFullscreenMushaf: boolean;
   shouldScrollAutoHide: boolean;
 }
 
+export const BOTTOM_NAV_REVEAL_EVENT = 'muallimun:bottom-nav-reveal';
+
+export function requestBottomNavReveal(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(BOTTOM_NAV_REVEAL_EVENT));
+  }
+}
+
 /**
- * Model A akıllı mobil alt navigasyon kuralı:
+ * Akıllı mobil alt navigasyon kuralı:
  * - Tam ekran kapalıyken tüm sekmelerde sabit görünür (sınav/zen hariç).
  * - Tam ekran açıkken Okuma dışı sekmelerde sabit görünür.
- * - Tam ekran + Okuma + Mushaf modunda tamamen gizlenir.
- * - Tam ekran + Okuma + Kitap/Kartlar modunda kaydırma yönüne göre açılır/kapanır.
+ * - Tam ekran + Okuma sekmesinde her üç görünümde (Mushaf, Kitap, Kartlar)
+ *   kaydırma yönüne göre yumuşakça gizlenir/geri gelir.
  */
 export function resolveBottomNavPolicy(input: BottomNavPolicyInput): BottomNavPolicy {
   const isMounted = !input.isExamActive && !input.isMemorizationZenActive;
   const isReaderTab = input.activeTab === 'reader';
-  const isFullscreenMushaf = input.isFullscreen && isReaderTab && input.viewMode === 'mushaf';
   const shouldScrollAutoHide =
     input.isFullscreen &&
     isMounted &&
     isReaderTab &&
-    (input.viewMode === 'book' || input.viewMode === 'cards');
+    (input.viewMode === 'mushaf' || input.viewMode === 'book' || input.viewMode === 'cards');
 
   return {
     isMounted,
-    isFullscreenMushaf,
     shouldScrollAutoHide,
   };
 }

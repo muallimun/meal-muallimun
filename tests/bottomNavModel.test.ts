@@ -7,22 +7,23 @@ import {
   stepScrollHideTracker,
 } from '../src/utils/bottomNavModel';
 
-test('Model A policy keeps bottom nav visible when fullscreen is off', () => {
-  const policy = resolveBottomNavPolicy({
-    isFullscreen: false,
-    isExamActive: false,
-    isMemorizationZenActive: false,
-    activeTab: 'reader',
-    viewMode: 'mushaf',
-  });
-  assert.deepEqual(policy, {
-    isMounted: true,
-    isFullscreenMushaf: false,
-    shouldScrollAutoHide: false,
-  });
+test('Policy keeps bottom nav visible when fullscreen is off', () => {
+  for (const viewMode of ['mushaf', 'book', 'cards'] as const) {
+    const policy = resolveBottomNavPolicy({
+      isFullscreen: false,
+      isExamActive: false,
+      isMemorizationZenActive: false,
+      activeTab: 'reader',
+      viewMode,
+    });
+    assert.deepEqual(policy, {
+      isMounted: true,
+      shouldScrollAutoHide: false,
+    });
+  }
 });
 
-test('Model A policy keeps bottom nav visible on non-reader tabs even in fullscreen', () => {
+test('Policy keeps bottom nav visible on non-reader tabs even in fullscreen', () => {
   for (const activeTab of ['home', 'fihrist', 'memorize', 'exam'] as const) {
     const policy = resolveBottomNavPolicy({
       isFullscreen: true,
@@ -31,29 +32,15 @@ test('Model A policy keeps bottom nav visible on non-reader tabs even in fullscr
       activeTab,
       viewMode: 'mushaf',
     });
-    assert.equal(policy.isMounted, true);
-    assert.equal(policy.isFullscreenMushaf, false);
-    assert.equal(policy.shouldScrollAutoHide, false);
+    assert.deepEqual(policy, {
+      isMounted: true,
+      shouldScrollAutoHide: false,
+    });
   }
 });
 
-test('Model A policy hides bottom nav statically in fullscreen Mushaf', () => {
-  const policy = resolveBottomNavPolicy({
-    isFullscreen: true,
-    isExamActive: false,
-    isMemorizationZenActive: false,
-    activeTab: 'reader',
-    viewMode: 'mushaf',
-  });
-  assert.deepEqual(policy, {
-    isMounted: true,
-    isFullscreenMushaf: true,
-    shouldScrollAutoHide: false,
-  });
-});
-
-test('Model A policy enables scroll auto-hide in fullscreen Book and Cards', () => {
-  for (const viewMode of ['book', 'cards'] as const) {
+test('Policy enables identical scroll auto-hide in fullscreen across Mushaf, Book, and Cards', () => {
+  for (const viewMode of ['mushaf', 'book', 'cards'] as const) {
     const policy = resolveBottomNavPolicy({
       isFullscreen: true,
       isExamActive: false,
@@ -63,7 +50,6 @@ test('Model A policy enables scroll auto-hide in fullscreen Book and Cards', () 
     });
     assert.deepEqual(policy, {
       isMounted: true,
-      isFullscreenMushaf: false,
       shouldScrollAutoHide: true,
     });
   }

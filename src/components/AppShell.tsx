@@ -41,6 +41,7 @@ import {
   subscribePwaUpdate,
 } from '../utils/pwaUtils';
 import {
+  BOTTOM_NAV_REVEAL_EVENT,
   createInitialScrollHideState,
   resolveBottomNavPolicy,
   stepScrollHideTracker,
@@ -120,7 +121,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   );
   const {
     isMounted: isBottomNavMounted,
-    isFullscreenMushaf,
     shouldScrollAutoHide: shouldScrollAutoHideBottomNav,
   } = bottomNavPolicy;
 
@@ -136,11 +136,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const moduleMenuRef = useRef<HTMLDivElement | null>(null);
 
   const isBottomNavHidden =
-    !isBottomNavMounted ||
-    isFullscreenMushaf ||
-    (shouldScrollAutoHideBottomNav && isScrollHiddenBottomNav);
+    !isBottomNavMounted || (shouldScrollAutoHideBottomNav && isScrollHiddenBottomNav);
 
-  // Model A: Tam ekranda Kitap/Kartlar kaydırma yönüne duyarlı alt navigasyon
+  // Tam ekranda tüm Okuma modları (Mushaf, Kitap, Kartlar) için kaydırma yönüne duyarlı alt navigasyon
   useEffect(() => {
     setIsScrollHiddenBottomNav(false);
     const initialY = typeof window !== 'undefined' ? window.scrollY : 0;
@@ -165,8 +163,17 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       }
     };
 
+    const handleReveal = () => {
+      bottomNavScrollTrackerRef.current = createInitialScrollHideState(window.scrollY);
+      setIsScrollHiddenBottomNav(false);
+    };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener(BOTTOM_NAV_REVEAL_EVENT, handleReveal);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener(BOTTOM_NAV_REVEAL_EVENT, handleReveal);
+    };
   }, [shouldScrollAutoHideBottomNav, activeTab, studyPrefs.viewMode]);
 
   // Alt navigasyon etkin yüksekliğini global CSS değişkenine yansıt (AudioPlayerBar & footer uyumu)
@@ -1215,25 +1222,19 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 ? 'px-2.5 pt-0 sm:px-4 lg:px-6 lg:pt-3.5'
                 : 'px-2.5 pt-2 sm:px-4 sm:pt-4 lg:px-6 lg:pt-4'
           } ${
-            isFullscreenMushaf
-              ? isFullAudioBarDocked
-                ? `pb-[calc(6rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
-                : isAudioBarVisible
-                  ? `pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                  : `pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-              : activeTab !== 'home'
-                ? isExamActive || isMemorizationZenActive
-                  ? `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                  : isFullAudioBarDocked
-                    ? `pb-[calc(var(--bottom-nav-h)+6rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
-                    : isAudioBarVisible
-                      ? `pb-[calc(var(--bottom-nav-h)+4.25rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                      : isReaderTab
-                        ? `pb-[calc(var(--bottom-nav-h)+0.375rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                        : `pb-[calc(var(--bottom-nav-h)+1rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+            activeTab !== 'home'
+              ? isExamActive || isMemorizationZenActive
+                ? `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
                 : isFullAudioBarDocked
-                  ? `pb-10 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
-                  : `pb-4 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                  ? `pb-[calc(var(--bottom-nav-h)+6rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                  : isAudioBarVisible
+                    ? `pb-[calc(var(--bottom-nav-h)+4.25rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                    : isReaderTab
+                      ? `pb-[calc(var(--bottom-nav-h)+0.375rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                      : `pb-[calc(var(--bottom-nav-h)+1rem)] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+              : isFullAudioBarDocked
+                ? `pb-10 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
+                : `pb-4 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
           }`}
         >
           {children}
