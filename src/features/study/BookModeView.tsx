@@ -128,7 +128,6 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
     audioPrefs,
     selectedVerseKey,
     setSelectedVerseKey,
-    isMobileReaderImmersive,
   } = useAppStore();
 
   const { getCount: getMutashabihatCount } = useMutashabihatData(true);
@@ -1751,7 +1750,7 @@ export const BookModeView: React.FC<BookModeViewProps> = ({
           totalAyahs={bundle.surahMeta.ayahCount}
           theme={settings.theme}
           isAnyAudioVisible={isAnyAudioVisible}
-          isMobileImmersive={isMobileReaderImmersive}
+          isMobileImmersive={false}
           layoutKey={`${bundle.surahMeta.no}:${bookMode}:${isDoubleBookLayout ? 'dual' : 'single'}:${settings.arabicFontSize}:${settings.turkishFontSize}:${onlyFavorites ? 'fav' : 'all'}:${visibleVerses.length}`}
           onDesktopRailVisibilityChange={setIsDesktopRailVisible}
         />

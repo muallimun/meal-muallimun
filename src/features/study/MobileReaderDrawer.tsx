@@ -15,8 +15,6 @@ import {
   LayoutList,
   Leaf,
   ListMusic,
-  Maximize2,
-  Minimize2,
   Minus,
   MonitorPlay,
   Moon,
@@ -67,8 +65,6 @@ interface MobileReaderDrawerProps {
   onChangeWordMode: (mode: WordMealMode) => void;
   settings: AppSettings;
   onUpdateSettings: (patch: Partial<AppSettings>) => void;
-  isImmersive: boolean;
-  onToggleImmersive: () => void;
   onOpenSearch: () => void;
   activeSurahQuestionCount: number;
   onStartSurahExam: () => void;
@@ -99,8 +95,6 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
   onChangeWordMode,
   settings,
   onUpdateSettings,
-  isImmersive,
-  onToggleImmersive,
   onOpenSearch,
   activeSurahQuestionCount,
   onStartSurahExam,
@@ -971,39 +965,7 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
               </div>
             )}
 
-            {/* Tam Ekran Modu (Mushaf/Kitap) */}
-            {(viewMode === 'mushaf' || viewMode === 'book') && (
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  onToggleImmersive();
-                  onClose();
-                }}
-                className="w-full min-h-[42px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-between gap-3 cursor-pointer"
-                style={{
-                  backgroundColor: isImmersive
-                    ? 'var(--brand-primary-soft)'
-                    : 'var(--bg-surface-soft)',
-                  borderColor: isImmersive ? 'var(--brand-primary)' : 'var(--border-subtle)',
-                  color: isImmersive ? 'var(--brand-primary-text)' : 'var(--text-primary)',
-                }}
-              >
-                <span className="flex items-center gap-2 text-left min-w-0 leading-snug">
-                  {isImmersive ? (
-                    <Minimize2 className="w-4 h-4 shrink-0" />
-                  ) : (
-                    <Maximize2 className="w-4 h-4 shrink-0" />
-                  )}
-                  <span>Tam Ekran</span>
-                </span>
-                <span className="text-[11px] font-extrabold shrink-0">
-                  {isImmersive ? 'Açık' : 'Kapalı'}
-                </span>
-              </button>
-            )}
-
-            {/* Hızlı Tema Seçimi (Açık | Krem Mushaf | Gece) */}
+            {/* Hızlı Tema Seçimi (Açık | Krem Mushaf | Adaçayı | Gece Mavisi) */}
             <div
               className="px-3 py-2.5 rounded-xl border space-y-1.5"
               style={{

@@ -24,7 +24,7 @@ import {
   LayoutList,
   Leaf,
   ListMusic,
-  Menu,
+  Maximize2,
   Minimize2,
   Minus,
   MonitorPlay,
@@ -78,6 +78,7 @@ import {
   ARABIC_TEXT_DENSITY_OPTIONS,
 } from '../../utils/arabicUtils';
 import { acquireBodyScrollLock } from '../../utils/bodyScrollLock';
+import { getReaderContentShortLabel } from '../../utils/bottomNavModel';
 import { buildSurahQuestionCountMap, getSurahMap } from '../../utils/poolUtils';
 import { useTajweedData } from '../../hooks/useTajweedData';
 import { BookModeView } from './BookModeView';
@@ -190,8 +191,8 @@ export const StudyPage: React.FC = () => {
     openSettingsModal,
     openListeningDrawer,
     openWaqfGuide,
-    isMobileReaderImmersive,
-    setIsMobileReaderImmersive,
+    isFullscreen,
+    toggleFullscreen,
     setActiveTab,
     isAudioBarExpanded,
     isAudioBarMinimized,
@@ -290,6 +291,7 @@ export const StudyPage: React.FC = () => {
   const [locationPickerTab, setLocationPickerTab] = useState<LocationPickerTab>('surah');
   const [isViewPopoverOpen, setIsViewPopoverOpen] = useState(false);
   const [isListenPopoverOpen, setIsListenPopoverOpen] = useState(false);
+  const [isMobileContentPopoverOpen, setIsMobileContentPopoverOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isMobileBarHidden, setIsMobileBarHidden] = useState(false);
   const [topbarPortalSlot, setTopbarPortalSlot] = useState<HTMLElement | null>(null);
@@ -298,15 +300,6 @@ export const StudyPage: React.FC = () => {
   useBackButtonGuard('favorites_drawer', isFavoritesDrawerOpen, () => {
     setIsFavoritesDrawerOpen(false);
   });
-
-  useBackButtonGuard(
-    'mobile_reader_immersive',
-    (studyPrefs.viewMode === 'mushaf' || studyPrefs.viewMode === 'book') &&
-      isMobileReaderImmersive,
-    () => {
-      setIsMobileReaderImmersive(false);
-    },
-  );
 
   useEffect(() => {
     if (!isFavoritesDrawerOpen) return;
@@ -320,6 +313,7 @@ export const StudyPage: React.FC = () => {
 
   const viewPopoverRef = useRef<HTMLDivElement | null>(null);
   const listenPopoverRef = useRef<HTMLDivElement | null>(null);
+  const mobileContentPopoverRef = useRef<HTMLDivElement | null>(null);
   const lastScrollYRef = useRef<number>(0);
   const selectedVerseKeyRef = useRef<string | null>(selectedVerseKey);
 
@@ -405,16 +399,34 @@ export const StudyPage: React.FC = () => {
     };
   }, [isListenPopoverOpen]);
 
-  // Mobilde Kartlar, Kitap ve Tam Ekran modlarında aşağı kaydırırken üst şeridi akıllıca gizle, yukarıda göster
+  // Mobil 2. satır içerik seçicisi (AR+Meal ▾) dışına tıklanınca veya Escape ile kapat
+  useEffect(() => {
+    if (!isMobileContentPopoverOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (
+        mobileContentPopoverRef.current &&
+        !mobileContentPopoverRef.current.contains(e.target as Node)
+      ) {
+        setIsMobileContentPopoverOpen(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileContentPopoverOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [isMobileContentPopoverOpen]);
+
+  // Mobilde Kartlar ve Kitap modlarında aşağı kaydırırken üst şeridi akıllıca gizle, yukarıda göster
   useEffect(() => {
     setIsMobileBarHidden(false);
     lastScrollYRef.current = typeof window !== 'undefined' ? window.scrollY : 0;
 
-    const shouldAutoHideOnScroll =
-      viewMode === 'cards' ||
-      viewMode === 'book' ||
-      ((viewMode === 'mushaf' || viewMode === 'book') && isMobileReaderImmersive);
-
+    const shouldAutoHideOnScroll = viewMode === 'cards' || viewMode === 'book';
     if (!shouldAutoHideOnScroll) return;
 
     const handleScroll = () => {
@@ -437,13 +449,13 @@ export const StudyPage: React.FC = () => {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [viewMode, currentSurahNo, currentPageNo, isMobileReaderImmersive]);
+  }, [viewMode, currentSurahNo, currentPageNo]);
 
   useEffect(() => {
-    if (isMobileDrawerOpen || isLocationPickerOpen) {
+    if (isMobileDrawerOpen || isLocationPickerOpen || isMobileContentPopoverOpen) {
       setIsMobileBarHidden(false);
     }
-  }, [isMobileDrawerOpen, isLocationPickerOpen]);
+  }, [isMobileDrawerOpen, isLocationPickerOpen, isMobileContentPopoverOpen]);
 
   // Dışarıdan (Ana Sayfa / Sınav / Arama) gelen doğrudan navigasyon hedeflerini işle
   const handledTargetNonceRef = useRef<number | null>(null);
@@ -1463,7 +1475,6 @@ export const StudyPage: React.FC = () => {
     ? `${primaryMealDef.shortLabel} + 1`
     : primaryMealDef.shortLabel;
 
-  const isPureMobileView = viewMode === 'mushaf' || viewMode === 'book';
   const bookmarkCount = studyProgress.pageBookmarks.length;
 
   const viewToolbarLabel = useMemo(() => {
@@ -2816,7 +2827,6 @@ export const StudyPage: React.FC = () => {
     settings.tajweedEnabled &&
       settings.showTajweedLegend &&
       !isMealOnlyContent &&
-      !isMobileReaderImmersive &&
       !viewError,
   );
   const needsBottomPlayerClearance =
@@ -2838,298 +2848,338 @@ export const StudyPage: React.FC = () => {
       {topbarPortalSlot && createPortal(desktopUnifiedToolbar, topbarPortalSlot)}
 
       {/* ====================================================================
-          A2. MOBİL (< 1024px) — TÜM 3 MOD İÇİN TEK İNCE h-12 (48px) OKUMA BAR
+          A2. MOBİL (< 1024px) — BİRLEŞİK OKUMA BAR (MUSHAF, KARTLAR VE KİTAP)
           ==================================================================== */}
-      {isPureMobileView && isMobileReaderImmersive ? (
-        /* Tam Ekran Odak Yüzen Üst Kontrol Şeridi (Metni örtmez; aşağı kaydırmada yumuşakça gizlenir) */
-        <div
-          role="region"
-          aria-label="Tam ekran okuma kontrolleri"
-          className={`lg:hidden fixed top-0 inset-x-0 z-40 px-2 pt-[max(0.375rem,env(safe-area-inset-top,0px))] pb-1.5 border-b backdrop-blur-md flex items-center justify-between gap-2 transition-all duration-200 ${
-            isMobileBarHidden
-              ? 'opacity-0 pointer-events-none -translate-y-2'
-              : 'opacity-100 translate-y-0'
-          }`}
-          style={{
-            backgroundColor: 'var(--bg-nav)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <button
-              type="button"
-              onClick={() => {
-                sfxService.play('click');
-                setIsMobileDrawerOpen(true);
-              }}
-              aria-label="Okuma menüsünü aç"
-              title="Okuma menüsünü aç"
-              className="h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-extrabold cursor-pointer shrink-0 active:scale-95 transition-transform"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-strong)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              <Menu className="w-3.5 h-3.5 shrink-0" />
-              <span>Menü</span>
-            </button>
-            <span
-              className="text-[11px] font-bold truncate tabular-nums min-w-0"
-              style={{ color: 'var(--text-secondary)' }}
-              title={mobileLocationLabel}
-            >
-              {mobileLocationLabel}
-            </span>
-          </div>
-
+      <header
+        aria-label="Mobil okuma şeridi"
+        className={`lg:hidden sticky top-0 z-30 overflow-visible ${
+          viewMode === 'cards'
+            ? '-mx-2.5 sm:-mx-4 px-1.5 min-[380px]:px-2 sm:px-3.5'
+            : '-mx-1.5 sm:-mx-3 px-1.5 min-[380px]:px-2 sm:px-3'
+        } border-b backdrop-blur-md flex flex-col transition-transform duration-200 will-change-transform ${
+          isMobileBarHidden ? '-translate-y-full' : 'translate-y-0'
+        }`}
+        style={{
+          backgroundColor: 'var(--bg-nav)',
+          borderColor: 'var(--border-subtle)',
+        }}
+      >
+        {/* 1. Satır (h-12): Konum Seçici + Tablet 3'lü segment + Dinle + Hızlı Ara + Ayraçlar + Tam Ekran + Okuma Menüsü */}
+        <div className="h-12 flex items-center justify-between gap-1 min-[360px]:gap-1.5">
+          {/* Sol: Ferah Konum Seçici (17. İsrâ · S.281 ▾) */}
           <button
             type="button"
-            onClick={() => {
-              sfxService.play('click');
-              setIsMobileReaderImmersive(false);
-            }}
-            aria-label="Tam ekrandan çık"
-            title="Tam ekrandan çık ve navigasyonu göster"
-            className="h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-[11px] font-extrabold cursor-pointer shrink-0 active:scale-95 transition-transform whitespace-nowrap"
+            onClick={() => openLocationPicker()}
+            title="Sure, Sayfa, Cüz, Rükû veya Ayet seç"
+            className="flex-1 min-w-0 h-8 min-[360px]:h-[34px] sm:h-9 px-2 min-[380px]:px-2.5 rounded-xl border flex items-center gap-1 text-xs font-extrabold cursor-pointer text-left touch-manipulation"
             style={{
-              backgroundColor: 'var(--brand-primary-soft)',
-              borderColor: 'var(--brand-primary)',
-              color: 'var(--brand-primary-text)',
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-primary)',
             }}
           >
-            <Minimize2 className="w-3.5 h-3.5 shrink-0" />
-            <span>Tam Ekrandan Çık</span>
+            <span className="truncate tabular-nums">{mobileLocationLabel}</span>
+            <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65 ml-auto" />
           </button>
-        </div>
-      ) : (
-        /* Birleşik Mobil Okuma Şeridi — Mushaf, Kartlar ve Kitap'ta ortak; Kartlar & Kitap'ta aşağı kaydırmada gizlenir */
-        <header
-          aria-label="Mobil okuma şeridi"
-          className={`lg:hidden sticky top-0 z-30 max-w-full overflow-x-clip ${
-            viewMode === 'cards' ? '-mx-2.5 sm:-mx-4 px-2 sm:px-3.5' : '-mx-1.5 sm:-mx-3 px-2 sm:px-3'
-          } border-b backdrop-blur-md flex flex-col transition-transform duration-200 will-change-transform ${
-            isMobileBarHidden ? '-translate-y-full' : 'translate-y-0'
-          }`}
-          style={{
-            backgroundColor: 'var(--bg-nav)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          {/* 1. Satır (h-12): Konum Seçici + Tablet 3'lü segment + Dinle + Hızlı Ara + Ayraçlar + Okuma Menüsü */}
-          <div className="h-12 flex items-center justify-between gap-1.5">
-            {/* Sol: Ferah Konum Seçici (17. İsrâ · S.281 ▾) */}
-            <button
-              type="button"
-              onClick={() => openLocationPicker()}
-              title="Sure, Sayfa, Cüz, Rükû veya Ayet seç"
-              className="flex-1 min-w-0 h-9 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-extrabold cursor-pointer text-left"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              <span className="truncate tabular-nums">{mobileLocationLabel}</span>
-              <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-65 ml-auto" />
-            </button>
 
-            {/* Sağ: Tablet 3'lü segment + Dinle + Hızlı Ara + Ayraçlar + Görünüm (Okuma Menüsü) */}
-            <div className="flex items-center gap-1 shrink-0">
-              {/* Geniş mobil / Tablet (640px–1023px): 3'lü segment */}
-              <div
-                className="hidden sm:flex items-center h-9 p-0.5 rounded-xl border shrink-0"
-                style={{
-                  backgroundColor: 'var(--bg-surface-soft)',
-                  borderColor: 'var(--border-subtle)',
-                }}
-              >
-                {(
-                  [
-                    { id: 'mushaf', label: 'Mushaf' },
-                    { id: 'cards', label: 'Kartlar' },
-                    { id: 'book', label: 'Kitap' },
-                  ] as const
-                ).map((tab) => {
-                  const active = viewMode === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => handleSwitchViewMode(tab.id)}
-                      className="h-8 px-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
-                      style={{
-                        backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
-                        color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
-                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                      }}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* 🎧 Dinle / Duraklat */}
-              <button
-                type="button"
-                onClick={handleHeaderListen}
-                aria-label={
-                  hasDifferentSelectedWhilePlaying && explicitSelectedVerse
-                    ? `${explicitSelectedVerse.ayah}. ayetten dinle`
-                    : isAudioActivelyPlaying
-                      ? 'Dinlemeyi duraklat'
-                      : explicitSelectedVerse
-                        ? `${explicitSelectedVerse.ayah}. ayetten dinle`
-                        : 'Dinle'
-                }
-                title={
-                  hasDifferentSelectedWhilePlaying && explicitSelectedVerse
-                    ? `Seçili ayetten (${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah}) dinlemeye geç`
-                    : isAudioActivelyPlaying
-                      ? 'Dinlemeyi duraklat'
-                      : explicitSelectedVerse
-                        ? `${explicitSelectedVerse.ayah}. ayetten dinle`
-                        : 'Bu sayfayı / sureyi dinle'
-                }
-                className="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-colors shrink-0"
-                style={{
-                  backgroundColor:
-                    isAudioActivelyPlaying || explicitSelectedVerse
-                      ? 'var(--brand-primary)'
-                      : 'var(--brand-primary-soft)',
-                  color:
-                    isAudioActivelyPlaying || explicitSelectedVerse
-                      ? '#FFFFFF'
-                      : 'var(--brand-primary-text)',
-                }}
-              >
-                {hasDifferentSelectedWhilePlaying ? (
-                  <Play className="w-4 h-4 fill-current ml-0.5" />
-                ) : isAudioActivelyPlaying ? (
-                  <Pause className="w-4 h-4" />
-                ) : explicitSelectedVerse ? (
-                  <Play className="w-4 h-4 fill-current ml-0.5" />
-                ) : (
-                  <Headphones className="w-4 h-4" />
-                )}
-              </button>
-
-              {/* 🔍 Hızlı Ara */}
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  openSearchModal();
-                }}
-                aria-label="Hızlı Ara"
-                title="Hızlı Ara"
-                className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                <Search className="w-4 h-4" />
-              </button>
-
-              {/* 🔖 Sayfa Ayraçları & Hatim */}
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  openBookmarksDrawer();
-                }}
-                aria-label="Sayfa Ayraçları"
-                title={bookmarkCount > 0 ? `Sayfa Ayraçları (${bookmarkCount})` : 'Sayfa Ayraçları'}
-                className="relative w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
-                style={{
-                  backgroundColor:
-                    bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
-                  borderColor:
-                    bookmarkCount > 0 ? 'rgba(217, 119, 6, 0.35)' : 'var(--border-subtle)',
-                  color: bookmarkCount > 0 ? 'var(--brand-accent-text)' : 'var(--text-primary)',
-                }}
-              >
-                <Bookmark className={`w-4 h-4 ${bookmarkCount > 0 ? 'fill-current' : ''}`} />
-                {bookmarkCount > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-extrabold tabular-nums flex items-center justify-center text-white dark:text-[#0b1314] leading-none pointer-events-none"
-                    style={{
-                      backgroundColor: 'var(--brand-accent-text)',
-                      boxShadow: '0 0 0 1.5px var(--bg-nav)',
-                    }}
-                  >
-                    {bookmarkCount > 99 ? '99+' : bookmarkCount}
-                  </span>
-                )}
-              </button>
-
-              {/* ⚙️ Görünüm / Okuma Menüsü Çekmecesi */}
-              <button
-                type="button"
-                onClick={() => {
-                  sfxService.play('click');
-                  setIsMobileDrawerOpen(true);
-                }}
-                aria-label="Görünüm ve Okuma Menüsü"
-                title="Görünüm ve Okuma Menüsü"
-                className="w-9 h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-subtle)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* 2. Satır (< 640px Telefonlar): Tek Dokunuşla Mushaf | Kartlar | Kitap Seçici */}
-          <div className="sm:hidden pb-1.5">
+          {/* Sağ: Tablet 3'lü segment + Dinle + Hızlı Ara + Ayraçlar + Tam Ekran + Okuma Menüsü */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Geniş mobil / Tablet (640px–1023px): 3'lü segment */}
             <div
-              className="grid grid-cols-3 gap-1 p-0.5 rounded-xl border"
+              className="hidden sm:flex items-center h-9 p-0.5 rounded-xl border shrink-0"
               style={{
                 backgroundColor: 'var(--bg-surface-soft)',
                 borderColor: 'var(--border-subtle)',
               }}
-              role="tablist"
-              aria-label="Okuma görünümü"
             >
               {(
                 [
-                  { id: 'mushaf', label: 'Mushaf', icon: BookOpen },
-                  { id: 'cards', label: 'Kartlar', icon: LayoutList },
-                  { id: 'book', label: 'Kitap', icon: BookText },
+                  { id: 'mushaf', label: 'Mushaf' },
+                  { id: 'cards', label: 'Kartlar' },
+                  { id: 'book', label: 'Kitap' },
                 ] as const
               ).map((tab) => {
                 const active = viewMode === tab.id;
-                const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
                     type="button"
-                    role="tab"
-                    aria-selected={active}
                     onClick={() => handleSwitchViewMode(tab.id)}
-                    className="min-h-[36px] px-2 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap touch-manipulation"
+                    className="h-8 px-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
                     style={{
                       backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
                       color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
                       boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                     }}
                   >
-                    <Icon className="w-3.5 h-3.5 shrink-0" />
-                    <span>{tab.label}</span>
+                    {tab.label}
                   </button>
                 );
               })}
             </div>
+
+            {/* 🎧 Dinle / Duraklat */}
+            <button
+              type="button"
+              onClick={handleHeaderListen}
+              aria-label={
+                hasDifferentSelectedWhilePlaying && explicitSelectedVerse
+                  ? `${explicitSelectedVerse.ayah}. ayetten dinle`
+                  : isAudioActivelyPlaying
+                    ? 'Dinlemeyi duraklat'
+                    : explicitSelectedVerse
+                      ? `${explicitSelectedVerse.ayah}. ayetten dinle`
+                      : 'Dinle'
+              }
+              title={
+                hasDifferentSelectedWhilePlaying && explicitSelectedVerse
+                  ? `Seçili ayetten (${explicitSelectedVerse.surah}:${explicitSelectedVerse.ayah}) dinlemeye geç`
+                  : isAudioActivelyPlaying
+                    ? 'Dinlemeyi duraklat'
+                    : explicitSelectedVerse
+                      ? `${explicitSelectedVerse.ayah}. ayetten dinle`
+                      : 'Bu sayfayı / sureyi dinle'
+              }
+              className="w-8 h-8 min-[360px]:w-[34px] min-[360px]:h-[34px] sm:w-9 sm:h-9 rounded-xl flex items-center justify-center cursor-pointer transition-colors shrink-0 touch-manipulation"
+              style={{
+                backgroundColor:
+                  isAudioActivelyPlaying || explicitSelectedVerse
+                    ? 'var(--brand-primary)'
+                    : 'var(--brand-primary-soft)',
+                color:
+                  isAudioActivelyPlaying || explicitSelectedVerse
+                    ? '#FFFFFF'
+                    : 'var(--brand-primary-text)',
+              }}
+            >
+              {hasDifferentSelectedWhilePlaying ? (
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              ) : isAudioActivelyPlaying ? (
+                <Pause className="w-4 h-4" />
+              ) : explicitSelectedVerse ? (
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              ) : (
+                <Headphones className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* 🔍 Hızlı Ara */}
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openSearchModal();
+              }}
+              aria-label="Hızlı Ara"
+              title="Hızlı Ara"
+              className="w-8 h-8 min-[360px]:w-[34px] min-[360px]:h-[34px] sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0 touch-manipulation"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Search className="w-4 h-4" />
+            </button>
+
+            {/* 🔖 Sayfa Ayraçları & Hatim */}
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                openBookmarksDrawer();
+              }}
+              aria-label="Sayfa Ayraçları"
+              title={bookmarkCount > 0 ? `Sayfa Ayraçları (${bookmarkCount})` : 'Sayfa Ayraçları'}
+              className="relative w-8 h-8 min-[360px]:w-[34px] min-[360px]:h-[34px] sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0 touch-manipulation"
+              style={{
+                backgroundColor:
+                  bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
+                borderColor:
+                  bookmarkCount > 0 ? 'rgba(217, 119, 6, 0.35)' : 'var(--border-subtle)',
+                color: bookmarkCount > 0 ? 'var(--brand-accent-text)' : 'var(--text-primary)',
+              }}
+            >
+              <Bookmark className={`w-4 h-4 ${bookmarkCount > 0 ? 'fill-current' : ''}`} />
+              {bookmarkCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-extrabold tabular-nums flex items-center justify-center text-white dark:text-[#0b1314] leading-none pointer-events-none"
+                  style={{
+                    backgroundColor: 'var(--brand-accent-text)',
+                    boxShadow: '0 0 0 1.5px var(--bg-nav)',
+                  }}
+                >
+                  {bookmarkCount > 99 ? '99+' : bookmarkCount}
+                </span>
+              )}
+            </button>
+
+            {/* ⛶ Sabit Tam Ekran İkonu (Yalnızca İkon) */}
+            <button
+              type="button"
+              data-fullscreen-toggle="true"
+              onClick={() => {
+                sfxService.play('click');
+                toggleFullscreen();
+              }}
+              aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran yap'}
+              title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran yap'}
+              aria-pressed={isFullscreen}
+              className="w-8 h-8 min-[360px]:w-[34px] min-[360px]:h-[34px] sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center cursor-pointer transition-colors shrink-0 touch-manipulation"
+              style={{
+                backgroundColor: isFullscreen
+                  ? 'var(--brand-primary-soft)'
+                  : 'var(--bg-surface)',
+                borderColor: isFullscreen ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                color: isFullscreen ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+              }}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-4 h-4 shrink-0" />
+              ) : (
+                <Maximize2 className="w-4 h-4 shrink-0" />
+              )}
+            </button>
+
+            {/* ⚙️ Görünüm / Okuma Menüsü Çekmecesi */}
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsMobileDrawerOpen(true);
+              }}
+              aria-label="Görünüm ve Okuma Menüsü"
+              title="Görünüm ve Okuma Menüsü"
+              className="w-8 h-8 min-[360px]:w-[34px] min-[360px]:h-[34px] sm:w-9 sm:h-9 rounded-xl border flex items-center justify-center cursor-pointer shrink-0 touch-manipulation"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-subtle)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+            </button>
           </div>
-        </header>
-      )}
+        </div>
+
+        {/* 2. Satır (< 640px Telefonlar): Sol Mushaf | Kartlar | Kitap + Sağ Kompakt İçerik Seçicisi (AR+Meal ▾) */}
+        <div className="sm:hidden pb-1.5 flex items-stretch gap-1.5">
+          <div
+            className="flex-1 min-w-0 grid grid-cols-3 gap-0.5 p-0.5 rounded-xl border"
+            style={{
+              backgroundColor: 'var(--bg-surface-soft)',
+              borderColor: 'var(--border-subtle)',
+            }}
+            role="tablist"
+            aria-label="Okuma görünümü"
+          >
+            {(
+              [
+                { id: 'mushaf', label: 'Mushaf', icon: BookOpen },
+                { id: 'cards', label: 'Kartlar', icon: LayoutList },
+                { id: 'book', label: 'Kitap', icon: BookText },
+              ] as const
+            ).map((tab) => {
+              const active = viewMode === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => handleSwitchViewMode(tab.id)}
+                  className="min-h-[34px] px-1 min-[360px]:px-1.5 rounded-lg text-[11.5px] min-[360px]:text-xs font-bold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap touch-manipulation"
+                  style={{
+                    backgroundColor: active ? 'var(--bg-surface)' : 'transparent',
+                    color: active ? 'var(--brand-primary-text)' : 'var(--text-secondary)',
+                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  }}
+                >
+                  <Icon className="hidden min-[360px]:inline-flex w-3.5 h-3.5 shrink-0" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sağ: Kompakt İçerik Seçicisi (Arapça / AR+Meal / Meal ▾) */}
+          <div className="shrink-0 relative flex" ref={mobileContentPopoverRef}>
+            <button
+              type="button"
+              onClick={() => {
+                sfxService.play('click');
+                setIsMobileContentPopoverOpen((open) => !open);
+              }}
+              aria-haspopup="menu"
+              aria-expanded={isMobileContentPopoverOpen}
+              aria-label={`İçerik modu: ${getReaderContentShortLabel(readerContentMode)}`}
+              title="Metin içeriğini değiştir"
+              className="h-full min-h-[38px] px-2 min-[380px]:px-2.5 rounded-xl border text-[11px] min-[360px]:text-xs font-extrabold inline-flex items-center justify-center gap-1 transition-colors cursor-pointer whitespace-nowrap touch-manipulation"
+              style={{
+                backgroundColor: isMobileContentPopoverOpen
+                  ? 'var(--brand-primary-soft)'
+                  : 'var(--bg-surface)',
+                borderColor: isMobileContentPopoverOpen
+                  ? 'var(--brand-primary)'
+                  : 'var(--border-subtle)',
+                color: isMobileContentPopoverOpen
+                  ? 'var(--brand-primary-text)'
+                  : 'var(--text-primary)',
+              }}
+            >
+              <span>{getReaderContentShortLabel(readerContentMode)}</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 shrink-0 opacity-70 transition-transform duration-150 ${
+                  isMobileContentPopoverOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {isMobileContentPopoverOpen && (
+              <div
+                role="menu"
+                aria-label="Okuma içerik modu"
+                className="absolute right-0 top-full mt-1.5 z-50 min-w-[168px] p-1.5 rounded-2xl border shadow-xl space-y-0.5"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-strong)',
+                }}
+              >
+                {(
+                  [
+                    { id: 'ar_only', label: 'Sadece Arapça' },
+                    { id: 'ar_meal', label: 'Arapça + Meal' },
+                    { id: 'meal_only', label: 'Sadece Meal' },
+                  ] as const
+                ).map((option) => {
+                  const active = readerContentMode === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={active}
+                      onClick={() => {
+                        handleSelectReaderContentMode(option.id);
+                        setIsMobileContentPopoverOpen(false);
+                      }}
+                      className="w-full min-h-[38px] px-2.5 py-2 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition-colors cursor-pointer text-left touch-manipulation"
+                      style={{
+                        backgroundColor: active ? 'var(--brand-primary-soft)' : 'transparent',
+                        color: active ? 'var(--brand-primary-text)' : 'var(--text-primary)',
+                      }}
+                    >
+                      <span className="whitespace-nowrap">{option.label}</span>
+                      {active && <Check className="w-3.5 h-3.5 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
 
       {/* ====================================================================
           B. Ana İçerik Alanı (Mushaf / Ayet Kartları / Kitap Modu)
@@ -3137,7 +3187,6 @@ export const StudyPage: React.FC = () => {
       {settings.tajweedEnabled &&
         settings.showTajweedLegend &&
         !isMealOnlyContent &&
-        !isMobileReaderImmersive &&
         !viewError && (
           <TajweedLegendBar
             rules={tajweedMetaRules}
@@ -3148,7 +3197,7 @@ export const StudyPage: React.FC = () => {
         )}
 
       {/* Aktif Rükû Kapsam Rozeti (Seçili rükû dilimini net gösterir, tek tıkla dinleme/sunum/kaldırma sunar) */}
-      {activeSelectionScope.kind === 'ruku' && !isMobileReaderImmersive && !viewError && (
+      {activeSelectionScope.kind === 'ruku' && !viewError && (
         <div
           role="region"
           aria-label="Seçili rükû kapsamı"
@@ -3311,7 +3360,6 @@ export const StudyPage: React.FC = () => {
           onShareVerse={handleShareVerse}
           onOpenSurahInfo={(surah) => setInfoModalSurah(surah)}
           onOpenLocationPicker={(tab) => openLocationPicker(tab)}
-          onToggleMobileImmersive={() => setIsMobileReaderImmersive(!isMobileReaderImmersive)}
         />
       ) : viewMode === 'cards' && surahBundle ? (
         <VerseCardsView
@@ -3361,7 +3409,7 @@ export const StudyPage: React.FC = () => {
             if (currentSurahNo < 114) handleSelectSurah(currentSurahNo + 1);
           }}
           onOpenLocationPicker={() => openLocationPicker()}
-          onToggleMobileImmersive={() => setIsMobileReaderImmersive(!isMobileReaderImmersive)}
+          onToggleMobileImmersive={() => setIsMobileBarHidden(false)}
         />
       ) : null}
 
@@ -3503,8 +3551,6 @@ export const StudyPage: React.FC = () => {
         onChangeWordMode={(mode) => updateStudyPrefs({ wordMode: mode })}
         settings={settings}
         onUpdateSettings={updateSettings}
-        isImmersive={isMobileReaderImmersive}
-        onToggleImmersive={() => setIsMobileReaderImmersive(!isMobileReaderImmersive)}
         onOpenSearch={openSearchModal}
         activeSurahQuestionCount={activeSurahQuestionCount}
         onStartSurahExam={() => {
@@ -3527,7 +3573,6 @@ export const StudyPage: React.FC = () => {
         onOpenWaqfGuide={openWaqfGuide}
         onOpenSettings={openSettingsModal}
         onNavigateTab={(tab) => {
-          setIsMobileReaderImmersive(false);
           setIsMobileDrawerOpen(false);
           setActiveTab(tab);
         }}

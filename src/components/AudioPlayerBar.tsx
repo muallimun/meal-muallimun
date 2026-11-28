@@ -60,7 +60,6 @@ export const AudioPlayerBar: React.FC = () => {
     isExamActive,
     isMemorizationZenActive,
     isPresentationOpen,
-    isMobileReaderImmersive,
     isAudioBarExpanded: isExpanded,
     setIsAudioBarExpanded: setIsExpanded,
     isAudioBarMinimized: isMinimized,
@@ -436,11 +435,7 @@ export const AudioPlayerBar: React.FC = () => {
       <div
         role="region"
         aria-label="Küçültülmüş ses oynatıcı"
-        className={`fixed ${
-          isMobileReaderImmersive
-            ? 'bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))]'
-            : 'bottom-[calc(var(--bottom-nav-h)+0.5rem)]'
-        } lg:bottom-4 right-3 sm:right-4 z-[55]`}
+        className="fixed bottom-[max(calc(var(--effective-bottom-nav-h,var(--bottom-nav-h))+0.5rem),calc(env(safe-area-inset-bottom,0px)+0.5rem))] lg:bottom-4 right-3 sm:right-4 z-[55] transition-[bottom] duration-200 ease-out"
       >
         <div
           className="h-11 pl-2.5 pr-1.5 rounded-full border backdrop-blur-md shadow-xl flex items-center gap-1.5"
@@ -528,11 +523,7 @@ export const AudioPlayerBar: React.FC = () => {
       <div
         role="region"
         aria-label="Ses oynatıcı"
-        className={`fixed ${
-          isMobileReaderImmersive
-            ? 'bottom-[max(0.625rem,env(safe-area-inset-bottom,0px))]'
-            : 'bottom-[calc(var(--bottom-nav-h)+0.375rem)]'
-        } lg:bottom-4 left-0 right-0 ${
+        className={`fixed bottom-[max(calc(var(--effective-bottom-nav-h,var(--bottom-nav-h))+0.375rem),calc(env(safe-area-inset-bottom,0px)+0.5rem))] lg:bottom-4 left-0 right-0 transition-[bottom] duration-200 ease-out ${
           isSidebarCollapsed ? 'lg:left-0' : 'lg:left-64 xl:left-68'
         } ${showDetailsPanel ? 'z-[90]' : 'z-[55]'} px-2 sm:px-4 pointer-events-none`}
       >

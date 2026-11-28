@@ -139,6 +139,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   mushafLayout: 'mushaf_meal',
   deskPrefs: { ...DEFAULT_DESK_PREFS },
   startupPage: 'home',
+  fullscreenMode: false,
 };
 
 export const DEFAULT_STUDY_POOL: StudyPool = {
@@ -701,6 +702,10 @@ function hydrateState(): PersistedAppState {
       mushafLayout: DEFAULT_SETTINGS.mushafLayout,
       deskPrefs: sanitizeStudyDeskPrefs(rawSettings.deskPrefs),
       startupPage: sanitizeStartupPage(rawSettings.startupPage),
+      fullscreenMode:
+        typeof rawSettings.fullscreenMode === 'boolean'
+          ? rawSettings.fullscreenMode
+          : DEFAULT_SETTINGS.fullscreenMode,
     };
 
     // Tek seferlik güvenli varsayılan okuma ayarları migrasyonu (v2):
@@ -1298,6 +1303,9 @@ interface AppContextValue {
   setIsGameArenaActive: (active: boolean) => void;
   isMemorizationZenActive: boolean;
   setIsMemorizationZenActive: (active: boolean) => void;
+  isFullscreen: boolean;
+  setFullscreen: (active: boolean) => void;
+  toggleFullscreen: () => void;
   isMobileReaderImmersive: boolean;
   setIsMobileReaderImmersive: (active: boolean) => void;
   isAudioBarExpanded: boolean;
@@ -1471,7 +1479,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isExamActive, setIsExamActive] = useState(false);
   const [isGameArenaActive, setIsGameArenaActive] = useState(false);
   const [isMemorizationZenActive, setIsMemorizationZenActive] = useState(false);
-  const [isMobileReaderImmersive, setIsMobileReaderImmersive] = useState(false);
   const [isAudioBarExpanded, setIsAudioBarExpanded] = useState(false);
   const [isAudioBarMinimized, setIsAudioBarMinimized] = useState(false);
   const [selectedVerseKey, setSelectedVerseKey] = useState<string | null>(null);
@@ -1496,12 +1503,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   );
   const [quickMemorizeSeed, setQuickMemorizeSeed] = useState<QuickMemorizeSeed | null>(null);
   const [quickResearchSeed, setQuickResearchSeed] = useState<QuickResearchSeed | null>(null);
-
-  useEffect(() => {
-    if (activeTab !== 'reader' || persisted.studyPrefs.viewMode === 'cards') {
-      setIsMobileReaderImmersive(false);
-    }
-  }, [activeTab, persisted.studyPrefs.viewMode]);
   const [memorizeLaunchTarget, setMemorizeLaunchTarget] = useState<MemorizeLaunchTarget | null>(
     null,
   );
@@ -1509,6 +1510,121 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     readSidebarCollapsed(),
   );
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
+
+  // Kalıcı ve Hibrit Tam Ekran Motoru (Model A + OS Fullscreen API)
+  const isFullscreen = persisted.settings.fullscreenMode;
+  const isFullscreenRef = useRef(isFullscreen);
+  isFullscreenRef.current = isFullscreen;
+  const isPresentationOpenRef = useRef(isPresentationOpen);
+  isPresentationOpenRef.current = isPresentationOpen;
+  const wasNativeFullscreenRef = useRef<boolean>(
+    typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
+  );
+  const programmaticFsExitRef = useRef(false);
+
+  const setFullscreen = useCallback((next: boolean) => {
+    setPersisted((prev) =>
+      prev.settings.fullscreenMode === next
+        ? prev
+        : {
+            ...prev,
+            settings: {
+              ...prev.settings,
+              fullscreenMode: next,
+            },
+          },
+    );
+
+    if (typeof document === 'undefined') return;
+    if (next) {
+      if (
+        document.fullscreenEnabled &&
+        !document.fullscreenElement &&
+        typeof document.documentElement.requestFullscreen === 'function'
+      ) {
+        void document.documentElement.requestFullscreen().catch(() => {
+          // iOS Safari veya iframe kısıtında uygulama içi Model A sessizce sürer
+        });
+      }
+    } else if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+      programmaticFsExitRef.current = true;
+      void document
+        .exitFullscreen()
+        .catch(() => {})
+        .finally(() => {
+          programmaticFsExitRef.current = false;
+        });
+    }
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    setFullscreen(!isFullscreenRef.current);
+  }, [setFullscreen]);
+
+  // Sunum modu kapandığında yerel tam ekran referansını senkronize et
+  useEffect(() => {
+    if (!isPresentationOpen && typeof document !== 'undefined') {
+      wasNativeFullscreenRef.current = Boolean(document.fullscreenElement);
+    }
+  }, [isPresentationOpen]);
+
+  // Esc veya Android sistem hareketi ile tam ekrandan çıkışta durumu anında eşitle
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const handleFullscreenChange = () => {
+      const isNativeNow = Boolean(document.fullscreenElement);
+      const wasNative = wasNativeFullscreenRef.current;
+      wasNativeFullscreenRef.current = isNativeNow;
+
+      if (isPresentationOpenRef.current) return;
+
+      if (wasNative && !isNativeNow && !programmaticFsExitRef.current) {
+        setPersisted((prev) =>
+          prev.settings.fullscreenMode
+            ? {
+                ...prev,
+                settings: {
+                  ...prev.settings,
+                  fullscreenMode: false,
+                },
+              }
+            : prev,
+        );
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // Sonraki ziyaretlerde kayıtlı fullscreenMode === true ise ilk kullanıcı etkileşiminde OS tam ekranını sessizce geri yükle
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (!isFullscreen || isPresentationOpen) return;
+    if (!document.fullscreenEnabled || document.fullscreenElement) return;
+    if (typeof document.documentElement.requestFullscreen !== 'function') return;
+
+    const handleFirstInteraction = (e: MouseEvent) => {
+      document.removeEventListener('click', handleFirstInteraction, true);
+      if (!isFullscreenRef.current || isPresentationOpenRef.current) return;
+      if (document.fullscreenElement) return;
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest('[data-fullscreen-toggle]')) {
+        // Kullanıcı doğrudan tam ekranı kapatma butonuna tıkladı; çakışmayı önle
+        return;
+      }
+      void document.documentElement.requestFullscreen().catch(() => {});
+    };
+
+    document.addEventListener('click', handleFirstInteraction, true);
+    return () => {
+      document.removeEventListener('click', handleFirstInteraction, true);
+    };
+  }, [isFullscreen, isPresentationOpen]);
+
+  // Geriye dönük uyumluluk takma adları
+  const isMobileReaderImmersive = isFullscreen;
+  const setIsMobileReaderImmersive = setFullscreen;
   const [isPoolModalOpen, setIsPoolModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTabId>('general');
@@ -3310,6 +3426,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsGameArenaActive,
       isMemorizationZenActive,
       setIsMemorizationZenActive,
+      isFullscreen,
+      setFullscreen,
+      toggleFullscreen,
       isMobileReaderImmersive,
       setIsMobileReaderImmersive,
       isAudioBarExpanded,
@@ -3464,7 +3583,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isExamActive,
       isGameArenaActive,
       isMemorizationZenActive,
+      isFullscreen,
+      setFullscreen,
+      toggleFullscreen,
       isMobileReaderImmersive,
+      setIsMobileReaderImmersive,
       isAudioBarExpanded,
       isAudioBarMinimized,
       selectedVerseKey,

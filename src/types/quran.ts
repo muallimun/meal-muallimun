@@ -479,6 +479,7 @@ export interface AppSettings {
   mushafLayout: MushafLayout;
   deskPrefs: StudyDeskPrefs;
   startupPage: StartupPageOption;
+  fullscreenMode: boolean;
 }
 
 export interface StudyPool {

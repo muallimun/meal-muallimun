@@ -40,6 +40,11 @@ import {
   isPwaUpdateAvailable,
   subscribePwaUpdate,
 } from '../utils/pwaUtils';
+import {
+  createInitialScrollHideState,
+  resolveBottomNavPolicy,
+  stepScrollHideTracker,
+} from '../utils/bottomNavModel';
 import { BrandMark } from './BrandMark';
 
 interface NavItemConfig {
@@ -87,7 +92,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     isExamActive,
     setIsExamActive,
     isMemorizationZenActive,
-    isMobileReaderImmersive,
+    isFullscreen,
+    toggleFullscreen,
     isAudioBarMinimized,
     isOnline,
     isSidebarCollapsed,
@@ -101,9 +107,25 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const isMobilePureReader =
     isReaderTab && (studyPrefs.viewMode === 'mushaf' || studyPrefs.viewMode === 'book');
 
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
-    typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
+  const bottomNavPolicy = useMemo(
+    () =>
+      resolveBottomNavPolicy({
+        isFullscreen,
+        isExamActive,
+        isMemorizationZenActive,
+        activeTab,
+        viewMode: studyPrefs.viewMode,
+      }),
+    [isFullscreen, isExamActive, isMemorizationZenActive, activeTab, studyPrefs.viewMode],
   );
+  const {
+    isMounted: isBottomNavMounted,
+    isFullscreenMushaf,
+    shouldScrollAutoHide: shouldScrollAutoHideBottomNav,
+  } = bottomNavPolicy;
+
+  const [isScrollHiddenBottomNav, setIsScrollHiddenBottomNav] = useState(false);
+  const bottomNavScrollTrackerRef = useRef(createInitialScrollHideState(0));
   const [pendingNavTab, setPendingNavTab] = useState<NavTab | null>(null);
   const [pendingOpenPresentation, setPendingOpenPresentation] = useState(false);
   const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
@@ -112,6 +134,57 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [showReconnectedBanner, setShowReconnectedBanner] = useState(false);
   const wasOfflineRef = useRef(!isOnline);
   const moduleMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const isBottomNavHidden =
+    !isBottomNavMounted ||
+    isFullscreenMushaf ||
+    (shouldScrollAutoHideBottomNav && isScrollHiddenBottomNav);
+
+  // Model A: Tam ekranda Kitap/Kartlar kaydırma yönüne duyarlı alt navigasyon
+  useEffect(() => {
+    setIsScrollHiddenBottomNav(false);
+    const initialY = typeof window !== 'undefined' ? window.scrollY : 0;
+    bottomNavScrollTrackerRef.current = createInitialScrollHideState(initialY);
+
+    if (!shouldScrollAutoHideBottomNav || typeof window === 'undefined') return;
+
+    const handleScroll = () => {
+      if (window.innerWidth >= 1024) {
+        if (bottomNavScrollTrackerRef.current.isHidden) {
+          bottomNavScrollTrackerRef.current = createInitialScrollHideState(window.scrollY);
+          setIsScrollHiddenBottomNav(false);
+        }
+        return;
+      }
+
+      const nextState = stepScrollHideTracker(bottomNavScrollTrackerRef.current, window.scrollY);
+      const changed = nextState.isHidden !== bottomNavScrollTrackerRef.current.isHidden;
+      bottomNavScrollTrackerRef.current = nextState;
+      if (changed) {
+        setIsScrollHiddenBottomNav(nextState.isHidden);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [shouldScrollAutoHideBottomNav, activeTab, studyPrefs.viewMode]);
+
+  // Alt navigasyon etkin yüksekliğini global CSS değişkenine yansıt (AudioPlayerBar & footer uyumu)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.style.setProperty(
+      '--effective-bottom-nav-h',
+      isBottomNavHidden ? '0px' : 'var(--bottom-nav-h)',
+    );
+  }, [isBottomNavHidden]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.removeProperty('--effective-bottom-nav-h');
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOnline) {
@@ -263,15 +336,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     return acquireBodyScrollLock();
   }, [pendingNavTab]);
 
-  // Genel Tam Ekran Durumu Senkronizasyonu
-  useEffect(() => {
-    const onFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-    document.addEventListener('fullscreenchange', onFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-  }, []);
-
   // Global Ctrl+K / Cmd+K Hızlı Arama Kısayolu
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -284,18 +348,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [openSearchModal]);
 
-  const handleToggleFullscreen = useCallback(async () => {
+  const handleToggleFullscreen = useCallback(() => {
     sfxService.play('click');
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen?.();
-      } else {
-        await document.exitFullscreen?.();
-      }
-    } catch {
-      // Tarayıcı/iFrame tam ekran kısıtlamasını sessizce geç
-    }
-  }, []);
+    toggleFullscreen();
+  }, [toggleFullscreen]);
 
   // Aktif sınav sırasında güvenli sekme geçişi; aktif sekmeye yeniden tıklanırsa yukarı kaydır
   const handleRequestTab = useCallback(
@@ -506,7 +562,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           }}
         >
           <div
-            className={`h-full ${contentWidthClass} mx-auto px-2.5 sm:px-4 ${
+            className={`h-full ${contentWidthClass} mx-auto px-2 min-[360px]:px-2.5 sm:px-4 ${
               isReaderTab ? 'lg:px-4 xl:px-5' : 'lg:px-6'
             } flex items-center justify-between gap-1.5 sm:gap-2`}
           >
@@ -540,7 +596,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 title="Muallimun Ana Sayfa"
                 className={`${
                   isSidebarCollapsed ? 'flex' : 'flex lg:hidden'
-                } items-center gap-2 min-h-[36px] cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600 rounded-lg shrink-0`}
+                } items-center gap-1.5 min-[360px]:gap-2 min-h-[36px] cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600 rounded-lg shrink-0`}
                 aria-label="Muallimun Ana Sayfa"
               >
                 <BrandMark className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
@@ -862,8 +918,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               }
             />
 
-            {/* Sağ Global Araçlar: Mobilde 36px, tablet/masaüstünde 40px dokunma hedefli ikon butonları */}
-            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Sağ Global Araçlar: 320px+ taşmasız, tablet/masaüstünde 40px dokunma hedefli ikon butonları */}
+            <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
               {/* 0. Sol Panel Kapalıyken Masaüstü Sunum Modu Kısayolu (Yalnızca İkon, w-9 h-9) */}
               {isSidebarCollapsed && !isReaderTab && (
                 <button
@@ -890,7 +946,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 aria-label="Hızlı Ara (Ctrl+K)"
                 className={`${
                   showDesktopTopbarTools ? 'lg:hidden ' : ''
-                }w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50 touch-manipulation`}
+                }w-8 h-8 min-[360px]:w-9 min-[360px]:h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer hover:border-teal-600/50 touch-manipulation`}
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
@@ -910,7 +966,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                     : 'Sayfa Ayraçlarım & Hatim'
                 }
                 aria-label="Sayfa Ayraçlarım ve Hatim"
-                className="relative w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
+                className="relative w-8 h-8 min-[360px]:w-9 min-[360px]:h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors cursor-pointer touch-manipulation"
                 style={{
                   backgroundColor:
                     bookmarkCount > 0 ? 'var(--brand-accent-soft)' : 'var(--bg-surface)',
@@ -935,13 +991,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 )}
               </button>
 
-              {/* 3. Genel Tam Ekran İkonu */}
+              {/* 3. Sabit Tam Ekran İkonu (Yalnızca İkon — Mobil + Masaüstü Her Zaman Görünür) */}
               <button
                 type="button"
+                data-fullscreen-toggle="true"
                 onClick={handleToggleFullscreen}
-                title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
-                aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran modu'}
-                className="hidden sm:flex min-w-[40px] min-h-[40px] w-10 h-10 rounded-xl items-center justify-center border transition-colors cursor-pointer touch-manipulation"
+                title={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran yap'}
+                aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran yap'}
+                aria-pressed={isFullscreen}
+                className="flex w-8 h-8 min-[360px]:w-9 min-[360px]:h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl items-center justify-center border transition-colors cursor-pointer touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
                 style={{
                   backgroundColor: isFullscreen
                     ? 'var(--brand-primary-soft)'
@@ -951,9 +1009,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 }}
               >
                 {isFullscreen ? (
-                  <Minimize2 className="w-4 h-4" />
+                  <Minimize2 className="w-4 h-4 shrink-0" />
                 ) : (
-                  <Maximize2 className="w-4 h-4" />
+                  <Maximize2 className="w-4 h-4 shrink-0" />
                 )}
               </button>
 
@@ -966,14 +1024,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 }}
                 title="Kullanım Rehberi"
                 aria-label="Kullanım Rehberi"
-                className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer hover:border-teal-600/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
+                className="w-8 h-8 min-[360px]:w-9 min-[360px]:h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer hover:border-teal-600/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
                   color: 'var(--brand-primary-text)',
                 }}
               >
-                <HelpCircle className="w-4 h-4" />
+                <HelpCircle className="w-4 h-4 shrink-0" />
               </button>
 
               {/* 6. Ayarlar Butonu */}
@@ -982,14 +1040,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 onClick={() => openSettingsModal()}
                 title="Görünüm ve Ayarlar"
                 aria-label="Ayarları aç"
-                className="w-9 h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
+                className="w-8 h-8 min-[360px]:w-9 min-[360px]:h-9 sm:min-w-[40px] sm:min-h-[40px] sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--bg-surface)',
                   borderColor: 'var(--border-subtle)',
                   color: 'var(--text-primary)',
                 }}
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-4 h-4 shrink-0" />
               </button>
             </div>
           </div>
@@ -1113,7 +1171,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           !dismissedPwaUpdate &&
           !isExamActive &&
           !isMemorizationZenActive &&
-          !isMobileReaderImmersive && (
+          !(isFullscreen && isReaderTab) && (
             <div
               role="status"
               className="relative z-20 px-4 py-1.5 text-xs border-b shrink-0"
@@ -1152,19 +1210,17 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <main
           className={`flex-1 w-full ${contentWidthClass} mx-auto ${
             isMobilePureReader
-              ? isMobileReaderImmersive
-                ? `px-1.5 pt-[calc(2.85rem+env(safe-area-inset-top,0px))] sm:px-3 lg:px-6 ${isDesktopMushaf ? 'lg:pt-2' : 'lg:pt-3.5'}`
-                : `px-1.5 pt-0 sm:px-3 lg:px-6 ${isDesktopMushaf ? 'lg:pt-2' : 'lg:pt-3.5'}`
+              ? `px-1.5 pt-0 sm:px-3 lg:px-6 ${isDesktopMushaf ? 'lg:pt-2' : 'lg:pt-3.5'}`
               : isReaderTab
                 ? 'px-2.5 pt-0 sm:px-4 lg:px-6 lg:pt-3.5'
                 : 'px-2.5 pt-2 sm:px-4 sm:pt-4 lg:px-6 lg:pt-4'
           } ${
-            isMobileReaderImmersive
+            isFullscreenMushaf
               ? isFullAudioBarDocked
                 ? `pb-[calc(6rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-24'}`
                 : isAudioBarVisible
                   ? `pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
-                  : `pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
+                  : `pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
               : activeTab !== 'home'
                 ? isExamActive || isMemorizationZenActive
                   ? `pb-6 ${isDesktopMushaf ? 'lg:pb-2' : 'lg:pb-6'}`
@@ -1186,7 +1242,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         {/* Alt Bilgi (Footer) — Mobilde yalnızca Ana Sayfa'da görünür; masaüstünde Mushaf sahnesinde gizlenir */}
         <footer
           className={`${
-            isMobileReaderImmersive || activeTab !== 'home'
+            activeTab !== 'home'
               ? isDesktopMushaf
                 ? 'hidden'
                 : 'hidden lg:block'
@@ -1197,10 +1253,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             isExamActive || isMemorizationZenActive
               ? 'pb-5 lg:pb-5'
               : isFullAudioBarDocked
-                ? 'pb-[calc(var(--bottom-nav-h)+6.25rem)] lg:pb-24'
+                ? 'pb-[calc(var(--effective-bottom-nav-h,var(--bottom-nav-h))+6.25rem)] lg:pb-24'
                 : isAudioBarVisible
-                  ? 'pb-[calc(var(--bottom-nav-h)+4rem)] lg:pb-14'
-                  : 'pb-[calc(var(--bottom-nav-h)+1rem)] lg:pb-5'
+                  ? 'pb-[calc(var(--effective-bottom-nav-h,var(--bottom-nav-h))+4rem)] lg:pb-14'
+                  : 'pb-[calc(var(--effective-bottom-nav-h,var(--bottom-nav-h))+1rem)] lg:pb-5'
           }`}
           style={{ borderColor: 'var(--border-subtle)' }}
         >
@@ -1242,12 +1298,17 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       </div>
 
       {/* ====================================================================
-          Mobil Alt Sabit Navigasyon Çubuğu (5 Ferah Sekme — 360px taşmasız uyum)
+          Mobil Alt Sabit / Akıllı Navigasyon Çubuğu (Model A — 5 Ferah Sekme)
           ==================================================================== */}
-      {!isExamActive && !isMemorizationZenActive && !isMobileReaderImmersive && (
+      {isBottomNavMounted && (
         <nav
           aria-label="Alt navigasyon"
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-md pb-safe"
+          aria-hidden={isBottomNavHidden || undefined}
+          className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-md pb-safe transition-transform duration-200 ease-out will-change-transform ${
+            isBottomNavHidden
+              ? 'translate-y-full pointer-events-none'
+              : 'translate-y-0 pointer-events-auto'
+          }`}
           style={{
             backgroundColor: 'var(--bg-nav)',
             borderColor: 'var(--border-subtle)',
@@ -1265,6 +1326,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <button
                   key={item.id}
                   type="button"
+                  tabIndex={isBottomNavHidden ? -1 : undefined}
                   onClick={() => handleRequestTab(item.id)}
                   className="relative flex flex-col items-center justify-center gap-0.5 min-h-[48px] min-w-0 px-0.5 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-teal-600"
                   style={{
