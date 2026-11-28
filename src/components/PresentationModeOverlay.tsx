@@ -21,7 +21,9 @@ import {
   SkipForward,
   SlidersHorizontal,
   Sparkles,
+  Volume1,
   Volume2,
+  VolumeX,
   X,
 } from 'lucide-react';
 import {
@@ -41,6 +43,13 @@ import {
   hasEmbeddedSajdahGlyph,
   toArabicIndicDigits,
 } from '../services/dataService';
+import {
+  getEffectiveMediaVolume,
+  getMediaVolumeLabel,
+  IOS_HARDWARE_VOLUME_NOTE,
+  isEffectivelyMuted,
+  isHardwareVolumeLocked,
+} from '../services/mediaVolumeService';
 import { sfxService } from '../services/sfxService';
 import { wordAudioService } from '../services/wordAudioService';
 import { useAppStore } from '../store/useAppStore';
@@ -244,6 +253,8 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
     updateSettings,
     audioPrefs,
     updateAudioPrefs,
+    setMediaVolume,
+    toggleMediaMute,
     meta,
     manifest,
     isReciterSelectorOpen,
@@ -315,13 +326,42 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
   const [manualIndex, setManualIndex] = useState<number>(0);
   const [isSettingsPopoverOpen, setIsSettingsPopoverOpen] = useState(false);
   const [isAyahPickerOpen, setIsAyahPickerOpen] = useState(false);
+  const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
   const [showDiacriticNote, setShowDiacriticNote] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() =>
     typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false,
   );
   const settingsPopoverRef = useRef<HTMLDivElement | null>(null);
   const ayahPickerRef = useRef<HTMLDivElement | null>(null);
+  const volumePopoverRef = useRef<HTMLDivElement | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsVolumePopoverOpen(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isVolumePopoverOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (volumePopoverRef.current && !volumePopoverRef.current.contains(e.target as Node)) {
+        setIsVolumePopoverOpen(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setIsVolumePopoverOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [isVolumePopoverOpen]);
 
   useEffect(() => {
     if (!isSettingsPopoverOpen) return;
@@ -2363,7 +2403,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
 
       {/* Sade Alt Kontrol Barı: Tam Ekranda yalnızca ortalanmış temel oynatma; Normal modda Konum + Kontroller + Hız */}
       <footer
-        className={`${
+        className={`relative ${
           isCompactLandscape
             ? 'min-h-[44px] py-1 px-2.5 sm:px-4'
             : 'min-h-14 sm:min-h-16 py-2 px-2.5 sm:px-6'
@@ -2400,7 +2440,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             disabled={!canPrev}
             aria-label="Önceki ayet"
             className={`${
-              isCompactLandscape ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'
+              isCompactLandscape ? 'w-8 h-8' : 'w-8 min-[360px]:w-9 h-9 sm:w-10 sm:h-10'
             } rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer shrink-0`}
             style={{ borderColor: palette.border, color: palette.text }}
           >
@@ -2412,7 +2452,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             onClick={handlePlayPause}
             aria-label={isPlaying ? 'Duraklat' : isPaused ? 'Devam Et' : 'Dinle'}
             className={`${
-              isCompactLandscape ? 'h-8 px-3' : 'h-9 sm:h-10 px-3 sm:px-5'
+              isCompactLandscape ? 'h-8 px-2.5 sm:px-3' : 'h-9 sm:h-10 px-2.5 min-[360px]:px-3 sm:px-5'
             } rounded-xl font-extrabold flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg cursor-pointer transition-transform active:scale-95 shrink-0`}
             style={{
               backgroundColor: palette.accent,
@@ -2442,7 +2482,7 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
               className={`${
                 isCompactLandscape
                   ? 'w-8 h-8 sm:w-auto sm:px-2.5'
-                  : 'w-9 h-9 sm:w-auto sm:h-10 sm:px-3.5'
+                  : 'w-8 min-[360px]:w-9 h-9 sm:w-auto sm:h-10 sm:px-3.5'
               } rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors disabled:opacity-40 shrink-0`}
               style={{
                 backgroundColor:
@@ -2470,24 +2510,290 @@ export const PresentationModeOverlay: React.FC<PresentationModeOverlayProps> = (
             disabled={!canNext}
             aria-label="Sonraki ayet"
             className={`${
-              isCompactLandscape ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'
+              isCompactLandscape ? 'w-8 h-8' : 'w-8 min-[360px]:w-9 h-9 sm:w-10 sm:h-10'
             } rounded-xl border flex items-center justify-center disabled:opacity-35 cursor-pointer shrink-0`}
             style={{ borderColor: palette.border, color: palette.text }}
           >
             <SkipForward className="w-4 h-4" />
           </button>
+
+          {/* Tam ekranda ses düzeyi kısayolu */}
+          {isFullscreen &&
+            (() => {
+              const mediaMuted = isEffectivelyMuted(
+                audioPrefs.mediaVolume,
+                audioPrefs.mediaMuted,
+              );
+              const effectiveMediaVol = getEffectiveMediaVolume(
+                audioPrefs.mediaVolume,
+                audioPrefs.mediaMuted,
+              );
+              const mediaLabel = getMediaVolumeLabel(
+                audioPrefs.mediaVolume,
+                audioPrefs.mediaMuted,
+              );
+              const hardwareLocked = isHardwareVolumeLocked();
+              const SpeakerIcon = mediaMuted
+                ? VolumeX
+                : effectiveMediaVol < 0.5
+                  ? Volume1
+                  : Volume2;
+
+              return (
+                <div ref={volumePopoverRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsVolumePopoverOpen((prev) => !prev);
+                    }}
+                    aria-label={`Tilavet ses düzeyi (${mediaLabel})`}
+                    aria-expanded={isVolumePopoverOpen}
+                    aria-haspopup="dialog"
+                    title={`Tilavet & Meal Sesi: ${mediaLabel}`}
+                    className={`${
+                      isCompactLandscape ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'
+                    } rounded-xl border flex items-center justify-center cursor-pointer shrink-0`}
+                    style={{
+                      backgroundColor: isVolumePopoverOpen ? palette.accentSoft : 'transparent',
+                      borderColor: isVolumePopoverOpen ? palette.accent : palette.border,
+                      color: mediaMuted ? palette.muted : palette.text,
+                    }}
+                  >
+                    <SpeakerIcon className="w-4 h-4" />
+                  </button>
+
+                  {isVolumePopoverOpen && (
+                    <div
+                      role="dialog"
+                      aria-label="Tilavet ses düzeyi"
+                      className="absolute bottom-full right-2.5 mb-2 w-56 max-w-[calc(100vw-20px)] rounded-2xl border shadow-2xl p-3 space-y-2.5 z-50 backdrop-blur-md"
+                      style={{
+                        backgroundColor: palette.surface,
+                        borderColor: palette.border,
+                        color: palette.text,
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-extrabold">Tilavet &amp; Meal Sesi</span>
+                        <span
+                          className="text-[11px] font-extrabold tabular-nums"
+                          style={{ color: mediaMuted ? palette.muted : palette.accent }}
+                        >
+                          {mediaLabel}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={toggleMediaMute}
+                          aria-label={mediaMuted ? 'Tilavet sesini aç' : 'Tilavet sesini kapat'}
+                          aria-pressed={mediaMuted}
+                          className="w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 cursor-pointer"
+                          style={{
+                            backgroundColor: mediaMuted ? 'transparent' : palette.accentSoft,
+                            borderColor: mediaMuted ? palette.border : palette.accent,
+                            color: mediaMuted ? palette.muted : palette.accent,
+                          }}
+                        >
+                          <SpeakerIcon className="w-4 h-4" />
+                        </button>
+                        {hardwareLocked ? (
+                          <button
+                            type="button"
+                            onClick={toggleMediaMute}
+                            className="flex-1 min-h-[36px] px-2.5 rounded-xl border text-xs font-bold text-left cursor-pointer"
+                            style={{ borderColor: palette.border, color: palette.text }}
+                          >
+                            {mediaMuted ? 'Sesi Aç' : 'Sessize Al'}
+                          </button>
+                        ) : (
+                          <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            value={effectiveMediaVol}
+                            onChange={(e) => setMediaVolume(Number(e.target.value))}
+                            aria-label="Tilavet ve sesli meal ses düzeyi"
+                            className="flex-1 min-w-0 cursor-pointer"
+                            style={{ accentColor: palette.accent }}
+                          />
+                        )}
+                      </div>
+                      {hardwareLocked && (
+                        <p className="text-[10px] leading-snug" style={{ color: palette.muted }}>
+                          {IOS_HARDWARE_VOLUME_NOTE}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
         </div>
 
-        {/* Sağ: Oynatma Hızı (Tam ekranda gizlenir; dar mobilde sağ kenardan asla taşmaz) */}
+        {/* Sağ: Bağımsız Medya Sesi + Oynatma Hızı (Tam ekranda gizlenir; dar mobilde sağ kenardan asla taşmaz) */}
         {!isFullscreen && (
-          <div className="flex justify-end shrink-0">
+          <div className="flex items-center justify-end gap-1 sm:gap-1.5 shrink-0">
+            {(() => {
+              const mediaMuted = isEffectivelyMuted(
+                audioPrefs.mediaVolume,
+                audioPrefs.mediaMuted,
+              );
+              const effectiveMediaVol = getEffectiveMediaVolume(
+                audioPrefs.mediaVolume,
+                audioPrefs.mediaMuted,
+              );
+              const mediaLabel = getMediaVolumeLabel(
+                audioPrefs.mediaVolume,
+                audioPrefs.mediaMuted,
+              );
+              const hardwareLocked = isHardwareVolumeLocked();
+              const SpeakerIcon = mediaMuted
+                ? VolumeX
+                : effectiveMediaVol < 0.5
+                  ? Volume1
+                  : Volume2;
+
+              return (
+                <div ref={volumePopoverRef} className="flex items-center gap-1.5">
+                  {/* Masaüstü (lg+): Doğrudan Mute/Unmute + kompakt slider */}
+                  <button
+                    type="button"
+                    onClick={toggleMediaMute}
+                    aria-label={mediaMuted ? 'Tilavet sesini aç' : 'Tilavet sesini kapat'}
+                    aria-pressed={mediaMuted}
+                    title={`Tilavet & Meal Sesi: ${mediaLabel}`}
+                    className={`hidden lg:flex ${
+                      isCompactLandscape ? 'w-8 h-8' : 'w-9 h-9'
+                    } rounded-xl border items-center justify-center cursor-pointer shrink-0`}
+                    style={{
+                      backgroundColor: mediaMuted ? 'transparent' : palette.accentSoft,
+                      borderColor: mediaMuted ? palette.border : palette.accent,
+                      color: mediaMuted ? palette.muted : palette.accent,
+                    }}
+                  >
+                    <SpeakerIcon className="w-4 h-4" />
+                  </button>
+                  {!hardwareLocked && (
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={effectiveMediaVol}
+                      onChange={(e) => setMediaVolume(Number(e.target.value))}
+                      aria-label="Tilavet ve sesli meal ses düzeyi"
+                      title={`Ses düzeyi: ${mediaLabel}`}
+                      className="hidden lg:block w-20 cursor-pointer"
+                      style={{ accentColor: palette.accent }}
+                    />
+                  )}
+
+                  {/* Mobil & Tablet (< lg): Tek Hoparlör ikonu -> Yukarı açılan ses popover'ı */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfxService.play('click');
+                      setIsSettingsPopoverOpen(false);
+                      setIsAyahPickerOpen(false);
+                      setIsVolumePopoverOpen((prev) => !prev);
+                    }}
+                    aria-label={`Tilavet ses düzeyi (${mediaLabel})`}
+                    aria-expanded={isVolumePopoverOpen}
+                    aria-haspopup="dialog"
+                    title={`Tilavet & Meal Sesi: ${mediaLabel}`}
+                    className={`lg:hidden ${
+                      isCompactLandscape ? 'w-8 h-8' : 'w-8 min-[360px]:w-9 h-9'
+                    } rounded-xl border flex items-center justify-center cursor-pointer shrink-0`}
+                    style={{
+                      backgroundColor: isVolumePopoverOpen ? palette.accentSoft : 'transparent',
+                      borderColor: isVolumePopoverOpen ? palette.accent : palette.border,
+                      color: mediaMuted ? palette.muted : palette.text,
+                    }}
+                  >
+                    <SpeakerIcon className="w-4 h-4" />
+                  </button>
+
+                  {isVolumePopoverOpen && (
+                    <div
+                      role="dialog"
+                      aria-label="Tilavet ses düzeyi"
+                      className="lg:hidden absolute bottom-full right-2.5 mb-2 w-56 max-w-[calc(100vw-20px)] rounded-2xl border shadow-2xl p-3 space-y-2.5 z-50 backdrop-blur-md"
+                      style={{
+                        backgroundColor: palette.surface,
+                        borderColor: palette.border,
+                        color: palette.text,
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-extrabold">Tilavet &amp; Meal Sesi</span>
+                        <span
+                          className="text-[11px] font-extrabold tabular-nums"
+                          style={{ color: mediaMuted ? palette.muted : palette.accent }}
+                        >
+                          {mediaLabel}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={toggleMediaMute}
+                          aria-label={mediaMuted ? 'Tilavet sesini aç' : 'Tilavet sesini kapat'}
+                          aria-pressed={mediaMuted}
+                          className="w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 cursor-pointer"
+                          style={{
+                            backgroundColor: mediaMuted ? 'transparent' : palette.accentSoft,
+                            borderColor: mediaMuted ? palette.border : palette.accent,
+                            color: mediaMuted ? palette.muted : palette.accent,
+                          }}
+                        >
+                          <SpeakerIcon className="w-4 h-4" />
+                        </button>
+                        {hardwareLocked ? (
+                          <button
+                            type="button"
+                            onClick={toggleMediaMute}
+                            className="flex-1 min-h-[36px] px-2.5 rounded-xl border text-xs font-bold text-left cursor-pointer"
+                            style={{ borderColor: palette.border, color: palette.text }}
+                          >
+                            {mediaMuted ? 'Sesi Aç' : 'Sessize Al'}
+                          </button>
+                        ) : (
+                          <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            value={effectiveMediaVol}
+                            onChange={(e) => setMediaVolume(Number(e.target.value))}
+                            aria-label="Tilavet ve sesli meal ses düzeyi"
+                            className="flex-1 min-w-0 cursor-pointer"
+                            style={{ accentColor: palette.accent }}
+                          />
+                        )}
+                      </div>
+
+                      {hardwareLocked && (
+                        <p className="text-[10px] leading-snug" style={{ color: palette.muted }}>
+                          {IOS_HARDWARE_VOLUME_NOTE}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             <button
               type="button"
               onClick={cycleRate}
               title="Oynatma hızı"
               className={`${
-                isCompactLandscape ? 'h-8 px-2' : 'h-9 px-2 sm:px-2.5'
-              } min-w-[38px] sm:min-w-[48px] rounded-xl border text-xs font-bold tabular-nums cursor-pointer shrink-0 whitespace-nowrap`}
+                isCompactLandscape ? 'h-8 px-1.5 sm:px-2' : 'h-9 px-1.5 min-[360px]:px-2 sm:px-2.5'
+              } min-w-[34px] min-[360px]:min-w-[38px] sm:min-w-[48px] rounded-xl border text-xs font-bold tabular-nums cursor-pointer shrink-0 whitespace-nowrap`}
               style={{ borderColor: palette.border, color: palette.text }}
             >
               {audioPrefs.playbackRate}x

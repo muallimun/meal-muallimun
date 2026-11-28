@@ -26,12 +26,22 @@ import {
   Sun,
   Trophy,
   Type,
+  Volume1,
+  Volume2,
+  VolumeX,
   X,
 } from 'lucide-react';
 import { PwaInstallControl } from '../../components/PwaInstallControl';
 import { ARABIC_FONTS } from '../../config/assetsConfig';
 import { Z_LAYERS } from '../../config/zLayers';
 import { useBackButtonGuard } from '../../services/backStackService';
+import {
+  getEffectiveMediaVolume,
+  getMediaVolumeLabel,
+  IOS_HARDWARE_VOLUME_NOTE,
+  isEffectivelyMuted,
+  isHardwareVolumeLocked,
+} from '../../services/mediaVolumeService';
 import { sfxService } from '../../services/sfxService';
 import type {
   AppSettings,
@@ -73,6 +83,10 @@ interface MobileReaderDrawerProps {
   favoritesCount: number;
   onOpenFavorites: () => void;
   onOpenListeningDrawer: () => void;
+  mediaVolume: number;
+  mediaMuted: boolean;
+  onChangeMediaVolume: (volume: number) => void;
+  onToggleMediaMute: () => void;
   onOpenWaqfGuide: () => void;
   onOpenSettings: () => void;
   onNavigateTab?: (tab: 'home' | 'fihrist' | 'memorize' | 'exam') => void;
@@ -103,6 +117,10 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
   favoritesCount,
   onOpenFavorites,
   onOpenListeningDrawer,
+  mediaVolume,
+  mediaMuted,
+  onChangeMediaVolume,
+  onToggleMediaMute,
   onOpenWaqfGuide,
   onOpenSettings,
   onNavigateTab,
@@ -1089,6 +1107,76 @@ export const MobileReaderDrawer: React.FC<MobileReaderDrawerProps> = ({
                 </span>
                 <ChevronRight className="w-4 h-4 opacity-70" />
               </button>
+
+              {/* Kompakt Tek Satır Tilavet & Sesli Meal Ses Kontrolü */}
+              {(() => {
+                const muted = isEffectivelyMuted(mediaVolume, mediaMuted);
+                const effectiveVol = getEffectiveMediaVolume(mediaVolume, mediaMuted);
+                const label = getMediaVolumeLabel(mediaVolume, mediaMuted);
+                const hardwareLocked = isHardwareVolumeLocked();
+                const SpeakerIcon = muted ? VolumeX : effectiveVol < 0.5 ? Volume1 : Volume2;
+
+                return (
+                  <div
+                    className="w-full px-3 py-2.5 rounded-xl border space-y-2"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-soft)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={onToggleMediaMute}
+                        aria-label={muted ? 'Tilavet sesini aç' : 'Tilavet sesini kapat'}
+                        aria-pressed={muted}
+                        className="w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 cursor-pointer"
+                        style={{
+                          backgroundColor: muted
+                            ? 'var(--bg-surface)'
+                            : 'var(--brand-primary-soft)',
+                          borderColor: muted ? 'var(--border-subtle)' : 'var(--brand-primary)',
+                          color: muted ? 'var(--text-muted)' : 'var(--brand-primary-text)',
+                        }}
+                      >
+                        <SpeakerIcon className="w-4 h-4" />
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-[11px] font-extrabold truncate">
+                            Tilavet &amp; Meal Sesi
+                          </span>
+                          <span
+                            className="text-[11px] font-extrabold tabular-nums shrink-0"
+                            style={{
+                              color: muted ? 'var(--text-muted)' : 'var(--brand-primary-text)',
+                            }}
+                          >
+                            {label}
+                          </span>
+                        </div>
+                        {!hardwareLocked ? (
+                          <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            value={effectiveVol}
+                            onChange={(e) => onChangeMediaVolume(Number(e.target.value))}
+                            aria-label="Tilavet ve meal ses düzeyi"
+                            className="w-full block accent-[var(--brand-primary)] cursor-pointer"
+                          />
+                        ) : (
+                          <p className="text-[10px] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                            {IOS_HARDWARE_VOLUME_NOTE}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <button
                 type="button"

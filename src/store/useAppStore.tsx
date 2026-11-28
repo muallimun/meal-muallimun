@@ -26,6 +26,12 @@ import {
 } from '../config/studyDeskConfig';
 import { audioQueueService } from '../services/audioQueueService';
 import { dataService, type DataSourceMode } from '../services/dataService';
+import {
+  clampMediaVolume,
+  computeMediaVolumeFromSlider,
+  computeToggledMediaMute,
+  setMediaVolumeState,
+} from '../services/mediaVolumeService';
 import { sfxService } from '../services/sfxService';
 import { wakeLockService } from '../services/wakeLockService';
 import {
@@ -174,6 +180,8 @@ export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
   queueLoop: 1,
   autoScroll: true,
   showTextOnStart: true,
+  mediaVolume: 1,
+  mediaMuted: false,
 };
 
 function createDefaultAudioPlaylists(): AudioPlaylist[] {
@@ -992,6 +1000,14 @@ function hydrateState(): PersistedAppState {
         typeof rawAudio?.showTextOnStart === 'boolean'
           ? rawAudio.showTextOnStart
           : DEFAULT_AUDIO_PREFS.showTextOnStart,
+      mediaVolume:
+        typeof rawAudio?.mediaVolume === 'number' && Number.isFinite(rawAudio.mediaVolume)
+          ? clampMediaVolume(rawAudio.mediaVolume, DEFAULT_AUDIO_PREFS.mediaVolume)
+          : DEFAULT_AUDIO_PREFS.mediaVolume,
+      mediaMuted:
+        typeof rawAudio?.mediaMuted === 'boolean'
+          ? rawAudio.mediaMuted
+          : DEFAULT_AUDIO_PREFS.mediaMuted,
     };
 
     const validPlaylistItemTypes: PlaylistItemType[] = [
@@ -1268,6 +1284,8 @@ interface AppContextValue {
   renamePageBookmark: (id: string, label: string, color?: PageBookmarkColor) => void;
   removePageBookmark: (id: string) => void;
   updateAudioPrefs: (patch: Partial<AudioPrefs>) => void;
+  setMediaVolume: (volume: number) => void;
+  toggleMediaMute: () => void;
   setArabicReciter: (id: string) => void;
   toggleFavoriteReciter: (id: string) => void;
   createPlaylist: (name: string, items?: Omit<AudioPlaylistItem, 'id'>[]) => AudioPlaylist;
@@ -1907,6 +1925,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     audioQueueService.setWordSyncEnabled(persisted.settings.wordSyncEnabled);
   }, [persisted.settings]);
 
+  // Bağımsız Tilavet & Sesli Meal medya ses düzeyi senkronizasyonu (SFX'ten tamamen ayrı)
+  useEffect(() => {
+    setMediaVolumeState(persisted.audioPrefs.mediaVolume, persisted.audioPrefs.mediaMuted);
+  }, [persisted.audioPrefs.mediaVolume, persisted.audioPrefs.mediaMuted]);
+
   // Kelime zamanlama meta dosyasını (seg/meta.json) arka planda sessizce ısıt
   useEffect(() => {
     if (persisted.settings.wordSyncEnabled) {
@@ -2469,6 +2492,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPersisted((prev) => {
       const nextReciterId =
         patch.arabicReciterId ?? patch.arabicAudioSource ?? prev.audioPrefs.arabicReciterId;
+      const nextMediaVolume =
+        typeof patch.mediaVolume === 'number'
+          ? clampMediaVolume(patch.mediaVolume, prev.audioPrefs.mediaVolume)
+          : prev.audioPrefs.mediaVolume;
+      const nextMediaMuted =
+        typeof patch.mediaMuted === 'boolean' ? patch.mediaMuted : prev.audioPrefs.mediaMuted;
       return {
         ...prev,
         audioPrefs: {
@@ -2476,6 +2505,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ...patch,
           arabicReciterId: nextReciterId,
           arabicAudioSource: nextReciterId,
+          mediaVolume: nextMediaVolume,
+          mediaMuted: nextMediaMuted,
+        },
+      };
+    });
+  }, []);
+
+  const setMediaVolume = useCallback((volume: number) => {
+    const next = computeMediaVolumeFromSlider(volume);
+    setMediaVolumeState(next.mediaVolume, next.mediaMuted);
+    setPersisted((prev) => {
+      if (
+        prev.audioPrefs.mediaVolume === next.mediaVolume &&
+        prev.audioPrefs.mediaMuted === next.mediaMuted
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        audioPrefs: {
+          ...prev.audioPrefs,
+          mediaVolume: next.mediaVolume,
+          mediaMuted: next.mediaMuted,
+        },
+      };
+    });
+  }, []);
+
+  const toggleMediaMute = useCallback(() => {
+    setPersisted((prev) => {
+      const next = computeToggledMediaMute(
+        prev.audioPrefs.mediaVolume,
+        prev.audioPrefs.mediaMuted,
+      );
+      setMediaVolumeState(next.mediaVolume, next.mediaMuted);
+      return {
+        ...prev,
+        audioPrefs: {
+          ...prev.audioPrefs,
+          mediaVolume: next.mediaVolume,
+          mediaMuted: next.mediaMuted,
         },
       };
     });
@@ -3393,6 +3463,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       renamePageBookmark,
       removePageBookmark,
       updateAudioPrefs,
+      setMediaVolume,
+      toggleMediaMute,
       setArabicReciter,
       toggleFavoriteReciter,
       createPlaylist,
@@ -3553,6 +3625,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       renamePageBookmark,
       removePageBookmark,
       updateAudioPrefs,
+      setMediaVolume,
+      toggleMediaMute,
       setArabicReciter,
       toggleFavoriteReciter,
       createPlaylist,

@@ -29,6 +29,7 @@ import {
   Sun,
   Trophy,
   Upload,
+  Volume1,
   Volume2,
   VolumeX,
   X,
@@ -59,6 +60,13 @@ import {
   memorizationStorage,
   validateMemorizationBackupPayload,
 } from '../services/memorizationStorage';
+import {
+  getEffectiveMediaVolume,
+  getMediaVolumeLabel,
+  IOS_HARDWARE_VOLUME_NOTE,
+  isEffectivelyMuted,
+  isHardwareVolumeLocked,
+} from '../services/mediaVolumeService';
 import { RESEARCH_NOTEBOOK_STORAGE_KEY } from '../services/researchStorage';
 import { sfxService } from '../services/sfxService';
 import {
@@ -325,6 +333,8 @@ export const SettingsModal: React.FC = () => {
     closeSettingsModal,
     settings,
     audioPrefs,
+    setMediaVolume,
+    toggleMediaMute,
     updateSettings,
     setMealDisplayMode,
     resetSettings,
@@ -1747,7 +1757,129 @@ export const SettingsModal: React.FC = () => {
                   </span>
                 </button>
 
-                {/* SFX Kontrolü */}
+                {/* Bağımsız Tilavet & Sesli Meal Sesi Kontrolü */}
+                {(() => {
+                  const mediaIsMuted = isEffectivelyMuted(
+                    audioPrefs.mediaVolume,
+                    audioPrefs.mediaMuted,
+                  );
+                  const effectiveMediaVol = getEffectiveMediaVolume(
+                    audioPrefs.mediaVolume,
+                    audioPrefs.mediaMuted,
+                  );
+                  const mediaLabel = getMediaVolumeLabel(
+                    audioPrefs.mediaVolume,
+                    audioPrefs.mediaMuted,
+                  );
+                  const hardwareLocked = isHardwareVolumeLocked();
+                  const MediaIcon = mediaIsMuted
+                    ? VolumeX
+                    : effectiveMediaVol < 0.5
+                      ? Volume1
+                      : Volume2;
+
+                  return (
+                    <div
+                      className="p-3.5 rounded-xl border space-y-3"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-soft)',
+                        borderColor: 'var(--border-subtle)',
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <MediaIcon
+                            className="w-4 h-4 shrink-0 mt-0.5"
+                            style={{
+                              color: mediaIsMuted
+                                ? 'var(--text-muted)'
+                                : 'var(--brand-primary-text)',
+                            }}
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-extrabold">
+                              Tilavet &amp; Sesli Meal Sesi
+                            </p>
+                            <p className="text-[11px] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                              Arapça Kur&apos;an tilaveti, Türkçe sesli meal ve kelime okunuşlarının ses düzeyi
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className="text-xs font-extrabold tabular-nums shrink-0 pt-0.5"
+                          style={{
+                            color: mediaIsMuted
+                              ? 'var(--text-muted)'
+                              : 'var(--brand-primary-text)',
+                          }}
+                        >
+                          {mediaLabel}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={toggleMediaMute}
+                          aria-label={mediaIsMuted ? 'Tilavet sesini aç' : 'Tilavet sesini kapat'}
+                          aria-pressed={mediaIsMuted}
+                          title={mediaIsMuted ? 'Sesi aç' : 'Sessize al'}
+                          className="w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                          style={{
+                            backgroundColor: mediaIsMuted
+                              ? 'var(--bg-surface)'
+                              : 'var(--brand-primary-soft)',
+                            borderColor: mediaIsMuted
+                              ? 'var(--border-subtle)'
+                              : 'var(--brand-primary)',
+                            color: mediaIsMuted
+                              ? 'var(--text-muted)'
+                              : 'var(--brand-primary-text)',
+                          }}
+                        >
+                          <MediaIcon className="w-4 h-4" />
+                        </button>
+
+                        {hardwareLocked ? (
+                          <button
+                            type="button"
+                            onClick={toggleMediaMute}
+                            className="flex-1 min-h-[36px] px-3 rounded-xl border text-xs font-bold text-left transition-colors cursor-pointer"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              borderColor: 'var(--border-subtle)',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {mediaIsMuted ? 'Sesi Aç' : 'Sesi Kapat (Sessize Al)'}
+                          </button>
+                        ) : (
+                          <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            value={effectiveMediaVol}
+                            onChange={(e) => setMediaVolume(Number(e.target.value))}
+                            aria-label="Tilavet ve sesli meal ses düzeyi"
+                            className="flex-1 min-w-0 accent-[var(--brand-primary)] cursor-pointer"
+                          />
+                        )}
+                      </div>
+
+                      {hardwareLocked && (
+                        <p
+                          className="text-[11px] leading-snug pt-0.5"
+                          style={{ color: 'var(--text-muted)' }}
+                        >
+                          {IOS_HARDWARE_VOLUME_NOTE}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Arayüz & Oyun Ses Efektleri Kontrolü (Medya sesinden tamamen bağımsız) */}
                 <div
                   className="p-3.5 rounded-xl border space-y-3"
                   style={{
@@ -1763,9 +1895,9 @@ export const SettingsModal: React.FC = () => {
                         <VolumeX className="w-4 h-4 shrink-0" style={{ color: 'var(--text-muted)' }} />
                       )}
                       <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-extrabold">Uygulama Ses Efektleri (SFX)</p>
+                        <p className="text-xs sm:text-sm font-extrabold">Arayüz &amp; Oyun Ses Efektleri</p>
                         <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                          Doğru/yanlış dönütü, tıklama ve başarı sesleri
+                          Buton tıklama, sınav dönütü ve oyun efektleri (tilavetten bağımsız)
                         </p>
                       </div>
                     </div>
@@ -1795,8 +1927,8 @@ export const SettingsModal: React.FC = () => {
                         step={0.05}
                         value={settings.sfxVolume}
                         onChange={(e) => updateSettings({ sfxVolume: Number(e.target.value) })}
-                        aria-label="Ses efekti seviyesi"
-                        className="flex-1 accent-teal-700 cursor-pointer"
+                        aria-label="Arayüz ve oyun ses efekti seviyesi"
+                        className="flex-1 min-w-0 accent-[var(--brand-primary)] cursor-pointer"
                       />
                       <span className="text-xs font-bold tabular-nums w-9 text-right">
                         %{Math.round(settings.sfxVolume * 100)}
@@ -1804,7 +1936,7 @@ export const SettingsModal: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleTestSfx}
-                        className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer"
+                        className="min-h-[32px] px-2.5 rounded-lg border text-xs font-bold cursor-pointer shrink-0"
                         style={{
                           backgroundColor: 'var(--bg-surface)',
                           borderColor: 'var(--border-subtle)',

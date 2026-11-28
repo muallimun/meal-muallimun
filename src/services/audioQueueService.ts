@@ -12,6 +12,7 @@ import {
 } from './audioCacheService';
 import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
 import { dataService, getPageBounds } from './dataService';
+import { applyMediaVolumeToElement, subscribeMediaVolume } from './mediaVolumeService';
 import { wakeLockService } from './wakeLockService';
 import type {
   AudioPlayMode,
@@ -259,6 +260,8 @@ class AudioQueueService {
     queueLoop: 1,
     autoScroll: true,
     showTextOnStart: true,
+    mediaVolume: 1,
+    mediaMuted: false,
   };
   private singleAyahOnly = false;
   private activeModeOverride: AudioPlayMode | undefined;
@@ -270,6 +273,13 @@ class AudioQueueService {
   private externalAudioPausers = new Set<() => void>();
 
   constructor() {
+    subscribeMediaVolume((volState) => {
+      applyMediaVolumeToElement(this.sharedAudio, volState);
+      if (this.audio && this.audio !== this.sharedAudio) {
+        applyMediaVolumeToElement(this.audio, volState);
+      }
+      applyMediaVolumeToElement(this.previewAudio, volState);
+    });
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
         for (const [key, val] of this.segSurahCache.entries()) {
@@ -1053,6 +1063,7 @@ class AudioQueueService {
       // Archive.org / EveryAyah yönlendirmelerinde CORS engeli olmaması için crossOrigin KULLANILMAZ
       const el = new Audio();
       el.preload = 'auto';
+      applyMediaVolumeToElement(el);
       this.sharedAudio = el;
     }
     return this.sharedAudio;
@@ -1326,6 +1337,7 @@ class AudioQueueService {
     const audio = this.getOrCreateAudioElement();
     audio.preload = 'auto';
     this.applyPlaybackRate(audio, this.prefs.playbackRate);
+    applyMediaVolumeToElement(audio);
 
     const controller = new AbortController();
     const { signal } = controller;
@@ -2658,6 +2670,7 @@ class AudioQueueService {
       this.teardownPreviewAudio();
       const audio = new Audio();
       audio.preload = 'auto';
+      applyMediaVolumeToElement(audio);
       const controller = new AbortController();
       const { signal } = controller;
       this.previewAudio = audio;
@@ -2747,6 +2760,13 @@ class AudioQueueService {
 
     if (this.audio) {
       this.applyPlaybackRate(this.audio, nextPrefs.playbackRate);
+      applyMediaVolumeToElement(this.audio);
+    }
+    if (this.sharedAudio && this.sharedAudio !== this.audio) {
+      applyMediaVolumeToElement(this.sharedAudio);
+    }
+    if (this.previewAudio) {
+      applyMediaVolumeToElement(this.previewAudio);
     }
 
     const prevReciterId = prevPrefs.arabicReciterId || prevPrefs.arabicAudioSource;

@@ -535,6 +535,8 @@ export interface AudioPrefs {
   queueLoop: QueueLoopOption;
   autoScroll: boolean;
   showTextOnStart: boolean;
+  mediaVolume: number; // 0..1
+  mediaMuted: boolean;
 }
 
 export type ExamMode = 'practice' | 'arena' | 'mock';

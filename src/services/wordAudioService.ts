@@ -1,5 +1,6 @@
 import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
 import { AUDIO_LOAD_ERROR_MESSAGE, audioQueueService } from './audioQueueService';
+import { applyMediaVolumeToElement, subscribeMediaVolume } from './mediaVolumeService';
 import { mapDisplayWordIndexToQul } from '../utils/wordSyncUtils';
 
 export type WordAudioStatus = 'idle' | 'loading' | 'playing' | 'error';
@@ -54,6 +55,12 @@ class WordAudioService {
   private loadTimer: number | null = null;
   private errorClearTimer: number | null = null;
   private sessionId = 0;
+
+  constructor() {
+    subscribeMediaVolume((volState) => {
+      applyMediaVolumeToElement(this.audio, volState);
+    });
+  }
 
   public subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
@@ -205,6 +212,7 @@ class WordAudioService {
         }
         const audio = this.audio;
         audio.preload = 'auto';
+        applyMediaVolumeToElement(audio);
 
         const controller = new AbortController();
         const { signal } = controller;

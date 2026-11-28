@@ -174,6 +174,8 @@ export const StudyPage: React.FC = () => {
     toggleBookmarkAyah,
     audioPrefs,
     updateAudioPrefs,
+    setMediaVolume,
+    toggleMediaMute,
     poolStats,
     manifest,
     meta,
@@ -3570,6 +3572,10 @@ export const StudyPage: React.FC = () => {
             endAyah: activeAyahNumber,
           })
         }
+        mediaVolume={audioPrefs.mediaVolume}
+        mediaMuted={audioPrefs.mediaMuted}
+        onChangeMediaVolume={setMediaVolume}
+        onToggleMediaMute={toggleMediaMute}
         onOpenWaqfGuide={openWaqfGuide}
         onOpenSettings={openSettingsModal}
         onNavigateTab={(tab) => {

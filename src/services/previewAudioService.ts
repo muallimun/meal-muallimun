@@ -1,5 +1,6 @@
 import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
 import { AUDIO_LOAD_ERROR_MESSAGE } from './audioQueueService';
+import { applyMediaVolumeToElement, subscribeMediaVolume } from './mediaVolumeService';
 
 export type PreviewClipStatus = 'idle' | 'loading' | 'playing' | 'error';
 
@@ -44,6 +45,12 @@ class PreviewAudioService {
   private loadTimer: number | null = null;
   private stallTimer: number | null = null;
   private sessionId = 0;
+
+  constructor() {
+    subscribeMediaVolume((volState) => {
+      applyMediaVolumeToElement(this.audio, volState);
+    });
+  }
 
   public subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
@@ -148,6 +155,7 @@ class PreviewAudioService {
       // Archive.org / EveryAyah yönlendirmelerinde CORS engeli olmaması için crossOrigin KULLANILMAZ
       const audio = new Audio();
       audio.preload = 'auto';
+      applyMediaVolumeToElement(audio);
       const controller = new AbortController();
       const { signal } = controller;
       this.audio = audio;

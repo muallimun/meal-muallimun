@@ -1,5 +1,6 @@
 import { buildReciterAudioUrls } from '../config/recitersConfig';
 import { claimAudioFocus, registerAudioOwner } from './audioFocusCoordinator';
+import { applyMediaVolumeToElement, subscribeMediaVolume } from './mediaVolumeService';
 import { wakeLockService } from './wakeLockService';
 import type {
   PauseMultiplier,
@@ -105,6 +106,13 @@ class MemorizationAudioController {
   private currentTrackIdx = 0;
   private lastMeasuredDurationMs = FALLBACK_AYAH_DURATION_MS;
 
+  constructor() {
+    subscribeMediaVolume((volState) => {
+      applyMediaVolumeToElement(this.channels[0], volState);
+      applyMediaVolumeToElement(this.channels[1], volState);
+    });
+  }
+
   public subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
     return () => {
@@ -125,11 +133,13 @@ class MemorizationAudioController {
     if (!this.channels[0]) {
       const a0 = new Audio();
       a0.preload = 'auto';
+      applyMediaVolumeToElement(a0);
       this.channels[0] = a0;
     }
     if (!this.channels[1]) {
       const a1 = new Audio();
       a1.preload = 'auto';
+      applyMediaVolumeToElement(a1);
       this.channels[1] = a1;
     }
     return [this.channels[0], this.channels[1]];
